@@ -3,7 +3,7 @@
 
 int main() {
     InitWindow(1280, 720, "ReachingUniversalis");
-    SetTargetFPS(60);
+    SetTargetFPS(0);  // uncapped — simulation uses GetFrameTime() so it's frame-rate independent
 
     GameState state;
     state.Initialize();
