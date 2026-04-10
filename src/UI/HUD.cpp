@@ -608,10 +608,11 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
 // ---- Debug overlay ----
 
 void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
-    int agents, tickSpeed, pop, deaths, simSteps, entities;
+    int agents, tickSpeed, pop, deaths, simSteps, entities, haulerCount;
     bool paused;
     Season dbgSeason;
-    float  dbgTemp;
+    float  dbgTemp, econTotal, econAvg, econRichest;
+    std::string econRichestName;
     std::vector<RenderSnapshot::AgentEntry> agentCopy;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -625,6 +626,11 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         dbgSeason = snap.season;
         dbgTemp   = snap.temperature;
         agentCopy = snap.agents;
+        haulerCount     = snap.econHaulerCount;
+        econTotal       = snap.econTotalGold;
+        econAvg         = snap.econAvgNpcWealth;
+        econRichest     = snap.econRichestWealth;
+        econRichestName = snap.econRichestName;
     }
 
     // Count NPCs (not haulers, not player) by behavior
@@ -643,7 +649,7 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     }
 
     static const int OX = 4, OY = 200, OW = 260, OLH = 17;
-    char lines[14][64];
+    char lines[20][64];
     std::snprintf(lines[0],  64, "[F1] DEBUG OVERLAY");
     std::snprintf(lines[1],  64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
     std::snprintf(lines[2],  64, "Sim steps/s:  %d", simSteps);
@@ -658,12 +664,20 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     std::snprintf(lines[11], 64, "  Seeking:    %d", nSeeking);
     std::snprintf(lines[12], 64, "  Migrating:  %d", nMigrating);
     std::snprintf(lines[13], 64, "  Haulers:    %d", nHauling);
+    std::snprintf(lines[14], 64, "--- Economy ---");
+    std::snprintf(lines[15], 64, "  Total gold: %.0fg", econTotal);
+    std::snprintf(lines[16], 64, "  Avg NPC:    %.1fg", econAvg);
+    std::snprintf(lines[17], 64, "  Richest:    %s (%.0fg)",
+                  econRichestName.empty() ? "?" : econRichestName.c_str(), econRichest);
+    std::snprintf(lines[18], 64, "  Haulers:    %d", haulerCount);
 
-    int rows = 14;
+    int rows = 19;
     DrawRectangle(OX, OY, OW, rows*OLH + 8, Fade(BLACK, 0.75f));
     DrawRectangleLines(OX, OY, OW, rows*OLH + 8, DARKGRAY);
     for (int i = 0; i < rows; ++i) {
-        Color col = (i == 0) ? YELLOW : (i == 7) ? Fade(LIGHTGRAY, 0.6f) : LIGHTGRAY;
+        Color col = (i == 0)  ? YELLOW :
+                    (i == 7 || i == 14) ? Fade(LIGHTGRAY, 0.6f) :
+                    LIGHTGRAY;
         DrawText(lines[i], OX+6, OY+4+i*OLH, 13, col);
     }
 }

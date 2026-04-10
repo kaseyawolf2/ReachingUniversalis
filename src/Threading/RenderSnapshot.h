@@ -169,6 +169,13 @@ struct RenderSnapshot {
     // Event log
     std::vector<EventLog::Entry> logEntries;
 
+    // ---- Economy-wide statistics ----
+    float econTotalGold     = 0.f;  // sum of all NPC + player balances + settlement treasuries
+    float econAvgNpcWealth  = 0.f;  // mean NPC (non-player) gold balance
+    float econRichestWealth = 0.f;  // wealthiest individual NPC's balance
+    std::string econRichestName;    // name of wealthiest NPC
+    int   econHaulerCount   = 0;    // total haulers in the world
+
     // ---- Sim thread diagnostics ----
     int simStepsPerSec = 0;   // sim steps executed in the last real second
     int totalEntities  = 0;   // total live entities in the registry

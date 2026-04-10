@@ -1252,6 +1252,49 @@ void SimThread::WriteSnapshot() {
         }
     }
 
+    // ---- Economy-wide statistics ----
+    float econTotalGold     = 0.f;
+    float econAvgNpcWealth  = 0.f;
+    float econRichestWealth = 0.f;
+    std::string econRichestName;
+    int   econHaulerCount   = 0;
+    {
+        float npcGoldSum = 0.f;
+        int   npcCount   = 0;
+
+        // NPC + hauler balances
+        m_registry.view<Money>(entt::exclude<PlayerTag>).each(
+            [&](auto e, const Money& mon) {
+                econTotalGold += mon.balance;
+                bool isHauler = m_registry.all_of<Hauler>(e);
+                if (isHauler) {
+                    ++econHaulerCount;
+                } else {
+                    npcGoldSum += mon.balance;
+                    ++npcCount;
+                    if (mon.balance > econRichestWealth) {
+                        econRichestWealth = mon.balance;
+                        if (const auto* n = m_registry.try_get<Name>(e))
+                            econRichestName = n->value;
+                        else
+                            econRichestName = "?";
+                    }
+                }
+            });
+
+        // Player balance
+        m_registry.view<PlayerTag, Money>().each([&](auto, const Money& mon) {
+            econTotalGold += mon.balance;
+        });
+
+        // Settlement treasuries
+        m_registry.view<Settlement>().each([&](const Settlement& s) {
+            econTotalGold += s.treasury;
+        });
+
+        econAvgNpcWealth = (npcCount > 0) ? npcGoldSum / npcCount : 0.f;
+    }
+
     // ---- Event log ----
     std::vector<EventLog::Entry> logEntries;
     {
@@ -1304,6 +1347,11 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
         m_snapshot.tradeHint               = std::move(tradeHint);
         m_snapshot.logEntries    = std::move(logEntries);
+        m_snapshot.econTotalGold     = econTotalGold;
+        m_snapshot.econAvgNpcWealth  = econAvgNpcWealth;
+        m_snapshot.econRichestWealth = econRichestWealth;
+        m_snapshot.econRichestName   = std::move(econRichestName);
+        m_snapshot.econHaulerCount   = econHaulerCount;
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();
     }
