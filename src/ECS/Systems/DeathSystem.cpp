@@ -20,20 +20,11 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
 
     std::vector<entt::entity> toRemove;
 
-    // ---- Age-based natural death + visual size update ----
+    // ---- Age-based natural death ----
+    // Note: visual size scaling is handled per-frame in SimThread::WriteSnapshot
+    // based on ageDays, so there is no need to modify rend->size here.
     registry.view<Age>().each([&](auto entity, Age& age) {
         age.days += agingDays;
-
-        // Scale non-player NPC/hauler size by life stage (child smaller, elderly slightly smaller)
-        // Skip player so they always appear full-size.
-        if (!registry.all_of<PlayerTag>(entity)) {
-            if (auto* rend = registry.try_get<Renderable>(entity)) {
-                float targetSize = (age.days < 10.f) ? 3.5f :
-                                   (age.days < 15.f) ? 5.0f :
-                                   (age.days > 70.f) ? 5.0f : 6.0f;
-                rend->size = targetSize;
-            }
-        }
 
         if (age.days >= age.maxDays) {
             toRemove.push_back(entity);
@@ -83,6 +74,26 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 }
             } else {
                 timer.needsAtZero[i] = 0.f;
+            }
+        }
+    }
+
+    // ---- Inheritance: 50% of a deceased NPC's gold returns to their settlement ----
+    // This prevents gold from permanently leaving the economy through deaths and
+    // represents the community inheriting from its members (bequests, estate sale, etc.).
+    for (auto e : toRemove) {
+        if (!registry.valid(e)) continue;
+        if (const auto* money = registry.try_get<Money>(e)) {
+            static constexpr float INHERITANCE_FRACTION = 0.5f;
+            static constexpr float MIN_INHERITANCE      = 10.f;   // only meaningful estates
+            if (money->balance >= MIN_INHERITANCE) {
+                if (const auto* hs = registry.try_get<HomeSettlement>(e)) {
+                    if (hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                        if (auto* settl = registry.try_get<Settlement>(hs->settlement)) {
+                            settl->treasury += money->balance * INHERITANCE_FRACTION;
+                        }
+                    }
+                }
             }
         }
     }
