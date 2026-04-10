@@ -162,7 +162,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 16;
         }
 
-        DrawText("WASD:Move  E:Work  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  M:Market  F1:Debug",
+        DrawText("WASD:Move  E:Work  Q:Buy  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  F1:Debug",
                  BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
     }
 

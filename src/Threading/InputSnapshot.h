@@ -23,6 +23,7 @@ struct InputSnapshot {
     std::atomic<bool> playerSleep    {false};  // Z: toggle sleep (restores energy)
     std::atomic<bool> playerSettle   {false};  // H: adopt nearest settlement as home
     std::atomic<bool> playerWork     {false};  // E: work at nearest production facility
+    std::atomic<bool> playerBuy      {false};  // Q: buy 1 unit of cheapest resource at nearest settlement
 
     // ---- Continuous player movement (normalised, -1..1) ----
     std::atomic<float> playerMoveX{0.f};

@@ -54,6 +54,7 @@ void GameState::PollInput(float dt) {
     if (IsKeyPressed(KEY_Z))    m_input.playerSleep.store(true);
     if (IsKeyPressed(KEY_H))    m_input.playerSettle.store(true);
     if (IsKeyPressed(KEY_E))    m_input.playerWork.store(true);
+    if (IsKeyPressed(KEY_Q))    m_input.playerBuy.store(true);
 
     if (IsKeyPressed(KEY_F)) {
         m_followPlayer = !m_followPlayer;

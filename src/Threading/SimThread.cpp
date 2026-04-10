@@ -465,6 +465,78 @@ void SimThread::ProcessInput() {
         }
     }
 
+    // One-shot: player buy (Q) — buy 1 unit of a resource from nearest settlement at market price.
+    // Requires: player has enough gold, settlement has stock, player is within range.
+    // This enables the merchant playstyle: earn gold via E-key work, buy cheap, sell elsewhere via T.
+    if (m_input.playerBuy.exchange(false)) {
+        static constexpr float BUY_RADIUS = 150.f;
+        auto pv4 = m_registry.view<PlayerTag, Position, Inventory, Money>();
+        auto lv4 = m_registry.view<EventLog>();
+        EventLog* blog = (lv4.begin() == lv4.end()) ? nullptr
+                        : &lv4.get<EventLog>(*lv4.begin());
+
+        if (pv4.begin() != pv4.end()) {
+            auto  pe4  = *pv4.begin();
+            auto& pp4  = pv4.get<Position>(pe4);
+            auto& inv4 = pv4.get<Inventory>(pe4);
+            auto& mon4 = pv4.get<Money>(pe4);
+
+            // Find nearest settlement
+            entt::entity nearS = entt::null;
+            float        nearD = BUY_RADIUS * BUY_RADIUS;
+            m_registry.view<Position, Settlement>().each(
+                [&](auto se, const Position& sp, const Settlement&) {
+                float dx = sp.x - pp4.x, dy = sp.y - pp4.y;
+                float d  = dx*dx + dy*dy;
+                if (d < nearD) { nearD = d; nearS = se; }
+            });
+
+            if (nearS == entt::null) {
+                if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "No settlement in range to buy from");
+            } else {
+                auto* sp4  = m_registry.try_get<Stockpile>(nearS);
+                auto* mkt4 = m_registry.try_get<Market>(nearS);
+                const auto* sn4 = m_registry.try_get<Settlement>(nearS);
+                std::string sname = sn4 ? sn4->name : "?";
+
+                if (inv4.TotalItems() >= inv4.maxCapacity) {
+                    if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "Inventory full — can't buy more");
+                } else if (sp4 && mkt4) {
+                    // Find cheapest available resource (best value for the player to carry)
+                    ResourceType cheapRes = ResourceType::Food;
+                    float cheapPrice = std::numeric_limits<float>::max();
+                    bool found = false;
+
+                    for (auto res : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                        float stock = sp4->quantities.count(res) ? sp4->quantities.at(res) : 0.f;
+                        if (stock < 1.f) continue;
+                        float price = mkt4->GetPrice(res);
+                        if (price < cheapPrice && mon4.balance >= price) {
+                            cheapPrice = price;
+                            cheapRes   = res;
+                            found      = true;
+                        }
+                    }
+
+                    if (found) {
+                        sp4->quantities[cheapRes] -= 1.f;
+                        inv4.contents[cheapRes]   += 1;
+                        mon4.balance              -= cheapPrice;
+                        const char* rname = (cheapRes == ResourceType::Food)  ? "food"  :
+                                            (cheapRes == ResourceType::Water) ? "water" : "wood";
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf), "Bought 1 %s at %s for %.2fg",
+                                      rname, sname.c_str(), cheapPrice);
+                        if (blog) blog->Push(tm.day, (int)tm.hourOfDay, buf);
+                    } else {
+                        if (blog) blog->Push(tm.day, (int)tm.hourOfDay,
+                            "Nothing affordable to buy at " + sname + " (or stockpile empty)");
+                    }
+                }
+            }
+        }
+    }
+
     // Continuous: player movement (velocity is set, MovementSystem applies it)
     // Movement is blocked while sleeping — pressing WASD wakes them up.
     {
