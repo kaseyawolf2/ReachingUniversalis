@@ -1158,48 +1158,96 @@ void SimThread::WriteSnapshot() {
     }
 
     // ---- Trade opportunity hint ----
-    // Scan all settlements' market prices to find the best buy-low/sell-high margin
-    // for each resource, then surface the top opportunity as a compact hint string.
+    // If the player is near a settlement (within BUY_RADIUS), shows the best trade
+    // route *from that settlement* — what to pick up here and where to sell it.
+    // If the player is not near any settlement, falls back to the global best margin.
     std::string tradeHint;
     {
-        struct PriceRecord { float price; std::string name; };
-        // For each resource: track cheapest (buy) and most expensive (sell)
         static const ResourceType kTradeRes[] = {
             ResourceType::Food, ResourceType::Water, ResourceType::Wood };
         static const char* kTradeNames[] = { "Food", "Water", "Wood" };
+        static constexpr float HINT_RADIUS    = 200.f; // wider than BUY_RADIUS for early warning
+        static constexpr float MIN_MARGIN     = 2.0f;
 
-        float    bestMargin  = 2.0f;  // only show hints with margin > 2g
-        int      bestResIdx  = -1;
-        PriceRecord bestBuy  { 9999.f, "" };
-        PriceRecord bestSell { 0.f,    "" };
+        struct HintResult {
+            int   resIdx   = -1;
+            float buyPrice = 0.f, sellPrice = 0.f, margin = 0.f;
+            std::string buyName, sellName;
+        };
 
-        for (int ri = 0; ri < 3; ++ri) {
-            ResourceType res = kTradeRes[ri];
-            PriceRecord lo{ 9999.f, "" }, hi{ 0.f, "" };
-            m_registry.view<Settlement, Market>().each(
-                [&](auto se, const Settlement& s, const Market& mkt) {
-                    float p = mkt.GetPrice(res);
-                    if (p < lo.price) lo = { p, s.name };
-                    if (p > hi.price) hi = { p, s.name };
-                });
-            if (lo.name.empty() || hi.name.empty()) continue;
-            float margin = hi.price - lo.price;
-            if (margin > bestMargin) {
-                bestMargin = margin;
-                bestResIdx = ri;
-                bestBuy    = lo;
-                bestSell   = hi;
+        auto computeHint = [&](entt::entity fromSettl) -> HintResult {
+            HintResult best;
+            const auto* fromMkt = m_registry.try_get<Market>(fromSettl);
+            if (!fromMkt) return best;
+            const auto* fromName = m_registry.try_get<Settlement>(fromSettl);
+            for (int ri = 0; ri < 3; ++ri) {
+                ResourceType res = kTradeRes[ri];
+                float buyP = fromMkt->GetPrice(res);
+                // Find settlement that pays the most for this resource
+                float    bestSell = 0.f;
+                std::string bestSellName;
+                m_registry.view<Settlement, Market>().each(
+                    [&](auto se, const Settlement& s, const Market& mkt) {
+                        if (se == fromSettl) return;
+                        float p = mkt.GetPrice(res);
+                        if (p > bestSell) { bestSell = p; bestSellName = s.name; }
+                    });
+                float margin = bestSell - buyP;
+                if (margin > best.margin && margin > MIN_MARGIN) {
+                    best.resIdx   = ri;
+                    best.buyPrice = buyP;
+                    best.sellPrice= bestSell;
+                    best.margin   = margin;
+                    best.buyName  = fromName ? fromName->name : "?";
+                    best.sellName = bestSellName;
+                }
+            }
+            return best;
+        };
+
+        // Find nearest settlement to player
+        entt::entity nearSettl = entt::null;
+        float nearDist = HINT_RADIUS * HINT_RADIUS;
+        m_registry.view<Position, Settlement>().each(
+            [&](auto e, const Position& sp, const Settlement&) {
+                float dx = sp.x - playerWX, dy = sp.y - playerWY;
+                float d  = dx*dx + dy*dy;
+                if (d < nearDist) { nearDist = d; nearSettl = e; }
+            });
+
+        HintResult result;
+        if (nearSettl != entt::null) {
+            result = computeHint(nearSettl);
+        }
+
+        // Fallback: global best if no nearby settlement or margin is too low
+        if (result.resIdx < 0) {
+            struct PriceRecord { float price; std::string name; };
+            for (int ri = 0; ri < 3; ++ri) {
+                ResourceType res = kTradeRes[ri];
+                PriceRecord lo{ 9999.f, "" }, hi{ 0.f, "" };
+                m_registry.view<Settlement, Market>().each(
+                    [&](auto, const Settlement& s, const Market& mkt) {
+                        float p = mkt.GetPrice(res);
+                        if (p < lo.price) lo = { p, s.name };
+                        if (p > hi.price) hi = { p, s.name };
+                    });
+                if (lo.name.empty() || hi.name.empty()) continue;
+                float margin = hi.price - lo.price;
+                if (margin > result.margin && margin > MIN_MARGIN) {
+                    result = { ri, lo.price, hi.price, margin, lo.name, hi.name };
+                }
             }
         }
 
-        if (bestResIdx >= 0) {
+        if (result.resIdx >= 0) {
             char buf[128];
             std::snprintf(buf, sizeof(buf),
                 "%s: buy %s %.1fg → sell %s %.1fg (+%.1fg)",
-                kTradeNames[bestResIdx],
-                bestBuy.name.c_str(),  bestBuy.price,
-                bestSell.name.c_str(), bestSell.price,
-                bestMargin);
+                kTradeNames[result.resIdx],
+                result.buyName.c_str(),  result.buyPrice,
+                result.sellName.c_str(), result.sellPrice,
+                result.margin);
             tradeHint = buf;
         }
     }
