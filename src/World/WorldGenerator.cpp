@@ -115,7 +115,7 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<StockpileAlert>(greenfield);
     registry.emplace<Stockpile>(greenfield, Stockpile{{
         { ResourceType::Food,  120.f },
-        { ResourceType::Water,  20.f },
+        { ResourceType::Water,  80.f },   // raised from 20 — gives haulers time to supply
         { ResourceType::Wood,    0.f }
     }});
     // Market: Food cheap (surplus), Water expensive (scarce), Wood scarce
@@ -165,13 +165,15 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Road>(registry.create(), Road{ millhaven,  wellsworth, false });
 
     // ---- Production facilities ----
-    // Farms require 0.4 water per food unit produced — creates supply-chain dependency
+    // Farms require 0.15 water per food unit produced — supply-chain dependency
+    // At full workers (2 farms × baseRate 4 × scale 2.0): 2.4 water/hr consumed by farms.
+    // Greenfield starts with 80 water, giving haulers time to establish water imports.
     for (int i = 0; i < 2; ++i) {
         auto farm = registry.create();
         registry.emplace<Position>(farm, 400.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(farm,
             ProductionFacility{ ResourceType::Food, 4.f, greenfield,
-                                {{ ResourceType::Water, 0.4f }} });
+                                {{ ResourceType::Water, 0.15f }} });
     }
     for (int i = 0; i < 2; ++i) {
         auto well = registry.create();

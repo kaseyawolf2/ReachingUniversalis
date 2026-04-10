@@ -134,7 +134,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 16;
         }
 
-        DrawText("WASD:Move  B:Road  T:Trade  F1:Debug",
+        DrawText("WASD:Move  B:Road  T:Trade  F:Follow  F1:Debug",
                  BAR_X, invY + 4, 10, Fade(LIGHTGRAY, 0.6f));
     }
 

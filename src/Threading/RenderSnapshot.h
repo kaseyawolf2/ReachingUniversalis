@@ -38,6 +38,9 @@ struct RenderSnapshot {
         bool         selected;
         // entity handle carried through so main thread can identify clicks
         uint32_t     entityId;
+        float        foodStock  = 0.f;   // for health ring color
+        float        waterStock = 0.f;
+        int          pop        = 0;     // 0 = collapsed
     };
 
     struct RoadEntry {

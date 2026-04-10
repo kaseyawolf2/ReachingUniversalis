@@ -420,10 +420,21 @@ void SimThread::WriteSnapshot() {
     // ---- Settlements ----
     m_registry.view<Position, Settlement>().each(
         [&](auto e, const Position& pos, const Settlement& s) {
+        float food = 0.f, water = 0.f;
+        if (const auto* sp = m_registry.try_get<Stockpile>(e)) {
+            food  = sp->quantities.count(ResourceType::Food)
+                    ? sp->quantities.at(ResourceType::Food)  : 0.f;
+            water = sp->quantities.count(ResourceType::Water)
+                    ? sp->quantities.at(ResourceType::Water) : 0.f;
+        }
+        int spop = 0;
+        m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+            [&](const HomeSettlement& hs) { if (hs.settlement == e) ++spop; });
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
-            static_cast<uint32_t>(e)
+            static_cast<uint32_t>(e),
+            food, water, spop
         });
     });
 

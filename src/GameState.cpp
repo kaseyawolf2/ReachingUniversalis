@@ -143,14 +143,26 @@ void GameState::Draw() {
         }
     }
 
-    // Settlements
+    // Settlements — ring color reflects food+water health
     for (const auto& s : settlements) {
-        Color ring = s.selected ? YELLOW : Fade(WHITE, 0.5f);
-        DrawCircleV({ s.x, s.y }, s.radius, Fade(DARKGREEN, 0.15f));
+        Color fill = Fade(DARKGREEN, 0.15f);
+        Color ring;
+        if (s.pop == 0) {
+            // Collapsed settlement — grey fill, dark ring
+            fill = Fade(DARKGRAY, 0.15f);
+            ring = s.selected ? YELLOW : Fade(DARKGRAY, 0.7f);
+        } else {
+            float minStock = std::min(s.foodStock, s.waterStock);
+            ring = s.selected ? YELLOW :
+                   (minStock > 30.f) ? Fade(GREEN, 0.7f)  :
+                   (minStock > 10.f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+        }
+        DrawCircleV({ s.x, s.y }, s.radius, fill);
         DrawCircleLinesV({ s.x, s.y }, s.radius, ring);
+        Color nameCol = (s.pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
         DrawText(s.name.c_str(),
                  (int)(s.x - MeasureText(s.name.c_str(), 14) / 2),
-                 (int)(s.y - s.radius - 18), 14, WHITE);
+                 (int)(s.y - s.radius - 18), 14, nameCol);
     }
 
     // Facilities
