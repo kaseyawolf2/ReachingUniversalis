@@ -1,6 +1,7 @@
 #include "AgentDecisionSystem.h"
 #include <cmath>
 #include <limits>
+#include <string>
 #include "ECS/Components.h"
 
 // Radius within which an NPC can interact with a production facility.
@@ -193,9 +194,26 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (timer.stockpileEmpty >= MIGRATE_THRESHOLD) {
             entt::entity dest = FindMigrationTarget(registry, home.settlement);
             if (dest != entt::null) {
-                state.behavior = AgentBehavior::Migrating;
-                state.target   = dest;
+                state.behavior       = AgentBehavior::Migrating;
+                state.target         = dest;
                 timer.stockpileEmpty = 0.f;
+
+                // Log migration event
+                auto lv = registry.view<EventLog>();
+                if (lv.begin() != lv.end()) {
+                    auto tv = registry.view<TimeManager>();
+                    if (tv.begin() != tv.end()) {
+                        const auto& tm2 = tv.get<TimeManager>(*tv.begin());
+                        std::string from = "?", to = "?";
+                        if (auto* s = registry.try_get<Settlement>(home.settlement))
+                            from = s->name;
+                        if (auto* s = registry.try_get<Settlement>(dest))
+                            to = s->name;
+                        lv.get<EventLog>(*lv.begin()).Push(
+                            tm2.day, (int)tm2.hourOfDay,
+                            "NPC migrating " + from + " → " + to);
+                    }
+                }
                 continue;
             }
         }

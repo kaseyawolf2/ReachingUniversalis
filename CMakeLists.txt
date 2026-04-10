@@ -38,6 +38,7 @@ set(SOURCES
     src/ECS/Systems/ProductionSystem.cpp
     src/ECS/Systems/TransportSystem.cpp
     src/ECS/Systems/DeathSystem.cpp
+    src/ECS/Systems/BirthSystem.cpp
 
     # Render-side systems (owned by GameState, run on main thread only)
     src/ECS/Systems/RenderSystem.cpp

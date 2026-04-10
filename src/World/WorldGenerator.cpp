@@ -83,6 +83,7 @@ void WorldGenerator::Populate(entt::registry& registry) {
     auto greenfield = registry.create();
     registry.emplace<Position>(greenfield, 400.f, 360.f);
     registry.emplace<Settlement>(greenfield, Settlement{ "Greenfield", 120.f });
+    registry.emplace<BirthTracker>(greenfield);
     registry.emplace<Stockpile>(greenfield, Stockpile{{
         { ResourceType::Food,  120.f },
         { ResourceType::Water,  20.f }
@@ -91,6 +92,7 @@ void WorldGenerator::Populate(entt::registry& registry) {
     auto wellsworth = registry.create();
     registry.emplace<Position>(wellsworth, 2000.f, 360.f);
     registry.emplace<Settlement>(wellsworth, Settlement{ "Wellsworth", 120.f });
+    registry.emplace<BirthTracker>(wellsworth);
     registry.emplace<Stockpile>(wellsworth, Stockpile{{
         { ResourceType::Food,   20.f },
         { ResourceType::Water, 120.f }

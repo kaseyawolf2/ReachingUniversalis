@@ -205,29 +205,30 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
 
-    // Determine role by ring colour (render thread heuristic — no registry access)
-    const char* role = (best->ringColor.r == WHITE.r &&
-                        best->ringColor.g == WHITE.g &&
-                        best->ringColor.b == WHITE.b) ? "Player"
-                     : (best->ringColor.b > 100 && best->ringColor.r < 50) ? "Hauler"
+    const char* role = (best->role == RenderSnapshot::AgentRole::Player) ? "Player"
+                     : (best->role == RenderSnapshot::AgentRole::Hauler) ? "Hauler"
                      : "NPC";
 
-    char line1[48];
-    std::snprintf(line1, sizeof(line1), "%s", role);
+    char line1[64], line2[64];
+    std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
+    std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
+                  best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
 
-    int tx = (int)screen.x + 14, ty = (int)screen.y - 28;
-    int pw = MeasureText(line1, 12) + 10;
+    int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
+    int pw = std::max(w1, w2) + 10;
+    int tx = (int)screen.x + 14, ty = (int)screen.y - 36;
     if (tx + pw > SCREEN_W) tx = (int)screen.x - pw - 10;
     if (ty < 0) ty = (int)screen.y + 12;
 
-    DrawRectangle(tx - 4, ty - 2, pw, 18, Fade(BLACK, 0.75f));
-    DrawText(line1, tx, ty, 12, WHITE);
+    DrawRectangle(tx - 4, ty - 2, pw, 32, Fade(BLACK, 0.75f));
+    DrawText(line1, tx, ty,      12, WHITE);
+    DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
 }
 
 // ---- Debug overlay ----
 
 void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
-    int agents, tickSpeed, pop, deaths;
+    int agents, tickSpeed, pop, deaths, simSteps, entities;
     bool paused;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -236,20 +237,25 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         pop       = snap.population;
         deaths    = snap.totalDeaths;
         paused    = snap.paused;
+        simSteps  = snap.simStepsPerSec;
+        entities  = snap.totalEntities;
     }
 
-    static const int OX = 4, OY = 148, OW = 220, OLH = 17;
-    char lines[6][64];
+    static const int OX = 4, OY = 148, OW = 240, OLH = 17;
+    char lines[8][64];
     std::snprintf(lines[0], 64, "[F1] DEBUG OVERLAY");
-    std::snprintf(lines[1], 64, "FPS:        %d", GetFPS());
-    std::snprintf(lines[2], 64, "Render ents:%d", agents);
-    std::snprintf(lines[3], 64, "Population: %d  Deaths: %d", pop, deaths);
-    std::snprintf(lines[4], 64, "Tick speed: %dx%s", tickSpeed, paused ? " PAUSED" : "");
-    std::snprintf(lines[5], 64, "Sim thread: background");
+    std::snprintf(lines[1], 64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
+    std::snprintf(lines[2], 64, "Sim steps/s:  %d", simSteps);
+    std::snprintf(lines[3], 64, "Tick speed:   %dx%s", tickSpeed, paused ? " (PAUSED)" : "");
+    std::snprintf(lines[4], 64, "Entities:     %d", entities);
+    std::snprintf(lines[5], 64, "Render agents:%d", agents);
+    std::snprintf(lines[6], 64, "Population:   %d", pop);
+    std::snprintf(lines[7], 64, "Deaths:       %d", deaths);
 
-    DrawRectangle(OX, OY, OW, 6*OLH + 8, Fade(BLACK, 0.75f));
-    DrawRectangleLines(OX, OY, OW, 6*OLH + 8, DARKGRAY);
-    for (int i = 0; i < 6; ++i)
+    int rows = 8;
+    DrawRectangle(OX, OY, OW, rows*OLH + 8, Fade(BLACK, 0.75f));
+    DrawRectangleLines(OX, OY, OW, rows*OLH + 8, DARKGRAY);
+    for (int i = 0; i < rows; ++i)
         DrawText(lines[i], OX+6, OY+4+i*OLH, 13, i==0 ? YELLOW : LIGHTGRAY);
 }
 

@@ -151,6 +151,12 @@ struct CameraState {
     bool  followPlayer = true;    // if true, camera lerps to player position
 };
 
+// ---- Birth tracker (one per settlement entity) ----
+
+struct BirthTracker {
+    float accumulator = 0.f;   // game-hours accumulated toward next birth
+};
+
 // ---- Event log (singleton component) ----
 
 struct EventLog {

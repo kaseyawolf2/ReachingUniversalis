@@ -3,7 +3,6 @@
 #include "Threading/InputSnapshot.h"
 #include "Threading/RenderSnapshot.h"
 #include "Threading/SimThread.h"
-#include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
 

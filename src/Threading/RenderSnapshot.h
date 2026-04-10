@@ -17,11 +17,16 @@ struct RenderSnapshot {
 
     // ---- Drawable world objects ----
 
+    enum class AgentRole { NPC, Hauler, Player };
+
     struct AgentEntry {
-        float x, y, size;
-        Color color, ringColor;
-        bool  hasCargoDot;
-        Color cargoDotColor;
+        float     x, y, size;
+        Color     color, ringColor;
+        bool      hasCargoDot;
+        Color     cargoDotColor;
+        AgentRole role;
+        float     hungerPct, thirstPct, energyPct;
+        AgentBehavior behavior;
     };
 
     struct SettlementEntry {
@@ -95,6 +100,10 @@ struct RenderSnapshot {
 
     // Event log
     std::vector<EventLog::Entry> logEntries;
+
+    // ---- Sim thread diagnostics ----
+    int simStepsPerSec = 0;   // sim steps executed in the last real second
+    int totalEntities  = 0;   // total live entities in the registry
 
     // ---- Synchronisation ----
     mutable std::mutex mutex;

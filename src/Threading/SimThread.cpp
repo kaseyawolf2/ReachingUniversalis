@@ -82,6 +82,15 @@ void SimThread::Run() {
             int totalSteps = virtualFrames * tickSpeed;
             for (int i = 0; i < totalSteps; ++i)
                 RunSimStep(SIM_STEP_DT);
+            m_stepCounter += totalSteps;
+        }
+
+        // Track steps per second using wall clock
+        m_statAccum += realDt;
+        if (m_statAccum >= 1.f) {
+            m_stepsLastSec = m_stepCounter;
+            m_stepCounter  = 0;
+            m_statAccum   -= 1.f;
         }
 
         // --- Write drawable state for the render thread ---
@@ -104,6 +113,7 @@ void SimThread::RunSimStep(float dt) {
     m_productionSystem.Update(m_registry, dt);
     m_transportSystem.Update(m_registry, dt);
     m_deathSystem.Update(m_registry, dt);
+    m_birthSystem.Update(m_registry, dt);
 }
 
 // ---- Consume pending input --------------------------------------------
@@ -238,17 +248,23 @@ void SimThread::WriteSnapshot() {
 
     // ---- Agents ----
     m_registry.view<Position, AgentState, Renderable>().each(
-        [&](auto e, const Position& pos, const AgentState&, const Renderable& rend) {
+        [&](auto e, const Position& pos, const AgentState& astate, const Renderable& rend) {
+
+        bool isPlayer = m_registry.all_of<PlayerTag>(e);
+        bool isHauler = m_registry.all_of<Hauler>(e);
+        RenderSnapshot::AgentRole role = isPlayer ? RenderSnapshot::AgentRole::Player
+                                       : isHauler ? RenderSnapshot::AgentRole::Hauler
+                                                  : RenderSnapshot::AgentRole::NPC;
 
         Color drawColor = rend.color;
-        bool  isPlayer  = m_registry.all_of<PlayerTag>(e);
-        bool  isHauler  = m_registry.all_of<Hauler>(e);
+        float hp = 1.f, tp = 1.f, ep = 1.f;
 
-        if (!isPlayer) {
-            if (const auto* needs = m_registry.try_get<Needs>(e)) {
-                float worst = 1.f;
-                for (const auto& n : needs->list)
-                    if (n.value < worst) worst = n.value;
+        if (const auto* needs = m_registry.try_get<Needs>(e)) {
+            hp = needs->list[0].value;
+            tp = needs->list[1].value;
+            ep = needs->list[2].value;
+            if (!isPlayer) {
+                float worst = std::min({hp, tp, ep});
                 if      (worst < 0.15f) drawColor = RED;
                 else if (worst < 0.30f) drawColor = ORANGE;
                 else if (worst < 0.55f) drawColor = YELLOW;
@@ -258,8 +274,8 @@ void SimThread::WriteSnapshot() {
 
         Color ring = isPlayer ? WHITE : (isHauler ? DARKBLUE : DARKGRAY);
 
-        bool  hasCargo    = false;
-        Color cargoColor  = WHITE;
+        bool  hasCargo   = false;
+        Color cargoColor = WHITE;
         if (isHauler) {
             if (const auto* inv = m_registry.try_get<Inventory>(e)) {
                 for (const auto& [type, qty] : inv->contents) {
@@ -273,7 +289,8 @@ void SimThread::WriteSnapshot() {
         }
 
         agents.push_back({ pos.x, pos.y, rend.size,
-                           drawColor, ring, hasCargo, cargoColor });
+                           drawColor, ring, hasCargo, cargoColor,
+                           role, hp, tp, ep, astate.behavior });
     });
 
     // ---- Settlements ----
@@ -408,8 +425,10 @@ void SimThread::WriteSnapshot() {
         m_snapshot.thirstCrit   = thirstCrit;
         m_snapshot.energyCrit   = energyCrit;
         m_snapshot.playerBehavior = playerBehavior;
-        m_snapshot.playerWorldX = playerWX;
-        m_snapshot.playerWorldY = playerWY;
-        m_snapshot.logEntries   = std::move(logEntries);
+        m_snapshot.playerWorldX  = playerWX;
+        m_snapshot.playerWorldY  = playerWY;
+        m_snapshot.logEntries    = std::move(logEntries);
+        m_snapshot.simStepsPerSec = m_stepsLastSec;
+        m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();
     }
 }

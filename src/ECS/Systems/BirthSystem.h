@@ -1,7 +1,7 @@
 #pragma once
 #include <entt/entt.hpp>
 
-class PlayerInputSystem {
+class BirthSystem {
 public:
     void Update(entt::registry& registry, float realDt);
 };

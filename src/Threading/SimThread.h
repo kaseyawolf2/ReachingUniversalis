@@ -15,6 +15,7 @@
 #include "ECS/Systems/ProductionSystem.h"
 #include "ECS/Systems/TransportSystem.h"
 #include "ECS/Systems/DeathSystem.h"
+#include "ECS/Systems/BirthSystem.h"
 
 // SimThread owns the ECS registry and all simulation systems.
 // It runs on a dedicated background thread so the render thread never stalls
@@ -58,9 +59,15 @@ private:
     ProductionSystem    m_productionSystem;
     TransportSystem     m_transportSystem;
     DeathSystem         m_deathSystem;
+    BirthSystem         m_birthSystem;
 
     std::thread       m_thread;
     std::atomic<bool> m_running{false};
+
+    // Sim throughput tracking
+    int   m_stepCounter   = 0;
+    int   m_stepsLastSec  = 0;
+    float m_statAccum     = 0.f;
 
     // World-space click pending from main thread (protected by m_clickMutex)
     std::mutex        m_clickMutex;

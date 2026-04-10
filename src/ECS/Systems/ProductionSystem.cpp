@@ -5,8 +5,9 @@
 
 // At full workforce (BASE_WORKERS) production runs at baseline rate.
 // Fewer workers → proportional reduction; more workers → bonus up to 2×.
-static constexpr int   BASE_WORKERS = 5;
-static constexpr float MAX_SCALE    = 2.0f;
+static constexpr int   BASE_WORKERS   = 5;
+static constexpr float MAX_SCALE      = 2.0f;
+static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 
 void ProductionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
@@ -37,6 +38,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         float scale = std::min(MAX_SCALE, static_cast<float>(w) / BASE_WORKERS);
         scale       = std::max(0.1f, scale);   // never fully zero — keep a trickle
 
-        stockpile->quantities[fac.output] += fac.baseRate * scale * gameHoursDt;
+        float& qty = stockpile->quantities[fac.output];
+        qty = std::min(STOCKPILE_CAP, qty + fac.baseRate * scale * gameHoursDt);
     }
 }
