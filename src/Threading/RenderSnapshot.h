@@ -31,6 +31,9 @@ struct RenderSnapshot {
         float       ageDays = 0.f;    // current age in game-days
         float       maxDays = 80.f;   // life expectancy
         std::string npcName;          // name for tooltip display
+        // Hauler route destination (only set when hauler is carrying goods to a settlement)
+        bool  hasRouteDest = false;
+        float destX = 0.f, destY = 0.f;
     };
 
     struct SettlementEntry {

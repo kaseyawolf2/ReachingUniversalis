@@ -145,6 +145,13 @@ void GameState::Draw() {
         }
     }
 
+    // Active trade routes: thin lines from hauler to destination
+    for (const auto& a : agents) {
+        if (!a.hasRouteDest) continue;
+        Color lineCol = a.hasCargoDot ? Fade(a.cargoDotColor, 0.35f) : Fade(WHITE, 0.25f);
+        DrawLineEx({ a.x, a.y }, { a.destX, a.destY }, 1.5f, lineCol);
+    }
+
     // Settlements — ring color reflects food+water health
     for (const auto& s : settlements) {
         Color fill = Fade(DARKGREEN, 0.15f);

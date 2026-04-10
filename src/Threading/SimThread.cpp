@@ -176,7 +176,8 @@ void SimThread::RunSimStep(float dt) {
     m_productionSystem.Update(m_registry, dt);
     m_transportSystem.Update(m_registry, dt);
     m_priceSystem.Update(m_registry, dt);         // adjust prices after stockpile changes
-    m_randomEventSystem.Update(m_registry, dt);   // fire events and tick active timers
+    m_randomEventSystem.Update(m_registry, dt);       // fire events and tick active timers
+    m_economicMobilitySystem.Update(m_registry, dt);  // hauler graduation / bankruptcy
     m_deathSystem.Update(m_registry, dt);
     m_birthSystem.Update(m_registry, dt);
 }
@@ -498,10 +499,27 @@ void SimThread::WriteSnapshot() {
         if (const auto* n = m_registry.try_get<Name>(e))
             npcName = n->value;
 
+        // Trade route destination for haulers en route (makes trade flow visible)
+        bool  hasRouteDest = false;
+        float routeDestX = 0.f, routeDestY = 0.f;
+        if (isHauler) {
+            if (const auto* h = m_registry.try_get<Hauler>(e)) {
+                if (h->state == HaulerState::GoingToDeposit &&
+                    h->targetSettlement != entt::null &&
+                    m_registry.valid(h->targetSettlement)) {
+                    const auto& dp = m_registry.get<Position>(h->targetSettlement);
+                    hasRouteDest = true;
+                    routeDestX   = dp.x;
+                    routeDestY   = dp.y;
+                }
+            }
+        }
+
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
-                           balance, ageDays, maxDays, npcName });
+                           balance, ageDays, maxDays, npcName,
+                           hasRouteDest, routeDestX, routeDestY });
     });
 
     // ---- Settlements ----
