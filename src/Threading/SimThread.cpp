@@ -557,6 +557,51 @@ void SimThread::WriteSnapshot() {
         if (r.blocked) anyRoadBlocked = true;
     });
 
+    // Population trend sampling: every 3 game-days, snapshot per-settlement pop.
+    // Compare current pop to the previous snapshot to derive ↑/=/↓ trend.
+    {
+        auto tmv2 = m_registry.view<TimeManager>();
+        if (tmv2.begin() != tmv2.end()) {
+            int curDay = tmv2.get<TimeManager>(*tmv2.begin()).day;
+            if (curDay >= m_popSampleDay + 3) {
+                // Time to refresh population snapshots
+                m_popSampleDay = curDay;
+                m_registry.view<Position, Settlement>().each(
+                    [&](auto e, const Position&, const Settlement&) {
+                    int curPop = 0;
+                    m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+                        [&](const HomeSettlement& hs) { if (hs.settlement == e) ++curPop; });
+                    m_popPrev[e] = curPop;
+                });
+            }
+        }
+    }
+
+    // Current per-settlement worker counts (needed for net rate estimate)
+    std::map<entt::entity, int> workerCount;
+    m_registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+        [&](auto, const AgentState& as, const HomeSettlement& hs) {
+        if (as.behavior == AgentBehavior::Working) ++workerCount[hs.settlement];
+    });
+
+    // Season modifier for production rate estimate
+    Season curSeason = Season::Spring;
+    float  curSeasonMod = 1.f;
+    float  curHeatMult  = 0.f;
+    {
+        auto tmv3 = m_registry.view<TimeManager>();
+        if (tmv3.begin() != tmv3.end()) {
+            curSeason    = tmv3.get<TimeManager>(*tmv3.begin()).CurrentSeason();
+            curSeasonMod = SeasonProductionModifier(curSeason);
+            curHeatMult  = SeasonHeatDrainMult(curSeason);
+        }
+    }
+
+    static constexpr float BASE_WORKERS_EST = 5.f;
+    static constexpr float FOOD_RATE_EST    = 0.5f;  // food per NPC per game-hour
+    static constexpr float WATER_RATE_EST   = 0.8f;  // water per NPC per game-hour
+    static constexpr float WOOD_HEAT_EST    = 0.03f; // wood per NPC per game-hour at full heat demand
+
     m_registry.view<Position, Settlement, Stockpile>().each(
         [&](auto e, const Position&, const Settlement& s, const Stockpile& sp) {
         float food  = sp.quantities.count(ResourceType::Food)
@@ -578,15 +623,56 @@ void SimThread::WriteSnapshot() {
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
 
+        // Population trend ('+', '=', '-')
+        char trend = '=';
+        auto prevIt = m_popPrev.find(e);
+        if (prevIt != m_popPrev.end()) {
+            if (pop > prevIt->second)      trend = '+';
+            else if (pop < prevIt->second) trend = '-';
+        }
+
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice, pop, s.treasury,
-                                 s.modifierDuration > 0.f, s.modifierName });
+                                 s.modifierDuration > 0.f, s.modifierName, trend });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
-            panel.open       = true;
-            panel.name       = s.name;
-            panel.quantities = sp.quantities;
+            // Estimate per-resource net flow rate (game-hours)
+            // Production: sum up facility output rates (adjusted for workers and season)
+            std::map<ResourceType, float> prodRate, consRate;
+            int workers = workerCount.count(e) ? workerCount.at(e) : 0;
+            float wScale = std::min(2.f, std::max(0.1f, workers / BASE_WORKERS_EST));
+            float smod   = s.productionModifier * curSeasonMod;
+
+            m_registry.view<ProductionFacility>().each(
+                [&](const ProductionFacility& fac) {
+                if (fac.settlement != e || fac.baseRate <= 0.f) return;
+                float rate = fac.baseRate * wScale * smod;
+                prodRate[fac.output] += rate;
+                // Account for input consumption
+                for (const auto& [inRes, inPerOut] : fac.inputsPerOutput)
+                    consRate[inRes] += inPerOut * rate;
+            });
+
+            // NPC food/water consumption
+            consRate[ResourceType::Food]  += pop * FOOD_RATE_EST;
+            consRate[ResourceType::Water] += pop * WATER_RATE_EST;
+            // Wood heat consumption (seasonal)
+            if (curHeatMult > 0.f)
+                consRate[ResourceType::Wood] += pop * WOOD_HEAT_EST * curHeatMult;
+
+            std::map<ResourceType, float> netRate;
+            for (const auto& [res, pr] : prodRate)
+                netRate[res] += pr;
+            for (const auto& [res, cr] : consRate)
+                netRate[res] -= cr;
+
+            panel.open            = true;
+            panel.name            = s.name;
+            panel.quantities      = sp.quantities;
+            panel.netRatePerHour  = netRate;
+            panel.treasury        = s.treasury;
+            panel.pop             = pop;
             if (const auto* mkt = m_registry.try_get<Market>(e))
                 panel.prices = mkt->price;
         }

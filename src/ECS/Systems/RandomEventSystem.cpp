@@ -272,9 +272,11 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     case 9: {   // Off-map trade convoy — external market delivers scarce goods
         // Finds the most expensive resource at the target settlement (indicating
         // scarcity) and delivers a shipment — simulating trade from off-map regions.
-        auto* mkt = registry.try_get<Market>(target);
-        auto* sp  = registry.try_get<Stockpile>(target);
-        if (!mkt || !sp) break;
+        // The settlement treasury must pay for the delivery at market price.
+        auto* mkt   = registry.try_get<Market>(target);
+        auto* sp    = registry.try_get<Stockpile>(target);
+        auto* settl2 = registry.try_get<Settlement>(target);
+        if (!mkt || !sp || !settl2) break;
 
         // Find the most scarce (highest-priced) resource
         ResourceType scarcest    = ResourceType::Food;
@@ -287,14 +289,26 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         static constexpr float CONVOY_MIN_PRICE = 5.f;
         if (highestPrice < CONVOY_MIN_PRICE) break;
 
+        // Cost = market price × quantity (convoy charges full price, no discount)
         static constexpr float CONVOY_AMOUNT = 50.f;
+        float cost = highestPrice * CONVOY_AMOUNT;
+
+        // If the settlement can't afford it, the convoy doesn't come
+        if (settl2->treasury < cost) {
+            if (log) log->Push(day, hour,
+                "Convoy turned away from " + settl->name
+                + " — treasury too low (" + std::to_string((int)settl2->treasury) + "g)");
+            break;
+        }
+
+        settl2->treasury -= cost;
         sp->quantities[scarcest] += CONVOY_AMOUNT;
 
         const char* resName = (scarcest == ResourceType::Food)  ? "food"  :
                               (scarcest == ResourceType::Water) ? "water" : "wood";
         if (log) log->Push(day, hour,
             "OFF-MAP CONVOY at " + settl->name + " +" + std::to_string((int)CONVOY_AMOUNT)
-            + " " + resName + " (price was " + std::to_string((int)highestPrice) + "g)");
+            + " " + resName + " (paid " + std::to_string((int)cost) + "g)");
         break;
     }
     }

@@ -227,11 +227,14 @@ void WorldGenerator::Populate(entt::registry& registry) {
             ProductionFacility{ ResourceType::Shelter, 0.f, wellsworth });
     }
     // Millhaven: 2 lumber mills + shelter
+    // Mills require food to operate (workers need to eat) — creates supply-chain dependency
+    // on Greenfield food imports. At full production 2×3×2.0 = 12 wood/hr, consuming 1.2 food/hr.
     for (int i = 0; i < 2; ++i) {
         auto lmill = registry.create();
         registry.emplace<Position>(lmill, 1200.f + (i == 0 ? -50.f : 50.f), 130.f);
         registry.emplace<ProductionFacility>(lmill,
-            ProductionFacility{ ResourceType::Wood, 3.f, millhaven });
+            ProductionFacility{ ResourceType::Wood, 3.f, millhaven,
+                                {{ ResourceType::Food, 0.1f }} });
     }
     {
         auto rest = registry.create();

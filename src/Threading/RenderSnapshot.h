@@ -69,6 +69,7 @@ struct RenderSnapshot {
         float       treasury  = 0.f;   // settlement gold reserves
         bool        hasEvent  = false;  // active random event
         std::string eventName;
+        char        popTrend  = '=';   // '+', '=', or '-' over last few days
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----
@@ -76,7 +77,10 @@ struct RenderSnapshot {
         bool                          open = false;
         std::string                   name;
         std::map<ResourceType, float> quantities;
-        std::map<ResourceType, float> prices;   // market prices for display
+        std::map<ResourceType, float> prices;        // market prices for display
+        std::map<ResourceType, float> netRatePerHour; // estimated net flow (production - consumption), game-hours
+        float                         treasury  = 0.f;
+        int                           pop       = 0;
     };
 
     // ---- Data fields ----

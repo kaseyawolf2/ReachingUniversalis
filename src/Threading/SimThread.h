@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
 #include <atomic>
+#include <map>
 #include <entt/entt.hpp>
 
 #include "Threading/InputSnapshot.h"
@@ -81,4 +82,8 @@ private:
 
     // Selected settlement entity (sim-thread-only state)
     entt::entity      m_selectedSettlement{entt::null};
+
+    // Population trend tracking: sample pop every N days, compare to previous sample
+    std::map<entt::entity, int> m_popPrev;   // population at last sample point
+    int                         m_popSampleDay{0};  // day of last sample
 };

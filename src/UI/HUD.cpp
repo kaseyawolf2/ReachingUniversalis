@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <cmath>
 #include <map>
 #include <string>
@@ -209,6 +210,10 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d] [%s]"
             : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d] [%s]";
 
+        // Population trend symbol
+        const char* trendSym = (s.popTrend == '+') ? "↑" :
+                               (s.popTrend == '-') ? "↓" : "";
+
         if (s.hasEvent) {
             if (showWood)
                 std::snprintf(bufs[count], 128, fmt_event,
@@ -227,6 +232,14 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
                     s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
                     s.treasury, s.pop);
         }
+        // Append trend indicator (UTF-8 arrows may not render — use ASCII instead)
+        if (s.popTrend == '+' || s.popTrend == '-') {
+            size_t len = strlen(bufs[count]);
+            bufs[count][len] = ' ';
+            bufs[count][len+1] = s.popTrend;
+            bufs[count][len+2] = '\0';
+        }
+        (void)trendSym;  // suppress warning if UTF-8 arrows not used
         hasEvent[count] = s.hasEvent;
         ++count;
     }
