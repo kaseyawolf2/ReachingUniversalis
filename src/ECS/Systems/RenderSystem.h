@@ -1,14 +1,14 @@
 #pragma once
-#include <entt/entt.hpp>
 #include "ECS/Components.h"
+#include <map>
+#include <string>
+
+// RenderSystem now only handles the stockpile panel draw call.
+// All world-space and agent rendering is done directly in GameState::Draw
+// from the RenderSnapshot, keeping render and simulation fully decoupled.
 
 class RenderSystem {
 public:
-    void Draw(entt::registry& registry);
-    void HandleInput(entt::registry& registry);   // settlement click-to-select
-
-private:
-    entt::entity selectedSettlement = entt::null;
-
-    void DrawStockpilePanel(const Settlement& s, const Stockpile& sp) const;
+    void DrawStockpilePanel(const std::string& name,
+                            const std::map<ResourceType, float>& quantities) const;
 };

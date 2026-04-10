@@ -1,47 +1,191 @@
 #include "GameState.h"
-#include "ECS/Components.h"
-#include "World/WorldGenerator.h"
 #include <cmath>
+#include <algorithm>
 
-void GameState::Initialize() {
-    WorldGenerator::Populate(registry);
+static constexpr float MAP_W    = 2400.f;
+static constexpr float MAP_H    =  720.f;
+static constexpr float LERP_SPD =    5.f;
+
+GameState::GameState()
+    : m_simThread(m_input, m_snapshot)
+{
+    m_simThread.Start();
 }
 
+GameState::~GameState() {
+    m_simThread.Stop();
+}
+
+// ---- Update (main thread) ----------------------------------------
+
 void GameState::Update(float dt) {
-    // ---- Input phase: always once per frame ----
-    timeSystem.HandleInput(registry);
-    hud.HandleInput(registry);
-    playerInputSystem.Update(registry, dt);
-    cameraSystem.Update(registry, dt);
-    renderSystem.HandleInput(registry);
+    PollInput(dt);
 
-    // ---- Simulation phase: tickSpeed sub-ticks per frame ----
-    // Each sub-tick receives the real frame dt so accuracy is identical at all speeds.
-    // Running N ticks per frame is what makes time pass N× faster — not dt scaling.
-    auto tmView = registry.view<TimeManager>();
-    if (tmView.empty()) return;
-    const auto& tm = tmView.get<TimeManager>(*tmView.begin());
-    int ticks = tm.paused ? 0 : tm.tickSpeed;
+    // Camera follow: lerp toward player world position from snapshot
+    float px, py;
+    bool  follow;
+    {
+        std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+        px     = m_snapshot.playerWorldX;
+        py     = m_snapshot.playerWorldY;
+        follow = m_followPlayer;
+    }
+    if (follow) {
+        float t = std::min(1.f, LERP_SPD * dt);
+        m_camera.target.x += (px - m_camera.target.x) * t;
+        m_camera.target.y += (py - m_camera.target.y) * t;
+    }
+    // Clamp
+    m_camera.target.x = std::max(0.f, std::min(MAP_W, m_camera.target.x));
+    m_camera.target.y = std::max(0.f, std::min(MAP_H, m_camera.target.y));
 
-    for (int i = 0; i < ticks; ++i) {
-        timeSystem.Advance(registry, dt);
-        needDrainSystem.Update(registry, dt);
-        consumptionSystem.Update(registry, dt);
-        scheduleSystem.Update(registry, dt);
-        agentDecisionSystem.Update(registry, dt);
-        movementSystem.Update(registry, dt);
-        productionSystem.Update(registry, dt);
-        transportSystem.Update(registry, dt);
-        deathSystem.Update(registry, dt);
+    m_hud.HandleInput(m_snapshot);
+}
+
+// ---- PollInput (main thread → InputSnapshot) ---------------------
+
+void GameState::PollInput(float dt) {
+    // One-shot events
+    if (IsKeyPressed(KEY_SPACE)) m_input.pauseToggle.store(true);
+    if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))    m_input.speedUp.store(true);
+    if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) m_input.speedDown.store(true);
+    if (IsKeyPressed(KEY_B))    m_input.roadToggle.store(true);
+    if (IsKeyPressed(KEY_E))    m_input.playerEat.store(true);
+    if (IsKeyPressed(KEY_R))    m_input.playerRespawn.store(true);
+
+    if (IsKeyPressed(KEY_F)) {
+        m_followPlayer = !m_followPlayer;
+        m_input.camFollowToggle.store(true);
+    }
+
+    // ---- Camera pan (arrow keys / drag) — handled entirely on main thread ----
+    bool panning = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
+                   IsKeyDown(KEY_UP)   || IsKeyDown(KEY_DOWN);
+    if (panning) {
+        m_followPlayer = false;
+        float speed = m_panSpeed / m_camera.zoom;
+        if (IsKeyDown(KEY_LEFT))  m_camera.target.x -= speed * dt;
+        if (IsKeyDown(KEY_RIGHT)) m_camera.target.x += speed * dt;
+        if (IsKeyDown(KEY_UP))    m_camera.target.y -= speed * dt;
+        if (IsKeyDown(KEY_DOWN))  m_camera.target.y += speed * dt;
+    }
+
+    if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        Vector2 d = GetMouseDelta();
+        if (d.x != 0.f || d.y != 0.f) {
+            m_followPlayer      = false;
+            m_camera.target.x  -= d.x / m_camera.zoom;
+            m_camera.target.y  -= d.y / m_camera.zoom;
+        }
+    }
+
+    float wheel = GetMouseWheelMove();
+    if (wheel != 0.f) {
+        m_camera.zoom = std::max(m_zoomMin,
+                        std::min(m_zoomMax,
+                        m_camera.zoom + wheel * 0.1f * m_camera.zoom));
+    }
+
+    if (IsKeyPressed(KEY_C)) {
+        m_camera.target  = { MAP_W * 0.5f, MAP_H * 0.5f };
+        m_camera.zoom    = 0.5f;
+        m_followPlayer   = false;
+    }
+
+    // ---- Continuous player movement ----
+    float mx = 0.f, my = 0.f;
+    if (IsKeyDown(KEY_W)) my -= 1.f;
+    if (IsKeyDown(KEY_S)) my += 1.f;
+    if (IsKeyDown(KEY_A)) mx -= 1.f;
+    if (IsKeyDown(KEY_D)) mx += 1.f;
+    float len = std::sqrt(mx*mx + my*my);
+    if (len > 0.f) { mx /= len; my /= len; }
+    m_input.playerMoveX.store(mx);
+    m_input.playerMoveY.store(my);
+
+    // ---- Settlement click (left mouse, world-space hit-test on main thread) ----
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 world = GetScreenToWorld2D(GetMousePosition(), m_camera);
+        // Forward to sim thread — it resolves the entity
+        m_simThread.NotifyWorldClick(world.x, world.y);
     }
 }
 
+// ---- Draw (main thread) ------------------------------------------
+
 void GameState::Draw() {
-    renderSystem.Draw(registry);
-    hud.Draw(registry, deathSystem.totalDeaths);
+    // Take a local copy of the snapshot so we hold the lock for minimum time.
+    // All rendering is then done lock-free from the local copy.
+    std::vector<RenderSnapshot::AgentEntry>       agents;
+    std::vector<RenderSnapshot::SettlementEntry>  settlements;
+    std::vector<RenderSnapshot::RoadEntry>        roads;
+    std::vector<RenderSnapshot::FacilityEntry>    facilities;
+    RenderSnapshot::StockpilePanel                panel;
+
+    {
+        std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+        agents      = m_snapshot.agents;
+        settlements = m_snapshot.settlements;
+        roads       = m_snapshot.roads;
+        facilities  = m_snapshot.facilities;
+        panel       = m_snapshot.stockpilePanel;
+    }
+
+    // World drawing
+    BeginMode2D(m_camera);
+
+    // Roads
+    for (const auto& r : roads) {
+        Color col = r.blocked ? RED : Fade(BEIGE, 0.6f);
+        DrawLineEx({ r.x1, r.y1 }, { r.x2, r.y2 }, 4.f, col);
+        if (r.blocked) {
+            float mx = (r.x1 + r.x2) * 0.5f, my = (r.y1 + r.y2) * 0.5f;
+            DrawText("X", (int)mx - 8, (int)my - 10, 24, RED);
+        }
+    }
+
+    // Settlements
+    for (const auto& s : settlements) {
+        Color ring = s.selected ? YELLOW : Fade(WHITE, 0.5f);
+        DrawCircleV({ s.x, s.y }, s.radius, Fade(DARKGREEN, 0.15f));
+        DrawCircleLinesV({ s.x, s.y }, s.radius, ring);
+        DrawText(s.name.c_str(),
+                 (int)(s.x - MeasureText(s.name.c_str(), 14) / 2),
+                 (int)(s.y - s.radius - 18), 14, WHITE);
+    }
+
+    // Facilities
+    for (const auto& f : facilities) {
+        Color col   = (f.output == ResourceType::Food) ? GREEN : SKYBLUE;
+        const char* label = (f.output == ResourceType::Food) ? "F" :
+                            (f.output == ResourceType::Water) ? "W" : nullptr;
+        if (!label) continue;
+        DrawRectangle((int)f.x - 10, (int)f.y - 10, 20, 20, Fade(col, 0.8f));
+        DrawRectangleLines((int)f.x - 10, (int)f.y - 10, 20, 20, WHITE);
+        DrawText(label, (int)f.x - 4, (int)f.y - 7, 14, WHITE);
+    }
+
+    // Agents
+    for (const auto& a : agents) {
+        DrawCircleV({ a.x, a.y }, a.size, a.color);
+        DrawCircleLinesV({ a.x, a.y }, a.size + 1.f, a.ringColor);
+        if (a.hasCargoDot)
+            DrawCircleV({ a.x + a.size + 4.f, a.y - a.size }, 4.f, a.cargoDotColor);
+    }
+
+    EndMode2D();
+
+    // Stockpile panel (screen-space)
+    if (panel.open)
+        m_renderSystem.DrawStockpilePanel(panel.name, panel.quantities);
+
+    // HUD
+    m_hud.Draw(m_snapshot, m_camera);
 }
 
-// Interpolate between two colors by factor t (0.0–1.0)
+// ---- SkyColor --------------------------------------------------------
+
+// Interpolate between two colours by t (0–1)
 static Color LerpColor(Color a, Color b, float t) {
     return {
         (unsigned char)(a.r + (b.r - a.r) * t),
@@ -52,12 +196,12 @@ static Color LerpColor(Color a, Color b, float t) {
 }
 
 Color GameState::SkyColor() const {
-    auto view = registry.view<const TimeManager>();
-    if (view.empty()) return { 30, 30, 30, 255 };
+    float hour;
+    {
+        std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+        hour = m_snapshot.hourOfDay;
+    }
 
-    float hour = view.get<const TimeManager>(*view.begin()).hourOfDay;
-
-    // Key colors at specific hours
     static const Color midnight = {  10,  10,  30, 255 };
     static const Color dawn     = { 220, 120,  60, 255 };
     static const Color morning  = { 100, 160, 220, 255 };
@@ -65,25 +209,18 @@ Color GameState::SkyColor() const {
     static const Color dusk     = { 200,  80,  40, 255 };
     static const Color night    = {  15,  15,  40, 255 };
 
-    // Piecewise linear interpolation across the day
     struct Keyframe { float hour; Color color; };
     static const Keyframe keys[] = {
-        {  0.0f, midnight },
-        {  5.0f, midnight },
-        {  6.5f, dawn     },
-        {  9.0f, morning  },
-        { 12.0f, noon     },
-        { 15.0f, morning  },
-        { 18.5f, dusk     },
-        { 20.0f, night    },
-        { 24.0f, midnight },
+        {  0.f, midnight }, {  5.f, midnight }, {  6.5f, dawn    },
+        {  9.f, morning  }, { 12.f, noon     }, { 15.f, morning  },
+        { 18.5f, dusk    }, { 20.f, night    }, { 24.f, midnight },
     };
     static const int N = sizeof(keys) / sizeof(keys[0]);
 
     for (int i = 0; i < N - 1; ++i) {
-        if (hour >= keys[i].hour && hour < keys[i + 1].hour) {
-            float t = (hour - keys[i].hour) / (keys[i + 1].hour - keys[i].hour);
-            return LerpColor(keys[i].color, keys[i + 1].color, t);
+        if (hour >= keys[i].hour && hour < keys[i+1].hour) {
+            float t = (hour - keys[i].hour) / (keys[i+1].hour - keys[i].hour);
+            return LerpColor(keys[i].color, keys[i+1].color, t);
         }
     }
     return midnight;

@@ -1,41 +1,48 @@
 #pragma once
-#include <entt/entt.hpp>
 #include "raylib.h"
-#include "ECS/Systems/TimeSystem.h"
-#include "ECS/Systems/NeedDrainSystem.h"
-#include "ECS/Systems/ConsumptionSystem.h"
-#include "ECS/Systems/AgentDecisionSystem.h"
-#include "ECS/Systems/MovementSystem.h"
-#include "ECS/Systems/ProductionSystem.h"
-#include "ECS/Systems/ScheduleSystem.h"
-#include "ECS/Systems/TransportSystem.h"
-#include "ECS/Systems/DeathSystem.h"
+#include "Threading/InputSnapshot.h"
+#include "Threading/RenderSnapshot.h"
+#include "Threading/SimThread.h"
 #include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/RenderSystem.h"
-#include "ECS/Systems/PlayerInputSystem.h"
 #include "UI/HUD.h"
+
+// GameState owns the two shared communication objects and the simulation thread.
+// The main thread's responsibilities are:
+//   1. Read Raylib input → write to InputSnapshot
+//   2. Update camera (using player position from snapshot)
+//   3. Render from the latest RenderSnapshot
+//
+// Everything else runs on the sim thread inside SimThread.
 
 class GameState {
 public:
-    entt::registry registry;
+    GameState();
+    ~GameState();
 
-    void  Initialize();
     void  Update(float dt);
     void  Draw();
     Color SkyColor() const;
 
 private:
-    TimeSystem          timeSystem;
-    NeedDrainSystem     needDrainSystem;
-    ConsumptionSystem   consumptionSystem;
-    AgentDecisionSystem agentDecisionSystem;
-    MovementSystem      movementSystem;
-    ProductionSystem    productionSystem;
-    ScheduleSystem      scheduleSystem;
-    TransportSystem     transportSystem;
-    DeathSystem         deathSystem;
-    CameraSystem        cameraSystem;
-    RenderSystem        renderSystem;
-    PlayerInputSystem   playerInputSystem;
-    HUD                 hud;
+    void PollInput(float dt);
+
+    InputSnapshot  m_input;
+    RenderSnapshot m_snapshot;
+    SimThread      m_simThread;
+
+    // Camera lives on the main thread — it responds to input immediately
+    // without waiting for the sim thread.
+    Camera2D m_camera = {
+        { 640.f, 360.f },  // offset: screen centre
+        { 400.f, 360.f },  // target: start near Greenfield
+        0.f, 0.5f          // rotation, zoom
+    };
+    bool  m_followPlayer = true;
+    float m_panSpeed     = 400.f;
+    float m_zoomMin      = 0.25f;
+    float m_zoomMax      = 3.0f;
+
+    RenderSystem m_renderSystem;
+    HUD          m_hud;
 };

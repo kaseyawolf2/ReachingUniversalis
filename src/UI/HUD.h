@@ -1,20 +1,23 @@
 #pragma once
 #include "raylib.h"
-#include <entt/entt.hpp>
+#include "Threading/RenderSnapshot.h"
+
+// HUD reads exclusively from RenderSnapshot — it has no access to the ECS
+// registry and therefore cannot accidentally introduce sim/render data races.
 
 class HUD {
 public:
-    void HandleInput(entt::registry& registry);
-    void Draw(entt::registry& registry, int totalDeaths = 0);
+    void HandleInput(const RenderSnapshot& snapshot);
+    void Draw(const RenderSnapshot& snapshot, const Camera2D& camera);
 
 private:
     void DrawNeedBar(int x, int y, float value, float critThreshold,
                      const char* label, Color barColor) const;
-    void DrawEventLog(entt::registry& registry) const;
-    void DrawWorldStatus(entt::registry& registry) const;
-    void DrawDebugOverlay(entt::registry& registry) const;
-    void DrawHoverTooltip(entt::registry& registry) const;
+    void DrawEventLog(const RenderSnapshot& snapshot) const;
+    void DrawWorldStatus(const RenderSnapshot& snapshot) const;
+    void DrawDebugOverlay(const RenderSnapshot& snapshot) const;
+    void DrawHoverTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
 
-    int  logScroll    = 0;    // lines scrolled up in event log
+    int  logScroll    = 0;
     bool debugOverlay = false;
 };

@@ -24,18 +24,24 @@ FetchContent_MakeAvailable(entt)
 set(SOURCES
     src/main.cpp
     src/GameState.cpp
+
+    # Simulation thread + communication structs
+    src/Threading/SimThread.cpp
+
+    # Simulation systems (owned by SimThread, run on sim thread only)
     src/ECS/Systems/TimeSystem.cpp
     src/ECS/Systems/NeedDrainSystem.cpp
     src/ECS/Systems/ConsumptionSystem.cpp
+    src/ECS/Systems/ScheduleSystem.cpp
     src/ECS/Systems/AgentDecisionSystem.cpp
-    src/ECS/Systems/DeathSystem.cpp
     src/ECS/Systems/MovementSystem.cpp
     src/ECS/Systems/ProductionSystem.cpp
-    src/ECS/Systems/ScheduleSystem.cpp
     src/ECS/Systems/TransportSystem.cpp
-    src/ECS/Systems/CameraSystem.cpp
+    src/ECS/Systems/DeathSystem.cpp
+
+    # Render-side systems (owned by GameState, run on main thread only)
     src/ECS/Systems/RenderSystem.cpp
-    src/ECS/Systems/PlayerInputSystem.cpp
+
     src/World/WorldGenerator.cpp
     src/UI/HUD.cpp
 )
@@ -44,6 +50,10 @@ add_executable(ReachingUniversalis ${SOURCES})
 
 target_include_directories(ReachingUniversalis PRIVATE src)
 target_link_libraries(ReachingUniversalis PRIVATE raylib EnTT::EnTT)
+
+# pthreads on Linux
+find_package(Threads REQUIRED)
+target_link_libraries(ReachingUniversalis PRIVATE Threads::Threads)
 
 if(WIN32)
     target_link_libraries(ReachingUniversalis PRIVATE winmm gdi32 opengl32)

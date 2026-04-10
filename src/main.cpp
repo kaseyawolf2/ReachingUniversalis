@@ -6,7 +6,6 @@ int main() {
     SetTargetFPS(0);  // uncapped — simulation uses GetFrameTime() so it's frame-rate independent
 
     GameState state;
-    state.Initialize();
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
