@@ -178,6 +178,7 @@ void SimThread::RunSimStep(float dt) {
     m_priceSystem.Update(m_registry, dt);         // adjust prices after stockpile changes
     m_randomEventSystem.Update(m_registry, dt);       // fire events and tick active timers
     m_economicMobilitySystem.Update(m_registry, dt);  // hauler graduation / bankruptcy
+    m_constructionSystem.Update(m_registry, dt);       // settlement facility expansion
     m_deathSystem.Update(m_registry, dt);
     m_birthSystem.Update(m_registry, dt);
 

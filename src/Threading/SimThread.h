@@ -20,6 +20,7 @@
 #include "ECS/Systems/PriceSystem.h"
 #include "ECS/Systems/RandomEventSystem.h"
 #include "ECS/Systems/EconomicMobilitySystem.h"
+#include "ECS/Systems/ConstructionSystem.h"
 
 // SimThread owns the ECS registry and all simulation systems.
 // It runs on a dedicated background thread so the render thread never stalls
@@ -68,6 +69,7 @@ private:
     PriceSystem             m_priceSystem;
     RandomEventSystem       m_randomEventSystem;
     EconomicMobilitySystem  m_economicMobilitySystem;
+    ConstructionSystem      m_constructionSystem;
 
     std::thread       m_thread;
     std::atomic<bool> m_running{false};

@@ -107,7 +107,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                            e.message.find("restored")   != std::string::npos ||
                            e.message.find("CONVOY")     != std::string::npos ||
                            e.message.find("BOOM")       != std::string::npos ||
-                           e.message.find("RAIN")       != std::string::npos);
+                           e.message.find("RAIN")       != std::string::npos ||
+                           e.message.find("built a new") != std::string::npos ||
+                           e.message.find("became a hauler") != std::string::npos);
             bool isBad  = (e.message.find("COLLAPSED")  != std::string::npos ||
                            e.message.find("died")       != std::string::npos ||
                            e.message.find("DISEASE")    != std::string::npos ||

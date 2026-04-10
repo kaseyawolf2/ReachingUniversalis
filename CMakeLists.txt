@@ -42,6 +42,7 @@ set(SOURCES
     src/ECS/Systems/PriceSystem.cpp
     src/ECS/Systems/RandomEventSystem.cpp
     src/ECS/Systems/EconomicMobilitySystem.cpp
+    src/ECS/Systems/ConstructionSystem.cpp
 
     # Render-side systems (owned by GameState, run on main thread only)
     src/ECS/Systems/RenderSystem.cpp

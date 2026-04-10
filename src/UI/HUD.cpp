@@ -324,14 +324,16 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                     (e.message.find("died")       != std::string::npos ||
                      e.message.find("migrating")  != std::string::npos ||
                      e.message.find("MIGRATION")  != std::string::npos) ? ORANGE :
-                    (e.message.find("CLEARED")    != std::string::npos ||
-                     e.message.find("restored")   != std::string::npos ||
-                     e.message.find("reopened")   != std::string::npos ||
-                     e.message.find("Born")       != std::string::npos ||
-                     e.message.find("TRADE BOOM") != std::string::npos ||
-                     e.message.find("BOUNTY")     != std::string::npos ||
-                     e.message.find("OFF-MAP")    != std::string::npos ||
-                     e.message.find("respawned")  != std::string::npos) ? GREEN  :
+                    (e.message.find("CLEARED")       != std::string::npos ||
+                     e.message.find("restored")      != std::string::npos ||
+                     e.message.find("reopened")      != std::string::npos ||
+                     e.message.find("Born")          != std::string::npos ||
+                     e.message.find("TRADE BOOM")    != std::string::npos ||
+                     e.message.find("BOUNTY")        != std::string::npos ||
+                     e.message.find("OFF-MAP")       != std::string::npos ||
+                     e.message.find("respawned")     != std::string::npos ||
+                     e.message.find("built a new")   != std::string::npos ||
+                     e.message.find("became a hauler") != std::string::npos) ? GREEN  :
                     (e.message.find("--- ")       != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
