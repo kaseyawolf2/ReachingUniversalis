@@ -575,14 +575,14 @@ void SimThread::WriteSnapshot() {
         if (r.blocked) anyRoadBlocked = true;
     });
 
-    // Population trend sampling: every 3 game-days, snapshot per-settlement pop.
-    // Compare current pop to the previous snapshot to derive ↑/=/↓ trend.
+    // Population and price trend sampling — check every 3 and 5 game-days respectively.
     {
         auto tmv2 = m_registry.view<TimeManager>();
         if (tmv2.begin() != tmv2.end()) {
             int curDay = tmv2.get<TimeManager>(*tmv2.begin()).day;
+
+            // Population snapshot (every 3 days)
             if (curDay >= m_popSampleDay + 3) {
-                // Time to refresh population snapshots
                 m_popSampleDay = curDay;
                 m_registry.view<Position, Settlement>().each(
                     [&](auto e, const Position&, const Settlement&) {
@@ -592,8 +592,25 @@ void SimThread::WriteSnapshot() {
                     m_popPrev[e] = curPop;
                 });
             }
+
+            // Price snapshot (every 5 days)
+            if (curDay >= m_priceSampleDay + 5) {
+                m_priceSampleDay = curDay;
+                m_registry.view<Market>().each(
+                    [&](auto e, const Market& mkt) {
+                    for (const auto& [res, price] : mkt.price)
+                        m_pricePrev[e][res] = price;
+                });
+            }
         }
     }
+
+    // Hauler count per settlement (for status bar and panel)
+    std::map<entt::entity, int> haulerCount2;
+    m_registry.view<Hauler, HomeSettlement>().each(
+        [&](const Hauler&, const HomeSettlement& hs) {
+        ++haulerCount2[hs.settlement];
+    });
 
     // Current per-settlement worker counts (needed for net rate estimate)
     std::map<entt::entity, int> workerCount;
@@ -640,18 +657,36 @@ void SimThread::WriteSnapshot() {
         int pop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
+        int hCount = haulerCount2.count(e) ? haulerCount2.at(e) : 0;
 
         // Population trend ('+', '=', '-')
-        char trend = '=';
+        char popTrend = '=';
         auto prevIt = m_popPrev.find(e);
         if (prevIt != m_popPrev.end()) {
-            if (pop > prevIt->second)      trend = '+';
-            else if (pop < prevIt->second) trend = '-';
+            if (pop > prevIt->second)      popTrend = '+';
+            else if (pop < prevIt->second) popTrend = '-';
+        }
+
+        // Price trends
+        char foodPriceTrend = '=', waterPriceTrend = '=', woodPriceTrend = '=';
+        auto pIt = m_pricePrev.find(e);
+        if (pIt != m_pricePrev.end()) {
+            auto getTrend = [&](ResourceType rt, float cur) -> char {
+                auto it2 = pIt->second.find(rt);
+                if (it2 == pIt->second.end()) return '=';
+                return (cur > it2->second * 1.05f) ? '+' :
+                       (cur < it2->second * 0.95f) ? '-' : '=';
+            };
+            foodPriceTrend  = getTrend(ResourceType::Food,  foodPrice);
+            waterPriceTrend = getTrend(ResourceType::Water, waterPrice);
+            woodPriceTrend  = getTrend(ResourceType::Wood,  woodPrice);
         }
 
         worldStatus.push_back({ s.name, food, water, wood,
-                                 foodPrice, waterPrice, woodPrice, pop, s.treasury,
-                                 s.modifierDuration > 0.f, s.modifierName, trend });
+                                 foodPrice, waterPrice, woodPrice,
+                                 pop, hCount, s.treasury,
+                                 s.modifierDuration > 0.f, s.modifierName,
+                                 popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {

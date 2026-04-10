@@ -203,12 +203,13 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     char bufs[4][128]; bool hasEvent[4] = {}; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
+        // Format: "Name F:stock@price W:stock@price G:treasury [pop+haulers]"
         const char* fmt_base  = showWood
-            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d]"
-            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d]";
+            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d+%d]"
+            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d+%d]";
         const char* fmt_event = showWood
-            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d] [%s]"
-            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d] [%s]";
+            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d+%d] [%s]"
+            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d+%d] [%s]";
 
         // Population trend symbol
         const char* trendSym = (s.popTrend == '+') ? "↑" :
@@ -217,20 +218,21 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         if (s.hasEvent) {
             if (showWood)
                 std::snprintf(bufs[count], 128, fmt_event,
-                    s.name.c_str(), s.food, s.water, s.wood, s.treasury, s.pop,
-                    s.eventName.c_str());
+                    s.name.c_str(), s.food, s.water, s.wood, s.treasury,
+                    s.pop, s.haulers, s.eventName.c_str());
             else
                 std::snprintf(bufs[count], 128, fmt_event,
                     s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
-                    s.treasury, s.pop, s.eventName.c_str());
+                    s.treasury, s.pop, s.haulers, s.eventName.c_str());
         } else {
             if (showWood)
                 std::snprintf(bufs[count], 128, fmt_base,
-                    s.name.c_str(), s.food, s.water, s.wood, s.treasury, s.pop);
+                    s.name.c_str(), s.food, s.water, s.wood, s.treasury,
+                    s.pop, s.haulers);
             else
                 std::snprintf(bufs[count], 128, fmt_base,
                     s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
-                    s.treasury, s.pop);
+                    s.treasury, s.pop, s.haulers);
         }
         // Append trend indicator (UTF-8 arrows may not render — use ASCII instead)
         if (s.popTrend == '+' || s.popTrend == '-') {
@@ -436,8 +438,17 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
         const auto& s = ws[i];
         int y = MY + 4 + ML_H * (i + 2);
 
-        char nameBuf[16], foodBuf[20], watBuf[20], wdBuf[20];
-        std::snprintf(nameBuf, sizeof(nameBuf), "%.12s", s.name.c_str());
+        // Trend symbol: '+' = rising (red = prices high = bad for buyers),
+        //               '-' = falling (green), '=' = stable (grey)
+        auto trendStr = [](char t) -> const char* {
+            return (t == '+') ? "^" : (t == '-') ? "v" : " ";
+        };
+        auto trendCol = [](char t) -> Color {
+            return (t == '+') ? RED : (t == '-') ? GREEN : Fade(LIGHTGRAY, 0.4f);
+        };
+
+        char nameBuf[20], foodBuf[20], watBuf[20], wdBuf[20];
+        std::snprintf(nameBuf, sizeof(nameBuf), "%.12s [%d]", s.name.c_str(), s.pop);
         std::snprintf(foodBuf, sizeof(foodBuf), "%.0f@%.1fg", s.food,  s.foodPrice);
         std::snprintf(watBuf,  sizeof(watBuf),  "%.0f@%.1fg", s.water, s.waterPrice);
         std::snprintf(wdBuf,   sizeof(wdBuf),   "%.0f@%.1fg", s.wood,  s.woodPrice);
@@ -449,8 +460,11 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
 
         DrawText(nameBuf, C_NAME, y, MFONT, nameCol);
         DrawText(foodBuf, C_FOOD, y, MFONT, foodCol);
+        DrawText(trendStr(s.foodPriceTrend),  C_FOOD - 10, y, MFONT, trendCol(s.foodPriceTrend));
         DrawText(watBuf,  C_WAT,  y, MFONT, watCol);
+        DrawText(trendStr(s.waterPriceTrend), C_WAT  - 10, y, MFONT, trendCol(s.waterPriceTrend));
         DrawText(wdBuf,   C_WD,   y, MFONT, wdCol);
+        DrawText(trendStr(s.woodPriceTrend),  C_WD   - 10, y, MFONT, trendCol(s.woodPriceTrend));
     }
 }
 

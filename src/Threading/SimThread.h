@@ -88,4 +88,8 @@ private:
     // Population trend tracking: sample pop every N days, compare to previous sample
     std::map<entt::entity, int> m_popPrev;   // population at last sample point
     int                         m_popSampleDay{0};  // day of last sample
+
+    // Price trend tracking: sample prices every N days
+    std::map<entt::entity, std::map<ResourceType, float>> m_pricePrev;
+    int                                                    m_priceSampleDay{0};
 };

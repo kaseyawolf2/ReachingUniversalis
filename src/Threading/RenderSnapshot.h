@@ -69,10 +69,14 @@ struct RenderSnapshot {
         float       waterPrice = 1.f;
         float       woodPrice  = 1.f;
         int         pop       = 0;
+        int         haulers   = 0;     // hauler count (separate from pop)
         float       treasury  = 0.f;   // settlement gold reserves
         bool        hasEvent  = false;  // active random event
         std::string eventName;
-        char        popTrend  = '=';   // '+', '=', or '-' over last few days
+        char        popTrend       = '=';  // '+', '=', or '-' over last few days
+        char        foodPriceTrend = '=';  // price trend: '+' rising, '-' falling
+        char        waterPriceTrend = '=';
+        char        woodPriceTrend  = '=';
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----
