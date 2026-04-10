@@ -539,11 +539,23 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Home settlement name for tooltip
+        std::string homeSettlName;
+        if (!isPlayer) {
+            if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
+                if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
+                    if (const auto* sts = m_registry.try_get<Settlement>(hs->settlement))
+                        homeSettlName = sts->name;
+                }
+            }
+        }
+
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
-                           hasRouteDest, routeDestX, routeDestY, profession });
+                           hasRouteDest, routeDestX, routeDestY,
+                           profession, homeSettlName });
     });
 
     // ---- Settlements ----

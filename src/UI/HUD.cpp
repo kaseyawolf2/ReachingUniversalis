@@ -344,12 +344,17 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);
 
-    char line1[64], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[48] = {};
-    // First line: name (if known) or role
-    if (!best->npcName.empty())
-        std::snprintf(line1, sizeof(line1), "%s (%s)", best->npcName.c_str(), role);
-    else
+    char line1[80], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[48] = {};
+    // First line: name + profession + home settlement (if known)
+    if (!best->npcName.empty()) {
+        if (!best->homeSettlementName.empty())
+            std::snprintf(line1, sizeof(line1), "%s  [%s @ %s]",
+                          best->npcName.c_str(), role, best->homeSettlementName.c_str());
+        else
+            std::snprintf(line1, sizeof(line1), "%s (%s)", best->npcName.c_str(), role);
+    } else {
         std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
+    }
 
     bool hasName = !best->npcName.empty();
     if (hasName)

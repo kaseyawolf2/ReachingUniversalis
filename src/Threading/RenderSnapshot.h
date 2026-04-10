@@ -36,6 +36,8 @@ struct RenderSnapshot {
         float destX = 0.f, destY = 0.f;
         // NPC's inferred profession based on home settlement's primary output
         std::string profession;
+        // Settlement name the agent calls home (empty if player or no home)
+        std::string homeSettlementName;
     };
 
     struct SettlementEntry {
