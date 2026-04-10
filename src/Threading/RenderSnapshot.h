@@ -63,7 +63,8 @@ struct RenderSnapshot {
         float       foodPrice  = 1.f;   // current market price
         float       waterPrice = 1.f;
         float       woodPrice  = 1.f;
-        int         pop   = 0;
+        int         pop       = 0;
+        float       treasury  = 0.f;   // settlement gold reserves
         bool        hasEvent  = false;  // active random event
         std::string eventName;
     };

@@ -188,18 +188,28 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 auto* destSp  = registry.try_get<Stockpile>(hauler.targetSettlement);
                 auto* destMkt = registry.try_get<Market>(hauler.targetSettlement);
 
+                static constexpr float TRADE_TAX = 0.20f;  // 20% of gross sale to settlement
+
                 float earned = 0.f;
+                float taxCollected = 0.f;
                 if (destSp) {
                     for (auto& [type, qty] : inv.contents) {
                         destSp->quantities[type] += qty;
-                        // Earn (sell price - buy price) * quantity
                         float sellPrice = destMkt ? destMkt->GetPrice(type) : hauler.buyPrice;
-                        earned += (sellPrice - hauler.buyPrice) * qty;
+                        float gross = sellPrice * qty;
+                        float tax   = gross * TRADE_TAX;
+                        earned       += gross - hauler.buyPrice * qty - tax;
+                        taxCollected += tax;
                     }
                 }
                 // Credit hauler's wallet with net profit
                 if (auto* money = registry.try_get<Money>(entity))
                     if (earned > 0.f) money->balance += earned;
+                // Tax goes to destination settlement treasury
+                if (taxCollected > 0.f) {
+                    if (auto* destSettl = registry.try_get<Settlement>(hauler.targetSettlement))
+                        destSettl->treasury += taxCollected;
+                }
 
                 inv.contents.clear();
                 hauler.state = HaulerState::GoingHome;

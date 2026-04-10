@@ -72,6 +72,7 @@ static void SpawnNPCs(entt::registry& registry,
         registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<Schedule>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);
+        registry.emplace<Money>(npc, Money{ 10.f });   // small starting purse
         Age age;
         age.days    = age_dist(wg_rng);
         age.maxDays = lifespan_dist(wg_rng);

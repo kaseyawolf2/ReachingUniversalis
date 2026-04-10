@@ -486,7 +486,7 @@ void SimThread::WriteSnapshot() {
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
 
         worldStatus.push_back({ s.name, food, water, wood,
-                                 foodPrice, waterPrice, woodPrice, pop,
+                                 foodPrice, waterPrice, woodPrice, pop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName });
 
         // Stockpile panel for selected settlement

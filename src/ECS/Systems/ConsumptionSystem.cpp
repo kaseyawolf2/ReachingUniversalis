@@ -7,6 +7,9 @@
 static constexpr float FOOD_CONSUME_RATE  = 0.5f;
 static constexpr float WATER_CONSUME_RATE = 0.8f;
 
+// Wages paid to working NPCs (gold per game-hour, from settlement treasury).
+static constexpr float WAGE_RATE = 0.3f;
+
 // Threshold below which stockpile is considered "empty" for migration purposes.
 static constexpr float STOCK_LOW = 0.01f;
 
@@ -33,6 +36,20 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
 
         auto& foodStock  = stockpile->quantities[ResourceType::Food];
         auto& waterStock = stockpile->quantities[ResourceType::Water];
+
+        // ---- Wages: pay working NPCs from settlement treasury ----
+        auto* settl = registry.try_get<Settlement>(home.settlement);
+        auto* money = registry.try_get<Money>(entity);
+        if (settl && money) {
+            const auto* astate = registry.try_get<AgentState>(entity);
+            if (astate && astate->behavior == AgentBehavior::Working) {
+                float wage = WAGE_RATE * gameHoursDt;
+                if (settl->treasury >= wage) {
+                    settl->treasury -= wage;
+                    money->balance  += wage;
+                }
+            }
+        }
 
         // ---- Food / Hunger ----
         bool hadFood = (foodStock > STOCK_LOW);

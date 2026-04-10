@@ -53,6 +53,7 @@ struct Settlement {
     float       productionModifier = 1.f;   // multiplied into all production output
     float       modifierDuration   = 0.f;   // game-hours remaining on modifier
     std::string modifierName;              // e.g. "Drought", shown in HUD
+    float       treasury = 200.f;          // gold; pays NPC wages; replenished by trade tax
 };
 
 struct Stockpile {
