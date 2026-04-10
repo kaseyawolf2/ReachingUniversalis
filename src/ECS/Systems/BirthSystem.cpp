@@ -4,15 +4,17 @@
 #include <map>
 #include <random>
 
-// A new NPC is born at a settlement when:
+// A new NPC may be born at a settlement when:
 //   - Population at that settlement < MAX_POP_PER_SETTLEMENT
 //   - Stockpile has at least BIRTH_FOOD_MIN food AND BIRTH_WATER_MIN water
-//   - The birth accumulator (tracked per settlement) has reached BIRTH_INTERVAL
+//   - The birth accumulator has reached BIRTH_INTERVAL
+//   - AND a random BIRTH_CHANCE roll succeeds (simulating NPCs deciding to have a child)
 //
 // Each birth costs BIRTH_FOOD_COST food and BIRTH_WATER_COST water.
 
 static constexpr int   MAX_POP_PER_SETTLEMENT = 35;
 static constexpr float BIRTH_INTERVAL         = 3.f * 60.f;   // 3 game-hours
+static constexpr float BIRTH_CHANCE           = 0.25f;        // 25% chance per interval
 static constexpr float BIRTH_FOOD_MIN         = 30.f;
 static constexpr float BIRTH_WATER_MIN        = 30.f;
 static constexpr float BIRTH_FOOD_COST        = 10.f;
@@ -83,6 +85,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
         if (tracker.accumulator >= BIRTH_INTERVAL) {
             tracker.accumulator -= BIRTH_INTERVAL;
 
+            // NPCs decide whether to have a child (probabilistic)
+            static std::mt19937 s_rng{std::random_device{}()};
+            static std::uniform_real_distribution<float> s_dist(2.f, 5.f);
+            static std::uniform_real_distribution<float> chance_dist(0.f, 1.f);
+            if (chance_dist(s_rng) > BIRTH_CHANCE) continue;
+
             // Deduct birth cost
             stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
             stockpile.quantities[ResourceType::Water] -= BIRTH_WATER_COST;
@@ -90,9 +98,6 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             // Spawn new NPC at a ring around the settlement centre
             float angle = (float)(pop % 20) / 20.f * 2.f * 3.14159f;
             float ring  = 50.f + (float)(pop % 3) * 22.f;
-            // Randomise migration threshold so NPCs don't all flee simultaneously
-            static std::mt19937 s_rng{std::random_device{}()};
-            static std::uniform_real_distribution<float> s_dist(2.f, 5.f);
             DeprivationTimer dt;
             dt.migrateThreshold = s_dist(s_rng) * 60.f;  // 2–5 game-hours
 

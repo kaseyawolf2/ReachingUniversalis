@@ -78,18 +78,33 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 }
 
 // ---- AgentDecisionSystem::FindMigrationTarget ----
+// Picks the reachable settlement with the most combined food + water stock.
+// If two settlements tie, the first encountered wins (arbitrary but consistent).
 
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement) {
-    // Follow the road from home to the other end.
-    auto roadView = registry.view<Road>();
-    for (auto e : roadView) {
-        const auto& road = roadView.get<Road>(e);
-        if (road.blocked) continue;
-        if (road.from == homeSettlement) return road.to;
-        if (road.to   == homeSettlement) return road.from;
-    }
-    return entt::null;
+    entt::entity best      = entt::null;
+    float        bestStock = -1.f;
+
+    registry.view<Road>().each([&](const Road& road) {
+        if (road.blocked) return;
+        entt::entity dest = entt::null;
+        if (road.from == homeSettlement) dest = road.to;
+        else if (road.to == homeSettlement) dest = road.from;
+        else return;
+
+        if (!registry.valid(dest)) return;
+        const auto* sp = registry.try_get<Stockpile>(dest);
+        if (!sp) return;
+
+        float food  = sp->quantities.count(ResourceType::Food)
+                      ? sp->quantities.at(ResourceType::Food)  : 0.f;
+        float water = sp->quantities.count(ResourceType::Water)
+                      ? sp->quantities.at(ResourceType::Water) : 0.f;
+        float total = food + water;
+        if (total > bestStock) { bestStock = total; best = dest; }
+    });
+    return best;
 }
 
 // ---- Main update ----
