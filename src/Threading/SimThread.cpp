@@ -4,6 +4,7 @@
 #include <cmath>
 #include <chrono>
 #include <algorithm>
+#include <random>
 
 // Fixed simulation timestep — every sim step advances game time by this much
 // regardless of render frame rate or tick speed multiplier.
@@ -83,6 +84,10 @@ void SimThread::Run() {
             for (int i = 0; i < totalSteps; ++i)
                 RunSimStep(SIM_STEP_DT);
             m_stepCounter += totalSteps;
+
+            // Auto-respawn if player has died
+            auto pv = m_registry.view<PlayerTag>();
+            if (pv.empty()) RespawnPlayer();
         }
 
         // Track steps per second using wall clock
@@ -99,6 +104,61 @@ void SimThread::Run() {
         // Yield so we don't pin the core when running faster than real time
         std::this_thread::yield();
     }
+}
+
+// ---- Respawn player if dead -------------------------------------------
+
+void SimThread::RespawnPlayer() {
+    // Find the settlement with the most combined food + water (healthiest destination)
+    entt::entity bestSettl = entt::null;
+    float        bestStock = -1.f;
+    m_registry.view<Position, Settlement, Stockpile>().each(
+        [&](auto e, const Position&, const Settlement&, const Stockpile& sp) {
+        float food  = sp.quantities.count(ResourceType::Food)
+                      ? sp.quantities.at(ResourceType::Food)  : 0.f;
+        float water = sp.quantities.count(ResourceType::Water)
+                      ? sp.quantities.at(ResourceType::Water) : 0.f;
+        if (food + water > bestStock) { bestStock = food + water; bestSettl = e; }
+    });
+    if (bestSettl == entt::null) return;
+
+    const auto& sp = m_registry.get<Position>(bestSettl);
+
+    // Get game time for log entry
+    auto tmv = m_registry.view<TimeManager>();
+    if (tmv.begin() != tmv.end()) {
+        const auto& tm = tmv.get<TimeManager>(*tmv.begin());
+        auto lv = m_registry.view<EventLog>();
+        if (lv.begin() != lv.end()) {
+            const auto& sett = m_registry.get<Settlement>(bestSettl);
+            lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                "Player respawned at " + sett.name);
+        }
+    }
+
+    auto player = m_registry.create();
+    m_registry.emplace<Position>(player, sp.x, sp.y + 50.f);
+    m_registry.emplace<Velocity>(player, 0.f, 0.f);
+    m_registry.emplace<MoveSpeed>(player, 100.f);
+    // Full needs at spawn
+    m_registry.emplace<Needs>(player, Needs{{
+        Need{ NeedType::Hunger, 1.f, 0.00083f, 0.3f, 0.004f },
+        Need{ NeedType::Thirst, 1.f, 0.00125f, 0.3f, 0.006f },
+        Need{ NeedType::Energy, 1.f, 0.00050f, 0.3f, 0.002f }
+    }});
+    m_registry.emplace<AgentState>(player);
+    m_registry.emplace<HomeSettlement>(player, HomeSettlement{ bestSettl });
+    m_registry.emplace<DeprivationTimer>(player);
+    m_registry.emplace<Inventory>(player);
+    m_registry.emplace<Renderable>(player, YELLOW, 10.f);
+    m_registry.emplace<PlayerTag>(player);
+    // New character starts at age 0 with fresh life expectancy
+    static std::mt19937 rng{std::random_device{}()};
+    static std::uniform_real_distribution<float> lifespan(60.f, 100.f);
+    Age age;
+    age.days    = 0.f;
+    age.maxDays = lifespan(rng);
+    m_registry.emplace<Age>(player, age);
 }
 
 // ---- One simulation step ----------------------------------------------

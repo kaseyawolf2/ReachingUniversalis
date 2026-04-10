@@ -45,6 +45,7 @@ private:
     void        ProcessInput();
     void        RunSimStep(float dt);
     void        WriteSnapshot();
+    void        RespawnPlayer();   // called when PlayerTag entity no longer exists
 
     InputSnapshot&  m_input;
     RenderSnapshot& m_snapshot;
