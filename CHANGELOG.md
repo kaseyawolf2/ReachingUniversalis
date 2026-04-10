@@ -5,6 +5,21 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Balance + QoL] Simulation stability and wishlist — 2026-04-10
+
+Addresses Q1/Q2 balance feedback and both wishlist items.
+
+### Balance
+- Starting stockpiles raised: Greenfield Food 30→120, Water 5→20; Wellsworth Water 30→120, Food 5→20 — gives several game-hours of observation time before any shortage
+- Farm/well `baseRate` raised 1→4 Food(Water)/hr — at full workforce (scale 2.0) each settlement produces ~16/hr against ~10–16/hr consumption; shortage only kicks in when workforce or haulers degrade
+- Haulers per settlement raised 4→6; hauler carry capacity raised 5→15 — cross-settlement flow now meaningful
+
+### Added (Wishlist)
+- **Click-and-drag pan**: hold middle mouse button (or right mouse) and drag to pan the camera; disables player follow mode, same as arrow keys
+- **FPS counter** in top-right HUD panel (always visible, below pop/deaths row)
+
+---
+
 ## [WP8] HUD and Observation Tools — 2026-04-10
 
 Full observability layer: event log, world status bar, NPC hover tooltip, and F1 debug overlay.

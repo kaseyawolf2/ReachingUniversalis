@@ -12,6 +12,16 @@ void CameraSystem::Update(entt::registry& registry, float realDt) {
     if (camView.empty()) return;
     auto& cs = camView.get<CameraState>(*camView.begin());
 
+    // ---- Click-and-drag pan (middle mouse or right mouse) ----
+    if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        Vector2 delta = GetMouseDelta();
+        if (delta.x != 0.f || delta.y != 0.f) {
+            cs.followPlayer     = false;
+            cs.cam.target.x    -= delta.x / cs.cam.zoom;
+            cs.cam.target.y    -= delta.y / cs.cam.zoom;
+        }
+    }
+
     // ---- Manual pan — also disables player follow ----
     bool panning = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
                    IsKeyDown(KEY_UP)   || IsKeyDown(KEY_DOWN);

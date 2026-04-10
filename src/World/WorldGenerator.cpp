@@ -58,7 +58,7 @@ static void SpawnHaulers(entt::registry& registry,
         registry.emplace<AgentState>(h);
         registry.emplace<HomeSettlement>(h, HomeSettlement{ settlement });
         registry.emplace<DeprivationTimer>(h);
-        registry.emplace<Inventory>(h);
+        registry.emplace<Inventory>(h, Inventory{ {}, 15 });
         registry.emplace<Hauler>(h);
         registry.emplace<Renderable>(h, SKYBLUE, 7.f);
     }
@@ -84,16 +84,16 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Position>(greenfield, 400.f, 360.f);
     registry.emplace<Settlement>(greenfield, Settlement{ "Greenfield", 120.f });
     registry.emplace<Stockpile>(greenfield, Stockpile{{
-        { ResourceType::Food,  30.f },
-        { ResourceType::Water,  5.f }
+        { ResourceType::Food,  120.f },
+        { ResourceType::Water,  20.f }
     }});
 
     auto wellsworth = registry.create();
     registry.emplace<Position>(wellsworth, 2000.f, 360.f);
     registry.emplace<Settlement>(wellsworth, Settlement{ "Wellsworth", 120.f });
     registry.emplace<Stockpile>(wellsworth, Stockpile{{
-        { ResourceType::Food,   5.f },
-        { ResourceType::Water, 30.f }
+        { ResourceType::Food,   20.f },
+        { ResourceType::Water, 120.f }
     }});
 
     // ---- Road ----
@@ -104,13 +104,13 @@ void WorldGenerator::Populate(entt::registry& registry) {
         auto farm = registry.create();
         registry.emplace<Position>(farm, 400.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(farm,
-            ProductionFacility{ ResourceType::Food, 1.f, greenfield });
+            ProductionFacility{ ResourceType::Food, 4.f, greenfield });
     }
     for (int i = 0; i < 2; ++i) {
         auto well = registry.create();
         registry.emplace<Position>(well, 2000.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(well,
-            ProductionFacility{ ResourceType::Water, 1.f, wellsworth });
+            ProductionFacility{ ResourceType::Water, 4.f, wellsworth });
     }
     // Shelter/rest spots — Energy need satisfaction
     {
@@ -130,9 +130,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     SpawnNPCs(registry, greenfield, 400.f,  360.f, 20);
     SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20);
 
-    // ---- Haulers (4 per settlement, shown in sky blue) ----
-    SpawnHaulers(registry, greenfield, 400.f,  360.f, 4);
-    SpawnHaulers(registry, wellsworth, 2000.f, 360.f, 4);
+    // ---- Haulers (6 per settlement, shown in sky blue) ----
+    SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);
+    SpawnHaulers(registry, wellsworth, 2000.f, 360.f, 6);
 
     // ---- Player ----
     auto player = registry.create();

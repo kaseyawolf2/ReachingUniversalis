@@ -103,15 +103,20 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
             char popBuf[32];
             std::snprintf(popBuf, sizeof(popBuf), "Pop: %d  Deaths: %d", pop, totalDeaths);
 
+            char fpsBuf[16];
+            std::snprintf(fpsBuf, sizeof(fpsBuf), "FPS: %d", GetFPS());
+
             int panelW = std::max({ MeasureText(timeBuf, 16),
                                     MeasureText(speedBuf, 14),
-                                    MeasureText(popBuf, 13) }) + 16;
+                                    MeasureText(popBuf, 13),
+                                    MeasureText(fpsBuf,  12) }) + 16;
             int panelX = SCREEN_W - panelW - 4;
 
-            DrawRectangle(panelX, 4, panelW, 64, Fade(BLACK, 0.55f));
+            DrawRectangle(panelX, 4, panelW, 80, Fade(BLACK, 0.55f));
             DrawText(timeBuf,  panelX + 8,  8, 16, WHITE);
             DrawText(speedBuf, panelX + 8, 28, 14, tm.paused ? ORANGE : LIGHTGRAY);
             DrawText(popBuf,   panelX + 8, 46, 13, LIGHTGRAY);
+            DrawText(fpsBuf,   panelX + 8, 63, 12, Fade(LIGHTGRAY, 0.6f));
 
             break;
         }
