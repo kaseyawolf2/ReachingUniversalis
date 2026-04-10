@@ -201,6 +201,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
     DrawFacilityTooltip(snap, camera);
+    DrawRoadTooltip(snap, camera);
     if (debugOverlay)  DrawDebugOverlay(snap);
     if (marketOverlay) DrawMarketOverlay(snap);
 }
@@ -642,6 +643,82 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         Color col = (i == 0) ? YELLOW : (i == 7) ? Fade(LIGHTGRAY, 0.6f) : LIGHTGRAY;
         DrawText(lines[i], OX+6, OY+4+i*OLH, 13, col);
     }
+}
+
+// ---- Road hover tooltip ----
+// Shows price differential between the two connected settlements.
+
+void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const {
+    Vector2 mouse = GetMousePosition();
+    Vector2 world = GetScreenToWorld2D(mouse, cam);
+
+    std::vector<RenderSnapshot::RoadEntry> roads;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        roads = snap.roads;
+    }
+
+    // Find the closest road (point-to-segment distance)
+    const RenderSnapshot::RoadEntry* best = nullptr;
+    float bestDist = 25.f;   // max hover distance in world units
+
+    for (const auto& r : roads) {
+        // Point-to-segment distance
+        float dx = r.x2 - r.x1, dy = r.y2 - r.y1;
+        float lenSq = dx*dx + dy*dy;
+        float t = 0.f;
+        if (lenSq > 0.f)
+            t = std::max(0.f, std::min(1.f,
+                ((world.x - r.x1) * dx + (world.y - r.y1) * dy) / lenSq));
+        float cx = r.x1 + t * dx, cy = r.y1 + t * dy;
+        float d = std::sqrt((world.x - cx)*(world.x - cx) +
+                            (world.y - cy)*(world.y - cy));
+        if (d < bestDist) { bestDist = d; best = &r; }
+    }
+    if (!best) return;
+
+    // Format: show settlement names + price table + status
+    char line1[80], line2[48], line3[48], line4[48], line5[48];
+    std::snprintf(line1, sizeof(line1), "%s ←→ %s%s",
+                  best->nameA.c_str(), best->nameB.c_str(),
+                  best->blocked ? "  [BLOCKED]" : "");
+
+    // Price comparison: arrows show profit direction
+    auto arrow = [](float pA, float pB) -> const char* {
+        if (pA > pB * 1.15f) return "→";   // A expensive → sell A→B
+        if (pB > pA * 1.15f) return "←";   // B expensive → sell B→A
+        return "=";
+    };
+    std::snprintf(line2, sizeof(line2), "Food:  %4.1f %s %4.1f",
+                  best->foodA,  arrow(best->foodA,  best->foodB),  best->foodB);
+    std::snprintf(line3, sizeof(line3), "Water: %4.1f %s %4.1f",
+                  best->waterA, arrow(best->waterA, best->waterB), best->waterB);
+    std::snprintf(line4, sizeof(line4), "Wood:  %4.1f %s %4.1f",
+                  best->woodA,  arrow(best->woodA,  best->woodB),  best->woodB);
+    std::snprintf(line5, sizeof(line5), "← %s prices / %s prices →",
+                  best->nameA.c_str(), best->nameB.c_str());
+
+    // Position tooltip at midpoint of road
+    float midWX = (best->x1 + best->x2) * 0.5f;
+    float midWY = (best->y1 + best->y2) * 0.5f;
+    Vector2 screen = GetWorldToScreen2D({ midWX, midWY }, cam);
+
+    int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
+                       MeasureText(line3, 11), MeasureText(line4, 11),
+                       MeasureText(line5, 10) }) + 12;
+    int h = 5 * 16 + 4;
+    int tx = (int)screen.x - w / 2, ty = (int)screen.y - h - 8;
+    if (tx < 4) tx = 4;
+    if (tx + w > SCREEN_W - 4) tx = SCREEN_W - 4 - w;
+    if (ty < 4) ty = (int)screen.y + 10;
+
+    DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.78f));
+    Color c1 = best->blocked ? RED : WHITE;
+    DrawText(line1, tx, ty,       12, c1);
+    DrawText(line2, tx, ty + 16,  11, GREEN);
+    DrawText(line3, tx, ty + 32,  11, SKYBLUE);
+    DrawText(line4, tx, ty + 48,  11, BROWN);
+    DrawText(line5, tx, ty + 64,  10, Fade(LIGHTGRAY, 0.5f));
 }
 
 // ---- DrawNeedBar ----

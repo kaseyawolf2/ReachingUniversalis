@@ -60,6 +60,10 @@ struct RenderSnapshot {
     struct RoadEntry {
         float x1, y1, x2, y2;
         bool  blocked;
+        // Settlement names and prices at each end (for hover tooltip)
+        std::string nameA, nameB;
+        float foodA  = 0.f, waterA = 0.f, woodA = 0.f;
+        float foodB  = 0.f, waterB = 0.f, woodB = 0.f;
     };
 
     struct FacilityEntry {

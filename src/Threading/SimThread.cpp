@@ -685,7 +685,24 @@ void SimThread::WriteSnapshot() {
         if (!m_registry.valid(road.from) || !m_registry.valid(road.to)) return;
         const auto& fp = m_registry.get<Position>(road.from);
         const auto& tp = m_registry.get<Position>(road.to);
-        roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked });
+
+        // Gather settlement names and market prices for hover tooltip
+        std::string nA, nB;
+        float fA = 0.f, wA = 0.f, dA = 0.f;   // food/water/wood at A
+        float fB = 0.f, wB = 0.f, dB = 0.f;
+        auto fillRoadEnd = [&](entt::entity e, std::string& nm,
+                               float& food, float& water, float& wood) {
+            if (const auto* s = m_registry.try_get<Settlement>(e)) nm = s->name;
+            if (const auto* m = m_registry.try_get<Market>(e)) {
+                food  = m->GetPrice(ResourceType::Food);
+                water = m->GetPrice(ResourceType::Water);
+                wood  = m->GetPrice(ResourceType::Wood);
+            }
+        };
+        fillRoadEnd(road.from, nA, fA, wA, dA);
+        fillRoadEnd(road.to,   nB, fB, wB, dB);
+        roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked,
+                          nA, nB, fA, wA, dA, fB, wB, dB });
     });
 
     // ---- Facilities ----
