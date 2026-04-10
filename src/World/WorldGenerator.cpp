@@ -87,6 +87,9 @@ static void SpawnNPCs(entt::registry& registry,
         age.maxDays = lifespan_dist(wg_rng);
         registry.emplace<Age>(npc, age);
         registry.emplace<Name>(npc, Name{ MakeName() });
+        // Starting skills: vary ±0.15 around 0.5 baseline
+        static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
+        registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
     }
 }
 

@@ -100,11 +100,13 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
         // ---- Move Working NPCs toward the nearest production facility in their settlement ----
         // This makes work visible — NPCs gravitate to farms/wells/mills during shifts.
+        // Also advances the relevant skill while actively working at a facility.
         if (state.behavior == AgentBehavior::Working &&
             home.settlement != entt::null && registry.valid(home.settlement)) {
 
             entt::entity nearestFac  = entt::null;
             float        bestDistSq  = std::numeric_limits<float>::max();
+            ResourceType facType     = ResourceType::Food;
 
             registry.view<Position, ProductionFacility>().each(
                 [&](auto fe, const Position& fpos, const ProductionFacility& fac) {
@@ -112,16 +114,24 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 if (fac.baseRate <= 0.f) return;   // skip shelter nodes
                 float dx = fpos.x - pos.x, dy = fpos.y - pos.y;
                 float d  = dx*dx + dy*dy;
-                if (d < bestDistSq) { bestDistSq = d; nearestFac = fe; }
+                if (d < bestDistSq) { bestDistSq = d; nearestFac = fe; facType = fac.output; }
             });
 
             if (nearestFac != entt::null) {
                 const auto& fpos = registry.get<Position>(nearestFac);
                 static constexpr float WORK_ARRIVE = 30.f;
-                if (bestDistSq > WORK_ARRIVE * WORK_ARRIVE)
+                if (bestDistSq > WORK_ARRIVE * WORK_ARRIVE) {
                     MoveToward(vel, pos, fpos.x, fpos.y, speed * 0.8f);
-                else
+                } else {
                     vel.vx = vel.vy = 0.f;
+                    // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
+                    // gameDt is in real seconds; GAME_MINS_PER_REAL_SEC converts to game-minutes
+                    // 0.1 per game-day = 0.1 / (24*60) per game-minute = ~6.9e-5 per game-min
+                    static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
+                    float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+                    if (auto* skills = registry.try_get<Skills>(entity))
+                        skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt);
+                }
             }
         }
 

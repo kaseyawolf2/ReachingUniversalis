@@ -344,7 +344,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);
 
-    char line1[80], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[48] = {};
+    char line1[80], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[64] = {};
     // First line: name + profession + home settlement (if known)
     if (!best->npcName.empty()) {
         if (!best->homeSettlementName.empty())
@@ -386,12 +386,42 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
-    int lineCount = hasName ? (showGold ? 5 : 4) : (showGold ? 4 : 3);
+    // Skill line: show the relevant skill for this agent's profession
+    bool showSkill = false;
+    Color skillColor = GREEN;
+    if (best->farmingSkill >= 0.f) {
+        float sk = 0.5f;
+        const char* skLabel = "Skill";
+        if (best->profession == "Farmer") {
+            sk = best->farmingSkill; skLabel = "Farming";
+        } else if (best->profession == "Water Carrier") {
+            sk = best->waterSkill; skLabel = "Water";
+        } else if (best->profession == "Woodcutter") {
+            sk = best->woodcuttingSkill; skLabel = "Woodcutting";
+        } else {
+            // For unspecialized/child: show highest skill
+            sk = std::max({best->farmingSkill, best->waterSkill, best->woodcuttingSkill});
+            skLabel = (sk == best->farmingSkill) ? "Farming" :
+                      (sk == best->waterSkill)   ? "Water"   : "Woodcutting";
+        }
+        const char* rank = (sk >= 0.85f) ? " [Master]"  :
+                           (sk >= 0.65f) ? " [Expert]"  :
+                           (sk >= 0.40f) ? " [Trained]" :
+                           (sk >= 0.15f) ? " [Novice]"  : " [Unskilled]";
+        skillColor = (sk >= 0.65f) ? Fade(GOLD, 0.9f) : (sk >= 0.35f) ? GREEN : Fade(GRAY, 0.8f);
+        std::snprintf(line6, sizeof(line6), "%s: %.0f%%%s", skLabel, sk * 100.f, rank);
+        showSkill = true;
+    }
+
+    int lineCount = hasName ? 4 : 3;
+    if (showGold) lineCount++;
+    if (showSkill) lineCount++;
 
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
-    int w5 = showGold ? MeasureText(line5, 11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5}) + 10;
+    int w5 = showGold  ? MeasureText(line5, 11) : 0;
+    int w6 = showSkill ? MeasureText(line6, 11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5, w6}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -400,15 +430,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
 
-    DrawText(line1, tx, ty,      12, WHITE);
-    DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
-    DrawText(line3, tx, ty + 32, 11, hasName ? LIGHTGRAY : ageCol);
-    if (hasName) {
-        DrawText(line4, tx, ty + 48, 11, ageCol);
-        if (showGold) DrawText(line5, tx, ty + 64, 11, YELLOW);
-    } else {
-        if (showGold) DrawText(line4, tx, ty + 48, 11, YELLOW);
-    }
+    int ly = ty;
+    DrawText(line1, tx, ly, 12, WHITE);  ly += 16;
+    DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
+    DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
+    if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
+    if (showGold)  { DrawText(line5, tx, ly, 11, YELLOW); ly += 16; }
+    if (showSkill) { DrawText(line6, tx, ly, 11, skillColor); }
 }
 
 // ---- Market overlay (M key) ----

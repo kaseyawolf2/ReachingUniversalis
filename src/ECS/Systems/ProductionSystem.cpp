@@ -37,12 +37,31 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         }
     });
 
-    // Count Working-state NPCs per settlement (excludes haulers and player).
+    // Count Working-state NPCs per settlement and accumulate skill per resource type.
+    struct SkillAccum { float sum = 0.f; int count = 0; };
     std::map<entt::entity, int> workers;
+    // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
+    std::map<entt::entity, std::array<SkillAccum, 3>> skillData;
+
+    auto resIdx = [](ResourceType rt) -> int {
+        switch (rt) {
+            case ResourceType::Food:  return 0;
+            case ResourceType::Water: return 1;
+            case ResourceType::Wood:  return 2;
+            default:                  return -1;
+        }
+    };
+
     registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler, PlayerTag>)
         .each([&](auto e, const AgentState& as, const HomeSettlement& hs) {
-            if (as.behavior == AgentBehavior::Working)
-                workers[hs.settlement]++;
+            if (as.behavior != AgentBehavior::Working) return;
+            workers[hs.settlement]++;
+            if (const auto* skills = registry.try_get<Skills>(e)) {
+                auto& arr = skillData[hs.settlement];
+                arr[0].sum += skills->farming;       arr[0].count++;
+                arr[1].sum += skills->water_drawing; arr[1].count++;
+                arr[2].sum += skills->woodcutting;   arr[2].count++;
+            }
         });
 
     auto facView = registry.view<ProductionFacility>();
@@ -58,11 +77,24 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         float scale = std::min(MAX_SCALE, static_cast<float>(w) / BASE_WORKERS);
         scale       = std::max(0.1f, scale);   // never fully zero — keep a trickle
 
+        // Skill multiplier: average relevant skill of working NPCs (0→1, default 0.5).
+        // A fully skilled workforce (1.0) produces 2× the baseline; unskilled (0) produces 0×.
+        // Blended: output × (0.5 + skill), so skill=0.5 → ×1.0, skill=1.0 → ×1.5
+        float skillMult = 1.0f;
+        int ri = resIdx(fac.output);
+        if (ri >= 0 && skillData.count(fac.settlement)) {
+            const auto& sa = skillData.at(fac.settlement)[ri];
+            if (sa.count > 0) {
+                float avgSkill = sa.sum / sa.count;
+                skillMult = 0.5f + avgSkill;   // range [0.5, 1.5]
+            }
+        }
+
         // Apply settlement modifier (drought etc.) and season modifier
         const auto* settl = registry.try_get<Settlement>(fac.settlement);
         float modifier = (settl ? settl->productionModifier : 1.f) * seasonMod;
 
-        float grossOutput = fac.baseRate * scale * gameHoursDt * modifier;
+        float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 
         // Consume inputs — if insufficient, scale down production proportionally
         if (!fac.inputsPerOutput.empty()) {

@@ -154,6 +154,9 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             for (auto& need : newNeeds.list)
                 need.drainRate *= trait_dist(s_rng);
 
+            // Newborns have low starting skills (children learn as they grow)
+            registry.emplace<Skills>(npc, Skills{ 0.1f, 0.1f, 0.1f });
+
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
                 log->Push(tm.day, (int)tm.hourOfDay,

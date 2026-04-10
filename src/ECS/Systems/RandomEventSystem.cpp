@@ -235,6 +235,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         std::uniform_real_distribution<float> age_dist2(5.f, 25.f);
         std::uniform_real_distribution<float> mt_dist(1.f, 10.f);
         std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);
+        std::uniform_real_distribution<float> skill_dist(0.30f, 0.70f);
 
         for (int i = 0; i < arrivals; ++i) {
             float ang = angle_dist(m_rng);
@@ -263,6 +264,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.emplace<Age>(npc, age);
             std::string nm = std::string(FIRSTS[fd(m_rng)]) + " " + LASTS[ld(m_rng)];
             registry.emplace<Name>(npc, Name{nm});
+            registry.emplace<Skills>(npc, Skills{ skill_dist(m_rng), skill_dist(m_rng), skill_dist(m_rng) });
         }
         if (log) log->Push(day, hour,
             "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name);

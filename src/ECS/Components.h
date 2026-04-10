@@ -290,6 +290,38 @@ struct Age {
     float maxDays = 80.f;   // life expectancy; randomised at spawn (60–100)
 };
 
+// ---- Skills ----
+// Each value is 0-1: 0 = unskilled, 0.5 = average, 1 = mastery.
+// Skills improve through practice. Skill multiplies a worker's production
+// contribution in ProductionSystem (average skill of working NPCs scales output).
+struct Skills {
+    float farming       = 0.5f;  // food production efficiency
+    float water_drawing = 0.5f;  // water production efficiency
+    float woodcutting   = 0.5f;  // wood production efficiency
+
+    // Returns the relevant skill for a given resource output type.
+    float ForResource(ResourceType rt) const {
+        switch (rt) {
+            case ResourceType::Food:  return farming;
+            case ResourceType::Water: return water_drawing;
+            case ResourceType::Wood:  return woodcutting;
+            default:                  return 0.5f;
+        }
+    }
+
+    // Advances the relevant skill by delta (capped at 1).
+    void Advance(ResourceType rt, float delta) {
+        float* target = nullptr;
+        switch (rt) {
+            case ResourceType::Food:  target = &farming;       break;
+            case ResourceType::Water: target = &water_drawing; break;
+            case ResourceType::Wood:  target = &woodcutting;   break;
+            default: return;
+        }
+        *target = std::min(1.f, *target + delta);
+    }
+};
+
 // ---- Tags ----
 
 struct PlayerTag {};   // marks the entity the HUD observes

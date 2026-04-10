@@ -38,6 +38,10 @@ struct RenderSnapshot {
         std::string profession;
         // Settlement name the agent calls home (empty if player or no home)
         std::string homeSettlementName;
+        // Skill levels (0-1); -1 if entity has no Skills component
+        float farmingSkill     = -1.f;
+        float waterSkill       = -1.f;
+        float woodcuttingSkill = -1.f;
     };
 
     struct SettlementEntry {

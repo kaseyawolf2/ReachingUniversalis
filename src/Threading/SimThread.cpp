@@ -550,12 +550,21 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Skills snapshot
+        float farmSkill = -1.f, waterSkill = -1.f, woodSkill = -1.f;
+        if (const auto* sk = m_registry.try_get<Skills>(e)) {
+            farmSkill  = sk->farming;
+            waterSkill = sk->water_drawing;
+            woodSkill  = sk->woodcutting;
+        }
+
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
                            hasRouteDest, routeDestX, routeDestY,
-                           profession, homeSettlName });
+                           profession, homeSettlName,
+                           farmSkill, waterSkill, woodSkill });
     });
 
     // ---- Settlements ----
