@@ -101,12 +101,15 @@ struct RenderSnapshot {
         bool                          open = false;
         std::string                   name;
         std::map<ResourceType, float> quantities;
-        std::map<ResourceType, float> prices;        // market prices for display
-        std::map<ResourceType, float> netRatePerHour; // estimated net flow (production - consumption), game-hours
+        std::map<ResourceType, float> prices;          // market prices for display
+        std::map<ResourceType, float> netRatePerHour;  // estimated net flow (production - consumption), game-hours
+        std::map<ResourceType, float> prodRatePerHour; // gross production rate estimate
+        std::map<ResourceType, float> consRatePerHour; // gross consumption rate estimate
         float                         treasury  = 0.f;
         int                           pop       = 0;
         int                           popCap    = 35;   // max pop from BirthSystem
         float                         stability = 0.f;   // 0-1 composite settlement health
+        int                           workers   = 0;     // current number of Working NPCs
         std::vector<EventLog::Entry>  recentEvents;      // last 5 events mentioning this settlement
     };
 

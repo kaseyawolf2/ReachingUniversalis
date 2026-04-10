@@ -13,5 +13,6 @@ private:
                                      float px, float py);
 
     entt::entity FindMigrationTarget(entt::registry& registry,
-                                     entt::entity homeSettlement);
+                                     entt::entity homeSettlement,
+                                     const Skills* skills = nullptr);
 };

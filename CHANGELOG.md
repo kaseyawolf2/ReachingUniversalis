@@ -5,6 +5,46 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Skills & Observability] Worker skills, player work action, and world tooltips — 2026-04-10
+
+### Added
+- **NPC Skills system**: Each NPC has three skills: `farming`, `water_drawing`, `woodcutting` (range 0–1).
+  Skills advance through practice (working at the relevant facility) and decay through disuse.
+  Skill formula: `skillMult = 0.5 + avgSkill` → [0.5, 1.5] multiplier on production output.
+- **Child skill lifecycle**: Children (<15 game-days) passively grow all skills from 0.1 toward
+  0.35 by observing community work. Capped at 0.35 (Novice) on entering the workforce.
+  Adults not Working slowly decay skills at 0.005/day to model disuse.
+- **Player Skills component**: Player spawns with 0.4 skill in all categories. Player contributes
+  to production when Working near a facility (same skill-gain rate as NPCs).
+- **E-key Work action**: Player can press E near a production facility to toggle Working state.
+  Stops automatically when player moves (WASD). Skill advances while stationary at work site.
+- **Settlement specialty labels**: Below each settlement name on the map, the primary production
+  type is shown ("Farming" in green, "Water" in blue, "Lumber" in brown). Inferred from the
+  highest-baseRate facility at that settlement.
+- **Facility hover tooltip**: Hovering within 20 world units of a facility square shows:
+  type, settlement name, worker count, average worker skill, base rate, and estimated output.
+  Output bar colored green/yellow/red relative to base-rate performance.
+- **Road hover tooltip**: Hovering within 25 world units of a road segment shows price
+  differentials between the two endpoints. Arrow direction (→/←/=) indicates which settlement
+  offers better buying/selling prices per resource type. Blocked roads show [BLOCKED].
+- **NPC skill line in hover tooltip**: Hovering an NPC now shows their skill levels (Farm/Water/Wood)
+  with a rank label: Novice (<0.3), Trained (0.3–0.6), Expert (0.6–0.85), Master (>0.85).
+- **Player skill panel**: Player HUD shows "Skills: Farm:X% Wtr:Y% Wood:Z%" line below needs.
+- **Desperate theft**: NPCs near death (6+ game-hours needsAtZero) with no money (< 1g) steal
+  2 units from their home stockpile. Cooldown: 4 game-hours between thefts. Logged as event:
+  "Alice stole food at Greenfield (desperate)". Creates tragedy-of-the-commons dynamics during crises.
+- **Population cap display**: Settlement stockpile panel header now shows `[X/35 pop]`.
+- **Controls hint updated**: HUD controls hint includes "E:Work".
+
+### Changed
+- `DeprivationTimer` gains `stealCooldown = 0.f` field for theft rate limiting.
+- `ProductionSystem` now uses skill-weighted worker average; production scales with worker expertise.
+- `ScheduleSystem` wage block removed (duplicate of `ConsumptionSystem`'s `WAGE_RATE = 0.3f`).
+- Player now excluded from `ProductionSystem`'s worker filter — player can contribute to production.
+- Event log bad-event color filter extended with "stole" and "BANDITS".
+
+---
+
 ## [Simulation Polish] Economy, observability, and NPC lifecycle improvements — 2026-04-10
 
 ### Added

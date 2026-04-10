@@ -7,12 +7,12 @@
 void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel) const {
     // Positioned below the player HUD panel, above the event log
     static const int PX = 10, PY = 200;
-    static const int PW = 265, LINE_H = 17;
+    static const int PW = 280, LINE_H = 17;
 
-    // Header + treasury + stability + resources + event log header + events
+    // Each resource gets two display lines: qty/price row + prod/cons row
     int resLines    = 0;
     for (const auto& [type, qty] : panel.quantities)
-        if (type != ResourceType::Shelter) ++resLines;
+        if (type != ResourceType::Shelter) resLines += 2;
     int eventLines  = (int)panel.recentEvents.size();
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
     int ph          = totalLines * LINE_H + 14;
@@ -21,7 +21,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     DrawRectangleLines(PX, PY, PW, ph, LIGHTGRAY);
 
     // Header with stability bar
-    char headBuf[64];
+    char headBuf[80];
     std::snprintf(headBuf, sizeof(headBuf), "%s  [%d/%d pop]",
                   panel.name.c_str(), panel.pop, panel.popCap);
     DrawText(headBuf, PX + 8, PY + 6, 14, YELLOW);
@@ -39,9 +39,10 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
 
     int y = PY + 6 + LINE_H;
 
-    // Treasury line
-    char tresBuf[48];
-    std::snprintf(tresBuf, sizeof(tresBuf), "Treasury: %.0fg", panel.treasury);
+    // Treasury + workers line
+    char tresBuf[64];
+    std::snprintf(tresBuf, sizeof(tresBuf), "Treasury: %.0fg   Workers: %d",
+                  panel.treasury, panel.workers);
     Color tresCol = (panel.treasury < 50.f) ? RED : (panel.treasury < 150.f) ? ORANGE : GOLD;
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
@@ -61,20 +62,33 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
 
         auto priceIt = panel.prices.find(type);
         auto netIt   = panel.netRatePerHour.find(type);
-        char buf[72];
+        auto prodIt  = panel.prodRatePerHour.find(type);
+        auto consIt  = panel.consRatePerHour.find(type);
+        char buf[80];
 
-        float netRate = (netIt != panel.netRatePerHour.end()) ? netIt->second : 0.f;
-        const char* sign = (netRate >= 0.f) ? "+" : "";
+        float netRate  = (netIt  != panel.netRatePerHour.end()) ? netIt->second  : 0.f;
+        float prodRate = (prodIt != panel.prodRatePerHour.end()) ? prodIt->second : 0.f;
+        float consRate = (consIt != panel.consRatePerHour.end()) ? consIt->second : 0.f;
+        const char* netSign = (netRate >= 0.f) ? "+" : "";
 
+        // First line: qty, price, net rate
         if (priceIt != panel.prices.end())
-            std::snprintf(buf, sizeof(buf), "%s: %.0f @%.2fg  %s%.1f/hr",
-                          label, qty, priceIt->second, sign, netRate);
+            std::snprintf(buf, sizeof(buf), "%s: %.0fu @%.2fg  net:%s%.1f/hr",
+                          label, qty, priceIt->second, netSign, netRate);
         else
-            std::snprintf(buf, sizeof(buf), "%s: %.0f  %s%.1f/hr",
-                          label, qty, sign, netRate);
+            std::snprintf(buf, sizeof(buf), "%s: %.0fu  net:%s%.1f/hr",
+                          label, qty, netSign, netRate);
 
         Color netCol = (netRate >= 0.f) ? col : Fade(RED, 0.9f);
         DrawText(buf, PX + 8, y, 13, netCol);
+        y += LINE_H - 3;
+
+        // Second line: production vs consumption breakdown (smaller text)
+        char buf2[80];
+        std::snprintf(buf2, sizeof(buf2), "  prod:+%.1f  cons:-%.1f  /hr",
+                      prodRate, consRate);
+        Color prodCol = Fade(col, 0.7f);
+        DrawText(buf2, PX + 8, y, 11, prodCol);
         y += LINE_H;
     }
 

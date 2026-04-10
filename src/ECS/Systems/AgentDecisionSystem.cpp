@@ -79,12 +79,27 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 
 // ---- AgentDecisionSystem::FindMigrationTarget ----
 // Picks the reachable settlement with the most combined food + water stock.
-// If two settlements tie, the first encountered wins (arbitrary but consistent).
+// If the NPC has skills, adds an affinity bonus (20% of base score) for
+// destinations whose primary facility matches the NPC's strongest skill.
+// This makes skilled workers self-sort toward matching settlements over time.
 
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
-                                                        entt::entity homeSettlement) {
+                                                        entt::entity homeSettlement,
+                                                        const Skills* skills) {
+    // Determine the NPC's strongest skill (if any) for affinity matching.
+    ResourceType affinityType = ResourceType::Food;
+    bool         hasAffinity  = false;
+    if (skills) {
+        float best = skills->farming;
+        affinityType = ResourceType::Food;
+        if (skills->water_drawing > best) { best = skills->water_drawing; affinityType = ResourceType::Water; }
+        if (skills->woodcutting   > best) {                               affinityType = ResourceType::Wood;  }
+        // Only apply affinity bonus if the skill is meaningfully developed (> 0.25)
+        hasAffinity = (best > 0.25f);
+    }
+
     entt::entity best      = entt::null;
-    float        bestStock = -1.f;
+    float        bestScore = -1.f;
 
     registry.view<Road>().each([&](const Road& road) {
         if (road.blocked) return;
@@ -102,7 +117,17 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         float water = sp->quantities.count(ResourceType::Water)
                       ? sp->quantities.at(ResourceType::Water) : 0.f;
         float total = food + water;
-        if (total > bestStock) { bestStock = total; best = dest; }
+
+        // Skill-affinity bonus: +20% score if destination primarily produces
+        // the resource matching the NPC's strongest skill.
+        if (hasAffinity) {
+            registry.view<ProductionFacility>().each([&](const ProductionFacility& fac) {
+                if (fac.settlement == dest && fac.output == affinityType && fac.baseRate > 0.f)
+                    total *= 1.20f;
+            });
+        }
+
+        if (total > bestScore) { bestScore = total; best = dest; }
     });
     return best;
 }
@@ -207,7 +232,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
         // -- Check migration trigger first --
         if (timer.stockpileEmpty >= timer.migrateThreshold) {
-            entt::entity dest = FindMigrationTarget(registry, home.settlement);
+            const auto* skills = registry.try_get<Skills>(entity);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;

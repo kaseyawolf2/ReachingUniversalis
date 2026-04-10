@@ -103,15 +103,33 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             state.behavior = AgentBehavior::Idle;
         }
 
-        // ---- Move Working NPCs toward the nearest production facility in their settlement ----
-        // This makes work visible — NPCs gravitate to farms/wells/mills during shifts.
-        // Also advances the relevant skill while actively working at a facility.
+        // ---- Move Working NPCs toward their skill-matched facility in their settlement ----
+        // NPCs prefer the facility that matches their strongest skill (aptitude-seeking):
+        //   - a farmer prefers the farm, a water carrier prefers the well, etc.
+        //   - if no matching facility exists here, fall back to nearest facility.
+        // This makes skill specialisation visible: farmers cluster at farms, etc.
         if (state.behavior == AgentBehavior::Working &&
             home.settlement != entt::null && registry.valid(home.settlement)) {
 
-            entt::entity nearestFac  = entt::null;
-            float        bestDistSq  = std::numeric_limits<float>::max();
-            ResourceType facType     = ResourceType::Food;
+            // Determine aptitude: resource type of the NPC's highest skill.
+            ResourceType aptitude    = ResourceType::Food;
+            bool         hasAptitude = false;
+            if (const auto* skills = registry.try_get<Skills>(entity)) {
+                float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
+                if (mx > 0.25f) {
+                    hasAptitude = true;
+                    if      (skills->water_drawing == mx) aptitude = ResourceType::Water;
+                    else if (skills->woodcutting   == mx) aptitude = ResourceType::Wood;
+                    // else stays Food/farming
+                }
+            }
+
+            entt::entity chosenFac  = entt::null;
+            float        chosenDist = std::numeric_limits<float>::max();
+            entt::entity nearestFac = entt::null;
+            float        nearestDist = std::numeric_limits<float>::max();
+            ResourceType chosenType  = ResourceType::Food;
+            ResourceType nearestType = ResourceType::Food;
 
             registry.view<Position, ProductionFacility>().each(
                 [&](auto fe, const Position& fpos, const ProductionFacility& fac) {
@@ -119,19 +137,25 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 if (fac.baseRate <= 0.f) return;   // skip shelter nodes
                 float dx = fpos.x - pos.x, dy = fpos.y - pos.y;
                 float d  = dx*dx + dy*dy;
-                if (d < bestDistSq) { bestDistSq = d; nearestFac = fe; facType = fac.output; }
+                if (d < nearestDist) { nearestDist = d; nearestFac = fe; nearestType = fac.output; }
+                if (hasAptitude && fac.output == aptitude && d < chosenDist) {
+                    chosenDist = d; chosenFac = fe; chosenType = fac.output;
+                }
             });
 
-            if (nearestFac != entt::null) {
-                const auto& fpos = registry.get<Position>(nearestFac);
+            // Use aptitude-matched facility if found; fall back to nearest
+            entt::entity workFac  = (chosenFac != entt::null) ? chosenFac  : nearestFac;
+            ResourceType facType  = (chosenFac != entt::null) ? chosenType : nearestType;
+            float        workDist = (chosenFac != entt::null) ? chosenDist : nearestDist;
+
+            if (workFac != entt::null) {
+                const auto& fpos = registry.get<Position>(workFac);
                 static constexpr float WORK_ARRIVE = 30.f;
-                if (bestDistSq > WORK_ARRIVE * WORK_ARRIVE) {
+                if (workDist > WORK_ARRIVE * WORK_ARRIVE) {
                     MoveToward(vel, pos, fpos.x, fpos.y, speed * 0.8f);
                 } else {
                     vel.vx = vel.vy = 0.f;
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
-                    // gameDt is in real seconds; GAME_MINS_PER_REAL_SEC converts to game-minutes
-                    // 0.1 per game-day = 0.1 / (24*60) per game-minute = ~6.9e-5 per game-min
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
                     if (auto* skills = registry.try_get<Skills>(entity))
@@ -142,11 +166,16 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
         // ---- Skill growth/decay ----
         // Children (< 15 days) passively grow all skills as they observe community work.
+        // The skill that started highest (birth aptitude) grows to a higher cap (0.42)
+        // while the other two cap at 0.35, reflecting natural specialisation tendency.
         // Adults not actively Working lose skill slowly (disuse decay).
-        // Target: child reaches ~0.35 by age 15 if born at 0.1 (0.25 gain over 15 days).
-        //   Gain: 0.25 / (15*24) ≈ 0.000694/hr
+        // Target: child reaches ~0.35 by age 15 if born at 0.08 (0.27 gain over 15 days).
+        //   Gain: 0.27 / (15*24) ≈ 0.00075/hr (slightly faster than before to compensate
+        //   for the lower starting value of 0.08 vs old 0.1)
         // Adults decay: 0.005/day = 0.000208/hr — slow, needs continuous practice to maintain.
-        static constexpr float CHILD_SKILL_GAIN_PER_HOUR = 0.25f / (15.f * 24.f);
+        static constexpr float CHILD_SKILL_GAIN_PER_HOUR = 0.27f / (15.f * 24.f);
+        static constexpr float CHILD_SKILL_CAP_BASE      = 0.35f;   // non-aptitude skills
+        static constexpr float CHILD_SKILL_CAP_APTITUDE  = 0.42f;   // aptitude skill
         float gHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
 
         if (const auto* age2 = registry.try_get<Age>(entity)) {
@@ -154,9 +183,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 // Child: passive growth (observing community)
                 if (auto* skills = registry.try_get<Skills>(entity)) {
                     float grow = CHILD_SKILL_GAIN_PER_HOUR * gHrs;
-                    skills->farming       = std::min(0.35f, skills->farming       + grow);
-                    skills->water_drawing = std::min(0.35f, skills->water_drawing + grow);
-                    skills->woodcutting   = std::min(0.35f, skills->woodcutting   + grow);
+                    // The highest skill is the aptitude — it gets a slightly higher cap.
+                    float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
+                    float capF = (skills->farming       == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
+                    float capW = (skills->water_drawing == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
+                    float capL = (skills->woodcutting   == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
+                    skills->farming       = std::min(capF, skills->farming       + grow);
+                    skills->water_drawing = std::min(capW, skills->water_drawing + grow);
+                    skills->woodcutting   = std::min(capL, skills->woodcutting   + grow);
                 }
             } else if (state.behavior != AgentBehavior::Working) {
                 // Adult not working: decay

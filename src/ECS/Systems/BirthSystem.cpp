@@ -154,8 +154,18 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             for (auto& need : newNeeds.list)
                 need.drainRate *= trait_dist(s_rng);
 
-            // Newborns have low starting skills (children learn as they grow)
-            registry.emplace<Skills>(npc, Skills{ 0.1f, 0.1f, 0.1f });
+            // Newborns have a random skill aptitude: one skill starts slightly higher
+            // (0.15) while the others start a little lower (0.08). This bias persists
+            // through childhood passive growth, creating gentle specialisation by
+            // the time the NPC enters the workforce. The aptitude also influences which
+            // settlement they'll prefer when migrating (skill-aware migration targeting).
+            static std::uniform_int_distribution<int> apt_dist(0, 2);
+            int aptIdx = apt_dist(s_rng);
+            Skills npcSkills{ 0.08f, 0.08f, 0.08f };
+            if      (aptIdx == 0) npcSkills.farming       = 0.15f;
+            else if (aptIdx == 1) npcSkills.water_drawing = 0.15f;
+            else                  npcSkills.woodcutting   = 0.15f;
+            registry.emplace<Skills>(npc, npcSkills);
 
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
