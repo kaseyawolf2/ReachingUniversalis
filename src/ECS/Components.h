@@ -128,11 +128,11 @@ struct TimeManager {
     int   tickSpeed    = 1;      // multiplier: 1, 2, or 4
     bool  paused       = false;
 
-    // Scaled dt for all game systems (0 when paused).
-    // At 1x: gameDt == realDt. At 2x: gameDt == realDt*2. Etc.
+    // Returns realDt unchanged — tickSpeed is handled by the sub-tick loop in
+    // GameState::Update, not by scaling dt. Kept as a pass-through so systems
+    // don't need to change their call sites.
     float GameDt(float realDt) const {
-        if (paused) return 0.0f;
-        return realDt * static_cast<float>(tickSpeed);
+        return realDt;
     }
 };
 

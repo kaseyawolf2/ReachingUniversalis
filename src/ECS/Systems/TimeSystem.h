@@ -3,6 +3,9 @@
 
 class TimeSystem {
 public:
-    // Advance game clock and handle keyboard input (pause, speed).
-    void Update(entt::registry& registry, float realDt);
+    // Key input only — call once per frame.
+    void HandleInput(entt::registry& registry);
+
+    // Advance the game clock by one sub-tick — call tickSpeed times per frame.
+    void Advance(entt::registry& registry, float subDt);
 };

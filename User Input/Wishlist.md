@@ -1,1 +1,1 @@
-* Ticks Per Second counter or a millisecond per frame counter so i can tell how close to slow down the sim is getting
+* 

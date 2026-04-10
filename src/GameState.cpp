@@ -8,19 +8,32 @@ void GameState::Initialize() {
 }
 
 void GameState::Update(float dt) {
-    timeSystem.Update(registry, dt);
+    // ---- Input phase: always once per frame ----
+    timeSystem.HandleInput(registry);
     hud.HandleInput(registry);
     playerInputSystem.Update(registry, dt);
     cameraSystem.Update(registry, dt);
     renderSystem.HandleInput(registry);
-    needDrainSystem.Update(registry, dt);
-    consumptionSystem.Update(registry, dt);
-    scheduleSystem.Update(registry, dt);
-    agentDecisionSystem.Update(registry, dt);
-    movementSystem.Update(registry, dt);
-    productionSystem.Update(registry, dt);
-    transportSystem.Update(registry, dt);
-    deathSystem.Update(registry, dt);
+
+    // ---- Simulation phase: tickSpeed sub-ticks per frame ----
+    // Each sub-tick receives the real frame dt so accuracy is identical at all speeds.
+    // Running N ticks per frame is what makes time pass N× faster — not dt scaling.
+    auto tmView = registry.view<TimeManager>();
+    if (tmView.empty()) return;
+    const auto& tm = tmView.get<TimeManager>(*tmView.begin());
+    int ticks = tm.paused ? 0 : tm.tickSpeed;
+
+    for (int i = 0; i < ticks; ++i) {
+        timeSystem.Advance(registry, dt);
+        needDrainSystem.Update(registry, dt);
+        consumptionSystem.Update(registry, dt);
+        scheduleSystem.Update(registry, dt);
+        agentDecisionSystem.Update(registry, dt);
+        movementSystem.Update(registry, dt);
+        productionSystem.Update(registry, dt);
+        transportSystem.Update(registry, dt);
+        deathSystem.Update(registry, dt);
+    }
 }
 
 void GameState::Draw() {
