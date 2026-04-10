@@ -99,8 +99,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     float dt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
     if (dt <= 0.f) return;
 
+    // Exclude Haulers (TransportSystem handles them) and Player (PlayerInputSystem).
     auto view = registry.view<Needs, AgentState, Position, Velocity,
-                               MoveSpeed, HomeSettlement, DeprivationTimer>();
+                               MoveSpeed, HomeSettlement, DeprivationTimer>(
+                    entt::exclude<Hauler, PlayerTag>);
 
     for (auto entity : view) {
         auto& needs  = view.get<Needs>(entity);

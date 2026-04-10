@@ -5,6 +5,26 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP4] Transport and Logistics — 2026-04-10
+
+Haulers shuttle surplus resources between settlements along the road network.
+
+### Added
+- `HaulerState { Idle, GoingToDeposit, GoingHome }` — hauler state machine enum
+- `Hauler` component — holds `HaulerState` and `targetSettlement` entity
+- `Inventory` component — `map<ResourceType,int>` contents, `maxCapacity=5`, `TotalItems()`
+- `TransportSystem` — three-state hauler loop:
+  - **Idle**: checks road open; finds resource type with most surplus (min 2 units); takes up to 50% of surplus (max `maxCapacity`); deducts from home stockpile; sets `GoingToDeposit`
+  - **GoingToDeposit**: walks to destination; aborts home if road is blocked mid-trip; deposits all inventory into dest stockpile on arrival → `GoingHome`
+  - **GoingHome**: walks home; resets to `Idle` on arrival
+- `WorldGenerator` spawns 4 haulers per settlement (SKYBLUE dots, size 7)
+- `RenderSystem` shows haulers with DARKBLUE ring + colored cargo dot (green=food, blue=water)
+
+### Changed
+- `GameState` wires `TransportSystem` into update loop (after `ProductionSystem`, before `DeathSystem`)
+
+---
+
 ## [WP3] Multi-NPC Population — 2026-04-10
 
 40 NPCs living across both settlements, consuming resources, seeking facilities, migrating, and dying.

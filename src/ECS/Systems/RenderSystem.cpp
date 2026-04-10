@@ -88,23 +88,40 @@ void RenderSystem::Draw(entt::registry& registry) {
             const auto& pos  = agentView.get<Position>(entity);
             const auto& rend = agentView.get<Renderable>(entity);
 
-            // Override color based on worst need — keep PlayerTag color as-is
             Color drawColor = rend.color;
-            if (!registry.all_of<PlayerTag>(entity)) {
+            bool  isPlayer  = registry.all_of<PlayerTag>(entity);
+            bool  isHauler  = registry.all_of<Hauler>(entity);
+
+            if (!isPlayer) {
                 if (const auto* needs = registry.try_get<Needs>(entity)) {
                     float worst = 1.f;
                     for (const auto& n : needs->list)
                         if (n.value < worst) worst = n.value;
-
                     if      (worst < 0.15f) drawColor = RED;
                     else if (worst < 0.30f) drawColor = ORANGE;
                     else if (worst < 0.55f) drawColor = YELLOW;
-                    else                    drawColor = WHITE;
+                    else                    drawColor = isHauler ? SKYBLUE : WHITE;
                 }
             }
 
             DrawCircleV({ pos.x, pos.y }, rend.size, drawColor);
-            DrawCircleLinesV({ pos.x, pos.y }, rend.size, DARKGRAY);
+            // Haulers get a distinct teal ring; player gets a white ring
+            Color ring = isPlayer ? WHITE : (isHauler ? DARKBLUE : DARKGRAY);
+            DrawCircleLinesV({ pos.x, pos.y }, rend.size + 1.f, ring);
+
+            // Cargo dot for haulers carrying goods
+            if (isHauler) {
+                if (const auto* inv = registry.try_get<Inventory>(entity)) {
+                    for (const auto& [type, qty] : inv->contents) {
+                        if (qty <= 0) continue;
+                        Color dot = (type == ResourceType::Food)  ? GREEN :
+                                    (type == ResourceType::Water) ? BLUE  : BROWN;
+                        DrawCircleV({ pos.x + rend.size + 4.f, pos.y - rend.size },
+                                    4.f, dot);
+                        break;
+                    }
+                }
+            }
         }
     }
 

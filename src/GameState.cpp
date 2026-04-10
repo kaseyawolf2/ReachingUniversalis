@@ -16,6 +16,7 @@ void GameState::Update(float dt) {
     agentDecisionSystem.Update(registry, dt);
     movementSystem.Update(registry, dt);
     productionSystem.Update(registry, dt);
+    transportSystem.Update(registry, dt);
     deathSystem.Update(registry, dt);
 }
 

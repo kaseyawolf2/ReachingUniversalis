@@ -1,5 +1,0 @@
-## Major Bugs
-
-
-
-## Minor Bugs

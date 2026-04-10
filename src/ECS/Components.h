@@ -32,7 +32,7 @@ struct MoveSpeed { float value; };
 
 // ---- Agent behaviour ----
 
-enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying, Migrating };
+enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying, Migrating, Sleeping, Working };
 
 struct AgentState {
     AgentBehavior behavior = AgentBehavior::Idle;
@@ -76,6 +76,35 @@ struct HomeSettlement {
 struct DeprivationTimer {
     std::array<float, 3> needsAtZero     = { 0.f, 0.f, 0.f };
     float                stockpileEmpty  = 0.f;   // seconds with no food OR water
+};
+
+// ---- Inventory / Transport ----
+
+struct Inventory {
+    std::map<ResourceType, int> contents;
+    int maxCapacity = 5;
+
+    int TotalItems() const {
+        int t = 0;
+        for (const auto& [k, v] : contents) t += v;
+        return t;
+    }
+};
+
+enum class HaulerState { Idle, GoingToDeposit, GoingHome };
+
+struct Hauler {
+    HaulerState  state            = HaulerState::Idle;
+    entt::entity targetSettlement = entt::null;
+};
+
+// ---- Schedule ----
+
+struct Schedule {
+    int wakeHour  =  6;
+    int workStart =  7;
+    int workEnd   = 17;
+    int sleepHour = 22;
 };
 
 // ---- Rendering ----
