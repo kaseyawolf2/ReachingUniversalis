@@ -1,0 +1,1 @@
+* Click and drag moving of the map

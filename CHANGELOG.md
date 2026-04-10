@@ -5,6 +5,26 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP5] Player Controls and Camera Follow — 2026-04-10
+
+Direct player movement, camera tracking, stockpile interaction, and respawn.
+
+### Added
+- `PlayerInputSystem` — handles all direct player input each frame:
+  - **WASD**: move player (normalised diagonal, respects gameDt / pause)
+  - **E**: consume 1 Food + 1 Water from nearest settlement stockpile (within 140px); instantly refills corresponding needs by 30× refillRate
+  - **R**: teleport player to home settlement, restore all needs to full
+  - **F**: toggle camera follow mode on/off
+- Camera follow mode (`CameraState::followPlayer = true` by default) — camera target smoothly lerps to player position each frame (lerp factor 5×realDt)
+- Key hint strip at bottom of player HUD panel: `WASD:Move  E:Eat/Drink  R:Respawn  F:Follow`
+
+### Changed
+- `CameraSystem`: arrow key pan now sets `followPlayer = false`; **C** key recenters map (zoom 0.5) and disables follow
+- `HUD::BehaviorLabel` extended to cover `Migrating`, `Sleeping`, `Working` states
+- HUD left panel height expanded to fit key hint row
+
+---
+
 ## [WP4] Transport and Logistics — 2026-04-10
 
 Haulers shuttle surplus resources between settlements along the road network.

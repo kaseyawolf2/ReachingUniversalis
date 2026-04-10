@@ -144,9 +144,10 @@ struct CameraState {
         0.0f,                 // rotation
         1.0f                  // zoom
     };
-    float panSpeed  = 400.0f;   // pixels per second at zoom 1
-    float zoomMin   = 0.25f;
-    float zoomMax   = 3.0f;
+    float panSpeed    = 400.0f;   // pixels per second at zoom 1
+    float zoomMin     = 0.25f;
+    float zoomMax     = 3.0f;
+    bool  followPlayer = true;    // if true, camera lerps to player position
 };
 
 // ---- Tags ----

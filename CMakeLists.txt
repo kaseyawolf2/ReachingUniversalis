@@ -34,6 +34,7 @@ set(SOURCES
     src/ECS/Systems/TransportSystem.cpp
     src/ECS/Systems/CameraSystem.cpp
     src/ECS/Systems/RenderSystem.cpp
+    src/ECS/Systems/PlayerInputSystem.cpp
     src/World/WorldGenerator.cpp
     src/UI/HUD.cpp
 )

@@ -11,6 +11,7 @@
 #include "ECS/Systems/DeathSystem.h"
 #include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/RenderSystem.h"
+#include "ECS/Systems/PlayerInputSystem.h"
 #include "UI/HUD.h"
 
 class GameState {
@@ -33,5 +34,6 @@ private:
     DeathSystem         deathSystem;
     CameraSystem        cameraSystem;
     RenderSystem        renderSystem;
+    PlayerInputSystem   playerInputSystem;
     HUD                 hud;
 };

@@ -17,6 +17,9 @@ static const char* BehaviorLabel(AgentBehavior b) {
         case AgentBehavior::SeekingWater: return "SeekingWater";
         case AgentBehavior::SeekingSleep: return "SeekingSleep";
         case AgentBehavior::Satisfying:   return "Satisfying";
+        case AgentBehavior::Migrating:    return "Migrating";
+        case AgentBehavior::Sleeping:     return "Sleeping";
+        case AgentBehavior::Working:      return "Working";
     }
     return "Unknown";
 }
@@ -28,7 +31,7 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
         const auto& needs = playerView.get<Needs>(entity);
         const auto& state = playerView.get<AgentState>(entity);
 
-        DrawRectangle(4, 4, BAR_W + 70, BAR_SPACING * 4 + 6, Fade(BLACK, 0.5f));
+        DrawRectangle(4, 4, 320, BAR_SPACING * 4 + 30, Fade(BLACK, 0.5f));
 
         DrawNeedBar(BAR_X, BAR_START_Y + BAR_SPACING * 0,
                     needs.list[0].value, needs.list[0].criticalThreshold, "Hunger", GREEN);
@@ -40,6 +43,10 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
         const int stateY = BAR_START_Y + BAR_SPACING * 3 + 4;
         DrawText("State:", BAR_X, stateY, 14, LIGHTGRAY);
         DrawText(BehaviorLabel(state.behavior), BAR_X + 52, stateY, 14, WHITE);
+
+        // Key hints
+        const int hintY = stateY + 20;
+        DrawText("WASD:Move  E:Eat/Drink  R:Respawn  F:Follow", BAR_X, hintY, 11, Fade(LIGHTGRAY, 0.7f));
 
         break;
     }
