@@ -5,6 +5,42 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Economy & Self-Organization] Settlement construction, skill specialisation, player trading — 2026-04-10
+
+### Added
+- **ConstructionSystem**: Settlements autonomously build new production facilities when thriving.
+  Trigger: treasury > 200g AND a resource price > 7g AND stock < 20 units. Costs 200g from
+  treasury. Max 4 facilities per resource type per settlement. Logged green in event log.
+- **Skill aptitude at birth**: Newborns have a random aptitude (farming/water/wood). Aptitude
+  skill starts at 0.15 vs 0.08 for others, and grows to cap 0.42 during childhood (vs 0.35).
+  Creates visible natural specialisation by workforce entry age.
+- **Aptitude-seeking work behavior**: Working NPCs now prefer the facility matching their
+  strongest skill (farmers to farms, water carriers to wells, woodcutters to mills), only
+  falling back to nearest facility if no matching one exists at their settlement.
+- **Skill-aware migration**: `FindMigrationTarget` adds a 20% affinity bonus for destinations
+  whose primary facility matches the NPC's strongest skill; skilled workers self-sort over time.
+- **Skill-based wages**: `wage = 0.3 × (0.5 + bestSkill)` → range 0.15–0.45 g/hr. Master
+  craftspersons earn 3× a beginner, creating economic reward for skill specialisation.
+- **Profession from skill not settlement**: Hover tooltip profession label now reflects the NPC's
+  actual strongest skill (only falls back to settlement primary if skills are too uniform).
+- **Life-stage visual sizing**: Children are rendered at 60% of adult size, youth at 80%,
+  elderly at 105%; makes demographic composition instantly visible on the map.
+- **Production/consumption breakdown in settlement panel**: Each resource now shows two lines:
+  `Food: 50u @2.50g  net:+3.5/hr` (summary) plus `prod:+6.0  cons:-2.5  /hr` (detail sub-line).
+  Settlement panel also shows current worker count beside treasury.
+- **Q-key buy action**: Player can press Q near a settlement to buy 1 unit of the cheapest
+  available resource at market price. Enables the merchant playstyle: earn gold via E-key work,
+  buy cheap at surplus settlements, sell at premium settlements via T-key.
+- Event log: construction and hauler graduation events now colored green in both HUD log and
+  settlement panel recent-events list.
+
+### Changed
+- Controls hint updated to include Q:Buy; removed M:Market (key not bound).
+- `StockpilePanel` gains `prodRatePerHour`, `consRatePerHour`, and `workers` fields.
+- Settlement panel width increased from 265px to 280px to accommodate breakdown lines.
+
+---
+
 ## [Skills & Observability] Worker skills, player work action, and world tooltips — 2026-04-10
 
 ### Added
