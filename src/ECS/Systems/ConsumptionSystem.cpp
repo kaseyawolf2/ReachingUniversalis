@@ -110,6 +110,57 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // ---- Desperate theft: steal from stockpile when close to death ----
+        // An NPC within 6 hours of dying of hunger or thirst, with no money and
+        // no goods in the stockpile, will steal a small amount directly.
+        // Theft is rare (cooldown 4 game-hours) and only when truly desperate.
+        static constexpr float STEAL_DESPERATION = 6.f * 60.f;   // 6 game-hours of needsAtZero
+        static constexpr float STEAL_AMOUNT      = 2.f;           // units stolen
+        static constexpr float STEAL_COOLDOWN    = 4.f;           // game-hours between thefts
+        timer.stealCooldown = std::max(0.f, timer.stealCooldown - gameHoursDt);
+
+        bool canSteal = (timer.stealCooldown <= 0.f)
+                     && (!money || money->balance < 1.f);   // only if broke
+        if (canSteal) {
+            // Steal food if close to dying of hunger
+            if (timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
+                foodStock -= STEAL_AMOUNT;
+                // Don't refill need — they'll pick it up as consumption next tick
+                timer.stealCooldown = STEAL_COOLDOWN;
+
+                // Log it
+                auto lv3 = registry.view<EventLog>();
+                auto tv3 = registry.view<TimeManager>();
+                if (lv3.begin() != lv3.end() && tv3.begin() != tv3.end()) {
+                    const auto& tm3 = tv3.get<TimeManager>(*tv3.begin());
+                    std::string who = "An NPC";
+                    if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    std::string where = "?";
+                    if (settl) where = settl->name;
+                    lv3.get<EventLog>(*lv3.begin()).Push(
+                        tm3.day, (int)tm3.hourOfDay,
+                        who + " stole food at " + where + " (desperate)");
+                }
+            }
+            // Steal water if close to dying of thirst
+            else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
+                waterStock -= STEAL_AMOUNT;
+                timer.stealCooldown = STEAL_COOLDOWN;
+                auto lv3 = registry.view<EventLog>();
+                auto tv3 = registry.view<TimeManager>();
+                if (lv3.begin() != lv3.end() && tv3.begin() != tv3.end()) {
+                    const auto& tm3 = tv3.get<TimeManager>(*tv3.begin());
+                    std::string who = "An NPC";
+                    if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    std::string where = "?";
+                    if (settl) where = settl->name;
+                    lv3.get<EventLog>(*lv3.begin()).Push(
+                        tm3.day, (int)tm3.hourOfDay,
+                        who + " stole water at " + where + " (desperate)");
+                }
+            }
+        }
+
         // ---- Wood / Heat ----
         // If wood is available and the season demands heating, burn wood and keep NPCs warm.
         // If no wood (or summer — no demand), NeedDrainSystem naturally drains Heat.

@@ -86,6 +86,7 @@ struct DeprivationTimer {
     float                stockpileEmpty  = 0.f;    // seconds with no food, water, OR heat
     float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
     float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase
+    float                stealCooldown   = 0.f;    // game-hours until NPC can steal again (0 = can steal)
 };
 
 // ---- Inventory / Transport ----
