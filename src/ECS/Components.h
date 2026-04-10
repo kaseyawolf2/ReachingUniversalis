@@ -9,7 +9,7 @@
 // ---- Domain enums ----
 
 enum class NeedType     { Hunger = 0, Thirst = 1, Energy = 2 };
-enum class ResourceType { Food, Water, Shelter };
+enum class ResourceType { Food, Water, Shelter, Wood };
 
 // ---- Need data ----
 

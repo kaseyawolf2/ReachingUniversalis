@@ -154,10 +154,14 @@ void GameState::Draw() {
 
     // Facilities
     for (const auto& f : facilities) {
-        Color col   = (f.output == ResourceType::Food) ? GREEN : SKYBLUE;
-        const char* label = (f.output == ResourceType::Food) ? "F" :
-                            (f.output == ResourceType::Water) ? "W" : nullptr;
-        if (!label) continue;
+        Color col;
+        const char* label;
+        switch (f.output) {
+            case ResourceType::Food:    col = GREEN;  label = "F"; break;
+            case ResourceType::Water:   col = SKYBLUE; label = "W"; break;
+            case ResourceType::Wood:    col = BROWN;  label = "L"; break;
+            default: continue;  // Shelter — no visual marker
+        }
         DrawRectangle((int)f.x - 10, (int)f.y - 10, 20, 20, Fade(col, 0.8f));
         DrawRectangleLines((int)f.x - 10, (int)f.y - 10, 20, 20, WHITE);
         DrawText(label, (int)f.x - 4, (int)f.y - 7, 14, WHITE);

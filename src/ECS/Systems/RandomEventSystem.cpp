@@ -111,16 +111,18 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         break;
     }
 
-    case 2: {   // Bandits — block road temporarily
-        bool any = false;
-        registry.view<Road>().each([&](Road& road) {
-            if (!road.blocked && road.banditTimer <= 0.f) {
-                road.blocked     = true;
-                road.banditTimer = BANDIT_DURATION;
-                any = true;
-            }
+    case 2: {   // Bandits — block one random open road temporarily
+        std::vector<entt::entity> openRoads;
+        registry.view<Road>().each([&](auto e, const Road& road) {
+            if (!road.blocked && road.banditTimer <= 0.f)
+                openRoads.push_back(e);
         });
-        if (any && log) log->Push(day, hour,
+        if (openRoads.empty()) break;
+        std::uniform_int_distribution<int> pickRoad(0, (int)openRoads.size() - 1);
+        auto& road = registry.get<Road>(openRoads[pickRoad(m_rng)]);
+        road.blocked     = true;
+        road.banditTimer = BANDIT_DURATION;
+        if (log) log->Push(day, hour,
             "BANDITS blocking road ("
             + std::to_string((int)BANDIT_DURATION) + "h)");
         break;

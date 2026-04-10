@@ -21,7 +21,8 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         switch (type) {
             case ResourceType::Food:    label = "Food";    col = GREEN;   break;
             case ResourceType::Water:   label = "Water";   col = SKYBLUE; break;
-            case ResourceType::Shelter: label = "Shelter"; col = BROWN;   break;
+            case ResourceType::Wood:    label = "Wood";    col = BROWN;   break;
+            case ResourceType::Shelter: continue;  // not shown in stockpile
         }
 
         // Show price if available

@@ -126,18 +126,19 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     }
     if (ws.empty()) return;
 
-    // Format: "Greenfield  F:120@2.1  W:20@8.3  [20]  [DROUGHT]"
-    char bufs[4][80]; bool hasEvent[4] = {}; int count = 0;
+    // Format: "Greenfield  F:120@2.1  W:20@8.3  Wd:120@1.5  [20]  [DROUGHT]"
+    char bufs[4][96]; bool hasEvent[4] = {}; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
         if (s.hasEvent)
-            std::snprintf(bufs[count], 80, "%s  F:%.0f@%.1f  W:%.0f@%.1f  [%d] [%s]",
+            std::snprintf(bufs[count], 96, "%s  F:%.0f@%.1f  W:%.0f@%.1f  Wd:%.0f@%.1f  [%d] [%s]",
                           s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.pop, s.eventName.c_str());
+                          s.water, s.waterPrice, s.wood, s.woodPrice,
+                          s.pop, s.eventName.c_str());
         else
-            std::snprintf(bufs[count], 80, "%s  F:%.0f@%.1f  W:%.0f@%.1f  [%d]",
+            std::snprintf(bufs[count], 96, "%s  F:%.0f@%.1f  W:%.0f@%.1f  Wd:%.0f@%.1f  [%d]",
                           s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.pop);
+                          s.water, s.waterPrice, s.wood, s.woodPrice, s.pop);
         hasEvent[count] = s.hasEvent;
         ++count;
     }

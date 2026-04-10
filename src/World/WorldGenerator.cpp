@@ -105,12 +105,14 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<StockpileAlert>(greenfield);
     registry.emplace<Stockpile>(greenfield, Stockpile{{
         { ResourceType::Food,  120.f },
-        { ResourceType::Water,  20.f }
+        { ResourceType::Water,  20.f },
+        { ResourceType::Wood,    0.f }
     }});
-    // Market: Food cheap (surplus), Water expensive (scarce)
+    // Market: Food cheap (surplus), Water expensive (scarce), Wood scarce
     registry.emplace<Market>(greenfield, Market{{
         { ResourceType::Food,  2.0f },
-        { ResourceType::Water, 8.0f }
+        { ResourceType::Water, 8.0f },
+        { ResourceType::Wood,  6.0f }
     }});
 
     auto wellsworth = registry.create();
@@ -120,16 +122,37 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<StockpileAlert>(wellsworth);
     registry.emplace<Stockpile>(wellsworth, Stockpile{{
         { ResourceType::Food,   20.f },
-        { ResourceType::Water, 120.f }
+        { ResourceType::Water, 120.f },
+        { ResourceType::Wood,    0.f }
     }});
-    // Market: Water cheap (surplus), Food expensive (scarce)
+    // Market: Water cheap (surplus), Food expensive (scarce), Wood scarce
     registry.emplace<Market>(wellsworth, Market{{
         { ResourceType::Food,  8.0f },
-        { ResourceType::Water, 2.0f }
+        { ResourceType::Water, 2.0f },
+        { ResourceType::Wood,  6.0f }
     }});
 
-    // ---- Road ----
+    auto millhaven = registry.create();
+    registry.emplace<Position>(millhaven, 1200.f, 200.f);
+    registry.emplace<Settlement>(millhaven, Settlement{ "Millhaven", 120.f });
+    registry.emplace<BirthTracker>(millhaven);
+    registry.emplace<StockpileAlert>(millhaven);
+    registry.emplace<Stockpile>(millhaven, Stockpile{{
+        { ResourceType::Food,   30.f },
+        { ResourceType::Water,  30.f },
+        { ResourceType::Wood,  120.f }
+    }});
+    // Market: Wood cheap (surplus), Food/Water mid-priced (imported)
+    registry.emplace<Market>(millhaven, Market{{
+        { ResourceType::Food,  5.0f },
+        { ResourceType::Water, 5.0f },
+        { ResourceType::Wood,  1.5f }
+    }});
+
+    // ---- Roads ----
     registry.emplace<Road>(registry.create(), Road{ greenfield, wellsworth, false });
+    registry.emplace<Road>(registry.create(), Road{ greenfield, millhaven,  false });
+    registry.emplace<Road>(registry.create(), Road{ millhaven,  wellsworth, false });
 
     // ---- Production facilities ----
     for (int i = 0; i < 2; ++i) {
@@ -157,14 +180,29 @@ void WorldGenerator::Populate(entt::registry& registry) {
         registry.emplace<ProductionFacility>(rest,
             ProductionFacility{ ResourceType::Shelter, 0.f, wellsworth });
     }
+    // Millhaven: 2 lumber mills + shelter
+    for (int i = 0; i < 2; ++i) {
+        auto lmill = registry.create();
+        registry.emplace<Position>(lmill, 1200.f + (i == 0 ? -50.f : 50.f), 130.f);
+        registry.emplace<ProductionFacility>(lmill,
+            ProductionFacility{ ResourceType::Wood, 3.f, millhaven });
+    }
+    {
+        auto rest = registry.create();
+        registry.emplace<Position>(rest, 1200.f, 290.f);
+        registry.emplace<ProductionFacility>(rest,
+            ProductionFacility{ ResourceType::Shelter, 0.f, millhaven });
+    }
 
     // ---- Population ----
     SpawnNPCs(registry, greenfield, 400.f,  360.f, 20);
     SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20);
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);
     SpawnHaulers(registry, wellsworth, 2000.f, 360.f, 6);
+    SpawnHaulers(registry, millhaven,  1200.f, 200.f, 6);
 
     // ---- Player ----
     auto player = registry.create();

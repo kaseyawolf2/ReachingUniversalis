@@ -53,8 +53,10 @@ struct RenderSnapshot {
         std::string name;
         float       food  = 0.f;
         float       water = 0.f;
+        float       wood  = 0.f;
         float       foodPrice  = 1.f;   // current market price
         float       waterPrice = 1.f;
+        float       woodPrice  = 1.f;
         int         pop   = 0;
         bool        hasEvent  = false;  // active random event
         std::string eventName;

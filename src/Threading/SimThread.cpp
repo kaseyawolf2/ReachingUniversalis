@@ -289,19 +289,23 @@ void SimThread::WriteSnapshot() {
                       ? sp.quantities.at(ResourceType::Food)  : 0.f;
         float water = sp.quantities.count(ResourceType::Water)
                       ? sp.quantities.at(ResourceType::Water) : 0.f;
+        float wood  = sp.quantities.count(ResourceType::Wood)
+                      ? sp.quantities.at(ResourceType::Wood)  : 0.f;
 
         // Market prices (default 1.0 if no market component)
-        float foodPrice = 1.f, waterPrice = 1.f;
+        float foodPrice = 1.f, waterPrice = 1.f, woodPrice = 1.f;
         if (const auto* mkt = m_registry.try_get<Market>(e)) {
             foodPrice  = mkt->GetPrice(ResourceType::Food);
             waterPrice = mkt->GetPrice(ResourceType::Water);
+            woodPrice  = mkt->GetPrice(ResourceType::Wood);
         }
 
         int pop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
 
-        worldStatus.push_back({ s.name, food, water, foodPrice, waterPrice, pop,
+        worldStatus.push_back({ s.name, food, water, wood,
+                                 foodPrice, waterPrice, woodPrice, pop,
                                  s.modifierDuration > 0.f, s.modifierName });
 
         // Stockpile panel for selected settlement

@@ -5,6 +5,30 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Third Settlement] Millhaven + Wood resource + economy fixes — 2026-04-10
+
+Third settlement completes the three-node trade network with a new resource type.
+
+### Added
+- **Millhaven** — third settlement at (1200, 200), north of the Greenfield↔Wellsworth road:
+  - 2 Lumber Mills producing Wood at 3 units/game-hour each
+  - Shelter facility for NPC energy recovery
+  - Starting stockpile: 30 Food, 30 Water, 120 Wood
+  - Market: Wood=1.5g (surplus), Food=5.0g, Water=5.0g (imported)
+  - 20 NPCs + 6 haulers spawned at spawn
+- **`ResourceType::Wood`** — new tradeable resource; not a personal need; produced only at Millhaven
+  - Haulers automatically detect and trade Wood via generic market price logic (no code changes needed in TransportSystem or PriceSystem)
+  - Lumber Mill rendered as brown "L" square on the map
+  - Stockpile panel shows "Wood: 120.0 @ 1.50g" in brown text
+  - World status bar shows `Wd:xxx@x.x` column for each settlement
+- **Three roads**: Greenfield↔Wellsworth (original), Greenfield↔Millhaven, Millhaven↔Wellsworth — creates routing alternatives and richer trade graph
+- `SettlementStatus` in `RenderSnapshot` now carries `wood` and `woodPrice` fields
+
+### Fixed
+- **Bandits event now blocks one random road** instead of all roads simultaneously — with 3 roads the old behaviour would have cut the entire network at once; now picks a single open road randomly
+
+---
+
 ## [Player = NPC] Remove player special powers — 2026-04-10
 
 Player is now fully equivalent to an NPC; the only distinction is human-controlled movement via WASD.
