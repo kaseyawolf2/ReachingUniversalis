@@ -5,6 +5,31 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Observability & Growth] Trade hints, economy stats, dynamic population caps — 2026-04-10
+
+### Added
+- **Trade opportunity hint**: Player HUD shows the best buy→sell margin for goods at the player's
+  current settlement (e.g. "Food: buy Greenfield 1.2g → sell Wellsworth 7.8g (+6.6g)"). Updates
+  dynamically as prices change. Falls back to global best margin when not near a settlement.
+- **Cargo capacity display**: HUD cargo row now shows "Cargo: X/15" with a red indicator when
+  full. Items always shown (shows "(empty)" rather than hiding the row).
+- **Economy-wide statistics in F1 debug overlay**: Adds an "Economy" section showing total gold
+  in the world (all NPCs + player + treasuries), average NPC wealth, richest individual NPC
+  (name + balance), and total hauler count.
+- **Dynamic population caps**: Settlements can now expand their population cap (default 35) by
+  building housing. ConstructionSystem triggers housing when pop >= 80% of cap and treasury
+  >= 300g; each housing built adds +5 cap up to a maximum of 70. BirthSystem uses the dynamic
+  cap; StockpilePanel shows the actual cap rather than a hardcoded constant.
+- **Location-aware trade hint**: Replaces the naive global-spread calculation with one that
+  prioritizes the best margin *from the player's current location*. Shows what to buy here and
+  where to carry it, not just the globally cheapest vs most expensive.
+
+### Fixed
+- Player respawn incorrectly gave 5-unit carry capacity (component default) instead of 15
+  units matching the starting inventory given to new characters.
+
+---
+
 ## [Economy & Self-Organization] Settlement construction, skill specialisation, player trading — 2026-04-10
 
 ### Added
