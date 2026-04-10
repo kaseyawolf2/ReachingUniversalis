@@ -139,22 +139,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 entt::entity AgentDecisionSystem::FindNearestNode(entt::registry& registry,
                                                    ResourceType type,
                                                    float px, float py) {
-    entt::entity nearest = entt::null;
-    float bestDistSq = std::numeric_limits<float>::max();
-
-    auto nodeView = registry.view<Position, ResourceNode>();
-    for (auto entity : nodeView) {
-        const auto& node = nodeView.get<ResourceNode>(entity);
-        if (node.type != type) continue;
-
-        const auto& npos = nodeView.get<Position>(entity);
-        float dx = npos.x - px;
-        float dy = npos.y - py;
-        float distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-            bestDistSq = distSq;
-            nearest    = entity;
-        }
-    }
-    return nearest;
+    // WP2: ResourceNode entities removed. Returns null until WP3 wires up
+    // stockpile-based satisfaction.
+    (void)registry; (void)type; (void)px; (void)py;
+    return entt::null;
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include "raylib.h"
 #include <array>
+#include <map>
+#include <string>
 #include <entt/entt.hpp>
 
 // ---- Domain enums ----
@@ -44,6 +46,31 @@ struct ResourceNode {
     float interactionRadius;
 };
 
+struct Settlement {
+    std::string name;
+    float       radius = 120.0f;   // visual/interaction radius
+};
+
+struct Stockpile {
+    std::map<ResourceType, float> quantities;
+};
+
+struct ProductionFacility {
+    ResourceType  output;
+    float         baseRate;          // units per game-hour at 1 worker
+    entt::entity  settlement = entt::null;
+};
+
+struct Road {
+    entt::entity from = entt::null;
+    entt::entity to   = entt::null;
+    bool         blocked = false;
+};
+
+struct HomeSettlement {
+    entt::entity settlement = entt::null;
+};
+
 // ---- Rendering ----
 
 struct Renderable {
@@ -70,6 +97,20 @@ struct TimeManager {
         if (paused) return 0.0f;
         return realDt * static_cast<float>(tickSpeed);
     }
+};
+
+// ---- Camera ----
+
+struct CameraState {
+    Camera2D cam = {
+        { 640.0f, 360.0f },   // offset: screen centre
+        { 640.0f, 360.0f },   // target: start looking at map centre
+        0.0f,                 // rotation
+        1.0f                  // zoom
+    };
+    float panSpeed  = 400.0f;   // pixels per second at zoom 1
+    float zoomMin   = 0.25f;
+    float zoomMax   = 3.0f;
 };
 
 // ---- Tags ----

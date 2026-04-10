@@ -5,6 +5,39 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP2] Spatial World Structure — 2026-04-10
+
+Two settlements, a road, production facilities, stockpiles, and a pan/zoom camera.
+
+### Added
+- `Settlement` component — name and radius; rendered as a labeled circle
+- `Stockpile` component — `map<ResourceType, float>` quantities per settlement
+- `ProductionFacility` component — output type, base rate (units/game-hour), owning settlement
+- `Road` component — connects two settlement entities; `blocked` flag for WP7
+- `HomeSettlement` component — records which settlement an NPC belongs to
+- `CameraState` component (singleton) — wraps Raylib `Camera2D`
+- `CameraSystem` — arrow key pan, scroll wheel zoom, `C` to re-center; target clamped to map bounds
+- `ProductionSystem` — adds `baseRate × gameHoursDt` to settlement stockpile each tick
+- `RenderSystem` — now wraps world draw in `BeginMode2D`/`EndMode2D`; draws settlements,
+  road (red + X when blocked), and production facility icons (F=Farm, W=Well)
+- Settlement click-to-select — click a settlement circle to open its stockpile panel
+  showing current Food/Water quantities; click again to close
+- `WorldGenerator` — replaced 3 infinite resource nodes with:
+  - Greenfield (x=400) with 2 Farms producing Food (1 unit/game-hour each)
+  - Wellsworth (x=2000) with 2 Wells producing Water (1 unit/game-hour each)
+  - One road connecting them
+
+### Fixed
+- NPC now freezes when paused and speeds up with tick multiplier (`MovementSystem`
+  was using raw `realDt`; now uses `gameDt` from `TimeManager`)
+
+### Changed
+- Map width expanded to 2400px to fit both settlements
+- `AgentDecisionSystem` stubs out resource node seeking (WP3 will wire stockpile consumption)
+- `GameState` wires `CameraSystem`, `ProductionSystem`, and `RenderSystem.HandleInput`
+
+---
+
 ## [WP1] Time System — 2026-04-10
 
 Game clock, day/night sky, pause and speed controls.

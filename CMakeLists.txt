@@ -28,6 +28,8 @@ set(SOURCES
     src/ECS/Systems/NeedDrainSystem.cpp
     src/ECS/Systems/AgentDecisionSystem.cpp
     src/ECS/Systems/MovementSystem.cpp
+    src/ECS/Systems/ProductionSystem.cpp
+    src/ECS/Systems/CameraSystem.cpp
     src/ECS/Systems/RenderSystem.cpp
     src/World/WorldGenerator.cpp
     src/UI/HUD.cpp

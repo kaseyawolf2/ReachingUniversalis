@@ -5,6 +5,8 @@
 #include "ECS/Systems/NeedDrainSystem.h"
 #include "ECS/Systems/AgentDecisionSystem.h"
 #include "ECS/Systems/MovementSystem.h"
+#include "ECS/Systems/ProductionSystem.h"
+#include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
 
@@ -15,13 +17,15 @@ public:
     void  Initialize();
     void  Update(float dt);
     void  Draw();
-    Color SkyColor() const;   // background color for current time of day
+    Color SkyColor() const;
 
 private:
     TimeSystem          timeSystem;
     NeedDrainSystem     needDrainSystem;
     AgentDecisionSystem agentDecisionSystem;
     MovementSystem      movementSystem;
+    ProductionSystem    productionSystem;
+    CameraSystem        cameraSystem;
     RenderSystem        renderSystem;
     HUD                 hud;
 };
