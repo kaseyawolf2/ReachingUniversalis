@@ -5,6 +5,20 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Player = NPC] Remove player special powers — 2026-04-10
+
+Player is now fully equivalent to an NPC; the only distinction is human-controlled movement via WASD.
+
+### Removed
+- **E key** (manual eat/drink boost): player now consumes passively from home settlement stockpile via `ConsumptionSystem`, same as any NPC
+- **R key** (god-mode respawn / restore all needs): player can die of starvation like any NPC; death is permanent
+
+### Changed
+- Key hint strip updated: `WASD:Move  B:Road  F:Follow  F1:Debug`
+- `InputSnapshot`: removed `playerEat` and `playerRespawn` fields
+
+---
+
 ## [Sim Systems] Stockpile alerts, birth system, threading, and performance — 2026-04-10
 
 Autonomous session completing post-WP8 simulation infrastructure.

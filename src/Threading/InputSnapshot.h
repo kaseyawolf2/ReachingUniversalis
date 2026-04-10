@@ -18,8 +18,6 @@ struct InputSnapshot {
     std::atomic<bool> speedUp        {false};
     std::atomic<bool> speedDown      {false};
     std::atomic<bool> roadToggle     {false};
-    std::atomic<bool> playerEat      {false};
-    std::atomic<bool> playerRespawn  {false};
     std::atomic<bool> camFollowToggle{false};
 
     // ---- Continuous player movement (normalised, -1..1) ----

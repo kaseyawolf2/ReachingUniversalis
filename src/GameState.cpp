@@ -50,8 +50,6 @@ void GameState::PollInput(float dt) {
     if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))    m_input.speedUp.store(true);
     if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) m_input.speedDown.store(true);
     if (IsKeyPressed(KEY_B))    m_input.roadToggle.store(true);
-    if (IsKeyPressed(KEY_E))    m_input.playerEat.store(true);
-    if (IsKeyPressed(KEY_R))    m_input.playerRespawn.store(true);
 
     if (IsKeyPressed(KEY_F)) {
         m_followPlayer = !m_followPlayer;

@@ -86,7 +86,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         DrawText(roadBlocked ? "!! ROAD BLOCKED !!" : "Road: open",
                  BAR_X, roadY, 13, roadBlocked ? RED : Fade(GREEN, 0.8f));
 
-        DrawText("WASD:Move  E:Eat  R:Respawn  B:Road  F:Follow  F1:Debug",
+        DrawText("WASD:Move  B:Road  F:Follow  F1:Debug",
                  BAR_X, roadY + 18, 10, Fade(LIGHTGRAY, 0.6f));
     }
 

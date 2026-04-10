@@ -154,52 +154,6 @@ void SimThread::ProcessInput() {
         });
     }
 
-    // One-shot: player eat
-    if (m_input.playerEat.exchange(false)) {
-        auto pv = m_registry.view<PlayerTag, Position, Needs>();
-        if (pv.begin() != pv.end()) {
-            auto pe = *pv.begin();
-            const auto& pos = pv.get<Position>(pe);
-            auto& needs     = pv.get<Needs>(pe);
-            // Find nearest settlement within 140px
-            entt::entity nearest = entt::null;
-            float bestD2 = 140.f * 140.f;
-            m_registry.view<Position, Settlement>().each(
-                [&](auto e, const Position& sp, const Settlement&) {
-                    float dx = sp.x - pos.x, dy = sp.y - pos.y;
-                    float d2 = dx*dx + dy*dy;
-                    if (d2 <= bestD2) { bestD2 = d2; nearest = e; }
-                });
-            if (nearest != entt::null) {
-                auto* sp = m_registry.try_get<Stockpile>(nearest);
-                if (sp) {
-                    float& food  = sp->quantities[ResourceType::Food];
-                    float& water = sp->quantities[ResourceType::Water];
-                    if (food  >= 1.f) { food  -= 1.f; needs.list[0].value = std::min(1.f, needs.list[0].value + needs.list[0].refillRate * 30.f); }
-                    if (water >= 1.f) { water -= 1.f; needs.list[1].value = std::min(1.f, needs.list[1].value + needs.list[1].refillRate * 30.f); }
-                }
-            }
-        }
-    }
-
-    // One-shot: player respawn
-    if (m_input.playerRespawn.exchange(false)) {
-        auto pv = m_registry.view<PlayerTag, Position, Velocity, Needs, HomeSettlement>();
-        if (pv.begin() != pv.end()) {
-            auto pe   = *pv.begin();
-            auto& pos = pv.get<Position>(pe);
-            auto& vel = pv.get<Velocity>(pe);
-            const auto& home = pv.get<HomeSettlement>(pe);
-            if (home.settlement != entt::null && m_registry.valid(home.settlement)) {
-                const auto& hp = m_registry.get<Position>(home.settlement);
-                pos.x = hp.x; pos.y = hp.y + 60.f;
-            }
-            vel.vx = vel.vy = 0.f;
-            auto& needs = pv.get<Needs>(pe);
-            for (auto& n : needs.list) n.value = 1.f;
-        }
-    }
-
     // Continuous: player movement (velocity is set, MovementSystem applies it)
     {
         float mx = m_input.playerMoveX.load();
