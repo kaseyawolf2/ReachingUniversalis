@@ -5,6 +5,38 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Sim Systems] Stockpile alerts, birth system, threading, and performance — 2026-04-10
+
+Autonomous session completing post-WP8 simulation infrastructure.
+
+### Added
+- **Stockpile alerts** (`StockpileAlert` component + `ConsumptionSystem` monitoring):
+  - Fires "Food low at X (N)" once when a settlement's food drops below 20 units
+  - Fires "Food EMPTY at X" once when food drops below 1 unit
+  - Flags reset on recovery (above 2× threshold) so alerts re-fire on the next shortage
+  - Same logic for Water; all alerts pushed into the `EventLog`
+- **Birth system** (`BirthSystem`): settlements spawn one new NPC every 3 game-hours if population < 35 AND food ≥ 30 AND water ≥ 30; costs 10 food + 10 water; logs "Born at X" to EventLog
+- **Map boundary clamping** (`MovementSystem`): all agents clamp to MAP_W×MAP_H (2400×720) with 5px margin; velocity zeroed on contact
+- **Stockpile cap** (`ProductionSystem`): settlement stockpiles hard-capped at 500 units per resource type
+- **Richer hover tooltip**: shows `AgentRole` enum (NPC/Hauler/Player), behavior label, and need percentages; uses role field in snapshot instead of color heuristic
+- **Sim/render thread split** (`SimThread`, `InputSnapshot`, `RenderSnapshot`):
+  - `SimThread` owns `entt::registry` + all sim systems on a background thread
+  - `InputSnapshot` — `std::atomic<>` fields written by main thread, consumed by sim thread via `.exchange(false)`
+  - `RenderSnapshot` — mutex-protected POD copy built by sim thread; main thread holds lock briefly to copy vectors, then renders lock-free
+  - `SimThread` tracks `simStepsPerSec` (wall-clock accumulator); shown in F1 debug overlay
+- **Fixed-timestep sim loop** (`SimThread`): `SIM_STEP_DT = 1/60s`, `MAX_CATCHUP = 8` virtual frames per real frame; each virtual frame runs `tickSpeed` full sim steps so higher speeds do proportionally more work
+- **Extended speed levels**: `{1, 2, 4, 8, 16, 32, 64, 128}×` — FPS measurably drops at 64× and 128× confirming sub-tick work is real
+- **Uncapped framerate**: `SetTargetFPS(0)` — simulation is dt-based; display rate no longer tied to 60 Hz
+- **ms/frame counter**: HUD shows render FPS and frame time in milliseconds alongside sim steps/s
+
+### Changed
+- `HUD` rewritten to read from `RenderSnapshot` (no registry access on main thread)
+- `RenderSystem` stripped to `DrawStockpilePanel` only; all world/agent rendering moved to `GameState::Draw()`
+- `GameState` rewritten: constructor starts `SimThread`; `Update()` polls input + lerps camera; `Draw()` renders from snapshot
+- Stockpile panel moved from PY=580 to PY=200 to avoid overlapping the event log panel
+
+---
+
 ## [Balance + QoL] Simulation stability and wishlist — 2026-04-10
 
 Addresses Q1/Q2 balance feedback and both wishlist items.

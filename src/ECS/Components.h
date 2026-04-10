@@ -151,6 +151,16 @@ struct CameraState {
     bool  followPlayer = true;    // if true, camera lerps to player position
 };
 
+// ---- Stockpile alert state (one per settlement) ----
+// Tracks whether low/empty warnings have already been logged so they
+// fire once on the way down and once on recovery, not every tick.
+struct StockpileAlert {
+    bool foodLow    = false;   // food < LOW_THRESHOLD
+    bool foodEmpty  = false;   // food < EMPTY_THRESHOLD
+    bool waterLow   = false;
+    bool waterEmpty = false;
+};
+
 // ---- Birth tracker (one per settlement entity) ----
 
 struct BirthTracker {

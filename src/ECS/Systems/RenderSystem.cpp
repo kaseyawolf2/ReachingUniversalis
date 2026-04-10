@@ -4,7 +4,8 @@
 
 void RenderSystem::DrawStockpilePanel(const std::string& name,
                                       const std::map<ResourceType, float>& quantities) const {
-    static const int PX = 10, PY = 580;
+    // Positioned below the player HUD panel, above the event log
+    static const int PX = 10, PY = 200;
     static const int PW = 200, LINE_H = 18;
 
     int lines = 1 + (int)quantities.size();

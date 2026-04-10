@@ -1,6 +1,7 @@
 #include "ConsumptionSystem.h"
 #include "ECS/Components.h"
 #include <algorithm>
+#include <string>
 
 // Stockpile draw-down rates per NPC per game-hour.
 static constexpr float FOOD_CONSUME_RATE  = 0.5f;
@@ -61,4 +62,50 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         else
             timer.stockpileEmpty = std::max(0.f, timer.stockpileEmpty - gameDt * 0.5f);
     }
+
+    // ---- Per-settlement stockpile alerts (log once on crossing thresholds) ----
+    static constexpr float LOW_THRESHOLD   = 20.f;
+    static constexpr float EMPTY_THRESHOLD =  1.f;
+
+    auto logv = registry.view<EventLog>();
+    EventLog* log = (logv.begin() == logv.end()) ? nullptr
+                  : &logv.get<EventLog>(*logv.begin());
+
+    auto timeView2 = registry.view<TimeManager>();
+    int  alertDay  = 1; int alertHour = 0;
+    if (timeView2.begin() != timeView2.end()) {
+        const auto& tm2 = timeView2.get<TimeManager>(*timeView2.begin());
+        alertDay = tm2.day; alertHour = (int)tm2.hourOfDay;
+    }
+
+    registry.view<Settlement, Stockpile, StockpileAlert>().each(
+        [&](const Settlement& s, const Stockpile& sp, StockpileAlert& alert) {
+        auto qty = [&](ResourceType t) -> float {
+            auto it = sp.quantities.find(t);
+            return it != sp.quantities.end() ? it->second : 0.f;
+        };
+        float food  = qty(ResourceType::Food);
+        float water = qty(ResourceType::Water);
+
+        auto checkAlert = [&](float val, bool& emptyFlag, bool& lowFlag,
+                               const std::string& res) {
+            if (val < EMPTY_THRESHOLD && !emptyFlag) {
+                emptyFlag = true; lowFlag = true;
+                if (log) log->Push(alertDay, alertHour,
+                    res + " EMPTY at " + s.name);
+            } else if (val >= EMPTY_THRESHOLD * 2.f) {
+                emptyFlag = false;
+            }
+            if (val < LOW_THRESHOLD && val >= EMPTY_THRESHOLD && !lowFlag) {
+                lowFlag = true;
+                if (log) log->Push(alertDay, alertHour,
+                    res + " low at " + s.name + " (" + std::to_string((int)val) + ")");
+            } else if (val >= LOW_THRESHOLD * 1.5f) {
+                lowFlag = false;
+            }
+        };
+
+        checkAlert(food,  alert.foodEmpty,  alert.foodLow,  "Food");
+        checkAlert(water, alert.waterEmpty, alert.waterLow, "Water");
+    });
 }
