@@ -101,15 +101,25 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
         // Determine placement position:
         // If existing facilities of this type exist, place near their average center.
         // Otherwise, place at an angle from the settlement center based on resource type.
+        // Determine placement position using a spiral outward from existing facilities.
+        // For each existing facility of this type, the new one is placed 30 units
+        // further out at a slight clockwise angle — avoids stacking.
         float px, py;
         auto& pfMap = facPos[e];
         auto& pfCnt = facPosCount[e];
         if (pfMap.count(buildType) && pfCnt[buildType] > 0) {
             int n = pfCnt[buildType];
-            px = pfMap[buildType].first  / n + (static_cast<float>((n % 3) - 1) * 25.f);
-            py = pfMap[buildType].second / n + (static_cast<float>((n % 2)) * 25.f);
+            float avgX = pfMap[buildType].first  / n;
+            float avgY = pfMap[buildType].second / n;
+            // Each new facility spirals 30px further from settlement center at ~60° steps
+            float baseAngle = std::atan2(avgY - sPos.y, avgX - sPos.x);
+            float angle = baseAngle + (float)n * 1.05f;  // ~60° per additional facility
+            float radius = std::sqrt((avgX-sPos.x)*(avgX-sPos.x) + (avgY-sPos.y)*(avgY-sPos.y));
+            radius = std::max(PLACEMENT_RADIUS * 0.6f, radius) + 30.f;
+            px = sPos.x + std::cos(angle) * radius;
+            py = sPos.y + std::sin(angle) * radius;
         } else {
-            // Place at a cardinal offset from settlement center
+            // No existing facility of this type — place at a type-specific direction offset
             float angle = (buildType == ResourceType::Food)  ? 4.71f :   // south (~270°)
                           (buildType == ResourceType::Water) ? 1.57f :   // north (~90°)
                                                                0.f;      // east (0°) for wood
