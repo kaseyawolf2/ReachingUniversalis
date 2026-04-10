@@ -5,6 +5,48 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Simulation Depth] NPC names, aging, economy, player trading — 2026-04-10
+
+Autonomous session adding significant simulation depth across multiple systems.
+
+### Added
+- **NPC names** (`Name` component): All NPCs, haulers, and player have names drawn from
+  a pool of 30 first + 20 last names; births log "Born: Alice Smith at Greenfield";
+  deaths log "Alice Smith died of hunger"; hover tooltip shows name prominently
+- **NPC aging** (`Age` component): All agents have `days` and `maxDays` (60–100 game-days);
+  DeathSystem advances age each tick and destroys entities on reaching max age;
+  NPCs at spawn get randomised starting age (0–30 days) for immediate age distribution
+- **Player aging**: Player has Age component, age shown in HUD panel (green→yellow→red);
+  hover tooltip shows age with same color coding
+- **Settlement collapse detection**: DeathSystem logs "X has COLLAPSED — population zero"
+  once per collapse episode; fires recovery erase when pop > 0 again
+- **Auto-respawn on player death**: After each sim batch, SimThread checks for missing
+  PlayerTag; spawns new character at settlement with most food+water and logs the event
+- **Player trading** (`T` key): Player can buy/sell goods at nearest settlement (140px range):
+  - Empty inventory: auto-buys highest-profit tradeable good at market price, paying from wallet
+  - Loaded inventory: sells all cargo at destination market price
+- **Player money**: Player spawns with 50g (`Money` component) and 15-unit inventory
+- **Gold + inventory HUD**: Player HUD left panel shows gold balance and cargo contents
+  (color-coded: food=green, water=skyblue, wood=brown)
+- **Settlement health ring**: Settlement circles color-coded by min(food, water) stock:
+  green (>30), yellow (>10), red (<10), grey (pop=0/collapsed)
+- **Production input requirements**: Farms consume 0.15 water per food unit produced,
+  creating a supply-chain dependency; Greenfield must import water to sustain food production
+
+### Fixed
+- **Migration destination** (3-settlement bug): `FindMigrationTarget` now picks the
+  reachable settlement with the highest combined food+water, not the first road endpoint
+- **Probabilistic births** (per Q7): 25% chance roll per birth interval so population
+  grows slowly and only when "NPCs decide to have a child"
+- **Bandits event** now blocks one random open road, not all roads simultaneously
+
+### Changed
+- Greenfield starting water raised 20→80 to give haulers time to establish supply routes
+- Key hint updated: `WASD:Move  B:Road  T:Trade  F:Follow  F1:Debug`
+- Birth log: "Born: Alice Smith at Greenfield" instead of "Birth at Greenfield (pop N)"
+
+---
+
 ## [Third Settlement] Millhaven + Wood resource + economy fixes — 2026-04-10
 
 Third settlement completes the three-node trade network with a new resource type.
