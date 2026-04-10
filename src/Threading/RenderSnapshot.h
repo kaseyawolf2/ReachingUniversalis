@@ -105,6 +105,8 @@ struct RenderSnapshot {
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;
+    float         playerGold     = 0.f;
+    std::map<ResourceType, int> playerInventory;   // current carried goods
 
     // Camera follow target (player world position)
     float playerWorldX = 640.f;

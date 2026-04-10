@@ -201,6 +201,105 @@ void SimThread::ProcessInput() {
             if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i-1]; break; }
     }
 
+    // One-shot: player trade (T key) — buy most profitable good or sell loaded goods
+    if (m_input.playerTrade.exchange(false)) {
+        static constexpr float TRADE_RADIUS = 140.f;
+        auto tmv2 = m_registry.view<TimeManager>();
+        auto pv2  = m_registry.view<PlayerTag, Position, Inventory, Money>();
+        auto lv2  = m_registry.view<EventLog>();
+        EventLog* log2 = (lv2.begin() == lv2.end()) ? nullptr
+                       : &lv2.get<EventLog>(*lv2.begin());
+
+        if (pv2.begin() != pv2.end()) {
+            auto pe2   = *pv2.begin();
+            auto& ppos = pv2.get<Position>(pe2);
+            auto& inv  = pv2.get<Inventory>(pe2);
+            auto& mon  = pv2.get<Money>(pe2);
+
+            int day2 = 1, hr2 = 0;
+            if (tmv2.begin() != tmv2.end()) {
+                day2 = tmv2.get<TimeManager>(*tmv2.begin()).day;
+                hr2  = (int)tmv2.get<TimeManager>(*tmv2.begin()).hourOfDay;
+            }
+
+            // Find nearest settlement within range
+            entt::entity nearSettl = entt::null;
+            float        nearDist  = TRADE_RADIUS * TRADE_RADIUS;
+            m_registry.view<Position, Settlement>().each(
+                [&](auto e, const Position& sp, const Settlement&) {
+                float dx = sp.x - ppos.x, dy = sp.y - ppos.y;
+                float d  = dx*dx + dy*dy;
+                if (d < nearDist) { nearDist = d; nearSettl = e; }
+            });
+
+            if (nearSettl == entt::null) {
+                if (log2) log2->Push(day2, hr2, "No settlement in range to trade");
+            } else {
+                auto& settl = m_registry.get<Settlement>(nearSettl);
+                auto* sp2   = m_registry.try_get<Stockpile>(nearSettl);
+                auto* mkt2  = m_registry.try_get<Market>(nearSettl);
+
+                // If carrying goods → sell them here
+                if (inv.TotalItems() > 0 && sp2 && mkt2) {
+                    float earned = 0.f;
+                    for (auto& [type, qty] : inv.contents) {
+                        if (qty <= 0) continue;
+                        float price = mkt2->GetPrice(type);
+                        sp2->quantities[type] += qty;
+                        earned += price * qty;
+                    }
+                    mon.balance += earned;
+                    inv.contents.clear();
+                    if (log2) log2->Push(day2, hr2,
+                        "Sold goods at " + settl.name
+                        + " for " + std::to_string((int)earned) + "g");
+                }
+                // Inventory empty → buy the highest-profit tradeable good
+                else if (inv.TotalItems() == 0 && sp2 && mkt2) {
+                    // Find the resource with the best sell price at a different settlement
+                    ResourceType bestRes = ResourceType::Food;
+                    float bestMargin = 0.f;
+                    int   bestQty    = 0;
+                    float bestBuy    = 0.f;
+
+                    m_registry.view<Position, Settlement, Stockpile, Market>().each(
+                        [&](auto destE, const Position&, const Settlement&,
+                            const Stockpile&, const Market& destMkt) {
+                        if (destE == nearSettl) return;
+                        for (const auto& [res, buyPrice] : mkt2->price) {
+                            float sellPrice = destMkt.GetPrice(res);
+                            if (sellPrice <= buyPrice) continue;
+                            float stock = sp2->quantities.count(res)
+                                          ? sp2->quantities.at(res) : 0.f;
+                            int qty = std::min(inv.maxCapacity, (int)(stock * 0.5f));
+                            if (qty <= 0) continue;
+                            float margin = (sellPrice - buyPrice) * qty;
+                            if (margin > bestMargin) {
+                                bestMargin = margin;
+                                bestRes    = res;
+                                bestQty    = qty;
+                                bestBuy    = buyPrice;
+                            }
+                        }
+                    });
+
+                    if (bestQty > 0 && mon.balance >= bestBuy * bestQty) {
+                        sp2->quantities[bestRes] -= bestQty;
+                        inv.contents[bestRes]     = bestQty;
+                        float cost = bestBuy * bestQty;
+                        mon.balance -= cost;
+                        if (log2) log2->Push(day2, hr2,
+                            "Bought " + std::to_string(bestQty) + " goods at "
+                            + settl.name + " for " + std::to_string((int)cost) + "g");
+                    } else {
+                        if (log2) log2->Push(day2, hr2,
+                            "Nothing profitable to buy at " + settl.name);
+                    }
+                }
+            }
+        }
+    }
+
     // One-shot: road toggle
     if (m_input.roadToggle.exchange(false)) {
         auto logv = m_registry.view<EventLog>();
@@ -416,6 +515,8 @@ void SimThread::WriteSnapshot() {
     float         playerWX = 640.f, playerWY = 360.f;
 
     float playerAgeDays = 0.f, playerMaxDays = 80.f;
+    float playerGold = 0.f;
+    std::map<ResourceType, int> playerInventory;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
         if (pv.begin() != pv.end()) {
@@ -432,6 +533,10 @@ void SimThread::WriteSnapshot() {
                 playerAgeDays = age->days;
                 playerMaxDays = age->maxDays;
             }
+            if (const auto* mon = m_registry.try_get<Money>(pe))
+                playerGold = mon->balance;
+            if (const auto* inv = m_registry.try_get<Inventory>(pe))
+                playerInventory = inv->contents;
         }
     }
 
@@ -473,8 +578,10 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerBehavior = playerBehavior;
         m_snapshot.playerWorldX  = playerWX;
         m_snapshot.playerWorldY  = playerWY;
-        m_snapshot.playerAgeDays = playerAgeDays;
-        m_snapshot.playerMaxDays = playerMaxDays;
+        m_snapshot.playerAgeDays  = playerAgeDays;
+        m_snapshot.playerMaxDays  = playerMaxDays;
+        m_snapshot.playerGold     = playerGold;
+        m_snapshot.playerInventory = std::move(playerInventory);
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();

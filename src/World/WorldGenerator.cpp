@@ -225,7 +225,8 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<AgentState>(player);
     registry.emplace<HomeSettlement>(player, HomeSettlement{ greenfield });
     registry.emplace<DeprivationTimer>(player);
-    registry.emplace<Inventory>(player);
+    registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
+    registry.emplace<Money>(player);                            // 50 gold starting wallet
     registry.emplace<Renderable>(player, YELLOW, 10.f);
     registry.emplace<PlayerTag>(player);
     // Player ages like any NPC — starts young, dies of old age eventually

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <map>
 #include <string>
 
 static const int SCREEN_W = 1280;
@@ -52,7 +53,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     bool  paused, roadBlocked, playerAlive;
     float hungerPct, thirstPct, energyPct;
     float hungerCrit, thirstCrit, energyCrit;
-    float playerAgeDays, playerMaxDays;
+    float playerAgeDays, playerMaxDays, playerGold;
+    std::map<ResourceType, int> playerInventory;
     AgentBehavior behavior;
 
     {
@@ -72,11 +74,14 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         behavior    = snap.playerBehavior;
         playerAgeDays = snap.playerAgeDays;
         playerMaxDays = snap.playerMaxDays;
+        playerGold    = snap.playerGold;
+        playerInventory = snap.playerInventory;
     }
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
-        DrawRectangle(4, 4, 320, BAR_GAP * 5 + 72, Fade(BLACK, 0.55f));
+        int invLines = (int)playerInventory.size();
+        DrawRectangle(4, 4, 320, BAR_GAP * 5 + 90 + invLines * 16, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -99,8 +104,38 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         DrawText(roadBlocked ? "!! ROAD BLOCKED !!" : "Road: open",
                  BAR_X, roadY, 13, roadBlocked ? RED : Fade(GREEN, 0.8f));
 
-        DrawText("WASD:Move  B:Road  F:Follow  F1:Debug",
-                 BAR_X, roadY + 18, 10, Fade(LIGHTGRAY, 0.6f));
+        // Gold balance
+        int goldY = roadY + 18;
+        char goldBuf[32];
+        std::snprintf(goldBuf, sizeof(goldBuf), "%.1fg", playerGold);
+        DrawText("Gold:", BAR_X, goldY, 14, LIGHTGRAY);
+        DrawText(goldBuf, BAR_X + 52, goldY, 14, YELLOW);
+
+        // Inventory lines
+        int invY = goldY + BAR_GAP;
+        if (!playerInventory.empty()) {
+            DrawText("Cargo:", BAR_X, invY, 13, LIGHTGRAY);
+            int ci = 0;
+            for (const auto& [type, qty] : playerInventory) {
+                if (qty <= 0) continue;
+                const char* rname = (type == ResourceType::Food)  ? "Food"  :
+                                    (type == ResourceType::Water) ? "Water" :
+                                    (type == ResourceType::Wood)  ? "Wood"  : "?";
+                Color rcol = (type == ResourceType::Food)  ? GREEN  :
+                             (type == ResourceType::Water) ? SKYBLUE : BROWN;
+                char cbuf[32];
+                std::snprintf(cbuf, sizeof(cbuf), "%s x%d", rname, qty);
+                DrawText(cbuf, BAR_X + 52, invY + ci * 16, 12, rcol);
+                ++ci;
+            }
+            invY += (int)playerInventory.size() * 16;
+        } else {
+            DrawText("Cargo: empty", BAR_X, invY, 13, Fade(LIGHTGRAY, 0.5f));
+            invY += 16;
+        }
+
+        DrawText("WASD:Move  B:Road  T:Trade  F1:Debug",
+                 BAR_X, invY + 4, 10, Fade(LIGHTGRAY, 0.6f));
     }
 
     // ---- Time panel (top-right) ----
