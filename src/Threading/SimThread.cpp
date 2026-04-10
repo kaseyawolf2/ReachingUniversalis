@@ -502,35 +502,43 @@ void SimThread::ProcessInput() {
                 if (inv4.TotalItems() >= inv4.maxCapacity) {
                     if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "Inventory full — can't buy more");
                 } else if (sp4 && mkt4) {
-                    // Find cheapest available resource (best value for the player to carry)
-                    ResourceType cheapRes = ResourceType::Food;
-                    float cheapPrice = std::numeric_limits<float>::max();
-                    bool found = false;
+                    // Find cheapest available resource (best value for the player to carry).
+                    // Buy as many units as the player can carry and afford, capped at half
+                    // the stockpile so the settlement isn't stripped bare.
+                    ResourceType cheapRes  = ResourceType::Food;
+                    float        cheapPrice = std::numeric_limits<float>::max();
+                    int          buyQty    = 0;
 
+                    int freeSlots = inv4.maxCapacity - inv4.TotalItems();
                     for (auto res : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
                         float stock = sp4->quantities.count(res) ? sp4->quantities.at(res) : 0.f;
                         if (stock < 1.f) continue;
                         float price = mkt4->GetPrice(res);
-                        if (price < cheapPrice && mon4.balance >= price) {
-                            cheapPrice = price;
-                            cheapRes   = res;
-                            found      = true;
-                        }
+                        if (price >= cheapPrice) continue;
+                        // How many can the player afford and carry (max half the stockpile)
+                        int canAfford = static_cast<int>(mon4.balance / price);
+                        int maxHalf   = static_cast<int>(stock * 0.5f);
+                        int qty = std::min({freeSlots, canAfford, maxHalf});
+                        if (qty <= 0) continue;
+                        cheapPrice = price;
+                        cheapRes   = res;
+                        buyQty     = qty;
                     }
 
-                    if (found) {
-                        sp4->quantities[cheapRes] -= 1.f;
-                        inv4.contents[cheapRes]   += 1;
-                        mon4.balance              -= cheapPrice;
+                    if (buyQty > 0) {
+                        sp4->quantities[cheapRes]   -= (float)buyQty;
+                        inv4.contents[cheapRes]     += buyQty;
+                        float totalCost = cheapPrice * buyQty;
+                        mon4.balance                -= totalCost;
                         const char* rname = (cheapRes == ResourceType::Food)  ? "food"  :
                                             (cheapRes == ResourceType::Water) ? "water" : "wood";
-                        char buf[100];
-                        std::snprintf(buf, sizeof(buf), "Bought 1 %s at %s for %.2fg",
-                                      rname, sname.c_str(), cheapPrice);
+                        char buf[120];
+                        std::snprintf(buf, sizeof(buf), "Bought %d %s at %s for %.2fg (%.2fg/unit)",
+                                      buyQty, rname, sname.c_str(), totalCost, cheapPrice);
                         if (blog) blog->Push(tm.day, (int)tm.hourOfDay, buf);
                     } else {
                         if (blog) blog->Push(tm.day, (int)tm.hourOfDay,
-                            "Nothing affordable to buy at " + sname + " (or stockpile empty)");
+                            "Nothing affordable to buy at " + sname + " (stockpile empty or no gold)");
                     }
                 }
             }
