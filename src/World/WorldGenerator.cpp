@@ -18,6 +18,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     auto& cs = registry.emplace<CameraState>(camEntity);
     cs.cam.offset = { 640.0f, 360.0f };
     cs.cam.target = { MAP_W * 0.5f, MAP_H * 0.5f };
+    // Zoom out so the full 2400-unit map fits the 1280px window with margin.
+    // At 0.5 zoom: viewport = 2560x1440 units — both settlements visible.
+    cs.cam.zoom = 0.5f;
 
     // ---- Settlements ----
 
