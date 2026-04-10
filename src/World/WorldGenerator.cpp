@@ -64,6 +64,9 @@ static void SpawnHaulers(entt::registry& registry,
         registry.emplace<Velocity>(h, 0.f, 0.f);
         registry.emplace<MoveSpeed>(h, 70.f);
         registry.emplace<Needs>(h, MakeNeeds());
+        // Haulers work around the clock with no sleep schedule — zero energy drain
+        // so DeathSystem never kills them from exhaustion.
+        registry.get<Needs>(h).list[2].drainRate = 0.f;
         registry.emplace<AgentState>(h);
         registry.emplace<HomeSettlement>(h, HomeSettlement{ settlement });
         DeprivationTimer hdt;

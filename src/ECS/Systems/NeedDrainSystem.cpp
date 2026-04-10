@@ -14,9 +14,20 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
     auto view = registry.view<Needs>();
     for (auto entity : view) {
         auto& needs = view.get<Needs>(entity);
+
+        // If the entity is sleeping, restore energy instead of draining it.
+        bool sleeping = false;
+        if (const auto* state = registry.try_get<AgentState>(entity))
+            sleeping = (state->behavior == AgentBehavior::Sleeping);
+
         for (auto& need : needs.list) {
-            need.value -= need.drainRate * gameDt;
-            if (need.value < 0.0f) need.value = 0.0f;
+            if (sleeping && need.type == NeedType::Energy) {
+                need.value += need.refillRate * gameDt;
+                if (need.value > 1.0f) need.value = 1.0f;
+            } else {
+                need.value -= need.drainRate * gameDt;
+                if (need.value < 0.0f) need.value = 0.0f;
+            }
         }
     }
 }
