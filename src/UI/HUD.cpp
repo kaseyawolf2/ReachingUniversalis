@@ -103,8 +103,9 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
             char popBuf[32];
             std::snprintf(popBuf, sizeof(popBuf), "Pop: %d  Deaths: %d", pop, totalDeaths);
 
-            char fpsBuf[16];
-            std::snprintf(fpsBuf, sizeof(fpsBuf), "FPS: %d", GetFPS());
+            char fpsBuf[32];
+            std::snprintf(fpsBuf, sizeof(fpsBuf), "FPS: %d  (%.1f ms)",
+                          GetFPS(), GetFrameTime() * 1000.f);
 
             int panelW = std::max({ MeasureText(timeBuf, 16),
                                     MeasureText(speedBuf, 14),
