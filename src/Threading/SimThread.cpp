@@ -689,10 +689,53 @@ void SimThread::WriteSnapshot() {
     });
 
     // ---- Facilities ----
-    m_registry.view<Position, ProductionFacility>().each(
-        [&](const Position& pos, const ProductionFacility& fac) {
-        facilities.push_back({ pos.x, pos.y, fac.output });
-    });
+    // Count workers and average skill per facility for hover tooltip.
+    // Workers are matched by home settlement + Working state.
+    // skill is pre-aggregated into a (sum, count) pair per settlement + resource type.
+    {
+        // Build skill accum: [settlement][resIndex] = {sum, count}
+        struct SA { float sum = 0.f; int count = 0; };
+        std::map<entt::entity, std::array<SA, 3>> facSkillAccum;  // 0=Food,1=Water,2=Wood
+        std::map<entt::entity, int> facWorkers;   // settlement → working count
+        auto resIdx2 = [](ResourceType rt) -> int {
+            switch (rt) {
+                case ResourceType::Food:  return 0;
+                case ResourceType::Water: return 1;
+                case ResourceType::Wood:  return 2;
+                default:                 return -1;
+            }
+        };
+        m_registry.view<AgentState, HomeSettlement>().each(
+            [&](auto e, const AgentState& as, const HomeSettlement& hs) {
+            if (as.behavior != AgentBehavior::Working) return;
+            facWorkers[hs.settlement]++;
+            if (const auto* sk = m_registry.try_get<Skills>(e)) {
+                auto& arr = facSkillAccum[hs.settlement];
+                arr[0].sum += sk->farming;       arr[0].count++;
+                arr[1].sum += sk->water_drawing; arr[1].count++;
+                arr[2].sum += sk->woodcutting;   arr[2].count++;
+            }
+        });
+
+        m_registry.view<Position, ProductionFacility>().each(
+            [&](auto fe, const Position& pos, const ProductionFacility& fac) {
+            if (fac.baseRate <= 0.f) return;   // skip shelter nodes
+
+            int  workers  = facWorkers.count(fac.settlement) ? facWorkers.at(fac.settlement) : 0;
+            float avgSkill = 0.5f;
+            int ri = resIdx2(fac.output);
+            if (ri >= 0 && facSkillAccum.count(fac.settlement)) {
+                const auto& sa = facSkillAccum.at(fac.settlement)[ri];
+                if (sa.count > 0) avgSkill = sa.sum / sa.count;
+            }
+            std::string sname;
+            if (fac.settlement != entt::null && m_registry.valid(fac.settlement))
+                if (const auto* s = m_registry.try_get<Settlement>(fac.settlement))
+                    sname = s->name;
+
+            facilities.push_back({ pos.x, pos.y, fac.output, fac.baseRate, workers, avgSkill, sname });
+        });
+    }
 
     // ---- World status + stockpile panel ----
     bool anyRoadBlocked = false;

@@ -17,6 +17,7 @@ private:
     void DrawWorldStatus(const RenderSnapshot& snapshot) const;
     void DrawDebugOverlay(const RenderSnapshot& snapshot) const;
     void DrawHoverTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
+    void DrawFacilityTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
 
     int  logScroll    = 0;
     bool debugOverlay = false;

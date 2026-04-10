@@ -65,6 +65,10 @@ struct RenderSnapshot {
     struct FacilityEntry {
         float        x, y;
         ResourceType output;
+        float        baseRate    = 0.f;   // units/game-hour at 1 worker, 1x season
+        int          workerCount = 0;     // Working NPCs currently assigned here
+        float        avgSkill    = 0.5f;  // average relevant skill of workers
+        std::string  settlementName;      // home settlement name
     };
 
     // ---- World status bar ----

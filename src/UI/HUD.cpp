@@ -200,6 +200,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     DrawWorldStatus(snap);
     DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
+    DrawFacilityTooltip(snap, camera);
     if (debugOverlay)  DrawDebugOverlay(snap);
     if (marketOverlay) DrawMarketOverlay(snap);
 }
@@ -457,6 +458,65 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)  { DrawText(line5, tx, ly, 11, YELLOW); ly += 16; }
     if (showSkill) { DrawText(line6, tx, ly, 11, skillColor); }
+}
+
+// ---- Facility hover tooltip ----
+// Shows production rate, worker count, and skill when hovering near a facility square.
+
+void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) const {
+    Vector2 mouse = GetMousePosition();
+    Vector2 world = GetScreenToWorld2D(mouse, cam);
+
+    std::vector<RenderSnapshot::FacilityEntry> facs;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        facs = snap.facilities;
+    }
+
+    const RenderSnapshot::FacilityEntry* best = nullptr;
+    float bestDist = 20.f;   // max hover distance in world units
+    for (const auto& f : facs) {
+        float dx = world.x - f.x, dy = world.y - f.y;
+        float d  = std::sqrt(dx*dx + dy*dy);
+        if (d < bestDist) { bestDist = d; best = &f; }
+    }
+    if (!best) return;
+
+    const char* typeName = (best->output == ResourceType::Food)  ? "Farm"        :
+                           (best->output == ResourceType::Water) ? "Well"        :
+                           (best->output == ResourceType::Wood)  ? "Lumber Mill" : "Facility";
+    const char* resUnit  = (best->output == ResourceType::Food)  ? "food"  :
+                           (best->output == ResourceType::Water) ? "water" : "wood";
+
+    static constexpr int BASE_WORKERS = 5;
+    float scale    = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
+    float skillMult = 0.5f + best->avgSkill;   // same formula as ProductionSystem
+    float estOutput = best->baseRate * scale * skillMult;  // units/game-hour (no season)
+
+    char line1[64], line2[64], line3[64], line4[64];
+    std::snprintf(line1, sizeof(line1), "%s @ %s", typeName,
+                  best->settlementName.empty() ? "?" : best->settlementName.c_str());
+    std::snprintf(line2, sizeof(line2), "Workers: %d  Skill: %.0f%%",
+                  best->workerCount, best->avgSkill * 100.f);
+    std::snprintf(line3, sizeof(line3), "Base: %.1f %s/hr", best->baseRate, resUnit);
+    std::snprintf(line4, sizeof(line4), "Est. output: ~%.1f %s/hr", estOutput, resUnit);
+
+    Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
+    int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
+                       MeasureText(line3, 11), MeasureText(line4, 11) }) + 12;
+    int h = 4 * 16 + 4;
+    int tx = (int)screen.x + 18, ty = (int)screen.y - h;
+    if (tx + w > SCREEN_W) tx = (int)screen.x - w - 10;
+    if (ty < 0) ty = (int)screen.y + 14;
+
+    DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.75f));
+    Color typeCol = (best->output == ResourceType::Food)  ? GREEN  :
+                   (best->output == ResourceType::Water) ? SKYBLUE : BROWN;
+    DrawText(line1, tx, ty,      12, typeCol);
+    DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
+    DrawText(line3, tx, ty + 32, 11, Fade(LIGHTGRAY, 0.7f));
+    Color outCol = (estOutput >= best->baseRate) ? GREEN : (estOutput >= best->baseRate * 0.5f) ? YELLOW : RED;
+    DrawText(line4, tx, ty + 48, 11, outCol);
 }
 
 // ---- Market overlay (M key) ----
