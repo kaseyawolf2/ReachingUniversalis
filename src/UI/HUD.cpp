@@ -31,7 +31,7 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
         const auto& needs = playerView.get<Needs>(entity);
         const auto& state = playerView.get<AgentState>(entity);
 
-        DrawRectangle(4, 4, 320, BAR_SPACING * 4 + 30, Fade(BLACK, 0.5f));
+        DrawRectangle(4, 4, 320, BAR_SPACING * 4 + 50, Fade(BLACK, 0.5f));
 
         DrawNeedBar(BAR_X, BAR_START_Y + BAR_SPACING * 0,
                     needs.list[0].value, needs.list[0].criticalThreshold, "Hunger", GREEN);
@@ -44,9 +44,18 @@ void HUD::Draw(entt::registry& registry, int totalDeaths) {
         DrawText("State:", BAR_X, stateY, 14, LIGHTGRAY);
         DrawText(BehaviorLabel(state.behavior), BAR_X + 52, stateY, 14, WHITE);
 
+        // Road status
+        const int roadY = stateY + 20;
+        bool roadBlocked = false;
+        registry.view<Road>().each([&](const Road& r) { if (r.blocked) roadBlocked = true; });
+        if (roadBlocked)
+            DrawText("!! ROAD BLOCKED !!", BAR_X, roadY, 13, RED);
+        else
+            DrawText("Road: open", BAR_X, roadY, 13, Fade(GREEN, 0.8f));
+
         // Key hints
-        const int hintY = stateY + 20;
-        DrawText("WASD:Move  E:Eat/Drink  R:Respawn  F:Follow", BAR_X, hintY, 11, Fade(LIGHTGRAY, 0.7f));
+        const int hintY = roadY + 18;
+        DrawText("WASD:Move  E:Eat  R:Respawn  B:Road  F:Follow", BAR_X, hintY, 11, Fade(LIGHTGRAY, 0.7f));
 
         break;
     }

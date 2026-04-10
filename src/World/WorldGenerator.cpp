@@ -69,6 +69,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     // ---- Game clock ----
     registry.emplace<TimeManager>(registry.create());
 
+    // ---- Event log ----
+    registry.emplace<EventLog>(registry.create());
+
     // ---- Camera ----
     auto camEntity = registry.create();
     auto& cs = registry.emplace<CameraState>(camEntity);

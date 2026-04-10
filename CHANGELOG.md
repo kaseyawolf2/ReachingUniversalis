@@ -5,6 +5,22 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP7] Road Blockade and Event Log Foundation — 2026-04-10
+
+Press **B** to toggle the road, watch cascades begin; all events are recorded.
+
+### Added
+- `EventLog` singleton component — `deque<Entry>` (max 50) of `{day, hour, message}` records
+- **B key** in `TimeSystem`: toggles `Road.blocked` on all roads; pushes a blockade/clear event to `EventLog` with current in-game day and hour
+- HUD road status row: shows **!! ROAD BLOCKED !!** in red or "Road: open" in green
+- Updated key hint strip to include `B:Road`
+
+### Notes
+- Haulers already respected `Road.blocked` from WP4 — blockade immediately stops all trade
+- `EventLog` is populated here; WP8 renders its contents in a scrollable bottom panel
+
+---
+
 ## [WP6] Day/Night Schedules and Sleep — 2026-04-10
 
 NPCs follow a daily schedule: sleep at night, work during the day; production scales with active workforce.

@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include <array>
+#include <deque>
 #include <map>
 #include <string>
 #include <entt/entt.hpp>
@@ -148,6 +149,23 @@ struct CameraState {
     float zoomMin     = 0.25f;
     float zoomMax     = 3.0f;
     bool  followPlayer = true;    // if true, camera lerps to player position
+};
+
+// ---- Event log (singleton component) ----
+
+struct EventLog {
+    struct Entry {
+        int         day;
+        int         hour;
+        std::string message;
+    };
+    std::deque<Entry> entries;
+    static constexpr int MAX_ENTRIES = 50;
+
+    void Push(int day, int hour, const std::string& msg) {
+        entries.push_front({ day, hour, msg });
+        if ((int)entries.size() > MAX_ENTRIES) entries.pop_back();
+    }
 };
 
 // ---- Tags ----

@@ -22,6 +22,24 @@ void TimeSystem::Update(entt::registry& registry, float realDt) {
         else if (tm.tickSpeed == 2) tm.tickSpeed = 1;
     }
 
+    // ---- B: toggle road blockade ----
+    if (IsKeyPressed(KEY_B)) {
+        auto roadView = registry.view<Road>();
+        auto logView  = registry.view<EventLog>();
+        EventLog* log = logView.empty() ? nullptr
+                                        : &logView.get<EventLog>(*logView.begin());
+        for (auto re : roadView) {
+            auto& road = roadView.get<Road>(re);
+            road.blocked = !road.blocked;
+            if (log) {
+                int h = (int)tm.hourOfDay;
+                log->Push(tm.day, h, road.blocked
+                    ? "Road BLOCKED — haulers rerouting"
+                    : "Road CLEARED — trade resumes");
+            }
+        }
+    }
+
     if (tm.paused) return;
 
     // ---- Advance game clock ----
