@@ -1,6 +1,7 @@
 #include "HUD.h"
 #include "ECS/Components.h"
 #include "raylib.h"
+#include <cstdio>
 
 static const int BAR_W       = 160;
 static const int BAR_H       = 16;
@@ -20,12 +21,13 @@ static const char* BehaviorLabel(AgentBehavior b) {
 }
 
 void HUD::Draw(entt::registry& registry) {
-    auto view = registry.view<PlayerTag, Needs, AgentState>();
-    for (auto entity : view) {
-        const auto& needs = view.get<Needs>(entity);
-        const auto& state = view.get<AgentState>(entity);
+    // ---- Need bars (player entity) ----
+    auto playerView = registry.view<PlayerTag, Needs, AgentState>();
+    for (auto entity : playerView) {
+        const auto& needs = playerView.get<Needs>(entity);
+        const auto& state = playerView.get<AgentState>(entity);
 
-        DrawRectangle(4, 4, BAR_W + 70, BAR_SPACING * 3 + 14, Fade(BLACK, 0.5f));
+        DrawRectangle(4, 4, BAR_W + 70, BAR_SPACING * 4 + 6, Fade(BLACK, 0.5f));
 
         DrawNeedBar(BAR_X, BAR_START_Y + BAR_SPACING * 0,
                     needs.list[0].value, needs.list[0].criticalThreshold, "Hunger", GREEN);
@@ -34,11 +36,43 @@ void HUD::Draw(entt::registry& registry) {
         DrawNeedBar(BAR_X, BAR_START_Y + BAR_SPACING * 2,
                     needs.list[2].value, needs.list[2].criticalThreshold, "Energy", YELLOW);
 
-        const int labelY = BAR_START_Y + BAR_SPACING * 3 + 4;
-        DrawText("State:", BAR_X, labelY, 14, LIGHTGRAY);
-        DrawText(BehaviorLabel(state.behavior), BAR_X + 52, labelY, 14, WHITE);
+        const int stateY = BAR_START_Y + BAR_SPACING * 3 + 4;
+        DrawText("State:", BAR_X, stateY, 14, LIGHTGRAY);
+        DrawText(BehaviorLabel(state.behavior), BAR_X + 52, stateY, 14, WHITE);
 
-        break; // only one player
+        break;
+    }
+
+    // ---- Time display (top-right) ----
+    auto timeView = registry.view<TimeManager>();
+    for (auto entity : timeView) {
+        const auto& tm = timeView.get<TimeManager>(entity);
+
+        int hours   = (int)tm.hourOfDay;
+        int minutes = (int)((tm.hourOfDay - hours) * 60.0f);
+
+        char timeBuf[64];
+        std::snprintf(timeBuf, sizeof(timeBuf),
+                      "Day %d  %02d:%02d", tm.day, hours, minutes);
+
+        char speedBuf[16];
+        if (tm.paused)
+            std::snprintf(speedBuf, sizeof(speedBuf), "PAUSED");
+        else
+            std::snprintf(speedBuf, sizeof(speedBuf), "%dx", tm.tickSpeed);
+
+        // Right-align in the window
+        int timeW  = MeasureText(timeBuf,  16);
+        int speedW = MeasureText(speedBuf, 14);
+        int panelW = (timeW > speedW ? timeW : speedW) + 16;
+        int panelX = 1280 - panelW - 4;
+
+        DrawRectangle(panelX, 4, panelW, 46, Fade(BLACK, 0.5f));
+        DrawText(timeBuf,  panelX + 8,  8, 16, WHITE);
+        DrawText(speedBuf, panelX + 8, 28, 14,
+                 tm.paused ? ORANGE : LIGHTGRAY);
+
+        break;
     }
 }
 

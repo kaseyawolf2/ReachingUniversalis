@@ -24,6 +24,7 @@ FetchContent_MakeAvailable(entt)
 set(SOURCES
     src/main.cpp
     src/GameState.cpp
+    src/ECS/Systems/TimeSystem.cpp
     src/ECS/Systems/NeedDrainSystem.cpp
     src/ECS/Systems/AgentDecisionSystem.cpp
     src/ECS/Systems/MovementSystem.cpp

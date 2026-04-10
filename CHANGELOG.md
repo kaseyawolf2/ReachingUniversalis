@@ -5,6 +5,29 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP1] Time System — 2026-04-10
+
+Game clock, day/night sky, pause and speed controls.
+
+### Added
+- `TimeManager` component (singleton entity) — tracks `gameSeconds`, `day`,
+  `hourOfDay` (0–24), `tickSpeed` (1/2/4x), and `paused` flag
+- `TimeSystem` — advances the clock each frame; handles input:
+  `Space` = pause/unpause, `+`/`=` = speed up, `-` = slow down
+- Day/night background color — sky smoothly interpolates through midnight
+  navy → dawn orange → morning blue → noon sky → dusk orange → night
+- HUD time panel (top-right) — shows `Day N  HH:MM` and current speed / PAUSED
+- `NeedDrainSystem` and `AgentDecisionSystem` now use `TimeManager.GameDt()`
+  so needs drain at consistent game-time rates regardless of tick speed;
+  pausing freezes all need drain and NPC refilling
+
+### Changed
+- `main.cpp` — `ClearBackground` now reads from `GameState::SkyColor()` instead
+  of a hardcoded colour
+- `HUD` panel height expanded to accommodate the state label row correctly
+
+---
+
 ## [WP0] ECS Architecture Migration — 2026-04-10
 
 Complete rewrite from monolithic OOP to EnTT-based Entity Component System.

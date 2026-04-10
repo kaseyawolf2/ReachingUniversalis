@@ -1,6 +1,7 @@
 #include "AgentDecisionSystem.h"
 #include <cmath>
 #include <limits>
+#include "ECS/Components.h"
 
 // ---- Static helpers ----
 
@@ -39,7 +40,14 @@ static bool IsInRange(float ax, float ay, float bx, float by, float radius) {
 
 // ---- System ----
 
-void AgentDecisionSystem::Update(entt::registry& registry, float dt) {
+void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
+    // Use game-time delta so refill rate is consistent at all tick speeds.
+    float dt = realDt;
+    auto timeView = registry.view<TimeManager>();
+    if (!timeView.empty()) {
+        dt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
+    }
+
     auto view = registry.view<Needs, AgentState, Position, Velocity, MoveSpeed>();
 
     for (auto entity : view) {

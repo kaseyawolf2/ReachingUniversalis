@@ -21,6 +21,11 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<ResourceNode>(shelterNode, ResourceType::Shelter, 30.0f);
     registry.emplace<Renderable>(shelterNode, BROWN, 15.0f);
 
+    // ---- Game clock (singleton entity) ----
+
+    auto clock = registry.create();
+    registry.emplace<TimeManager>(clock);   // default: day 1, hour 6, 1x speed
+
     // ---- NPC / player entity ----
 
     auto npc = registry.create();

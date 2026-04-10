@@ -59,6 +59,21 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Test (headless)",
+            "type": "shell",
+            "command": "bash test.sh",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "dependsOn": "Build (Debug)",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }
