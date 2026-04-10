@@ -100,7 +100,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                            e.message.find("DROUGHT")    != std::string::npos ||
                            e.message.find("BLIGHT")     != std::string::npos ||
                            e.message.find("EMPTY")      != std::string::npos ||
-                           e.message.find("BLIZZARD")   != std::string::npos);
+                           e.message.find("BLIZZARD")   != std::string::npos ||
+                           e.message.find("stole")      != std::string::npos ||
+                           e.message.find("BANDITS")    != std::string::npos);
             Color ec = isGood ? Fade(GREEN, 0.8f) : isBad ? Fade(RED, 0.8f) : Fade(LIGHTGRAY, 0.7f);
             DrawText(ebuf, PX + 8, y, 11, ec);
             y += LINE_H - 3;
