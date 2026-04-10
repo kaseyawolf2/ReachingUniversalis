@@ -744,12 +744,56 @@ void SimThread::WriteSnapshot() {
             for (const auto& [res, cr] : consRate)
                 netRate[res] -= cr;
 
+            // Settlement stability score (0-1): composite of NPC health, stocks, treasury, trend
+            // -- NPC need satisfaction (average across residents)
+            float needSum = 0.f; int needCount = 0;
+            m_registry.view<Needs, HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+                [&](const Needs& n, const HomeSettlement& hs) {
+                if (hs.settlement != e) return;
+                for (const auto& need : n.list) needSum += need.value;
+                needCount += 4;
+            });
+            float needStability = (needCount > 0) ? (needSum / needCount) : 0.f;
+
+            // -- Stockpile level (fraction of "safe" level = 30 units per NPC)
+            float safeLevel = std::max(1.f, (float)pop * 30.f);
+            float foodFrac  = std::min(1.f, food  / safeLevel);
+            float waterFrac = std::min(1.f, water / safeLevel);
+            float woodFrac  = (curHeatMult > 0.f) ? std::min(1.f, wood / (safeLevel * 0.5f)) : 1.f;
+            float stockStability = (foodFrac + waterFrac + woodFrac) / 3.f;
+
+            // -- Treasury health (0=empty, 1=200g+)
+            float tresStability = std::min(1.f, s.treasury / 200.f);
+
+            // -- Population trend (growing=+0.15, stable=0, declining=-0.15)
+            float trendBonus = (popTrend == '+') ? 0.15f : (popTrend == '-') ? -0.15f : 0.f;
+
+            float stability = std::max(0.f, std::min(1.f,
+                0.35f * needStability + 0.35f * stockStability + 0.15f * tresStability
+                + 0.15f + trendBonus));  // base 0.15 so a healthy empty settlement starts positive
+
+            // Filter event log for events mentioning this settlement (last 5)
+            std::vector<EventLog::Entry> filteredEvents;
+            {
+                auto lv2 = m_registry.view<EventLog>();
+                if (lv2.begin() != lv2.end()) {
+                    const auto& elog = lv2.get<EventLog>(*lv2.begin());
+                    for (const auto& entry : elog.entries) {
+                        if (entry.message.find(s.name) != std::string::npos)
+                            filteredEvents.push_back(entry);
+                        if ((int)filteredEvents.size() >= 5) break;
+                    }
+                }
+            }
+
             panel.open            = true;
             panel.name            = s.name;
             panel.quantities      = sp.quantities;
             panel.netRatePerHour  = netRate;
             panel.treasury        = s.treasury;
             panel.pop             = pop;
+            panel.stability       = stability;
+            panel.recentEvents    = std::move(filteredEvents);
             if (const auto* mkt = m_registry.try_get<Market>(e))
                 panel.prices = mkt->price;
         }

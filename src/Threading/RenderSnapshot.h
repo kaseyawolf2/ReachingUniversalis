@@ -90,6 +90,8 @@ struct RenderSnapshot {
         std::map<ResourceType, float> netRatePerHour; // estimated net flow (production - consumption), game-hours
         float                         treasury  = 0.f;
         int                           pop       = 0;
+        float                         stability = 0.f;   // 0-1 composite settlement health
+        std::vector<EventLog::Entry>  recentEvents;      // last 5 events mentioning this settlement
     };
 
     // ---- Data fields ----
