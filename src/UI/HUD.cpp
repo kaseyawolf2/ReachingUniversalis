@@ -276,7 +276,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     const char* role = (best->role == RenderSnapshot::AgentRole::Player) ? "Player"
                      : (best->role == RenderSnapshot::AgentRole::Hauler) ? "Hauler"
                      : "NPC";
-    bool isHauler = (best->role == RenderSnapshot::AgentRole::Hauler);
+    bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
+    bool showGold  = (best->balance > 0.f || isHauler);
 
     char line1[64], line2[64], line3[48] = {}, line4[48] = {}, line5[48] = {};
     // First line: name (if known) or role
@@ -301,13 +302,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (hasName)
         std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f days",
                       best->ageDays, best->maxDays);
-    if (isHauler)
+    if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
-    int lineCount = hasName ? (isHauler ? 5 : 4) : (isHauler ? 4 : 3);
+    int lineCount = hasName ? (showGold ? 5 : 4) : (showGold ? 4 : 3);
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
-    int w5 = isHauler ? MeasureText(line5, 11) : 0;
+    int w5 = showGold ? MeasureText(line5, 11) : 0;
     int pw = std::max({w1, w2, w3, w4, w5}) + 10;
     int ph = lineCount * 16;
 
@@ -326,9 +327,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     DrawText(line3, tx, ty + 32, 11, hasName ? LIGHTGRAY : ageCol);
     if (hasName) {
         DrawText(line4, tx, ty + 48, 11, ageCol);
-        if (isHauler) DrawText(line5, tx, ty + 64, 11, YELLOW);
+        if (showGold) DrawText(line5, tx, ty + 64, 11, YELLOW);
     } else {
-        if (isHauler) DrawText(line4, tx, ty + 48, 11, YELLOW);
+        if (showGold) DrawText(line4, tx, ty + 48, 11, YELLOW);
     }
 }
 

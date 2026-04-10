@@ -219,14 +219,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     auto tv = registry.view<TimeManager>();
                     if (tv.begin() != tv.end()) {
                         const auto& tm2 = tv.get<TimeManager>(*tv.begin());
-                        std::string from = "?", to = "?";
+                        std::string from = "?", to = "?", who = "NPC";
                         if (auto* s = registry.try_get<Settlement>(home.settlement))
                             from = s->name;
                         if (auto* s = registry.try_get<Settlement>(dest))
                             to = s->name;
+                        if (auto* n = registry.try_get<Name>(entity))
+                            who = n->value;
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
-                            "NPC migrating " + from + " → " + to);
+                            who + " migrating " + from + " → " + to);
                     }
                 }
                 continue;

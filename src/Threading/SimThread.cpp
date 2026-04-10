@@ -393,6 +393,8 @@ void SimThread::WriteSnapshot() {
         bool  hasCargo   = false;
         Color cargoColor = WHITE;
         float balance    = 0.f;
+        if (const auto* money = m_registry.try_get<Money>(e))
+            balance = money->balance;
         if (isHauler) {
             if (const auto* inv = m_registry.try_get<Inventory>(e)) {
                 for (const auto& [type, qty] : inv->contents) {
@@ -403,8 +405,6 @@ void SimThread::WriteSnapshot() {
                     break;
                 }
             }
-            if (const auto* money = m_registry.try_get<Money>(e))
-                balance = money->balance;
         }
 
         float ageDays = 0.f, maxDays = 80.f;
