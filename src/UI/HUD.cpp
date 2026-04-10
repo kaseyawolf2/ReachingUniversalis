@@ -236,16 +236,21 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
         const auto& e = entries[idx];
         char buf[96];
         std::snprintf(buf, sizeof(buf), "D%d %02d:xx  %s", e.day, e.hour, e.message.c_str());
-        Color col = (e.message.find("BLOCKED")  != std::string::npos ||
-                     e.message.find("BANDITS")  != std::string::npos ||
-                     e.message.find("DROUGHT")  != std::string::npos ||
-                     e.message.find("BLIGHT")   != std::string::npos) ? RED    :
-                    (e.message.find("died")      != std::string::npos ||
-                     e.message.find("migrating") != std::string::npos) ? ORANGE :
-                    (e.message.find("CLEARED")   != std::string::npos ||
-                     e.message.find("restored")  != std::string::npos ||
-                     e.message.find("reopened")  != std::string::npos ||
-                     e.message.find("Born")      != std::string::npos) ? GREEN  : LIGHTGRAY;
+        Color col = (e.message.find("BLOCKED")   != std::string::npos ||
+                     e.message.find("BANDITS")   != std::string::npos ||
+                     e.message.find("DROUGHT")   != std::string::npos ||
+                     e.message.find("BLIGHT")    != std::string::npos ||
+                     e.message.find("DISEASE")   != std::string::npos ||
+                     e.message.find("COLLAPSED") != std::string::npos) ? RED    :
+                    (e.message.find("died")       != std::string::npos ||
+                     e.message.find("migrating")  != std::string::npos ||
+                     e.message.find("MIGRATION")  != std::string::npos) ? ORANGE :
+                    (e.message.find("CLEARED")    != std::string::npos ||
+                     e.message.find("restored")   != std::string::npos ||
+                     e.message.find("reopened")   != std::string::npos ||
+                     e.message.find("Born")       != std::string::npos ||
+                     e.message.find("TRADE BOOM") != std::string::npos ||
+                     e.message.find("respawned")  != std::string::npos) ? GREEN  : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
 }

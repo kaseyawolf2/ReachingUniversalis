@@ -79,7 +79,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     if (settlements.empty()) return;
 
     std::uniform_int_distribution<int> pickSettl(0, (int)settlements.size() - 1);
-    std::uniform_int_distribution<int> pickType(0, 2);  // 0=drought 1=blight 2=bandits
+    std::uniform_int_distribution<int> pickType(0, 5);  // 0=drought 1=blight 2=bandits 3=disease 4=trade_boom 5=migration
 
     entt::entity target = settlements[pickSettl(m_rng)];
     auto* settl = registry.try_get<Settlement>(target);
@@ -125,6 +125,87 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) log->Push(day, hour,
             "BANDITS blocking road ("
             + std::to_string((int)BANDIT_DURATION) + "h)");
+        break;
+    }
+
+    case 3: {   // Disease outbreak — kills 15% of settlement population instantly
+        std::vector<entt::entity> victims;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+            [&](auto e, const HomeSettlement& hs) {
+                if (hs.settlement == target) victims.push_back(e);
+            });
+        if (victims.size() < 3) break;   // too small to be meaningful
+        std::shuffle(victims.begin(), victims.end(), m_rng);
+        int killCount = std::max(1, (int)(victims.size() * 0.15f));
+        for (int i = 0; i < killCount; ++i) {
+            if (registry.valid(victims[i])) registry.destroy(victims[i]);
+        }
+        if (log) log->Push(day, hour,
+            "DISEASE outbreak at " + settl->name
+            + " — " + std::to_string(killCount) + " died");
+        break;
+    }
+
+    case 4: {   // Trade boom — inject gold into settlement treasury
+        static constexpr float BOOM_GOLD = 150.f;
+        settl->treasury += BOOM_GOLD;
+        if (log) log->Push(day, hour,
+            "TRADE BOOM at " + settl->name
+            + " — treasury +" + std::to_string((int)BOOM_GOLD) + "g");
+        break;
+    }
+
+    case 5: {   // Migration wave — 3-5 NPCs arrive from outside
+        std::uniform_int_distribution<int> count_dist(3, 5);
+        int arrivals = count_dist(m_rng);
+        const auto* tpos = registry.try_get<Position>(target);
+        if (!tpos) break;
+
+        static const float DRAIN_HUNGER = 0.00083f, DRAIN_THIRST = 0.00125f,
+                           DRAIN_ENERGY = 0.00050f;
+        static const float REFILL_H = 0.004f, REFILL_T = 0.006f, REFILL_E = 0.002f;
+        static const char* FIRSTS[] = {
+            "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
+            "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric",
+            "Vance","Wren","Xander","Yoric","Zane","Aela","Bryn","Clara","Dena","Elara"
+        };
+        static const char* LASTS[] = {
+            "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
+            "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh","Wood",
+            "Vale","Cross","Bridge"
+        };
+        std::uniform_int_distribution<int> fd(0, 29), ld(0, 19);
+        std::uniform_real_distribution<float> angle_dist(0.f, 6.28f);
+        std::uniform_real_distribution<float> life_dist(60.f, 100.f);
+        std::uniform_real_distribution<float> age_dist2(5.f, 25.f);
+        std::uniform_real_distribution<float> mt_dist(2.f, 5.f);
+
+        for (int i = 0; i < arrivals; ++i) {
+            float ang = angle_dist(m_rng);
+            auto npc = registry.create();
+            registry.emplace<Position>(npc, tpos->x + std::cos(ang)*60.f,
+                                            tpos->y + std::sin(ang)*60.f);
+            registry.emplace<Velocity>(npc, 0.f, 0.f);
+            registry.emplace<MoveSpeed>(npc, 60.f);
+            registry.emplace<Needs>(npc, Needs{{
+                Need{NeedType::Hunger, 0.6f, DRAIN_HUNGER, 0.3f, REFILL_H},
+                Need{NeedType::Thirst, 0.6f, DRAIN_THIRST, 0.3f, REFILL_T},
+                Need{NeedType::Energy, 0.8f, DRAIN_ENERGY, 0.3f, REFILL_E}
+            }});
+            registry.emplace<AgentState>(npc);
+            registry.emplace<HomeSettlement>(npc, HomeSettlement{target});
+            DeprivationTimer dt; dt.migrateThreshold = mt_dist(m_rng) * 60.f;
+            registry.emplace<DeprivationTimer>(npc, dt);
+            registry.emplace<Schedule>(npc);
+            registry.emplace<Renderable>(npc, WHITE, 6.f);
+            registry.emplace<Money>(npc, Money{5.f});
+            Age age; age.days = age_dist2(m_rng); age.maxDays = life_dist(m_rng);
+            registry.emplace<Age>(npc, age);
+            std::string nm = std::string(FIRSTS[fd(m_rng)]) + " " + LASTS[ld(m_rng)];
+            registry.emplace<Name>(npc, Name{nm});
+        }
+        if (log) log->Push(day, hour,
+            "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name);
         break;
     }
     }
