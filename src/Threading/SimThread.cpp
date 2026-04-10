@@ -180,6 +180,40 @@ void SimThread::RunSimStep(float dt) {
     m_economicMobilitySystem.Update(m_registry, dt);  // hauler graduation / bankruptcy
     m_deathSystem.Update(m_registry, dt);
     m_birthSystem.Update(m_registry, dt);
+
+    // ---- Player work: skill advancement + auto-cancel if player moves ----
+    // The player's Working state is set via E key (ProcessInput).
+    // While Working, advance the relevant skill for their target facility.
+    // If the player provides movement input, cancel Working (they walked away).
+    {
+        auto pvw = m_registry.view<PlayerTag, AgentState, Velocity, Position>();
+        if (pvw.begin() != pvw.end()) {
+            auto  pe  = *pvw.begin();
+            auto& pst = pvw.get<AgentState>(pe);
+            auto& pv2 = pvw.get<Velocity>(pe);
+
+            if (pst.behavior == AgentBehavior::Working) {
+                // Cancel Working if the player is moving
+                if (std::abs(pv2.vx) > 0.5f || std::abs(pv2.vy) > 0.5f) {
+                    pst.behavior = AgentBehavior::Idle;
+                    pst.target   = entt::null;
+                } else if (pst.target != entt::null && m_registry.valid(pst.target)) {
+                    // Advance skill for the facility type
+                    if (const auto* fac = m_registry.try_get<ProductionFacility>(pst.target)) {
+                        if (auto* skills = m_registry.try_get<Skills>(pe)) {
+                            auto tmv2 = m_registry.view<TimeManager>();
+                            if (tmv2.begin() != tmv2.end()) {
+                                float gDt = tmv2.get<TimeManager>(*tmv2.begin()).GameDt(dt);
+                                float gameHoursDt = gDt * GAME_MINS_PER_REAL_SEC / 60.f;
+                                static constexpr float SKILL_GAIN = 0.1f / 24.f;
+                                skills->Advance(fac->output, SKILL_GAIN * gameHoursDt);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ---- Consume pending input --------------------------------------------
@@ -380,6 +414,52 @@ void SimThread::ProcessInput() {
                 if (lv.begin() != lv.end())
                     lv.get<EventLog>(*lv.begin()).Push(
                         tm.day, (int)tm.hourOfDay, "You go to sleep");
+            }
+        }
+    }
+
+    // One-shot: player work (E) — start/stop working at nearest production facility
+    if (m_input.playerWork.exchange(false)) {
+        static constexpr float WORK_RADIUS = 80.f;
+        auto pv3 = m_registry.view<PlayerTag, Position, AgentState>();
+        auto lv3 = m_registry.view<EventLog>();
+        EventLog* plog = (lv3.begin() == lv3.end()) ? nullptr
+                        : &lv3.get<EventLog>(*lv3.begin());
+
+        if (pv3.begin() != pv3.end()) {
+            auto  pe3   = *pv3.begin();
+            auto& ppos3 = pv3.get<Position>(pe3);
+            auto& pst3  = pv3.get<AgentState>(pe3);
+
+            if (pst3.behavior == AgentBehavior::Working) {
+                // Toggle off
+                pst3.behavior = AgentBehavior::Idle;
+                if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "You stop working");
+            } else {
+                // Find nearest production facility in range
+                entt::entity nearFac = entt::null;
+                float nearDSq = WORK_RADIUS * WORK_RADIUS;
+                ResourceType nearOut = ResourceType::Food;
+
+                m_registry.view<Position, ProductionFacility>().each(
+                    [&](auto fe, const Position& fp, const ProductionFacility& fac) {
+                    if (fac.baseRate <= 0.f) return;
+                    float dx = fp.x - ppos3.x, dy = fp.y - ppos3.y;
+                    float d = dx*dx + dy*dy;
+                    if (d < nearDSq) { nearDSq = d; nearFac = fe; nearOut = fac.output; }
+                });
+
+                if (nearFac != entt::null) {
+                    pst3.behavior = AgentBehavior::Working;
+                    pst3.target   = nearFac;
+                    const char* facName = (nearOut == ResourceType::Food)  ? "farm"       :
+                                         (nearOut == ResourceType::Water) ? "well"       :
+                                         (nearOut == ResourceType::Wood)  ? "lumber mill" : "facility";
+                    if (plog) plog->Push(tm.day, (int)tm.hourOfDay,
+                        std::string("You begin working at the ") + facName);
+                } else {
+                    if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "No facility nearby to work at");
+                }
             }
         }
     }
@@ -857,6 +937,7 @@ void SimThread::WriteSnapshot() {
 
     float playerAgeDays = 0.f, playerMaxDays = 80.f;
     float playerGold = 0.f;
+    float playerFarmSkill = -1.f, playerWaterSkill = -1.f, playerWoodSkill = -1.f;
     std::map<ResourceType, int> playerInventory;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
@@ -879,6 +960,11 @@ void SimThread::WriteSnapshot() {
                 playerGold = mon->balance;
             if (const auto* inv = m_registry.try_get<Inventory>(pe))
                 playerInventory = inv->contents;
+            if (const auto* sk = m_registry.try_get<Skills>(pe)) {
+                playerFarmSkill  = sk->farming;
+                playerWaterSkill = sk->water_drawing;
+                playerWoodSkill  = sk->woodcutting;
+            }
         }
     }
 
@@ -926,7 +1012,10 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerWorldY  = playerWY;
         m_snapshot.playerAgeDays  = playerAgeDays;
         m_snapshot.playerMaxDays  = playerMaxDays;
-        m_snapshot.playerGold     = playerGold;
+        m_snapshot.playerGold       = playerGold;
+        m_snapshot.playerFarmSkill  = playerFarmSkill;
+        m_snapshot.playerWaterSkill = playerWaterSkill;
+        m_snapshot.playerWoodSkill  = playerWoodSkill;
         m_snapshot.playerInventory = std::move(playerInventory);
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.simStepsPerSec = m_stepsLastSec;

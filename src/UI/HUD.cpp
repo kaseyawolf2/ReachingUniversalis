@@ -56,6 +56,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     float hungerPct, thirstPct, energyPct, heatPct;
     float hungerCrit, thirstCrit, energyCrit, heatCrit;
     float playerAgeDays, playerMaxDays, playerGold;
+    float playerFarmSkill, playerWaterSkill, playerWoodSkill;
     float temperature;
     std::map<ResourceType, int> playerInventory;
     AgentBehavior behavior;
@@ -77,9 +78,12 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         energyPct   = snap.energyPct;   energyCrit  = snap.energyCrit;
         heatPct     = snap.heatPct;     heatCrit    = snap.heatCrit;
         behavior    = snap.playerBehavior;
-        playerAgeDays = snap.playerAgeDays;
-        playerMaxDays = snap.playerMaxDays;
-        playerGold    = snap.playerGold;
+        playerAgeDays   = snap.playerAgeDays;
+        playerMaxDays   = snap.playerMaxDays;
+        playerGold      = snap.playerGold;
+        playerFarmSkill  = snap.playerFarmSkill;
+        playerWaterSkill = snap.playerWaterSkill;
+        playerWoodSkill  = snap.playerWoodSkill;
         playerInventory = snap.playerInventory;
         season      = snap.season;
         temperature = snap.temperature;
@@ -87,8 +91,9 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
-        int invLines = (int)playerInventory.size();
-        DrawRectangle(4, 4, 320, BAR_GAP * 6 + 90 + invLines * 16, Fade(BLACK, 0.55f));
+        int invLines  = (int)playerInventory.size();
+        int skillLine = (playerFarmSkill >= 0.f) ? 1 : 0;
+        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + invLines * 16, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -119,8 +124,23 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         DrawText("Gold:", BAR_X, goldY, 14, LIGHTGRAY);
         DrawText(goldBuf, BAR_X + 52, goldY, 14, YELLOW);
 
+        // Skills (shown only when player has skills component)
+        int skillsEndY = goldY + BAR_GAP;
+        if (playerFarmSkill >= 0.f) {
+            char skBuf[64];
+            auto skCol = [](float s) -> Color {
+                return (s >= 0.65f) ? Fade(GOLD, 0.9f) : (s >= 0.35f) ? GREEN : Fade(GRAY, 0.8f);
+            };
+            std::snprintf(skBuf, sizeof(skBuf), "Farm:%.0f%% Wtr:%.0f%% Wood:%.0f%%",
+                          playerFarmSkill*100.f, playerWaterSkill*100.f, playerWoodSkill*100.f);
+            float bestSk = std::max({playerFarmSkill, playerWaterSkill, playerWoodSkill});
+            DrawText("Skills:", BAR_X, skillsEndY, 11, LIGHTGRAY);
+            DrawText(skBuf, BAR_X + 52, skillsEndY, 11, skCol(bestSk));
+            skillsEndY += BAR_GAP;
+        }
+
         // Inventory lines
-        int invY = goldY + BAR_GAP;
+        int invY = skillsEndY;
         if (!playerInventory.empty()) {
             DrawText("Cargo:", BAR_X, invY, 13, LIGHTGRAY);
             int ci = 0;
@@ -142,7 +162,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 16;
         }
 
-        DrawText("WASD:Move  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  M:Market  F1:Debug",
+        DrawText("WASD:Move  E:Work  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  M:Market  F1:Debug",
                  BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
     }
 

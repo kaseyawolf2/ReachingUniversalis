@@ -138,6 +138,9 @@ struct RenderSnapshot {
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;
     float         playerGold     = 0.f;
+    float         playerFarmSkill  = -1.f;   // -1 = no Skills component
+    float         playerWaterSkill = -1.f;
+    float         playerWoodSkill  = -1.f;
     std::map<ResourceType, int> playerInventory;   // current carried goods
 
     // Camera follow target (player world position)

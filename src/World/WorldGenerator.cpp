@@ -275,4 +275,6 @@ void WorldGenerator::Populate(entt::registry& registry) {
     playerAge.days    = 0.f;
     playerAge.maxDays = lifespan_dist(wg_rng);
     registry.emplace<Age>(player, playerAge);
+    // Player starts with slightly above average skills — represents a capable adult
+    registry.emplace<Skills>(player, Skills{ 0.4f, 0.4f, 0.4f });
 }

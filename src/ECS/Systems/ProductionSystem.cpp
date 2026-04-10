@@ -52,7 +52,8 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         }
     };
 
-    registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler, PlayerTag>)
+    // Include player if Working — they contribute to the facility they're at.
+    registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler>)
         .each([&](auto e, const AgentState& as, const HomeSettlement& hs) {
             if (as.behavior != AgentBehavior::Working) return;
             workers[hs.settlement]++;
