@@ -10,13 +10,16 @@ void TimeSystem::HandleInput(entt::registry& registry) {
     // ---- Pause / speed ----
     if (IsKeyPressed(KEY_SPACE)) tm.paused = !tm.paused;
 
+    static constexpr int SPEEDS[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    static constexpr int NUM_SPEEDS = sizeof(SPEEDS) / sizeof(SPEEDS[0]);
+
     if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD)) {
-        if      (tm.tickSpeed == 1) tm.tickSpeed = 2;
-        else if (tm.tickSpeed == 2) tm.tickSpeed = 4;
+        for (int i = 0; i < NUM_SPEEDS - 1; ++i)
+            if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i + 1]; break; }
     }
     if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) {
-        if      (tm.tickSpeed == 4) tm.tickSpeed = 2;
-        else if (tm.tickSpeed == 2) tm.tickSpeed = 1;
+        for (int i = NUM_SPEEDS - 1; i > 0; --i)
+            if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i - 1]; break; }
     }
 
     // ---- B: toggle road blockade ----
