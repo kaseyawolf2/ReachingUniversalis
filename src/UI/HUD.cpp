@@ -59,6 +59,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     float playerFarmSkill, playerWaterSkill, playerWoodSkill;
     float temperature;
     std::map<ResourceType, int> playerInventory;
+    int         playerInventoryCapacity = 15;
     std::string tradeHint;
     AgentBehavior behavior;
     Season season;
@@ -85,7 +86,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         playerFarmSkill  = snap.playerFarmSkill;
         playerWaterSkill = snap.playerWaterSkill;
         playerWoodSkill  = snap.playerWoodSkill;
-        playerInventory = snap.playerInventory;
+        playerInventory         = snap.playerInventory;
+        playerInventoryCapacity = snap.playerInventoryCapacity;
         tradeHint   = snap.tradeHint;
         season      = snap.season;
         temperature = snap.temperature;
@@ -93,10 +95,11 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
-        int invLines   = (int)playerInventory.size();
-        int skillLine  = (playerFarmSkill >= 0.f) ? 1 : 0;
-        int tradeLines = tradeHint.empty() ? 0 : 1;
-        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + invLines * 16 + tradeLines * 14, Fade(BLACK, 0.55f));
+        int invItemLines = std::max(1, (int)playerInventory.size()); // at least 1 for "(empty)"
+        int skillLine    = (playerFarmSkill >= 0.f) ? 1 : 0;
+        int tradeLines   = tradeHint.empty() ? 0 : 1;
+        // +1 for cargo header row (always shown), invItemLines for item rows
+        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -144,8 +147,16 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
 
         // Inventory lines
         int invY = skillsEndY;
-        if (!playerInventory.empty()) {
+        {
+            int totalCarried = 0;
+            for (const auto& [t, q] : playerInventory) totalCarried += q;
+            bool full = (totalCarried >= playerInventoryCapacity);
+            char cargoHdr[32];
+            std::snprintf(cargoHdr, sizeof(cargoHdr), "%d/%d", totalCarried, playerInventoryCapacity);
             DrawText("Cargo:", BAR_X, invY, 13, LIGHTGRAY);
+            DrawText(cargoHdr, BAR_X + 52, invY, 13, full ? RED : LIGHTGRAY);
+            invY += 16;
+
             int ci = 0;
             for (const auto& [type, qty] : playerInventory) {
                 if (qty <= 0) continue;
@@ -156,13 +167,14 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
                              (type == ResourceType::Water) ? SKYBLUE : BROWN;
                 char cbuf[32];
                 std::snprintf(cbuf, sizeof(cbuf), "%s x%d", rname, qty);
-                DrawText(cbuf, BAR_X + 52, invY + ci * 16, 12, rcol);
+                DrawText(cbuf, BAR_X + 10, invY + ci * 16, 12, rcol);
                 ++ci;
             }
-            invY += (int)playerInventory.size() * 16;
-        } else {
-            DrawText("Cargo: empty", BAR_X, invY, 13, Fade(LIGHTGRAY, 0.5f));
-            invY += 16;
+            if (ci == 0) {
+                DrawText("(empty)", BAR_X + 10, invY, 12, Fade(LIGHTGRAY, 0.5f));
+                ++ci;
+            }
+            invY += ci * 16;
         }
 
         // Trade opportunity hint

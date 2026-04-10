@@ -155,6 +155,7 @@ struct RenderSnapshot {
     float         playerWaterSkill = -1.f;
     float         playerWoodSkill  = -1.f;
     std::map<ResourceType, int> playerInventory;   // current carried goods
+    int                         playerInventoryCapacity = 15; // max carry capacity
 
     // Camera follow target (player world position)
     float playerWorldX = 640.f;

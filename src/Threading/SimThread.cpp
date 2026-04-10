@@ -150,7 +150,7 @@ void SimThread::RespawnPlayer() {
     m_registry.emplace<AgentState>(player);
     m_registry.emplace<HomeSettlement>(player, HomeSettlement{ bestSettl });
     m_registry.emplace<DeprivationTimer>(player);
-    m_registry.emplace<Inventory>(player);
+    m_registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
     m_registry.emplace<Money>(player, Money{ 10.f });   // small purse on respawn
     m_registry.emplace<Renderable>(player, YELLOW, 10.f);
     m_registry.emplace<PlayerTag>(player);
@@ -1125,6 +1125,7 @@ void SimThread::WriteSnapshot() {
     float playerGold = 0.f;
     float playerFarmSkill = -1.f, playerWaterSkill = -1.f, playerWoodSkill = -1.f;
     std::map<ResourceType, int> playerInventory;
+    int   playerInventoryCapacity = 15;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
         if (pv.begin() != pv.end()) {
@@ -1144,8 +1145,10 @@ void SimThread::WriteSnapshot() {
             }
             if (const auto* mon = m_registry.try_get<Money>(pe))
                 playerGold = mon->balance;
-            if (const auto* inv = m_registry.try_get<Inventory>(pe))
-                playerInventory = inv->contents;
+            if (const auto* inv = m_registry.try_get<Inventory>(pe)) {
+                playerInventory         = inv->contents;
+                playerInventoryCapacity = inv->maxCapacity;
+            }
             if (const auto* sk = m_registry.try_get<Skills>(pe)) {
                 playerFarmSkill  = sk->farming;
                 playerWaterSkill = sk->water_drawing;
@@ -1249,8 +1252,9 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerFarmSkill  = playerFarmSkill;
         m_snapshot.playerWaterSkill = playerWaterSkill;
         m_snapshot.playerWoodSkill  = playerWoodSkill;
-        m_snapshot.playerInventory = std::move(playerInventory);
-        m_snapshot.tradeHint     = std::move(tradeHint);
+        m_snapshot.playerInventory         = std::move(playerInventory);
+        m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
+        m_snapshot.tradeHint               = std::move(tradeHint);
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();
