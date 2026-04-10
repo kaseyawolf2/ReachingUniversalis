@@ -9,7 +9,10 @@ static constexpr float WATER_CONSUME_RATE = 0.8f;
 // Wood consumed per NPC per game-hour as fuel (Winter rate; scaled by SeasonHeatDrainMult).
 static constexpr float WOOD_HEAT_RATE     = 0.03f;
 
-// Wages paid to working NPCs (gold per game-hour, from settlement treasury).
+// Base wage paid to working NPCs (gold per game-hour, from settlement treasury).
+// Actual wage scales with the NPC's relevant skill:
+//   wage = WAGE_RATE * (0.5 + skill)  → range [0.15, 0.45] g/hr
+// This means a master craftsperson earns 3× a complete beginner, rewarding specialisation.
 static constexpr float WAGE_RATE = 0.3f;
 
 // Threshold below which stockpile is considered "empty" for migration purposes.
@@ -51,7 +54,16 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         {
             const auto* astate = registry.try_get<AgentState>(entity);
             if (settl && money && astate && astate->behavior == AgentBehavior::Working) {
-                float wage = WAGE_RATE * gameHoursDt;
+                // Scale wage by the NPC's best skill — specialised workers earn more.
+                // Determine which facility type the NPC is working at to pick the right skill.
+                float skillMult = 1.0f;
+                if (const auto* sk = registry.try_get<Skills>(entity)) {
+                    // Use the highest skill as the wage modifier regardless of exact facility.
+                    // This rewards NPCs that have developed their aptitude.
+                    float bestSkill = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                    skillMult = 0.5f + bestSkill;  // range [0.5, 1.5]
+                }
+                float wage = WAGE_RATE * skillMult * gameHoursDt;
                 if (settl->treasury >= wage) {
                     settl->treasury -= wage;
                     money->balance  += wage;

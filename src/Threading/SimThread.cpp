@@ -579,24 +579,39 @@ void SimThread::WriteSnapshot() {
         if (const auto* n = m_registry.try_get<Name>(e))
             npcName = n->value;
 
-        // Infer profession from home settlement's primary production facility
+        // Infer profession from the NPC's strongest skill (reflects actual aptitude,
+        // not just where they happen to live). Falls back to settlement primary if
+        // skills are uniform (all equal) or absent.
         std::string profession;
         if (!isHauler && !isPlayer) {
-            if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
-                if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
-                    ResourceType primary = ResourceType::Food;
-                    float maxRate = 0.f;
-                    m_registry.view<ProductionFacility>().each(
-                        [&](const ProductionFacility& fac) {
-                        if (fac.settlement == hs->settlement && fac.baseRate > maxRate) {
-                            maxRate = fac.baseRate;
-                            primary = fac.output;
-                        }
-                    });
-                    if (maxRate > 0.f)
-                        profession = (primary == ResourceType::Food)  ? "Farmer"       :
-                                     (primary == ResourceType::Water) ? "Water Carrier" :
-                                     (primary == ResourceType::Wood)  ? "Woodcutter"   : "";
+            const auto* sk = m_registry.try_get<Skills>(e);
+            if (sk) {
+                float mx = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                // Only assign if one skill meaningfully leads
+                float spread = mx - std::min({sk->farming, sk->water_drawing, sk->woodcutting});
+                if (spread > 0.05f) {
+                    profession = (sk->farming       == mx) ? "Farmer"       :
+                                 (sk->water_drawing == mx) ? "Water Carrier" : "Woodcutter";
+                }
+            }
+            // Fallback: infer from home settlement's primary production
+            if (profession.empty()) {
+                if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
+                    if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
+                        ResourceType primary = ResourceType::Food;
+                        float maxRate = 0.f;
+                        m_registry.view<ProductionFacility>().each(
+                            [&](const ProductionFacility& fac) {
+                            if (fac.settlement == hs->settlement && fac.baseRate > maxRate) {
+                                maxRate = fac.baseRate;
+                                primary = fac.output;
+                            }
+                        });
+                        if (maxRate > 0.f)
+                            profession = (primary == ResourceType::Food)  ? "Farmer"       :
+                                         (primary == ResourceType::Water) ? "Water Carrier" :
+                                         (primary == ResourceType::Wood)  ? "Woodcutter"   : "";
+                    }
                 }
             }
         } else if (isHauler) {
@@ -638,7 +653,16 @@ void SimThread::WriteSnapshot() {
             woodSkill  = sk->woodcutting;
         }
 
-        agents.push_back({ pos.x, pos.y, rend.size,
+        // Scale visual size by life stage so children are visibly smaller.
+        // Children (<15 days): 60% size; youth (15-25): 80%; adult: 100%; elderly (>65): 105%
+        float drawSize = rend.size;
+        if (!isHauler && !isPlayer) {
+            if      (ageDays < 15.f) drawSize *= 0.60f;
+            else if (ageDays < 25.f) drawSize *= 0.80f;
+            else if (ageDays > 65.f) drawSize *= 1.05f;
+        }
+
+        agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
