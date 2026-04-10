@@ -27,9 +27,10 @@ struct RenderSnapshot {
         AgentRole role;
         float     hungerPct, thirstPct, energyPct;
         AgentBehavior behavior;
-        float     balance = 0.f;    // gold (haulers only, 0 for others)
-        float     ageDays = 0.f;    // current age in game-days
-        float     maxDays = 80.f;   // life expectancy
+        float       balance = 0.f;    // gold (haulers only, 0 for others)
+        float       ageDays = 0.f;    // current age in game-days
+        float       maxDays = 80.f;   // life expectancy
+        std::string npcName;          // name for tooltip display
     };
 
     struct SettlementEntry {

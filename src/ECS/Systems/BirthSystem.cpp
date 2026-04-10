@@ -119,11 +119,27 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             npcAge.days    = 0.f;
             npcAge.maxDays = lifespan(s_rng);
             registry.emplace<Age>(npc, npcAge);
+            // Give the newborn a name using the same pool as WorldGenerator
+            // (uses a local RNG seeded differently so names don't repeat predictably)
+            static const char* FIRSTS[] = {
+                "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
+                "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric",
+                "Vance","Wren","Xander","Yoric","Zane","Aela","Bryn","Clara","Dena","Elara"
+            };
+            static const char* LASTS[] = {
+                "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
+                "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh","Wood",
+                "Vale","Cross","Bridge"
+            };
+            static std::uniform_int_distribution<int> fd(0, 29);
+            static std::uniform_int_distribution<int> ld(0, 19);
+            std::string npcName = std::string(FIRSTS[fd(s_rng)]) + " " + LASTS[ld(s_rng)];
+            registry.emplace<Name>(npc, Name{ npcName });
 
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
                 log->Push(tm.day, (int)tm.hourOfDay,
-                          "Birth at " + s.name + " (pop " + std::to_string(pop + 1) + ")");
+                          "Born: " + npcName + " at " + s.name);
             }
         }
     }

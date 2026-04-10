@@ -411,10 +411,14 @@ void SimThread::WriteSnapshot() {
             ageDays = age->days;
             maxDays = age->maxDays;
         }
+        std::string npcName;
+        if (const auto* n = m_registry.try_get<Name>(e))
+            npcName = n->value;
 
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
-                           role, hp, tp, ep, astate.behavior, balance, ageDays, maxDays });
+                           role, hp, tp, ep, astate.behavior,
+                           balance, ageDays, maxDays, npcName });
     });
 
     // ---- Settlements ----

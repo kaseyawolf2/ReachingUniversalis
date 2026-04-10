@@ -207,6 +207,11 @@ struct EventLog {
     }
 };
 
+// ---- Name ----
+struct Name {
+    std::string value;
+};
+
 // ---- Age ----
 // Tracks an agent's age in game-days; maxDays is the life expectancy.
 // DeathSystem advances age and destroys the entity on reaching maxDays.

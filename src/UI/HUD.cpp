@@ -275,35 +275,58 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
                      : "NPC";
     bool isHauler = (best->role == RenderSnapshot::AgentRole::Hauler);
 
-    char line1[64], line2[64], line3[48] = {}, line4[48] = {};
-    std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
-    std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
-                  best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
-    std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
-                  best->ageDays, best->maxDays);
+    char line1[64], line2[64], line3[48] = {}, line4[48] = {}, line5[48] = {};
+    // First line: name (if known) or role
+    if (!best->npcName.empty())
+        std::snprintf(line1, sizeof(line1), "%s (%s)", best->npcName.c_str(), role);
+    else
+        std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
+    // Second line: behavior state (only if we used name as line1)
+    bool hasName = !best->npcName.empty();
+    if (hasName)
+        std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
+    else
+        std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
+                      best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
+    std::snprintf(line3, sizeof(line3), hasName ? "H:%.0f%%  T:%.0f%%  E:%.0f%%" : "Age: %.0f/%.0f days",
+                  hasName ? best->hungerPct * 100.f : best->ageDays,
+                  hasName ? best->thirstPct * 100.f : best->maxDays,
+                  hasName ? best->energyPct * 100.f : 0.f);
+    if (!hasName)
+        std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
+                      best->ageDays, best->maxDays);
+    if (hasName)
+        std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f days",
+                      best->ageDays, best->maxDays);
     if (isHauler)
-        std::snprintf(line4, sizeof(line4), "Gold: %.1f", best->balance);
+        std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
+    int lineCount = hasName ? (isHauler ? 5 : 4) : (isHauler ? 4 : 3);
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
-    int w3 = MeasureText(line3, 11);
-    int w4 = isHauler ? MeasureText(line4, 11) : 0;
-    int pw = std::max({w1, w2, w3, w4}) + 10;
-    int ph = isHauler ? 64 : 48;
+    int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
+    int w5 = isHauler ? MeasureText(line5, 11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5}) + 10;
+    int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
     if (tx + pw > SCREEN_W) tx = (int)screen.x - pw - 10;
     if (ty < 0) ty = (int)screen.y + 12;
 
     DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
-    DrawText(line1, tx, ty,      12, WHITE);
-    DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
-    // Age bar color: green → yellow → red as approaching max age
+
     float ageFrac = (best->maxDays > 0.f) ? std::min(1.f, best->ageDays / best->maxDays) : 0.f;
     Color ageCol  = (ageFrac < 0.6f) ? Fade(GREEN, 0.9f) :
                     (ageFrac < 0.85f) ? YELLOW : RED;
-    DrawText(line3, tx, ty + 32, 11, ageCol);
-    if (isHauler)
-        DrawText(line4, tx, ty + 48, 11, YELLOW);
+
+    DrawText(line1, tx, ty,      12, WHITE);
+    DrawText(line2, tx, ty + 16, 11, hasName ? LIGHTGRAY : LIGHTGRAY);
+    DrawText(line3, tx, ty + 32, 11, hasName ? LIGHTGRAY : ageCol);
+    if (hasName) {
+        DrawText(line4, tx, ty + 48, 11, ageCol);
+        if (isHauler) DrawText(line5, tx, ty + 64, 11, YELLOW);
+    } else {
+        if (isHauler) DrawText(line4, tx, ty + 48, 11, YELLOW);
+    }
 }
 
 // ---- Debug overlay ----

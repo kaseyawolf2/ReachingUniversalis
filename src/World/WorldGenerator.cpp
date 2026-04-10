@@ -1,6 +1,7 @@
 #include "WorldGenerator.h"
 #include "ECS/Components.h"
 #include "raylib.h"
+#include <array>
 #include <cmath>
 #include <random>
 
@@ -13,6 +14,25 @@ static std::uniform_real_distribution<float> migrate_dist(2.f, 5.f);    // game-
 static std::uniform_real_distribution<float> wait_dist(0.f, 1.f);       // hauler stagger
 static std::uniform_real_distribution<float> age_dist(0.f, 30.f);       // starting age days
 static std::uniform_real_distribution<float> lifespan_dist(60.f, 100.f);// life expectancy days
+
+// ---- Name generation ----
+static const std::array<const char*, 30> FIRST_NAMES = {
+    "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
+    "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric",
+    "Vance","Wren","Xander","Yoric","Zane","Aela","Bryn","Clara","Dena","Elara"
+};
+static const std::array<const char*, 20> LAST_NAMES = {
+    "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
+    "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh","Wood",
+    "Vale","Cross","Bridge"
+};
+static std::uniform_int_distribution<int> first_dist(0, (int)FIRST_NAMES.size()-1);
+static std::uniform_int_distribution<int> last_dist(0,  (int)LAST_NAMES.size()-1);
+
+static std::string MakeName() {
+    return std::string(FIRST_NAMES[first_dist(wg_rng)]) + " " +
+           LAST_NAMES[last_dist(wg_rng)];
+}
 
 // Drain rates: full need lasts ~20 game-hours (Hunger), ~13 (Thirst), ~33 (Energy)
 // At 1x: 1 gameDt second = 1 real second = 1 game minute.
@@ -56,6 +76,7 @@ static void SpawnNPCs(entt::registry& registry,
         age.days    = age_dist(wg_rng);
         age.maxDays = lifespan_dist(wg_rng);
         registry.emplace<Age>(npc, age);
+        registry.emplace<Name>(npc, Name{ MakeName() });
     }
 }
 
@@ -89,6 +110,7 @@ static void SpawnHaulers(entt::registry& registry,
         hage.days    = age_dist(wg_rng);
         hage.maxDays = lifespan_dist(wg_rng);
         registry.emplace<Age>(h, hage);
+        registry.emplace<Name>(h, Name{ MakeName() });
     }
 }
 
@@ -231,6 +253,7 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Money>(player);                            // 50 gold starting wallet
     registry.emplace<Renderable>(player, YELLOW, 10.f);
     registry.emplace<PlayerTag>(player);
+    registry.emplace<Name>(player, Name{ "You" });   // player always named "You"
     // Player ages like any NPC — starts young, dies of old age eventually
     Age playerAge;
     playerAge.days    = 0.f;
