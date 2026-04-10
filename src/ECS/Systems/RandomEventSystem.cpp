@@ -87,7 +87,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     if (settlements.empty()) return;
 
     std::uniform_int_distribution<int> pickSettl(0, (int)settlements.size() - 1);
-    std::uniform_int_distribution<int> pickType(0, 9);  // 0-5=always 6=winter 7=spring 8=autumn 9=off-map convoy
+    std::uniform_int_distribution<int> pickType(0, 10); // 0-5=always 6=winter 7=spring 8=autumn 9=off-map 10=rainstorm
 
     entt::entity target = settlements[pickSettl(m_rng)];
     auto* settl = registry.try_get<Settlement>(target);
@@ -266,6 +266,26 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         }
         if (log) log->Push(day, hour,
             "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name);
+        break;
+    }
+
+    case 10: {  // Rainstorm — all settlements gain water; drought at target ends early
+        // Rain doesn't discriminate — all settlements collect water.
+        // Bonus: if the target settlement is in drought, the rain breaks it.
+        static constexpr float RAIN_WATER = 25.f;   // water added to every settlement
+        registry.view<Settlement, Stockpile>().each(
+            [&](auto e, Settlement& rs, Stockpile& rsp) {
+            rsp.quantities[ResourceType::Water] += RAIN_WATER;
+            // Break drought at this settlement
+            if (e == target && rs.modifierDuration > 0.f &&
+                rs.modifierName.find("Drought") != std::string::npos) {
+                rs.modifierDuration   = 0.f;
+                rs.productionModifier = 1.f;
+                rs.modifierName.clear();
+            }
+        });
+        if (log) log->Push(day, hour,
+            "RAINSTORM — all settlements +" + std::to_string((int)RAIN_WATER) + " water");
         break;
     }
 

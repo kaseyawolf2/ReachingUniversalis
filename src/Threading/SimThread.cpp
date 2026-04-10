@@ -499,6 +499,30 @@ void SimThread::WriteSnapshot() {
         if (const auto* n = m_registry.try_get<Name>(e))
             npcName = n->value;
 
+        // Infer profession from home settlement's primary production facility
+        std::string profession;
+        if (!isHauler && !isPlayer) {
+            if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
+                if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
+                    ResourceType primary = ResourceType::Food;
+                    float maxRate = 0.f;
+                    m_registry.view<ProductionFacility>().each(
+                        [&](const ProductionFacility& fac) {
+                        if (fac.settlement == hs->settlement && fac.baseRate > maxRate) {
+                            maxRate = fac.baseRate;
+                            primary = fac.output;
+                        }
+                    });
+                    if (maxRate > 0.f)
+                        profession = (primary == ResourceType::Food)  ? "Farmer"       :
+                                     (primary == ResourceType::Water) ? "Water Carrier" :
+                                     (primary == ResourceType::Wood)  ? "Woodcutter"   : "";
+                }
+            }
+        } else if (isHauler) {
+            profession = "Merchant";
+        }
+
         // Trade route destination for haulers en route (makes trade flow visible)
         bool  hasRouteDest = false;
         float routeDestX = 0.f, routeDestY = 0.f;
@@ -519,7 +543,7 @@ void SimThread::WriteSnapshot() {
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
-                           hasRouteDest, routeDestX, routeDestY });
+                           hasRouteDest, routeDestX, routeDestY, profession });
     });
 
     // ---- Settlements ----

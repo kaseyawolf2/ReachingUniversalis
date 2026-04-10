@@ -339,7 +339,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
 
     const char* role = (best->role == RenderSnapshot::AgentRole::Player) ? "Player"
-                     : (best->role == RenderSnapshot::AgentRole::Hauler) ? "Hauler"
+                     : (!best->profession.empty()) ? best->profession.c_str()
                      : "NPC";
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);

@@ -34,6 +34,8 @@ struct RenderSnapshot {
         // Hauler route destination (only set when hauler is carrying goods to a settlement)
         bool  hasRouteDest = false;
         float destX = 0.f, destY = 0.f;
+        // NPC's inferred profession based on home settlement's primary output
+        std::string profession;
     };
 
     struct SettlementEntry {
