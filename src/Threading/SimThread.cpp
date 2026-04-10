@@ -159,6 +159,7 @@ void SimThread::RespawnPlayer() {
     age.days    = 0.f;
     age.maxDays = lifespan(rng);
     m_registry.emplace<Age>(player, age);
+    m_registry.emplace<Name>(player, Name{ "You" });
 }
 
 // ---- One simulation step ----------------------------------------------

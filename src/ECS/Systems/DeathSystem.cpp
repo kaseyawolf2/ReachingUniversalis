@@ -28,9 +28,11 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
             auto logView = registry.view<EventLog>();
             if (!logView.empty()) {
                 auto& tm2 = timeView.get<TimeManager>(*timeView.begin());
+                std::string who = "NPC";
+                if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
                 logView.get<EventLog>(*logView.begin()).Push(
                     tm2.day, (int)tm2.hourOfDay,
-                    "NPC died of old age");
+                    who + " died of old age");
             }
         }
     });
@@ -54,14 +56,15 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                     toRemove.push_back(entity);
                     const char* cause = (i == 0) ? "hunger" :
                                         (i == 1) ? "thirst" : "exhaustion";
-                    std::printf("[DEATH] Entity %u died of %s\n",
-                                (unsigned)entity, cause);
+                    std::string who = "NPC";
+                    if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    std::printf("[DEATH] %s died of %s\n", who.c_str(), cause);
                     auto logView = registry.view<EventLog>();
                     if (!logView.empty()) {
                         auto& tm2 = timeView.get<TimeManager>(*timeView.begin());
                         logView.get<EventLog>(*logView.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
-                            std::string("NPC died of ") + cause);
+                            who + " died of " + cause);
                     }
                     break;
                 }
