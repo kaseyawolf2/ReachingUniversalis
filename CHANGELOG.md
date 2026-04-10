@@ -5,6 +5,28 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP3] Multi-NPC Population — 2026-04-10
+
+40 NPCs living across both settlements, consuming resources, seeking facilities, migrating, and dying.
+
+### Added
+- `DeprivationTimer` component — tracks per-need time-at-zero and stockpile empty time (gameDt seconds)
+- `AgentBehavior::Migrating` — new state for NPCs walking between settlements
+- `ConsumptionSystem` — each NPC passively draws Food (0.5/hr) and Water (0.8/hr) from home stockpile; if stockpile has supply, the corresponding need drain is cancelled keeping the need stable; increments `stockpileEmpty` timer when deprived
+- `DeathSystem` — destroys any entity whose need stays at 0 for 12 game-hours (720 gameDt seconds); logs cause to console; exposes `totalDeaths` counter
+- `AgentDecisionSystem` rewritten:
+  - Seeks nearest production facility of needed type within home settlement (replaces old resource node seeking)
+  - Migration: when `stockpileEmpty >= 2 game-hours`, NPC sets target to the other settlement via Road and enters Migrating state; adopts new HomeSettlement on arrival
+- NPC color encoding: white = satisfied, yellow = below 0.55, orange = below 0.30, red = below 0.15
+- HUD top-right panel now shows population count and cumulative death count
+- `WorldGenerator` spawns 20 NPCs per settlement (40 total), plus distinct yellow player NPC; stockpiles seeded with 20 Food (Greenfield) and 20 Water (Wellsworth)
+
+### Changed
+- Drain rates tuned for simulation timescale: Hunger ~20 game-hours, Thirst ~13, Energy ~33
+- `GameState` wires ConsumptionSystem and DeathSystem into update loop
+
+---
+
 ## [WP2] Spatial World Structure — 2026-04-10
 
 Two settlements, a road, production facilities, stockpiles, and a pan/zoom camera.

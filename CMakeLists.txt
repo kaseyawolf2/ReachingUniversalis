@@ -26,7 +26,9 @@ set(SOURCES
     src/GameState.cpp
     src/ECS/Systems/TimeSystem.cpp
     src/ECS/Systems/NeedDrainSystem.cpp
+    src/ECS/Systems/ConsumptionSystem.cpp
     src/ECS/Systems/AgentDecisionSystem.cpp
+    src/ECS/Systems/DeathSystem.cpp
     src/ECS/Systems/MovementSystem.cpp
     src/ECS/Systems/ProductionSystem.cpp
     src/ECS/Systems/CameraSystem.cpp

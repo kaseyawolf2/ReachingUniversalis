@@ -3,15 +3,22 @@
 #include <limits>
 #include "ECS/Components.h"
 
+// Radius within which an NPC can interact with a production facility.
+static constexpr float FACILITY_RANGE    = 35.0f;
+// Arrival threshold for reaching a settlement when migrating.
+static constexpr float SETTLE_RANGE      = 130.0f;
+// Stockpile empty time (gameDt seconds) that triggers migration. 2 game-hours.
+static constexpr float MIGRATE_THRESHOLD = 2.f * 60.f;
+
 // ---- Static helpers ----
 
-static int NeedIndexForResource(ResourceType type) {
+static AgentBehavior BehaviorForNeed(NeedType type) {
     switch (type) {
-        case ResourceType::Food:    return (int)NeedType::Hunger;
-        case ResourceType::Water:   return (int)NeedType::Thirst;
-        case ResourceType::Shelter: return (int)NeedType::Energy;
+        case NeedType::Hunger: return AgentBehavior::SeekingFood;
+        case NeedType::Thirst: return AgentBehavior::SeekingWater;
+        case NeedType::Energy: return AgentBehavior::SeekingSleep;
     }
-    return -1;
+    return AgentBehavior::Idle;
 }
 
 static ResourceType ResourceTypeForNeed(NeedType type) {
@@ -23,124 +30,194 @@ static ResourceType ResourceTypeForNeed(NeedType type) {
     return ResourceType::Food;
 }
 
-static AgentBehavior BehaviorForNeed(NeedType type) {
+static int NeedIndexForResource(ResourceType type) {
     switch (type) {
-        case NeedType::Hunger: return AgentBehavior::SeekingFood;
-        case NeedType::Thirst: return AgentBehavior::SeekingWater;
-        case NeedType::Energy: return AgentBehavior::SeekingSleep;
+        case ResourceType::Food:    return (int)NeedType::Hunger;
+        case ResourceType::Water:   return (int)NeedType::Thirst;
+        case ResourceType::Shelter: return (int)NeedType::Energy;
     }
-    return AgentBehavior::Idle;
+    return -1;
 }
 
-static bool IsInRange(float ax, float ay, float bx, float by, float radius) {
-    float dx = ax - bx;
-    float dy = ay - by;
-    return (dx * dx + dy * dy) <= radius * radius;
+static bool InRange(float ax, float ay, float bx, float by, float r) {
+    float dx = ax - bx, dy = ay - by;
+    return (dx * dx + dy * dy) <= r * r;
 }
 
-// ---- System ----
+static void MoveToward(Velocity& vel, const Position& from,
+                        float tx, float ty, float speed) {
+    float dx = tx - from.x, dy = ty - from.y;
+    float dist = std::sqrt(dx * dx + dy * dy);
+    if (dist < 1.f) { vel.vx = vel.vy = 0.f; return; }
+    vel.vx = (dx / dist) * speed;
+    vel.vy = (dy / dist) * speed;
+}
+
+// ---- AgentDecisionSystem::FindNearestFacility ----
+
+entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
+                                                       ResourceType type,
+                                                       entt::entity homeSettlement,
+                                                       float px, float py) {
+    entt::entity nearest  = entt::null;
+    float        bestDist = std::numeric_limits<float>::max();
+
+    auto view = registry.view<Position, ProductionFacility>();
+    for (auto e : view) {
+        const auto& fac = view.get<ProductionFacility>(e);
+        if (fac.output != type) continue;
+        if (fac.settlement != homeSettlement) continue;
+
+        const auto& pos = view.get<Position>(e);
+        float dx = pos.x - px, dy = pos.y - py;
+        float dist = dx * dx + dy * dy;
+        if (dist < bestDist) { bestDist = dist; nearest = e; }
+    }
+    return nearest;
+}
+
+// ---- AgentDecisionSystem::FindMigrationTarget ----
+
+entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
+                                                        entt::entity homeSettlement) {
+    // Follow the road from home to the other end.
+    auto roadView = registry.view<Road>();
+    for (auto e : roadView) {
+        const auto& road = roadView.get<Road>(e);
+        if (road.blocked) continue;
+        if (road.from == homeSettlement) return road.to;
+        if (road.to   == homeSettlement) return road.from;
+    }
+    return entt::null;
+}
+
+// ---- Main update ----
 
 void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
-    // Use game-time delta so refill rate is consistent at all tick speeds.
-    float dt = realDt;
     auto timeView = registry.view<TimeManager>();
-    if (!timeView.empty()) {
-        dt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
-    }
+    if (timeView.empty()) return;
+    float dt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
+    if (dt <= 0.f) return;
 
-    auto view = registry.view<Needs, AgentState, Position, Velocity, MoveSpeed>();
+    auto view = registry.view<Needs, AgentState, Position, Velocity,
+                               MoveSpeed, HomeSettlement, DeprivationTimer>();
 
     for (auto entity : view) {
-        auto& needs = view.get<Needs>(entity);
-        auto& state = view.get<AgentState>(entity);
-        auto& pos   = view.get<Position>(entity);
-        auto& vel   = view.get<Velocity>(entity);
-        float speed = view.get<MoveSpeed>(entity).value;
+        auto& needs  = view.get<Needs>(entity);
+        auto& state  = view.get<AgentState>(entity);
+        auto& pos    = view.get<Position>(entity);
+        auto& vel    = view.get<Velocity>(entity);
+        float speed  = view.get<MoveSpeed>(entity).value;
+        auto& home   = view.get<HomeSettlement>(entity);
+        auto& timer  = view.get<DeprivationTimer>(entity);
 
-        // ---- Satisfying state: refill need then check completion ----
+        // ============================================================
+        // MIGRATING: move toward target settlement, settle on arrival
+        // ============================================================
+        if (state.behavior == AgentBehavior::Migrating) {
+            if (state.target == entt::null || !registry.valid(state.target)) {
+                state.behavior = AgentBehavior::Idle;
+                vel.vx = vel.vy = 0.f;
+                continue;
+            }
+            const auto& destPos = registry.get<Position>(state.target);
+            if (InRange(pos.x, pos.y, destPos.x, destPos.y, SETTLE_RANGE)) {
+                // Arrived — adopt new home
+                home.settlement       = state.target;
+                timer.stockpileEmpty  = 0.f;
+                state.behavior        = AgentBehavior::Idle;
+                state.target          = entt::null;
+                vel.vx = vel.vy       = 0.f;
+            } else {
+                MoveToward(vel, pos, destPos.x, destPos.y, speed);
+            }
+            continue;
+        }
+
+        // ============================================================
+        // SATISFYING: refill need at the facility, check completion
+        // ============================================================
         if (state.behavior == AgentBehavior::Satisfying) {
             if (state.target == entt::null || !registry.valid(state.target)) {
                 state.behavior = AgentBehavior::Idle;
-                vel.vx = vel.vy = 0.0f;
+                vel.vx = vel.vy = 0.f;
                 continue;
             }
+            const auto& facPos = registry.get<Position>(state.target);
+            const auto& fac    = registry.get<ProductionFacility>(state.target);
 
-            auto& targetPos = registry.get<Position>(state.target);
-            auto& node      = registry.get<ResourceNode>(state.target);
-
-            if (!IsInRange(pos.x, pos.y, targetPos.x, targetPos.y, node.interactionRadius)) {
-                // Left the node's range — go back to seeking
+            if (!InRange(pos.x, pos.y, facPos.x, facPos.y, FACILITY_RANGE)) {
                 state.behavior = AgentBehavior::Idle;
                 state.target   = entt::null;
-                vel.vx = vel.vy = 0.0f;
+                vel.vx = vel.vy = 0.f;
                 continue;
             }
 
-            int idx = NeedIndexForResource(node.type);
+            int idx = NeedIndexForResource(fac.output);
             if (idx >= 0) {
                 needs.list[idx].value += needs.list[idx].refillRate * dt;
-                if (needs.list[idx].value >= 1.0f) {
-                    needs.list[idx].value = 1.0f;
+                if (needs.list[idx].value >= 1.f) {
+                    needs.list[idx].value = 1.f;
                     state.behavior = AgentBehavior::Idle;
                     state.target   = entt::null;
-                    vel.vx = vel.vy = 0.0f;
+                    vel.vx = vel.vy = 0.f;
                 }
             }
             continue;
         }
 
-        // ---- Idle / Seeking: decide what to do ----
+        // ============================================================
+        // IDLE / SEEKING: decide what to do this tick
+        // ============================================================
 
-        int criticalIdx = -1;
-        float lowestVal = std::numeric_limits<float>::max();
-        for (int i = 0; i < (int)needs.list.size(); ++i) {
-            const auto& n = needs.list[i];
-            if (n.value < n.criticalThreshold && n.value < lowestVal) {
-                lowestVal    = n.value;
-                criticalIdx  = i;
+        // -- Check migration trigger first --
+        if (timer.stockpileEmpty >= MIGRATE_THRESHOLD) {
+            entt::entity dest = FindMigrationTarget(registry, home.settlement);
+            if (dest != entt::null) {
+                state.behavior = AgentBehavior::Migrating;
+                state.target   = dest;
+                timer.stockpileEmpty = 0.f;
+                continue;
             }
         }
 
-        if (criticalIdx == -1) {
+        // -- Find the most critical need --
+        int   critIdx = -1;
+        float lowest  = std::numeric_limits<float>::max();
+        for (int i = 0; i < (int)needs.list.size(); ++i) {
+            const auto& n = needs.list[i];
+            if (n.value < n.criticalThreshold && n.value < lowest) {
+                lowest  = n.value;
+                critIdx = i;
+            }
+        }
+
+        if (critIdx == -1) {
             state.behavior = AgentBehavior::Idle;
             state.target   = entt::null;
-            vel.vx = vel.vy = 0.0f;
+            vel.vx = vel.vy = 0.f;
             continue;
         }
 
-        ResourceType resType = ResourceTypeForNeed(needs.list[criticalIdx].type);
-        state.behavior       = BehaviorForNeed(needs.list[criticalIdx].type);
+        ResourceType resType = ResourceTypeForNeed(needs.list[critIdx].type);
+        state.behavior       = BehaviorForNeed(needs.list[critIdx].type);
 
-        entt::entity targetNode = FindNearestNode(registry, resType, pos.x, pos.y);
-        if (targetNode == entt::null) {
+        entt::entity fac = FindNearestFacility(registry, resType,
+                                                home.settlement, pos.x, pos.y);
+        if (fac == entt::null) {
             state.behavior = AgentBehavior::Idle;
-            vel.vx = vel.vy = 0.0f;
+            vel.vx = vel.vy = 0.f;
             continue;
         }
 
-        state.target = targetNode;
+        state.target = fac;
+        const auto& facPos = registry.get<Position>(fac);
 
-        auto& targetPos = registry.get<Position>(targetNode);
-        auto& nodeComp  = registry.get<ResourceNode>(targetNode);
-
-        if (IsInRange(pos.x, pos.y, targetPos.x, targetPos.y, nodeComp.interactionRadius)) {
+        if (InRange(pos.x, pos.y, facPos.x, facPos.y, FACILITY_RANGE)) {
             state.behavior = AgentBehavior::Satisfying;
-            vel.vx = vel.vy = 0.0f;
+            vel.vx = vel.vy = 0.f;
         } else {
-            float dx   = targetPos.x - pos.x;
-            float dy   = targetPos.y - pos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            vel.vx = (dx / dist) * speed;
-            vel.vy = (dy / dist) * speed;
+            MoveToward(vel, pos, facPos.x, facPos.y, speed);
         }
     }
-}
-
-entt::entity AgentDecisionSystem::FindNearestNode(entt::registry& registry,
-                                                   ResourceType type,
-                                                   float px, float py) {
-    // WP2: ResourceNode entities removed. Returns null until WP3 wires up
-    // stockpile-based satisfaction.
-    (void)registry; (void)type; (void)px; (void)py;
-    return entt::null;
 }

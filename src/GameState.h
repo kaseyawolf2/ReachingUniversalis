@@ -3,9 +3,11 @@
 #include "raylib.h"
 #include "ECS/Systems/TimeSystem.h"
 #include "ECS/Systems/NeedDrainSystem.h"
+#include "ECS/Systems/ConsumptionSystem.h"
 #include "ECS/Systems/AgentDecisionSystem.h"
 #include "ECS/Systems/MovementSystem.h"
 #include "ECS/Systems/ProductionSystem.h"
+#include "ECS/Systems/DeathSystem.h"
 #include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
@@ -22,9 +24,11 @@ public:
 private:
     TimeSystem          timeSystem;
     NeedDrainSystem     needDrainSystem;
+    ConsumptionSystem   consumptionSystem;
     AgentDecisionSystem agentDecisionSystem;
     MovementSystem      movementSystem;
     ProductionSystem    productionSystem;
+    DeathSystem         deathSystem;
     CameraSystem        cameraSystem;
     RenderSystem        renderSystem;
     HUD                 hud;

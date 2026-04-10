@@ -1,6 +1,7 @@
 #include "HUD.h"
 #include "ECS/Components.h"
 #include "raylib.h"
+#include <algorithm>
 #include <cstdio>
 
 static const int BAR_W       = 160;
@@ -20,7 +21,7 @@ static const char* BehaviorLabel(AgentBehavior b) {
     return "Unknown";
 }
 
-void HUD::Draw(entt::registry& registry) {
+void HUD::Draw(entt::registry& registry, int totalDeaths) {
     // ---- Need bars (player entity) ----
     auto playerView = registry.view<PlayerTag, Needs, AgentState>();
     for (auto entity : playerView) {
@@ -61,16 +62,26 @@ void HUD::Draw(entt::registry& registry) {
         else
             std::snprintf(speedBuf, sizeof(speedBuf), "%dx", tm.tickSpeed);
 
-        // Right-align in the window
+        // Population count (entities with Needs, excluding PlayerTag)
+        int pop = 0;
+        registry.view<Needs>().each([&](auto e, auto&) {
+            if (!registry.all_of<PlayerTag>(e)) ++pop;
+        });
+
+        char popBuf[32];
+        std::snprintf(popBuf, sizeof(popBuf), "Pop: %d  Deaths: %d", pop, totalDeaths);
+
+        // Right-align panel
         int timeW  = MeasureText(timeBuf,  16);
         int speedW = MeasureText(speedBuf, 14);
-        int panelW = (timeW > speedW ? timeW : speedW) + 16;
+        int popW   = MeasureText(popBuf,   13);
+        int panelW = std::max({timeW, speedW, popW}) + 16;
         int panelX = 1280 - panelW - 4;
 
-        DrawRectangle(panelX, 4, panelW, 46, Fade(BLACK, 0.5f));
+        DrawRectangle(panelX, 4, panelW, 64, Fade(BLACK, 0.5f));
         DrawText(timeBuf,  panelX + 8,  8, 16, WHITE);
-        DrawText(speedBuf, panelX + 8, 28, 14,
-                 tm.paused ? ORANGE : LIGHTGRAY);
+        DrawText(speedBuf, panelX + 8, 28, 14, tm.paused ? ORANGE : LIGHTGRAY);
+        DrawText(popBuf,   panelX + 8, 46, 13, LIGHTGRAY);
 
         break;
     }

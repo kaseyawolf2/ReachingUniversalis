@@ -4,10 +4,14 @@
 
 class AgentDecisionSystem {
 public:
-    void Update(entt::registry& registry, float dt);
+    void Update(entt::registry& registry, float realDt);
 
 private:
-    entt::entity FindNearestNode(entt::registry& registry,
-                                 ResourceType type,
-                                 float px, float py);
+    entt::entity FindNearestFacility(entt::registry& registry,
+                                     ResourceType type,
+                                     entt::entity homeSettlement,
+                                     float px, float py);
+
+    entt::entity FindMigrationTarget(entt::registry& registry,
+                                     entt::entity homeSettlement);
 };

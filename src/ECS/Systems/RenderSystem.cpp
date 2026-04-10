@@ -81,14 +81,30 @@ void RenderSystem::Draw(entt::registry& registry) {
         }
     }
 
-    // ---- Agents (NPCs) ----
+    // ---- Agents (NPCs) — color encodes health state ----
     {
         auto agentView = registry.view<Position, AgentState, Renderable>();
         for (auto entity : agentView) {
             const auto& pos  = agentView.get<Position>(entity);
             const auto& rend = agentView.get<Renderable>(entity);
-            DrawCircleV({ pos.x, pos.y }, rend.size, rend.color);
-            DrawCircleLinesV({ pos.x, pos.y }, rend.size, LIGHTGRAY);
+
+            // Override color based on worst need — keep PlayerTag color as-is
+            Color drawColor = rend.color;
+            if (!registry.all_of<PlayerTag>(entity)) {
+                if (const auto* needs = registry.try_get<Needs>(entity)) {
+                    float worst = 1.f;
+                    for (const auto& n : needs->list)
+                        if (n.value < worst) worst = n.value;
+
+                    if      (worst < 0.15f) drawColor = RED;
+                    else if (worst < 0.30f) drawColor = ORANGE;
+                    else if (worst < 0.55f) drawColor = YELLOW;
+                    else                    drawColor = WHITE;
+                }
+            }
+
+            DrawCircleV({ pos.x, pos.y }, rend.size, drawColor);
+            DrawCircleLinesV({ pos.x, pos.y }, rend.size, DARKGRAY);
         }
     }
 

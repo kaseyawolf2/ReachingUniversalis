@@ -32,7 +32,7 @@ struct MoveSpeed { float value; };
 
 // ---- Agent behaviour ----
 
-enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying };
+enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying, Migrating };
 
 struct AgentState {
     AgentBehavior behavior = AgentBehavior::Idle;
@@ -69,6 +69,13 @@ struct Road {
 
 struct HomeSettlement {
     entt::entity settlement = entt::null;
+};
+
+// Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
+// Used by DeathSystem and AgentDecisionSystem for migration triggering.
+struct DeprivationTimer {
+    std::array<float, 3> needsAtZero     = { 0.f, 0.f, 0.f };
+    float                stockpileEmpty  = 0.f;   // seconds with no food OR water
 };
 
 // ---- Rendering ----

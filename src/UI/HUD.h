@@ -4,7 +4,7 @@
 
 class HUD {
 public:
-    void Draw(entt::registry& registry);
+    void Draw(entt::registry& registry, int totalDeaths = 0);
 
 private:
     void DrawNeedBar(int x, int y, float value, float critThreshold,

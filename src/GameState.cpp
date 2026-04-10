@@ -10,16 +10,18 @@ void GameState::Initialize() {
 void GameState::Update(float dt) {
     timeSystem.Update(registry, dt);
     cameraSystem.Update(registry, dt);
-    renderSystem.HandleInput(registry);   // settlement click-to-select
+    renderSystem.HandleInput(registry);
     needDrainSystem.Update(registry, dt);
+    consumptionSystem.Update(registry, dt);
     agentDecisionSystem.Update(registry, dt);
     movementSystem.Update(registry, dt);
     productionSystem.Update(registry, dt);
+    deathSystem.Update(registry, dt);
 }
 
 void GameState::Draw() {
-    renderSystem.Draw(registry);   // world inside BeginMode2D/EndMode2D
-    hud.Draw(registry);            // HUD in screen space
+    renderSystem.Draw(registry);
+    hud.Draw(registry, deathSystem.totalDeaths);
 }
 
 // Interpolate between two colors by factor t (0.0–1.0)
