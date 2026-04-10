@@ -14,7 +14,7 @@ int main() {
 
         BeginDrawing();
             ClearBackground({ 30, 30, 30, 255 });
-            state.Draw();
+            state.Draw(); // non-const: systems need mutable registry access
         EndDrawing();
     }
 
