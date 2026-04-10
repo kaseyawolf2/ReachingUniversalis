@@ -228,4 +228,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Inventory>(player);
     registry.emplace<Renderable>(player, YELLOW, 10.f);
     registry.emplace<PlayerTag>(player);
+    // Player ages like any NPC — starts young, dies of old age eventually
+    Age playerAge;
+    playerAge.days    = 0.f;
+    playerAge.maxDays = lifespan_dist(wg_rng);
+    registry.emplace<Age>(player, playerAge);
 }

@@ -52,6 +52,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     bool  paused, roadBlocked, playerAlive;
     float hungerPct, thirstPct, energyPct;
     float hungerCrit, thirstCrit, energyCrit;
+    float playerAgeDays, playerMaxDays;
     AgentBehavior behavior;
 
     {
@@ -69,16 +70,28 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         thirstPct   = snap.thirstPct;   thirstCrit  = snap.thirstCrit;
         energyPct   = snap.energyPct;   energyCrit  = snap.energyCrit;
         behavior    = snap.playerBehavior;
+        playerAgeDays = snap.playerAgeDays;
+        playerMaxDays = snap.playerMaxDays;
     }
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
-        DrawRectangle(4, 4, 320, BAR_GAP * 4 + 72, Fade(BLACK, 0.55f));
+        DrawRectangle(4, 4, 320, BAR_GAP * 5 + 72, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
 
-        int stateY = BAR_Y0 + BAR_GAP * 3 + 4;
+        // Age row
+        int ageY = BAR_Y0 + BAR_GAP * 3 + 2;
+        float ageFrac = (playerMaxDays > 0.f) ? std::min(1.f, playerAgeDays / playerMaxDays) : 0.f;
+        Color ageCol  = (ageFrac < 0.6f) ? LIGHTGRAY :
+                        (ageFrac < 0.85f) ? YELLOW : RED;
+        char ageBuf[32];
+        std::snprintf(ageBuf, sizeof(ageBuf), "Age: %.0f / %.0f", playerAgeDays, playerMaxDays);
+        DrawText("Age:", BAR_X, ageY, 14, LIGHTGRAY);
+        DrawText(ageBuf + 5, BAR_X + 52, ageY, 14, ageCol);  // skip "Age:" prefix
+
+        int stateY = ageY + BAR_GAP;
         DrawText("State:", BAR_X, stateY, 14, LIGHTGRAY);
         DrawText(BehaviorLabel(behavior), BAR_X + 52, stateY, 14, WHITE);
 
@@ -227,17 +240,20 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
                      : "NPC";
     bool isHauler = (best->role == RenderSnapshot::AgentRole::Hauler);
 
-    char line1[64], line2[64], line3[48] = {};
+    char line1[64], line2[64], line3[48] = {}, line4[48] = {};
     std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
     std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
                   best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
+    std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
+                  best->ageDays, best->maxDays);
     if (isHauler)
-        std::snprintf(line3, sizeof(line3), "Gold: %.1f", best->balance);
+        std::snprintf(line4, sizeof(line4), "Gold: %.1f", best->balance);
 
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
-    int w3 = isHauler ? MeasureText(line3, 11) : 0;
-    int pw = std::max({w1, w2, w3}) + 10;
-    int ph = isHauler ? 48 : 32;
+    int w3 = MeasureText(line3, 11);
+    int w4 = isHauler ? MeasureText(line4, 11) : 0;
+    int pw = std::max({w1, w2, w3, w4}) + 10;
+    int ph = isHauler ? 64 : 48;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
     if (tx + pw > SCREEN_W) tx = (int)screen.x - pw - 10;
@@ -246,8 +262,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
     DrawText(line1, tx, ty,      12, WHITE);
     DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
+    // Age bar color: green → yellow → red as approaching max age
+    float ageFrac = (best->maxDays > 0.f) ? std::min(1.f, best->ageDays / best->maxDays) : 0.f;
+    Color ageCol  = (ageFrac < 0.6f) ? Fade(GREEN, 0.9f) :
+                    (ageFrac < 0.85f) ? YELLOW : RED;
+    DrawText(line3, tx, ty + 32, 11, ageCol);
     if (isHauler)
-        DrawText(line3, tx, ty + 32, 11, YELLOW);
+        DrawText(line4, tx, ty + 48, 11, YELLOW);
 }
 
 // ---- Debug overlay ----

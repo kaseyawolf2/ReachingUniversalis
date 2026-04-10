@@ -77,4 +77,25 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
             registry.destroy(e);
         }
     }
+
+    // ---- Settlement collapse check ----
+    // After deaths, log any settlement that just hit 0 population.
+    auto logView2 = registry.view<EventLog>();
+    if (!logView2.empty() && !toRemove.empty()) {
+        auto& log2 = logView2.get<EventLog>(*logView2.begin());
+        auto& tm2  = timeView.get<TimeManager>(*timeView.begin());
+
+        registry.view<Settlement>().each([&](auto settl, const Settlement& s) {
+            int pop = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+                [&](const HomeSettlement& hs) { if (hs.settlement == settl) ++pop; });
+            if (pop == 0 && !m_collapsed.count(settl)) {
+                m_collapsed.insert(settl);
+                log2.Push(tm2.day, (int)tm2.hourOfDay,
+                    s.name + " has COLLAPSED — population zero");
+            } else if (pop > 0) {
+                m_collapsed.erase(settl);  // recovered
+            }
+        });
+    }
 }

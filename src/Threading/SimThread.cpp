@@ -247,9 +247,15 @@ void SimThread::WriteSnapshot() {
                 balance = money->balance;
         }
 
+        float ageDays = 0.f, maxDays = 80.f;
+        if (const auto* age = m_registry.try_get<Age>(e)) {
+            ageDays = age->days;
+            maxDays = age->maxDays;
+        }
+
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
-                           role, hp, tp, ep, astate.behavior, balance });
+                           role, hp, tp, ep, astate.behavior, balance, ageDays, maxDays });
     });
 
     // ---- Settlements ----
@@ -349,6 +355,7 @@ void SimThread::WriteSnapshot() {
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerWX = 640.f, playerWY = 360.f;
 
+    float playerAgeDays = 0.f, playerMaxDays = 80.f;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
         if (pv.begin() != pv.end()) {
@@ -361,6 +368,10 @@ void SimThread::WriteSnapshot() {
             playerBehavior = pv.get<AgentState>(pe).behavior;
             const auto& ppos = pv.get<Position>(pe);
             playerWX = ppos.x; playerWY = ppos.y;
+            if (const auto* age = m_registry.try_get<Age>(pe)) {
+                playerAgeDays = age->days;
+                playerMaxDays = age->maxDays;
+            }
         }
     }
 
@@ -402,6 +413,8 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerBehavior = playerBehavior;
         m_snapshot.playerWorldX  = playerWX;
         m_snapshot.playerWorldY  = playerWY;
+        m_snapshot.playerAgeDays = playerAgeDays;
+        m_snapshot.playerMaxDays = playerMaxDays;
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();

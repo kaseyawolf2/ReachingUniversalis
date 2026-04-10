@@ -27,7 +27,9 @@ struct RenderSnapshot {
         AgentRole role;
         float     hungerPct, thirstPct, energyPct;
         AgentBehavior behavior;
-        float     balance = 0.f;   // gold (haulers only, 0 for others)
+        float     balance = 0.f;    // gold (haulers only, 0 for others)
+        float     ageDays = 0.f;    // current age in game-days
+        float     maxDays = 80.f;   // life expectancy
     };
 
     struct SettlementEntry {
@@ -101,6 +103,8 @@ struct RenderSnapshot {
     float         thirstCrit     = 0.3f;
     float         energyCrit     = 0.3f;
     AgentBehavior playerBehavior = AgentBehavior::Idle;
+    float         playerAgeDays  = 0.f;
+    float         playerMaxDays  = 80.f;
 
     // Camera follow target (player world position)
     float playerWorldX = 640.f;
