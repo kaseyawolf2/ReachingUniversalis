@@ -5,6 +5,105 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Simulation Polish] Economy, observability, and NPC lifecycle improvements — 2026-04-10
+
+### Added
+- **Player sleep key (Z)**: Player can press Z to toggle Sleeping state, restoring Energy need.
+  WASD movement while sleeping auto-wakes. Fixes bug where player could never restore Energy.
+- **Off-map trade convoy** (random event type 9): When a settlement has a critically scarce
+  resource (price > 5g), an external convoy delivers 50 units. Simulates off-map trade pressure.
+  Shows GREEN in event log as "OFF-MAP CONVOY at Greenfield +50 food (price was 8g)".
+- **Hauler adaptive patience**: Haulers track consecutive idle evaluations (`waitCycles`).
+  After 5 failed evaluations, they accept any positive-margin route (floor: 0.5g). Resets on
+  successful delivery or home arrival — addresses Q9 "willing to wait for better margin."
+- **Treasury alerts**: Settlement treasury low (<50g) and empty (<1g) events logged via the
+  StockpileAlert system. `StockpileAlert` gains `treasuryLow` / `treasuryEmpty` flags.
+- **Food spoilage**: Stockpile food decays at 0.5%/game-hour (Summer: 2×, Winter: 0.5×).
+  Prevents indefinite accumulation and keeps markets dynamic.
+- **Seasonal price floors**: `PriceSystem` now maintains minimum prices by season — Wood price
+  floor rises to 5g in Winter (demand surge); Food floor rises to 2g in Winter. Prices can't
+  decay below these floors via abundance alone.
+- **NPC work-site movement**: During work shifts, NPCs walk toward the nearest production
+  facility at their home settlement (80% speed). Makes work visible and legible.
+- **Leisure wandering**: Idle NPCs between work-end and sleep-time pick random wander destinations
+  within 80px of home settlement. They amble at 40% speed, making the settlement feel alive.
+- **Behavior breakdown in debug overlay (F1)**: Shows Working/Sleeping/Idle/Seeking/Migrating
+  counts and hauler count alongside existing diagnostics.
+- **Settlement ring includes wood shortage in winter**: When season is Autumn/Winter and
+  woodStock < 20, the settlement health ring factors in wood (turns red/yellow). Added
+  `woodStock` and `season` to `SettlementEntry` in RenderSnapshot.
+- **BirthSystem fixes**:
+  - Newborns now get a Money component (5g starting purse) — can participate in emergency market
+  - Newborns get ±20% personality variation on need drain rates
+  - Winter birth check: requires ≥10 wood in stockpile before spawning a child in cold seasons
+- **Migration wave NPC fixes**: RandomEventSystem case 5 now applies ±20% personality variation
+  to all arriving migrants (drain rates randomised per-NPC).
+- **Player respawn Money fix**: RespawnPlayer now gives 10g starting purse (was missing entirely).
+- **Player sell trade tax**: Player T-key sells now pay same 20% trade tax as haulers.
+  Tax revenue flows to destination settlement treasury. Log shows tax amount.
+
+### Changed
+- `PRICE_MAX` raised from 20g to 25g to accommodate seasonal spike potential.
+- Debug overlay expanded from 10 to 14 rows; reorganised into sections with behavior breakdown.
+
+---
+
+## [Seasons, Heat & Economy] Season cycle, Heat need, NPC market purchasing — 2026-04-10
+
+### Added
+- **Seasons** (`Season` enum in `TimeManager`): 4-season cycle (Spring/Summer/Autumn/Winter),
+  each 30 game-days. `CurrentSeason()` computed from `day` field.
+- **Season production modifiers**: Spring 0.8×, Summer 1.0×, Autumn 1.2× (harvest), Winter 0.2×
+  applied on top of settlement/drought modifiers in ProductionSystem
+- **Winter energy drain boost**: Winter raises Energy drain to 1.8× normal (harder to rest warm)
+- **Season transition logging**: TimeSystem logs "--- Winter begins ---" etc. when season changes
+- **Season display in HUD**: Top-right clock panel shows current season name (green/yellow/orange/skyblue)
+- **Heat need** (`NeedType::Heat`, index 3): 4th need for all NPCs, player, haulers
+  - Drains based on season: Summer=0×, Spring=0.15×, Autumn=0.4×, Winter=1.0×
+  - Satisfied passively by Wood stockpile: ConsumptionSystem burns Wood when available
+  - 0.03 Wood per NPC per game-hour consumed in Winter (scaled by season)
+  - If no Wood available, Heat drains → death by cold or migration
+  - Summer passively restores Heat to full (no burning needed)
+- **Heat bar in HUD**: 4th orange bar in player left panel below Energy
+- **Wood stockpile alerts**: Log once on Wood low/empty events (same threshold system as food/water)
+- **DeprivationTimer expanded**: 4 needsAtZero slots (was 3); `stockpileEmpty` now also triggers
+  on winter heat deprivation (no Wood fuel)
+- **Death by cold**: DeathSystem handles Heat need at index 3; logs "Alice died of cold"
+
+### Changed
+- `Needs` array size: 3 → 4 (added Heat at index 3)
+- `DeprivationTimer::needsAtZero` array: 3 → 4 slots; added `purchaseTimer` field
+- `StockpileAlert` gained `woodLow`/`woodEmpty` fields
+- Player left panel height increased to accommodate 4th bar
+
+### Added (visual & behavioral polish)
+- **Season sky tint**: Background color shifts per season — Winter is blue-shifted (icy),
+  Autumn is warm orange-shifted, Spring has a slight green tint, Summer unchanged
+- **Season event log color**: Season transition messages ("--- Winter begins ---") shown in SKYBLUE
+- **Death by cold**: Event log highlights "cold" deaths in RED
+- **NPC market purchasing**: When settlement stockpile runs out, NPCs with money
+  automatically buy 1 unit of food/water from the local market every 2 game-hours.
+  Gold flows to settlement treasury; creates economic feedback loop (wages → purchases → treasury)
+- **Wider migration stagger**: NPC migration threshold widened from 2-5 hours to 1-10 hours,
+  giving much more spread in when NPCs decide to leave (addresses wishlist: mass simultaneous exodus)
+- **Heat in NPC tooltip**: Hover tooltip now shows `Ht:XX%` alongside H/T/E percentages
+- **AgentEntry heatPct**: RenderSnapshot now carries heat% for each agent
+- **Seasonal random events**: 3 new season-locked events:
+  - *Blizzard* (Winter only): blocks ALL roads for 4 game-hours
+  - *Spring Flood* (Spring only): destroys 40% of food at a settlement
+  - *Harvest Bounty* (Autumn only): +50% production for 12 game-hours
+- **Seasonal world status bar**: In Autumn/Winter, status bar shows `Wd:XX` (wood stock)
+  instead of prices; wood stock shown in RED when < 20 in Winter
+- **Temperature display**: Top-right panel shows ambient temperature (°C) — computed from
+  season baseline + diurnal swing (colder at night, warmer midday). Color: icy blue when <0°C
+- **NPC personality variation**: ±20% random variance on each NPC's need drain rates —
+  some NPCs are naturally sturdier (drain slower), others more fragile (drain faster)
+- **Debug overlay improvements**: Now shows Season and Temperature; overlay moved down to
+  avoid overlap with Heat bar; panel widened
+- **BLIZZARD/FLOOD in event log**: Colored RED; HARVEST BOUNTY colored GREEN
+
+---
+
 ## [Simulation Depth] NPC names, aging, economy, player trading — 2026-04-10
 
 Autonomous session adding significant simulation depth across multiple systems.

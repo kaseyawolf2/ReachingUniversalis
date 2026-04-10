@@ -49,13 +49,14 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
         auto& needs = view.get<Needs>(entity);
         auto& timer = view.get<DeprivationTimer>(entity);
 
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 4; ++i) {
             if (needs.list[i].value <= 0.001f) {
                 timer.needsAtZero[i] += gameDt;
                 if (timer.needsAtZero[i] >= DEATH_THRESHOLD) {
                     toRemove.push_back(entity);
                     const char* cause = (i == 0) ? "hunger" :
-                                        (i == 1) ? "thirst" : "exhaustion";
+                                        (i == 1) ? "thirst" :
+                                        (i == 2) ? "exhaustion" : "cold";
                     std::string who = "NPC";
                     if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
                     std::printf("[DEATH] %s died of %s\n", who.c_str(), cause);

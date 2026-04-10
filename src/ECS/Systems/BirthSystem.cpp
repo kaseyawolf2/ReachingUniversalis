@@ -24,16 +24,19 @@ static constexpr float BIRTH_WATER_COST       = 10.f;
 static constexpr float DRAIN_HUNGER = 0.00083f;
 static constexpr float DRAIN_THIRST = 0.00125f;
 static constexpr float DRAIN_ENERGY = 0.00050f;
+static constexpr float DRAIN_HEAT   = 0.00200f;
 static constexpr float REFILL_HUNGER = 0.004f;
 static constexpr float REFILL_THIRST = 0.006f;
 static constexpr float REFILL_ENERGY = 0.002f;
+static constexpr float REFILL_HEAT   = 0.010f;
 static constexpr float CRIT_THRESHOLD = 0.3f;
 
 static Needs MakeNeeds() {
     return Needs{{
         Need{ NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESHOLD, REFILL_HUNGER },
         Need{ NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESHOLD, REFILL_THIRST },
-        Need{ NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESHOLD, REFILL_ENERGY }
+        Need{ NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESHOLD, REFILL_ENERGY },
+        Need{ NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESHOLD, REFILL_HEAT   }
     }};
 }
 
@@ -68,11 +71,18 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                       ? stockpile.quantities[ResourceType::Food]  : 0.f;
         float water = stockpile.quantities.count(ResourceType::Water)
                       ? stockpile.quantities[ResourceType::Water] : 0.f;
+        float wood  = stockpile.quantities.count(ResourceType::Wood)
+                      ? stockpile.quantities[ResourceType::Wood]  : 0.f;
         int   pop   = popCount.count(settl) ? popCount[settl] : 0;
+
+        // In cold seasons, require some wood reserve before having children
+        float heatMult = SeasonHeatDrainMult(tm.CurrentSeason());
+        bool  woodOk   = (heatMult <= 0.f) || (wood >= 10.f);
 
         bool canBirth = (pop < MAX_POP_PER_SETTLEMENT)
                      && (food  >= BIRTH_FOOD_MIN)
-                     && (water >= BIRTH_WATER_MIN);
+                     && (water >= BIRTH_WATER_MIN)
+                     && woodOk;
 
         if (canBirth) {
             tracker.accumulator += gameHoursDt;
@@ -87,7 +97,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
 
             // NPCs decide whether to have a child (probabilistic)
             static std::mt19937 s_rng{std::random_device{}()};
-            static std::uniform_real_distribution<float> s_dist(2.f, 5.f);
+            static std::uniform_real_distribution<float> s_dist(1.f, 10.f);   // wide range for staggered migration
             static std::uniform_real_distribution<float> chance_dist(0.f, 1.f);
             if (chance_dist(s_rng) > BIRTH_CHANCE) continue;
 
@@ -135,6 +145,14 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             static std::uniform_int_distribution<int> ld(0, 19);
             std::string npcName = std::string(FIRSTS[fd(s_rng)]) + " " + LASTS[ld(s_rng)];
             registry.emplace<Name>(npc, Name{ npcName });
+            // Newborns inherit a small starting purse — participating in the
+            // emergency market purchase system from birth.
+            registry.emplace<Money>(npc, Money{ 5.f });
+            // Personality variation: ±20% on drain rates for each newborn.
+            static std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);
+            auto& newNeeds = registry.get<Needs>(npc);
+            for (auto& need : newNeeds.list)
+                need.drainRate *= trait_dist(s_rng);
 
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);

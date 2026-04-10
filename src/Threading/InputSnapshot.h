@@ -20,6 +20,7 @@ struct InputSnapshot {
     std::atomic<bool> roadToggle     {false};
     std::atomic<bool> camFollowToggle{false};
     std::atomic<bool> playerTrade    {false};  // T: buy/sell at nearest settlement
+    std::atomic<bool> playerSleep    {false};  // Z: toggle sleep (restores energy)
 
     // ---- Continuous player movement (normalised, -1..1) ----
     std::atomic<float> playerMoveX{0.f};

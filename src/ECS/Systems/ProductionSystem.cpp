@@ -9,13 +9,33 @@ static constexpr int   BASE_WORKERS   = 5;
 static constexpr float MAX_SCALE      = 2.0f;
 static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 
+// Food spoils at this fraction per game-hour (base rate; summer doubles it).
+// 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
+static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
+
 void ProductionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
-    float gameDt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
+    const auto& tm = timeView.get<TimeManager>(*timeView.begin());
+    float gameDt = tm.GameDt(realDt);
     if (gameDt <= 0.0f) return;
 
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.0f;
+    Season season     = tm.CurrentSeason();
+    float seasonMod   = SeasonProductionModifier(season);
+
+    // ---- Food spoilage ----
+    // Summer doubles the spoilage rate (heat); winter halves it (cold preserves food).
+    float spoilageMult = (season == Season::Summer) ? 2.0f :
+                         (season == Season::Winter) ? 0.5f : 1.0f;
+    float spoilFraction = FOOD_SPOILAGE_RATE * spoilageMult * gameHoursDt;
+    registry.view<Stockpile>().each([&](Stockpile& sp) {
+        auto it = sp.quantities.find(ResourceType::Food);
+        if (it != sp.quantities.end() && it->second > 0.f) {
+            float loss = it->second * spoilFraction;
+            it->second = std::max(0.f, it->second - loss);
+        }
+    });
 
     // Count Working-state NPCs per settlement (excludes haulers and player).
     std::map<entt::entity, int> workers;
@@ -38,9 +58,9 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         float scale = std::min(MAX_SCALE, static_cast<float>(w) / BASE_WORKERS);
         scale       = std::max(0.1f, scale);   // never fully zero — keep a trickle
 
-        // Apply any active settlement modifier (e.g. drought reduces production)
+        // Apply settlement modifier (drought etc.) and season modifier
         const auto* settl = registry.try_get<Settlement>(fac.settlement);
-        float modifier = settl ? settl->productionModifier : 1.f;
+        float modifier = (settl ? settl->productionModifier : 1.f) * seasonMod;
 
         float grossOutput = fac.baseRate * scale * gameHoursDt * modifier;
 

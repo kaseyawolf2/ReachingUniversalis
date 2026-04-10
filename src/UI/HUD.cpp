@@ -51,11 +51,13 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     // For the scalar HUD fields we do a quick lock here.
     int   day, hour, minute, tickSpeed, pop, deaths;
     bool  paused, roadBlocked, playerAlive;
-    float hungerPct, thirstPct, energyPct;
-    float hungerCrit, thirstCrit, energyCrit;
+    float hungerPct, thirstPct, energyPct, heatPct;
+    float hungerCrit, thirstCrit, energyCrit, heatCrit;
     float playerAgeDays, playerMaxDays, playerGold;
+    float temperature;
     std::map<ResourceType, int> playerInventory;
     AgentBehavior behavior;
+    Season season;
 
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -71,23 +73,27 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         hungerPct   = snap.hungerPct;   hungerCrit  = snap.hungerCrit;
         thirstPct   = snap.thirstPct;   thirstCrit  = snap.thirstCrit;
         energyPct   = snap.energyPct;   energyCrit  = snap.energyCrit;
+        heatPct     = snap.heatPct;     heatCrit    = snap.heatCrit;
         behavior    = snap.playerBehavior;
         playerAgeDays = snap.playerAgeDays;
         playerMaxDays = snap.playerMaxDays;
         playerGold    = snap.playerGold;
         playerInventory = snap.playerInventory;
+        season      = snap.season;
+        temperature = snap.temperature;
     }
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
         int invLines = (int)playerInventory.size();
-        DrawRectangle(4, 4, 320, BAR_GAP * 5 + 90 + invLines * 16, Fade(BLACK, 0.55f));
+        DrawRectangle(4, 4, 320, BAR_GAP * 6 + 90 + invLines * 16, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
+        DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 3, heatPct,   heatCrit,   "Heat",   ORANGE);
 
         // Age row
-        int ageY = BAR_Y0 + BAR_GAP * 3 + 2;
+        int ageY = BAR_Y0 + BAR_GAP * 4 + 2;
         float ageFrac = (playerMaxDays > 0.f) ? std::min(1.f, playerAgeDays / playerMaxDays) : 0.f;
         Color ageCol  = (ageFrac < 0.6f) ? LIGHTGRAY :
                         (ageFrac < 0.85f) ? YELLOW : RED;
@@ -134,28 +140,39 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 16;
         }
 
-        DrawText("WASD:Move  B:Road  T:Trade  F:Follow  F1:Debug",
+        DrawText("WASD:Move  Z:Sleep  T:Trade  B:Road  F:Follow  F1:Debug",
                  BAR_X, invY + 4, 10, Fade(LIGHTGRAY, 0.6f));
     }
 
     // ---- Time panel (top-right) ----
     {
-        char timeBuf[64], speedBuf[16], popBuf[32], fpsBuf[32];
+        char timeBuf[64], speedBuf[16], popBuf[32], fpsBuf[32], seasBuf[48];
         std::snprintf(timeBuf,  sizeof(timeBuf),  "Day %d  %02d:%02d", day, hour, minute);
         std::snprintf(speedBuf, sizeof(speedBuf), paused ? "PAUSED" : "%dx", tickSpeed);
         std::snprintf(popBuf,   sizeof(popBuf),   "Pop: %d  Deaths: %d", pop, deaths);
         std::snprintf(fpsBuf,   sizeof(fpsBuf),   "FPS: %d  (%.1f ms)",
                       GetFPS(), GetFrameTime() * 1000.f);
+        std::snprintf(seasBuf, sizeof(seasBuf), "%s  %.0f°C",
+                      SeasonName(season), temperature);
 
         int pw = std::max({ MeasureText(timeBuf, 16), MeasureText(speedBuf, 14),
+                            MeasureText(seasBuf, 13),
                             MeasureText(popBuf, 13),  MeasureText(fpsBuf, 12) }) + 16;
         int px = SCREEN_W - pw - 4;
 
-        DrawRectangle(px, 4, pw, 80, Fade(BLACK, 0.55f));
+        Color seasonColor = (season == Season::Spring) ? GREEN  :
+                            (season == Season::Summer) ? YELLOW :
+                            (season == Season::Autumn) ? ORANGE : SKYBLUE;
+        // Temperature color: blue below 0, grey near 0, normal above
+        Color tempColor = (temperature < 0.f) ? Color{150,200,255,255} :
+                          (temperature < 5.f) ? LIGHTGRAY : seasonColor;
+
+        DrawRectangle(px, 4, pw, 98, Fade(BLACK, 0.55f));
         DrawText(timeBuf,  px + 8,  8, 16, WHITE);
         DrawText(speedBuf, px + 8, 28, 14, paused ? ORANGE : LIGHTGRAY);
-        DrawText(popBuf,   px + 8, 46, 13, LIGHTGRAY);
-        DrawText(fpsBuf,   px + 8, 63, 12, Fade(LIGHTGRAY, 0.6f));
+        DrawText(seasBuf,  px + 8, 46, 13, tempColor);
+        DrawText(popBuf,   px + 8, 63, 13, LIGHTGRAY);
+        DrawText(fpsBuf,   px + 8, 80, 12, Fade(LIGHTGRAY, 0.6f));
     }
 
     DrawWorldStatus(snap);
@@ -168,28 +185,46 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
 
 void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     std::vector<RenderSnapshot::SettlementStatus> ws;
+    Season season;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
-        ws = snap.worldStatus;
+        ws     = snap.worldStatus;
+        season = snap.season;
     }
     if (ws.empty()) return;
 
-    // Format: "Greenfield  F:120@2.1  W:80@8.0  G:200  [20]  [DROUGHT]"
-    // Wood shown in stockpile panel (click settlement) — omitted from status bar to save space.
+    // Show Wood stock in Autumn/Winter when fuel matters (hidden in Spring/Summer to save space).
+    bool showWood = (season == Season::Autumn || season == Season::Winter);
+
     static const int STATUS_FONT = 12;
-    char bufs[4][96]; bool hasEvent[4] = {}; int count = 0;
+    char bufs[4][128]; bool hasEvent[4] = {}; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
-        if (s.hasEvent)
-            std::snprintf(bufs[count], 96,
-                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d] [%s]",
-                          s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.treasury, s.pop, s.eventName.c_str());
-        else
-            std::snprintf(bufs[count], 96,
-                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d]",
-                          s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.treasury, s.pop);
+        const char* fmt_base  = showWood
+            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d]"
+            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d]";
+        const char* fmt_event = showWood
+            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d] [%s]"
+            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d] [%s]";
+
+        if (s.hasEvent) {
+            if (showWood)
+                std::snprintf(bufs[count], 128, fmt_event,
+                    s.name.c_str(), s.food, s.water, s.wood, s.treasury, s.pop,
+                    s.eventName.c_str());
+            else
+                std::snprintf(bufs[count], 128, fmt_event,
+                    s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
+                    s.treasury, s.pop, s.eventName.c_str());
+        } else {
+            if (showWood)
+                std::snprintf(bufs[count], 128, fmt_base,
+                    s.name.c_str(), s.food, s.water, s.wood, s.treasury, s.pop);
+            else
+                std::snprintf(bufs[count], 128, fmt_base,
+                    s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
+                    s.treasury, s.pop);
+        }
         hasEvent[count] = s.hasEvent;
         ++count;
     }
@@ -202,7 +237,9 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     int cx = sx;
     for (int i = 0; i < count; ++i) {
         if (i > 0) { DrawText("|", cx, 14, STATUS_FONT, DARKGRAY); cx += 16; }
-        Color col = hasEvent[i] ? ORANGE : WHITE;
+        // Color wood stock red if very low in winter
+        bool woodLow = showWood && (ws[i].wood < 20.f) && (season == Season::Winter);
+        Color col = woodLow ? RED : (hasEvent[i] ? ORANGE : WHITE);
         DrawText(bufs[i], cx, 14, STATUS_FONT, col);
         cx += MeasureText(bufs[i], STATUS_FONT) + 12;
     }
@@ -241,6 +278,9 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                      e.message.find("DROUGHT")   != std::string::npos ||
                      e.message.find("BLIGHT")    != std::string::npos ||
                      e.message.find("DISEASE")   != std::string::npos ||
+                     e.message.find("BLIZZARD")  != std::string::npos ||
+                     e.message.find("FLOOD")     != std::string::npos ||
+                     e.message.find("cold")      != std::string::npos ||
                      e.message.find("COLLAPSED") != std::string::npos) ? RED    :
                     (e.message.find("died")       != std::string::npos ||
                      e.message.find("migrating")  != std::string::npos ||
@@ -250,7 +290,10 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                      e.message.find("reopened")   != std::string::npos ||
                      e.message.find("Born")       != std::string::npos ||
                      e.message.find("TRADE BOOM") != std::string::npos ||
-                     e.message.find("respawned")  != std::string::npos) ? GREEN  : LIGHTGRAY;
+                     e.message.find("BOUNTY")     != std::string::npos ||
+                     e.message.find("OFF-MAP")    != std::string::npos ||
+                     e.message.find("respawned")  != std::string::npos) ? GREEN  :
+                    (e.message.find("--- ")       != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
 }
@@ -284,26 +327,33 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);
 
-    char line1[64], line2[64], line3[48] = {}, line4[48] = {}, line5[48] = {};
+    char line1[64], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[48] = {};
     // First line: name (if known) or role
     if (!best->npcName.empty())
         std::snprintf(line1, sizeof(line1), "%s (%s)", best->npcName.c_str(), role);
     else
         std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
-    // Second line: behavior state (only if we used name as line1)
+
     bool hasName = !best->npcName.empty();
     if (hasName)
         std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
     else
-        std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
-                      best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
-    std::snprintf(line3, sizeof(line3), hasName ? "H:%.0f%%  T:%.0f%%  E:%.0f%%" : "Age: %.0f/%.0f days",
-                  hasName ? best->hungerPct * 100.f : best->ageDays,
-                  hasName ? best->thirstPct * 100.f : best->maxDays,
-                  hasName ? best->energyPct * 100.f : 0.f);
-    if (!hasName)
+        std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
+                      best->hungerPct*100.f, best->thirstPct*100.f,
+                      best->energyPct*100.f, best->heatPct*100.f);
+
+    if (hasName)
+        std::snprintf(line3, sizeof(line3), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
+                      best->hungerPct*100.f, best->thirstPct*100.f,
+                      best->energyPct*100.f, best->heatPct*100.f);
+    else
         std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
                       best->ageDays, best->maxDays);
+
+    float ageFrac = (best->maxDays > 0.f) ? std::min(1.f, best->ageDays / best->maxDays) : 0.f;
+    Color ageCol  = (ageFrac < 0.6f) ? Fade(GREEN, 0.9f) :
+                    (ageFrac < 0.85f) ? YELLOW : RED;
+
     if (hasName)
         std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f days",
                       best->ageDays, best->maxDays);
@@ -311,6 +361,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
     int lineCount = hasName ? (showGold ? 5 : 4) : (showGold ? 4 : 3);
+
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
     int w5 = showGold ? MeasureText(line5, 11) : 0;
@@ -323,12 +374,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
 
-    float ageFrac = (best->maxDays > 0.f) ? std::min(1.f, best->ageDays / best->maxDays) : 0.f;
-    Color ageCol  = (ageFrac < 0.6f) ? Fade(GREEN, 0.9f) :
-                    (ageFrac < 0.85f) ? YELLOW : RED;
-
     DrawText(line1, tx, ty,      12, WHITE);
-    DrawText(line2, tx, ty + 16, 11, hasName ? LIGHTGRAY : LIGHTGRAY);
+    DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
     DrawText(line3, tx, ty + 32, 11, hasName ? LIGHTGRAY : ageCol);
     if (hasName) {
         DrawText(line4, tx, ty + 48, 11, ageCol);
@@ -343,6 +390,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     int agents, tickSpeed, pop, deaths, simSteps, entities;
     bool paused;
+    Season dbgSeason;
+    float  dbgTemp;
+    std::vector<RenderSnapshot::AgentEntry> agentCopy;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents    = (int)snap.agents.size();
@@ -352,24 +402,50 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         paused    = snap.paused;
         simSteps  = snap.simStepsPerSec;
         entities  = snap.totalEntities;
+        dbgSeason = snap.season;
+        dbgTemp   = snap.temperature;
+        agentCopy = snap.agents;
     }
 
-    static const int OX = 4, OY = 148, OW = 240, OLH = 17;
-    char lines[8][64];
-    std::snprintf(lines[0], 64, "[F1] DEBUG OVERLAY");
-    std::snprintf(lines[1], 64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
-    std::snprintf(lines[2], 64, "Sim steps/s:  %d", simSteps);
-    std::snprintf(lines[3], 64, "Tick speed:   %dx%s", tickSpeed, paused ? " (PAUSED)" : "");
-    std::snprintf(lines[4], 64, "Entities:     %d", entities);
-    std::snprintf(lines[5], 64, "Render agents:%d", agents);
-    std::snprintf(lines[6], 64, "Population:   %d", pop);
-    std::snprintf(lines[7], 64, "Deaths:       %d", deaths);
+    // Count NPCs (not haulers, not player) by behavior
+    int nWorking = 0, nSleeping = 0, nIdle = 0, nMigrating = 0,
+        nSeeking = 0, nHauling = 0;
+    for (const auto& a : agentCopy) {
+        if (a.role == RenderSnapshot::AgentRole::Hauler) { ++nHauling; continue; }
+        if (a.role == RenderSnapshot::AgentRole::Player) continue;
+        switch (a.behavior) {
+            case AgentBehavior::Working:  ++nWorking;   break;
+            case AgentBehavior::Sleeping: ++nSleeping;  break;
+            case AgentBehavior::Migrating:++nMigrating; break;
+            case AgentBehavior::Idle:     ++nIdle;      break;
+            default:                      ++nSeeking;   break;  // seeking/satisfying
+        }
+    }
 
-    int rows = 8;
+    static const int OX = 4, OY = 200, OW = 260, OLH = 17;
+    char lines[14][64];
+    std::snprintf(lines[0],  64, "[F1] DEBUG OVERLAY");
+    std::snprintf(lines[1],  64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
+    std::snprintf(lines[2],  64, "Sim steps/s:  %d", simSteps);
+    std::snprintf(lines[3],  64, "Tick speed:   %dx%s", tickSpeed, paused ? " (PAUSED)" : "");
+    std::snprintf(lines[4],  64, "Entities:     %d", entities);
+    std::snprintf(lines[5],  64, "Population:   %d  Deaths: %d", pop, deaths);
+    std::snprintf(lines[6],  64, "Season:       %s  %.1f°C", SeasonName(dbgSeason), dbgTemp);
+    std::snprintf(lines[7],  64, "--- NPC behavior ---");
+    std::snprintf(lines[8],  64, "  Working:    %d", nWorking);
+    std::snprintf(lines[9],  64, "  Sleeping:   %d", nSleeping);
+    std::snprintf(lines[10], 64, "  Idle/leisure:%d", nIdle);
+    std::snprintf(lines[11], 64, "  Seeking:    %d", nSeeking);
+    std::snprintf(lines[12], 64, "  Migrating:  %d", nMigrating);
+    std::snprintf(lines[13], 64, "  Haulers:    %d", nHauling);
+
+    int rows = 14;
     DrawRectangle(OX, OY, OW, rows*OLH + 8, Fade(BLACK, 0.75f));
     DrawRectangleLines(OX, OY, OW, rows*OLH + 8, DARKGRAY);
-    for (int i = 0; i < rows; ++i)
-        DrawText(lines[i], OX+6, OY+4+i*OLH, 13, i==0 ? YELLOW : LIGHTGRAY);
+    for (int i = 0; i < rows; ++i) {
+        Color col = (i == 0) ? YELLOW : (i == 7) ? Fade(LIGHTGRAY, 0.6f) : LIGHTGRAY;
+        DrawText(lines[i], OX+6, OY+4+i*OLH, 13, col);
+    }
 }
 
 // ---- DrawNeedBar ----

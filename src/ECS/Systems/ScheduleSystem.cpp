@@ -1,8 +1,15 @@
 #include "ScheduleSystem.h"
 #include "ECS/Components.h"
 #include <cmath>
+#include <limits>
+#include <random>
 
-static constexpr float SLEEP_ARRIVE = 25.f;  // distance at which NPC is "at settlement"
+static constexpr float SLEEP_ARRIVE  = 25.f;   // distance at which NPC is "at settlement"
+static constexpr float LEISURE_RADIUS = 80.f;  // wander radius around home settlement center
+
+static std::mt19937                          s_rng{std::random_device{}()};
+static std::uniform_real_distribution<float> s_angle(0.f, 6.28318f);
+static std::uniform_real_distribution<float> s_radius(10.f, LEISURE_RADIUS);
 
 static void MoveToward(Velocity& vel, const Position& from,
                         float tx, float ty, float speed) {
@@ -78,6 +85,52 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
         // ---- Clear Working when outside work hours ----
         if (!workTime && state.behavior == AgentBehavior::Working) {
             state.behavior = AgentBehavior::Idle;
+        }
+
+        // ---- Move Working NPCs toward the nearest production facility in their settlement ----
+        // This makes work visible — NPCs gravitate to farms/wells/mills during shifts.
+        if (state.behavior == AgentBehavior::Working &&
+            home.settlement != entt::null && registry.valid(home.settlement)) {
+
+            entt::entity nearestFac  = entt::null;
+            float        bestDistSq  = std::numeric_limits<float>::max();
+
+            registry.view<Position, ProductionFacility>().each(
+                [&](auto fe, const Position& fpos, const ProductionFacility& fac) {
+                if (fac.settlement != home.settlement) return;
+                if (fac.baseRate <= 0.f) return;   // skip shelter nodes
+                float dx = fpos.x - pos.x, dy = fpos.y - pos.y;
+                float d  = dx*dx + dy*dy;
+                if (d < bestDistSq) { bestDistSq = d; nearestFac = fe; }
+            });
+
+            if (nearestFac != entt::null) {
+                const auto& fpos = registry.get<Position>(nearestFac);
+                static constexpr float WORK_ARRIVE = 30.f;
+                if (bestDistSq > WORK_ARRIVE * WORK_ARRIVE)
+                    MoveToward(vel, pos, fpos.x, fpos.y, speed * 0.8f);
+                else
+                    vel.vx = vel.vy = 0.f;
+            }
+        }
+
+        // ---- Leisure wandering: between work shift end and sleep ----
+        // Idle NPCs outside work hours pick a random spot near home and amble to it.
+        // Velocity is only changed when they arrive or have no target — they finish
+        // natural movement in between (AgentDecisionSystem may interrupt for needs).
+        bool leisureTime = !sleepTime && !workTime;
+        if (leisureTime && state.behavior == AgentBehavior::Idle &&
+            home.settlement != entt::null && registry.valid(home.settlement)) {
+
+            const auto& homePos = registry.get<Position>(home.settlement);
+            // If standing still, pick a new wander destination
+            if (std::abs(vel.vx) < 0.5f && std::abs(vel.vy) < 0.5f) {
+                float ang = s_angle(s_rng);
+                float rad = s_radius(s_rng);
+                float wx  = homePos.x + std::cos(ang) * rad;
+                float wy  = homePos.y + std::sin(ang) * rad;
+                MoveToward(vel, pos, wx, wy, speed * 0.4f);
+            }
         }
     }
 }

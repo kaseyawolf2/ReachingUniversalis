@@ -51,6 +51,7 @@ void GameState::PollInput(float dt) {
     if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) m_input.speedDown.store(true);
     if (IsKeyPressed(KEY_B))    m_input.roadToggle.store(true);
     if (IsKeyPressed(KEY_T))    m_input.playerTrade.store(true);
+    if (IsKeyPressed(KEY_Z))    m_input.playerSleep.store(true);
 
     if (IsKeyPressed(KEY_F)) {
         m_followPlayer = !m_followPlayer;
@@ -153,6 +154,10 @@ void GameState::Draw() {
             ring = s.selected ? YELLOW : Fade(DARKGRAY, 0.7f);
         } else {
             float minStock = std::min(s.foodStock, s.waterStock);
+            // In cold seasons, include wood shortage in ring health assessment
+            bool coldSeason = (s.season == Season::Autumn || s.season == Season::Winter);
+            if (coldSeason && s.woodStock < 20.f)
+                minStock = std::min(minStock, s.woodStock);
             ring = s.selected ? YELLOW :
                    (minStock > 30.f) ? Fade(GREEN, 0.7f)  :
                    (minStock > 10.f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
@@ -211,12 +216,15 @@ static Color LerpColor(Color a, Color b, float t) {
 }
 
 Color GameState::SkyColor() const {
-    float hour;
+    float  hour;
+    Season season;
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
-        hour = m_snapshot.hourOfDay;
+        hour   = m_snapshot.hourOfDay;
+        season = m_snapshot.season;
     }
 
+    // Base day/night colors (summer palette — warmest)
     static const Color midnight = {  10,  10,  30, 255 };
     static const Color dawn     = { 220, 120,  60, 255 };
     static const Color morning  = { 100, 160, 220, 255 };
@@ -232,11 +240,40 @@ Color GameState::SkyColor() const {
     };
     static const int N = sizeof(keys) / sizeof(keys[0]);
 
+    Color base = midnight;
     for (int i = 0; i < N - 1; ++i) {
         if (hour >= keys[i].hour && hour < keys[i+1].hour) {
             float t = (hour - keys[i].hour) / (keys[i+1].hour - keys[i].hour);
-            return LerpColor(keys[i].color, keys[i+1].color, t);
+            base = LerpColor(keys[i].color, keys[i+1].color, t);
+            break;
         }
     }
-    return midnight;
+
+    // Season tint: winter = cooler (blue-shifted), autumn = warmer (orange-shifted)
+    // Spring = slight green tint; Summer = base (no tint)
+    switch (season) {
+        case Season::Winter: {
+            // Shift toward icy blue: reduce red, boost blue slightly
+            Color tint = { 60, 80, 120, 255 };
+            base = LerpColor(base, tint, 0.18f);
+            break;
+        }
+        case Season::Autumn: {
+            // Shift toward amber/orange
+            Color tint = { 200, 130, 60, 255 };
+            base = LerpColor(base, tint, 0.10f);
+            break;
+        }
+        case Season::Spring: {
+            // Very slight green tint
+            Color tint = { 100, 180, 140, 255 };
+            base = LerpColor(base, tint, 0.07f);
+            break;
+        }
+        case Season::Summer:
+        default:
+            break;
+    }
+
+    return base;
 }

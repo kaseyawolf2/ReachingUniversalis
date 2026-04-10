@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include <array>
+#include <cmath>
 #include <deque>
 #include <map>
 #include <string>
@@ -8,7 +9,7 @@
 
 // ---- Domain enums ----
 
-enum class NeedType     { Hunger = 0, Thirst = 1, Energy = 2 };
+enum class NeedType     { Hunger = 0, Thirst = 1, Energy = 2, Heat = 3 };
 enum class ResourceType { Food, Water, Shelter, Wood };
 
 // ---- Need data ----
@@ -22,7 +23,7 @@ struct Need {
 };
 
 struct Needs {
-    std::array<Need, 3> list;
+    std::array<Need, 4> list;
 };
 
 // ---- Spatial / movement ----
@@ -81,9 +82,10 @@ struct HomeSettlement {
 // Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
 // Used by DeathSystem and AgentDecisionSystem for migration triggering.
 struct DeprivationTimer {
-    std::array<float, 3> needsAtZero     = { 0.f, 0.f, 0.f };
-    float                stockpileEmpty  = 0.f;    // seconds with no food OR water
+    std::array<float, 4> needsAtZero     = { 0.f, 0.f, 0.f, 0.f };
+    float                stockpileEmpty  = 0.f;    // seconds with no food, water, OR heat
     float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
+    float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase
 };
 
 // ---- Inventory / Transport ----
@@ -106,6 +108,7 @@ struct Hauler {
     entt::entity targetSettlement = entt::null;
     float        waitTimer        = 0.f;   // game-hours before re-evaluating trade
     float        buyPrice         = 0.f;   // price per unit paid at pickup
+    int          waitCycles       = 0;     // consecutive evaluations with no good route
 };
 
 // ---- Economy ----
@@ -145,6 +148,60 @@ struct Renderable {
 // GAME_MINS_PER_REAL_SEC controls how fast game time runs relative to real time.
 static constexpr float GAME_MINS_PER_REAL_SEC = 1.0f;
 
+// Season cycle: 30 game-days each, repeating Spring→Summer→Autumn→Winter.
+enum class Season { Spring = 0, Summer = 1, Autumn = 2, Winter = 3 };
+
+static constexpr int DAYS_PER_SEASON = 30;
+
+inline const char* SeasonName(Season s) {
+    switch (s) {
+        case Season::Spring: return "Spring";
+        case Season::Summer: return "Summer";
+        case Season::Autumn: return "Autumn";
+        case Season::Winter: return "Winter";
+    }
+    return "Spring";
+}
+
+// Production modifier per season (applied on top of all other modifiers).
+inline float SeasonProductionModifier(Season s) {
+    switch (s) {
+        case Season::Spring: return 0.8f;   // growth season, moderate output
+        case Season::Summer: return 1.0f;   // peak production
+        case Season::Autumn: return 1.2f;   // harvest bonus
+        case Season::Winter: return 0.2f;   // very low production
+    }
+    return 1.0f;
+}
+
+// Energy drain multiplier per season (1.0 = normal; winter = more drain).
+inline float SeasonEnergyDrainMult(Season s) {
+    return (s == Season::Winter) ? 1.8f : 1.0f;
+}
+
+// Approximate air temperature in degrees Celsius.
+// Combines season baseline with time-of-day variation (cooler at night).
+inline float AmbientTemperature(Season s, float hourOfDay) {
+    // Season baseline (°C at noon)
+    float base = (s == Season::Spring) ? 12.f :
+                 (s == Season::Summer) ? 28.f :
+                 (s == Season::Autumn) ? 8.f  : -8.f;  // winter
+    // Diurnal swing: ±8°C, coldest at 4am, hottest at 2pm
+    float swing = -8.f * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
+    return base + swing;
+}
+
+// Heat drain multiplier per season — summer = no cold, winter = full cold.
+inline float SeasonHeatDrainMult(Season s) {
+    switch (s) {
+        case Season::Spring: return 0.15f;
+        case Season::Summer: return 0.0f;
+        case Season::Autumn: return 0.4f;
+        case Season::Winter: return 1.0f;
+    }
+    return 0.0f;
+}
+
 struct TimeManager {
     float gameSeconds  = 0.0f;   // total elapsed game-time seconds
     int   day          = 1;      // current day (1-indexed)
@@ -157,6 +214,14 @@ struct TimeManager {
     // don't need to change their call sites.
     float GameDt(float realDt) const {
         return realDt;
+    }
+
+    Season CurrentSeason() const {
+        int seasonDay = (day - 1) % (DAYS_PER_SEASON * 4);
+        if (seasonDay < DAYS_PER_SEASON)     return Season::Spring;
+        if (seasonDay < DAYS_PER_SEASON * 2) return Season::Summer;
+        if (seasonDay < DAYS_PER_SEASON * 3) return Season::Autumn;
+        return Season::Winter;
     }
 };
 
@@ -179,10 +244,14 @@ struct CameraState {
 // Tracks whether low/empty warnings have already been logged so they
 // fire once on the way down and once on recovery, not every tick.
 struct StockpileAlert {
-    bool foodLow    = false;   // food < LOW_THRESHOLD
-    bool foodEmpty  = false;   // food < EMPTY_THRESHOLD
-    bool waterLow   = false;
-    bool waterEmpty = false;
+    bool foodLow      = false;   // food < LOW_THRESHOLD
+    bool foodEmpty    = false;   // food < EMPTY_THRESHOLD
+    bool waterLow     = false;
+    bool waterEmpty   = false;
+    bool woodLow      = false;
+    bool woodEmpty    = false;
+    bool treasuryLow  = false;   // treasury < LOW_TREASURY
+    bool treasuryEmpty = false;  // treasury < 1 gold
 };
 
 // ---- Birth tracker (one per settlement entity) ----

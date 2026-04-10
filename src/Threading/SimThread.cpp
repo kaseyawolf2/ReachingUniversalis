@@ -144,12 +144,14 @@ void SimThread::RespawnPlayer() {
     m_registry.emplace<Needs>(player, Needs{{
         Need{ NeedType::Hunger, 1.f, 0.00083f, 0.3f, 0.004f },
         Need{ NeedType::Thirst, 1.f, 0.00125f, 0.3f, 0.006f },
-        Need{ NeedType::Energy, 1.f, 0.00050f, 0.3f, 0.002f }
+        Need{ NeedType::Energy, 1.f, 0.00050f, 0.3f, 0.002f },
+        Need{ NeedType::Heat,   1.f, 0.00200f, 0.3f, 0.010f }
     }});
     m_registry.emplace<AgentState>(player);
     m_registry.emplace<HomeSettlement>(player, HomeSettlement{ bestSettl });
     m_registry.emplace<DeprivationTimer>(player);
     m_registry.emplace<Inventory>(player);
+    m_registry.emplace<Money>(player, Money{ 10.f });   // small purse on respawn
     m_registry.emplace<Renderable>(player, YELLOW, 10.f);
     m_registry.emplace<PlayerTag>(player);
     // New character starts at age 0 with fresh life expectancy
@@ -240,20 +242,28 @@ void SimThread::ProcessInput() {
                 auto* sp2   = m_registry.try_get<Stockpile>(nearSettl);
                 auto* mkt2  = m_registry.try_get<Market>(nearSettl);
 
-                // If carrying goods → sell them here
+                // If carrying goods → sell them here (same 20% trade tax as haulers)
                 if (inv.TotalItems() > 0 && sp2 && mkt2) {
+                    static constexpr float TRADE_TAX = 0.20f;
                     float earned = 0.f;
+                    float taxTotal = 0.f;
                     for (auto& [type, qty] : inv.contents) {
                         if (qty <= 0) continue;
                         float price = mkt2->GetPrice(type);
                         sp2->quantities[type] += qty;
-                        earned += price * qty;
+                        float gross = price * qty;
+                        float tax   = gross * TRADE_TAX;
+                        earned   += gross - tax;
+                        taxTotal += tax;
                     }
                     mon.balance += earned;
+                    if (auto* destSettl2 = m_registry.try_get<Settlement>(nearSettl))
+                        destSettl2->treasury += taxTotal;
                     inv.contents.clear();
                     if (log2) log2->Push(day2, hr2,
                         "Sold goods at " + settl.name
-                        + " for " + std::to_string((int)earned) + "g");
+                        + " for " + std::to_string((int)earned) + "g (tax "
+                        + std::to_string((int)taxTotal) + "g)");
                 }
                 // Inventory empty → buy the highest-profit tradeable good
                 else if (inv.TotalItems() == 0 && sp2 && mkt2) {
@@ -316,17 +326,54 @@ void SimThread::ProcessInput() {
         });
     }
 
+    // One-shot: player sleep toggle (Z) — toggle between Sleeping and Idle
+    if (m_input.playerSleep.exchange(false)) {
+        auto pv = m_registry.view<PlayerTag, AgentState, Velocity>();
+        auto lv = m_registry.view<EventLog>();
+        if (pv.begin() != pv.end()) {
+            auto pe     = *pv.begin();
+            auto& state = pv.get<AgentState>(pe);
+            auto& vel   = pv.get<Velocity>(pe);
+            if (state.behavior == AgentBehavior::Sleeping) {
+                state.behavior = AgentBehavior::Idle;
+                if (lv.begin() != lv.end())
+                    lv.get<EventLog>(*lv.begin()).Push(
+                        tm.day, (int)tm.hourOfDay, "You wake up");
+            } else {
+                state.behavior = AgentBehavior::Sleeping;
+                vel.vx = vel.vy = 0.f;
+                if (lv.begin() != lv.end())
+                    lv.get<EventLog>(*lv.begin()).Push(
+                        tm.day, (int)tm.hourOfDay, "You go to sleep");
+            }
+        }
+    }
+
     // Continuous: player movement (velocity is set, MovementSystem applies it)
+    // Movement is blocked while sleeping — pressing WASD wakes them up.
     {
         float mx = m_input.playerMoveX.load();
         float my = m_input.playerMoveY.load();
-        auto pv = m_registry.view<PlayerTag, Velocity, MoveSpeed>();
+        auto pv = m_registry.view<PlayerTag, Velocity, MoveSpeed, AgentState>();
         if (pv.begin() != pv.end()) {
-            auto pe   = *pv.begin();
-            auto& vel = pv.get<Velocity>(pe);
-            float spd = pv.get<MoveSpeed>(pe).value;
-            vel.vx = mx * spd;
-            vel.vy = my * spd;
+            auto  pe    = *pv.begin();
+            auto& vel   = pv.get<Velocity>(pe);
+            float spd   = pv.get<MoveSpeed>(pe).value;
+            auto& state = pv.get<AgentState>(pe);
+            if (state.behavior == AgentBehavior::Sleeping) {
+                vel.vx = vel.vy = 0.f;
+                // Any movement input wakes the player
+                if (mx != 0.f || my != 0.f) {
+                    state.behavior = AgentBehavior::Idle;
+                    auto lv = m_registry.view<EventLog>();
+                    if (lv.begin() != lv.end())
+                        lv.get<EventLog>(*lv.begin()).Push(
+                            tm.day, (int)tm.hourOfDay, "You wake up");
+                }
+            } else {
+                vel.vx = mx * spd;
+                vel.vy = my * spd;
+            }
         }
     }
 
@@ -373,14 +420,15 @@ void SimThread::WriteSnapshot() {
                                                   : RenderSnapshot::AgentRole::NPC;
 
         Color drawColor = rend.color;
-        float hp = 1.f, tp = 1.f, ep = 1.f;
+        float hp = 1.f, tp = 1.f, ep = 1.f, htp = 1.f;
 
         if (const auto* needs = m_registry.try_get<Needs>(e)) {
-            hp = needs->list[0].value;
-            tp = needs->list[1].value;
-            ep = needs->list[2].value;
+            hp  = needs->list[0].value;
+            tp  = needs->list[1].value;
+            ep  = needs->list[2].value;
+            htp = needs->list[3].value;
             if (!isPlayer) {
-                float worst = std::min({hp, tp, ep});
+                float worst = std::min({hp, tp, ep, htp});
                 if      (worst < 0.15f) drawColor = RED;
                 else if (worst < 0.30f) drawColor = ORANGE;
                 else if (worst < 0.55f) drawColor = YELLOW;
@@ -418,19 +466,30 @@ void SimThread::WriteSnapshot() {
 
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
-                           role, hp, tp, ep, astate.behavior,
+                           role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName });
     });
 
     // ---- Settlements ----
+    // Read current season for settlement ring logic (available after HUD section below;
+    // compute it here using a local view since WriteSnapshot builds local data first).
+    Season snapSeason = Season::Spring;
+    {
+        auto stmv = m_registry.view<TimeManager>();
+        if (stmv.begin() != stmv.end())
+            snapSeason = stmv.get<TimeManager>(*stmv.begin()).CurrentSeason();
+    }
+
     m_registry.view<Position, Settlement>().each(
         [&](auto e, const Position& pos, const Settlement& s) {
-        float food = 0.f, water = 0.f;
+        float food = 0.f, water = 0.f, wood = 0.f;
         if (const auto* sp = m_registry.try_get<Stockpile>(e)) {
             food  = sp->quantities.count(ResourceType::Food)
                     ? sp->quantities.at(ResourceType::Food)  : 0.f;
             water = sp->quantities.count(ResourceType::Water)
                     ? sp->quantities.at(ResourceType::Water) : 0.f;
+            wood  = sp->quantities.count(ResourceType::Wood)
+                    ? sp->quantities.at(ResourceType::Wood)  : 0.f;
         }
         int spop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
@@ -439,7 +498,7 @@ void SimThread::WriteSnapshot() {
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
-            food, water, spop
+            food, water, wood, spop, snapSeason
         });
     });
 
@@ -500,20 +559,24 @@ void SimThread::WriteSnapshot() {
     });
 
     // ---- HUD data ----
-    int  day = 1, hour = 6, minute = 0, tickSpeed = 1, deaths = 0;
-    bool paused = false;
-    float hourOfDay = 6.f;
+    int    day = 1, hour = 6, minute = 0, tickSpeed = 1, deaths = 0;
+    bool   paused = false;
+    float  hourOfDay = 6.f;
+    Season season    = Season::Spring;
+    float  temperature = 10.f;
 
     {
         auto tmv = m_registry.view<TimeManager>();
         if (tmv.begin() != tmv.end()) {
             const auto& tm = tmv.get<TimeManager>(*tmv.begin());
-            day       = tm.day;
-            hour      = (int)tm.hourOfDay;
-            minute    = (int)((tm.hourOfDay - hour) * 60.f);
-            hourOfDay = tm.hourOfDay;
-            tickSpeed = tm.tickSpeed;
-            paused    = tm.paused;
+            day         = tm.day;
+            hour        = (int)tm.hourOfDay;
+            minute      = (int)((tm.hourOfDay - hour) * 60.f);
+            hourOfDay   = tm.hourOfDay;
+            tickSpeed   = tm.tickSpeed;
+            paused      = tm.paused;
+            season      = tm.CurrentSeason();
+            temperature = AmbientTemperature(season, hourOfDay);
         }
     }
 
@@ -525,8 +588,8 @@ void SimThread::WriteSnapshot() {
 
     // ---- Player HUD ----
     bool          playerAlive    = false;
-    float         hungerPct = 1.f, thirstPct = 1.f, energyPct = 1.f;
-    float         hungerCrit = 0.3f, thirstCrit = 0.3f, energyCrit = 0.3f;
+    float         hungerPct = 1.f, thirstPct = 1.f, energyPct = 1.f, heatPct = 1.f;
+    float         hungerCrit = 0.3f, thirstCrit = 0.3f, energyCrit = 0.3f, heatCrit = 0.3f;
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerWX = 640.f, playerWY = 360.f;
 
@@ -542,6 +605,7 @@ void SimThread::WriteSnapshot() {
             hungerPct  = needs.list[0].value;  hungerCrit  = needs.list[0].criticalThreshold;
             thirstPct  = needs.list[1].value;  thirstCrit  = needs.list[1].criticalThreshold;
             energyPct  = needs.list[2].value;  energyCrit  = needs.list[2].criticalThreshold;
+            heatPct    = needs.list[3].value;  heatCrit    = needs.list[3].criticalThreshold;
             playerBehavior = pv.get<AgentState>(pe).behavior;
             const auto& ppos = pv.get<Position>(pe);
             playerWX = ppos.x; playerWY = ppos.y;
@@ -579,6 +643,8 @@ void SimThread::WriteSnapshot() {
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;
         m_snapshot.hourOfDay    = hourOfDay;
+        m_snapshot.season       = season;
+        m_snapshot.temperature  = temperature;
         m_snapshot.tickSpeed    = tickSpeed;
         m_snapshot.paused       = paused;
         m_snapshot.population   = pop;
@@ -588,9 +654,11 @@ void SimThread::WriteSnapshot() {
         m_snapshot.hungerPct    = hungerPct;
         m_snapshot.thirstPct    = thirstPct;
         m_snapshot.energyPct    = energyPct;
+        m_snapshot.heatPct      = heatPct;
         m_snapshot.hungerCrit   = hungerCrit;
         m_snapshot.thirstCrit   = thirstCrit;
         m_snapshot.energyCrit   = energyCrit;
+        m_snapshot.heatCrit     = heatCrit;
         m_snapshot.playerBehavior = playerBehavior;
         m_snapshot.playerWorldX  = playerWX;
         m_snapshot.playerWorldY  = playerWY;

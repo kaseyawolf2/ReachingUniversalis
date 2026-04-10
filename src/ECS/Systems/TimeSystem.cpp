@@ -50,11 +50,23 @@ void TimeSystem::Advance(entt::registry& registry, float subDt) {
     // GAME_MINS_PER_REAL_SEC converts to game-minutes; /60 to game-hours.
     float gameHoursDt = subDt * GAME_MINS_PER_REAL_SEC / 60.0f;
 
+    Season prevSeason = tm.CurrentSeason();
+
     tm.gameSeconds += subDt * GAME_MINS_PER_REAL_SEC * 60.0f;
     tm.hourOfDay   += gameHoursDt;
 
     if (tm.hourOfDay >= 24.0f) {
         tm.hourOfDay -= 24.0f;
         tm.day       += 1;
+
+        // Log season transitions on the day they begin
+        Season newSeason = tm.CurrentSeason();
+        if (newSeason != prevSeason) {
+            auto lv = registry.view<EventLog>();
+            if (lv.begin() != lv.end()) {
+                std::string msg = std::string("--- ") + SeasonName(newSeason) + " begins ---";
+                lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
+            }
+        }
     }
 }

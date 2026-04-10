@@ -10,10 +10,11 @@ static constexpr float MAP_H  =  720.0f;
 
 // Fixed-seed RNG for reproducible world generation
 static std::mt19937 wg_rng{12345u};
-static std::uniform_real_distribution<float> migrate_dist(2.f, 5.f);    // game-hours
+static std::uniform_real_distribution<float> migrate_dist(1.f, 10.f);   // game-hours (wide range → staggered migration)
 static std::uniform_real_distribution<float> wait_dist(0.f, 1.f);       // hauler stagger
 static std::uniform_real_distribution<float> age_dist(0.f, 30.f);       // starting age days
 static std::uniform_real_distribution<float> lifespan_dist(60.f, 100.f);// life expectancy days
+static std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);  // ±20% personality trait variance
 
 // ---- Name generation ----
 static const std::array<const char*, 30> FIRST_NAMES = {
@@ -34,21 +35,25 @@ static std::string MakeName() {
            LAST_NAMES[last_dist(wg_rng)];
 }
 
-// Drain rates: full need lasts ~20 game-hours (Hunger), ~13 (Thirst), ~33 (Energy)
+// Drain rates: full need lasts ~20 game-hours (Hunger), ~13 (Thirst), ~33 (Energy).
+// Heat drain is seasonal — ConsumptionSystem cancels it when Wood stockpile is available.
 // At 1x: 1 gameDt second = 1 real second = 1 game minute.
 static constexpr float DRAIN_HUNGER = 0.00083f;
 static constexpr float DRAIN_THIRST = 0.00125f;
 static constexpr float DRAIN_ENERGY = 0.00050f;
+static constexpr float DRAIN_HEAT   = 0.00200f;   // fast drain — cancelled by wood fuel
 static constexpr float REFILL_HUNGER = 0.004f;
 static constexpr float REFILL_THIRST = 0.006f;
 static constexpr float REFILL_ENERGY = 0.002f;
+static constexpr float REFILL_HEAT   = 0.010f;    // warm up quickly when fuel available
 static constexpr float CRIT_THRESHOLD = 0.3f;
 
 static Needs MakeNeeds() {
     return Needs{{
         Need{ NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESHOLD, REFILL_HUNGER },
         Need{ NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESHOLD, REFILL_THIRST },
-        Need{ NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESHOLD, REFILL_ENERGY }
+        Need{ NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESHOLD, REFILL_ENERGY },
+        Need{ NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESHOLD, REFILL_HEAT   }
     }};
 }
 
@@ -63,10 +68,14 @@ static void SpawnNPCs(entt::registry& registry,
                                         cy + std::sin(angle) * ring);
         registry.emplace<Velocity>(npc, 0.f, 0.f);
         registry.emplace<MoveSpeed>(npc, 60.f);
-        registry.emplace<Needs>(npc, MakeNeeds());
+        auto npcNeeds = MakeNeeds();
+        // Personality variation: ±20% on need drain rates — some NPCs are sturdier or frailer
+        for (auto& need : npcNeeds.list)
+            need.drainRate *= trait_dist(wg_rng);
+        registry.emplace<Needs>(npc, npcNeeds);
         registry.emplace<AgentState>(npc);
         registry.emplace<HomeSettlement>(npc, HomeSettlement{ settlement });
-        // Randomise migration threshold: NPCs flee at different times (2–5 game-hours)
+        // Randomise migration threshold: NPCs flee at different times (1–10 game-hours)
         DeprivationTimer dt;
         dt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
         registry.emplace<DeprivationTimer>(npc, dt);

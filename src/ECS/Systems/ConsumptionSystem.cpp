@@ -6,12 +6,18 @@
 // Stockpile draw-down rates per NPC per game-hour.
 static constexpr float FOOD_CONSUME_RATE  = 0.5f;
 static constexpr float WATER_CONSUME_RATE = 0.8f;
+// Wood consumed per NPC per game-hour as fuel (Winter rate; scaled by SeasonHeatDrainMult).
+static constexpr float WOOD_HEAT_RATE     = 0.03f;
 
 // Wages paid to working NPCs (gold per game-hour, from settlement treasury).
 static constexpr float WAGE_RATE = 0.3f;
 
 // Threshold below which stockpile is considered "empty" for migration purposes.
 static constexpr float STOCK_LOW = 0.01f;
+
+// How often an NPC can make an emergency market purchase when stockpile is empty (game-hours).
+// They pay market price, money goes to settlement treasury.
+static constexpr float PURCHASE_INTERVAL = 2.f;
 
 void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
@@ -22,7 +28,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     if (gameDt <= 0.f) return;
 
     // 1 game-hour = 60 game-minutes; GAME_MINS_PER_REAL_SEC scales gameDt to minutes.
-    float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+    float gameHoursDt  = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+    float heatDrainMult = SeasonHeatDrainMult(tm.CurrentSeason());
 
     auto view = registry.view<Needs, HomeSettlement, DeprivationTimer>();
     for (auto entity : view) {
@@ -38,11 +45,12 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         auto& waterStock = stockpile->quantities[ResourceType::Water];
 
         // ---- Wages: pay working NPCs from settlement treasury ----
+        // settl and money are used again below for market purchases, so declared here.
         auto* settl = registry.try_get<Settlement>(home.settlement);
         auto* money = registry.try_get<Money>(entity);
-        if (settl && money) {
+        {
             const auto* astate = registry.try_get<AgentState>(entity);
-            if (astate && astate->behavior == AgentBehavior::Working) {
+            if (settl && money && astate && astate->behavior == AgentBehavior::Working) {
                 float wage = WAGE_RATE * gameHoursDt;
                 if (settl->treasury >= wage) {
                     settl->treasury -= wage;
@@ -72,8 +80,60 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             needs.list[1].value  = std::min(needs.list[1].value, 1.f);
         }
 
+        // ---- Emergency market purchase ----
+        // When stockpile is empty, an NPC with money can buy goods at market price.
+        // Gold flows to the settlement treasury; need is refilled.
+        timer.purchaseTimer += gameHoursDt;
+        if (timer.purchaseTimer >= PURCHASE_INTERVAL && settl && money && money->balance > 0.f) {
+            auto* mkt = registry.try_get<Market>(home.settlement);
+            if (mkt) {
+                // Buy 1 unit of food if empty
+                if (!hadFood) {
+                    float price = mkt->GetPrice(ResourceType::Food);
+                    if (money->balance >= price) {
+                        money->balance -= price;
+                        settl->treasury += price;
+                        stockpile->quantities[ResourceType::Food] += 1.f;
+                        timer.purchaseTimer = 0.f;
+                    }
+                }
+                // Buy 1 unit of water if empty (separate check)
+                if (!hadWater && timer.purchaseTimer >= PURCHASE_INTERVAL) {
+                    float price = mkt->GetPrice(ResourceType::Water);
+                    if (money->balance >= price) {
+                        money->balance -= price;
+                        settl->treasury += price;
+                        stockpile->quantities[ResourceType::Water] += 1.f;
+                        timer.purchaseTimer = 0.f;
+                    }
+                }
+            }
+        }
+
+        // ---- Wood / Heat ----
+        // If wood is available and the season demands heating, burn wood and keep NPCs warm.
+        // If no wood (or summer — no demand), NeedDrainSystem naturally drains Heat.
+        bool hadWood = false;
+        if (heatDrainMult > 0.f) {
+            auto& woodStock = stockpile->quantities[ResourceType::Wood];
+            hadWood = (woodStock > STOCK_LOW);
+            if (hadWood) {
+                float draw = WOOD_HEAT_RATE * heatDrainMult * gameHoursDt;
+                draw = std::min(draw, woodStock);
+                woodStock -= draw;
+                // Cancel out the Heat drain for this tick
+                needs.list[3].value += needs.list[3].drainRate * heatDrainMult * gameDt;
+                needs.list[3].value  = std::min(needs.list[3].value, 1.f);
+            }
+        } else {
+            // Summer — no cold, gradually restore heat to full
+            needs.list[3].value = std::min(1.f, needs.list[3].value + needs.list[3].refillRate * gameDt);
+        }
+
         // ---- Stockpile empty timer (drives migration in AgentDecisionSystem) ----
-        bool deprived = (!hadFood || !hadWater);
+        // Also include winter heat deprivation in the "deprived" check.
+        bool heatDeprived = (heatDrainMult > 0.f) && !hadWood;
+        bool deprived = (!hadFood || !hadWater || heatDeprived);
         if (deprived)
             timer.stockpileEmpty += gameDt;
         else
@@ -122,7 +182,28 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         };
 
+        float wood  = qty(ResourceType::Wood);
         checkAlert(food,  alert.foodEmpty,  alert.foodLow,  "Food");
         checkAlert(water, alert.waterEmpty, alert.waterLow, "Water");
+        checkAlert(wood,  alert.woodEmpty,  alert.woodLow,  "Wood");
+
+        // Treasury alerts (wages stop when depleted)
+        static constexpr float LOW_TREASURY = 50.f;
+        float treasury = s.treasury;
+        if (treasury < 1.f && !alert.treasuryEmpty) {
+            alert.treasuryEmpty = true;
+            alert.treasuryLow   = true;
+            if (log) log->Push(alertDay, alertHour,
+                "Treasury EMPTY at " + s.name + " — wages halted");
+        } else if (treasury >= 10.f) {
+            alert.treasuryEmpty = false;
+        }
+        if (treasury < LOW_TREASURY && treasury >= 1.f && !alert.treasuryLow) {
+            alert.treasuryLow = true;
+            if (log) log->Push(alertDay, alertHour,
+                "Treasury low at " + s.name + " (" + std::to_string((int)treasury) + "g)");
+        } else if (treasury >= LOW_TREASURY * 1.5f) {
+            alert.treasuryLow = false;
+        }
     });
 }

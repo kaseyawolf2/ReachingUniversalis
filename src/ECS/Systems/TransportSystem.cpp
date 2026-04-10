@@ -5,9 +5,11 @@
 #include <vector>
 #include <limits>
 
-static constexpr float ARRIVE_RADIUS   = 130.f;
-static constexpr float MIN_TRIP_PROFIT = 5.f;    // gold; minimum worth hauling for
-static constexpr float WAIT_INTERVAL   = 1.f;    // game-hours to wait if no profitable route
+static constexpr float ARRIVE_RADIUS         = 130.f;
+static constexpr float MIN_TRIP_PROFIT       = 5.f;   // gold; ideal minimum to haul for
+static constexpr float MIN_TRIP_PROFIT_FLOOR = 0.5f;  // hauler will accept this after patience runs out
+static constexpr float WAIT_INTERVAL         = 1.f;   // game-hours to wait if no profitable route
+static constexpr int   MAX_WAIT_CYCLES       = 5;     // after this many waits, accept any positive margin
 
 static void MoveToward(Velocity& vel, const Position& from,
                         float tx, float ty, float speed) {
@@ -140,10 +142,15 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 break;
             }
 
-            // Evaluate all reachable trade routes by expected profit
+            // Evaluate all reachable trade routes by expected profit.
+            // Patience: after MAX_WAIT_CYCLES idle evaluations, accept any
+            // positive margin rather than insisting on MIN_TRIP_PROFIT.
             TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity);
+            float effectiveMin = (hauler.waitCycles >= MAX_WAIT_CYCLES)
+                                 ? MIN_TRIP_PROFIT_FLOOR
+                                 : MIN_TRIP_PROFIT;
 
-            if (best.dest != entt::null && best.profit >= MIN_TRIP_PROFIT) {
+            if (best.dest != entt::null && best.profit >= effectiveMin) {
                 // Load goods from home stockpile
                 auto* sp = registry.try_get<Stockpile>(home.settlement);
                 if (!sp) break;
@@ -152,8 +159,10 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 hauler.buyPrice         = best.buyPrice;
                 hauler.targetSettlement = best.dest;
                 hauler.state            = HaulerState::GoingToDeposit;
+                hauler.waitCycles       = 0;   // reset patience on successful route
             } else {
-                // No good route today — wait before re-evaluating
+                // No good route yet — wait before re-evaluating (patience increases)
+                ++hauler.waitCycles;
                 hauler.waitTimer = WAIT_INTERVAL;
             }
             break;
@@ -225,6 +234,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 vel.vx = vel.vy = 0.f;
                 hauler.state            = HaulerState::Idle;
                 hauler.targetSettlement = entt::null;
+                hauler.waitCycles       = 0;   // arrived home — fresh evaluation next cycle
             }
             break;
         }

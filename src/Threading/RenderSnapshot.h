@@ -25,7 +25,7 @@ struct RenderSnapshot {
         bool      hasCargoDot;
         Color     cargoDotColor;
         AgentRole role;
-        float     hungerPct, thirstPct, energyPct;
+        float     hungerPct, thirstPct, energyPct, heatPct = 1.f;
         AgentBehavior behavior;
         float       balance = 0.f;    // gold balance (all agents with Money component)
         float       ageDays = 0.f;    // current age in game-days
@@ -41,7 +41,9 @@ struct RenderSnapshot {
         uint32_t     entityId;
         float        foodStock  = 0.f;   // for health ring color
         float        waterStock = 0.f;
+        float        woodStock  = 0.f;   // for health ring in winter
         int          pop        = 0;     // 0 = collapsed
+        Season       season     = Season::Spring;   // snapshot season for ring logic
     };
 
     struct RoadEntry {
@@ -87,10 +89,12 @@ struct RenderSnapshot {
     StockpilePanel                stockpilePanel;
 
     // HUD — clock
-    int   day       = 1;
-    int   hour      = 6;
-    int   minute    = 0;
-    float hourOfDay = 6.f;   // float, for sky colour interpolation
+    int    day         = 1;
+    int    hour        = 6;
+    int    minute      = 0;
+    float  hourOfDay   = 6.f;   // float, for sky colour interpolation
+    Season season      = Season::Spring;
+    float  temperature = 10.f;  // ambient °C
 
     // HUD — simulation state
     int  tickSpeed  = 1;
@@ -104,9 +108,11 @@ struct RenderSnapshot {
     float         hungerPct      = 1.f;
     float         thirstPct      = 1.f;
     float         energyPct      = 1.f;
+    float         heatPct        = 1.f;
     float         hungerCrit     = 0.3f;
     float         thirstCrit     = 0.3f;
     float         energyCrit     = 0.3f;
+    float         heatCrit       = 0.3f;
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;

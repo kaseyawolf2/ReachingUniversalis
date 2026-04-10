@@ -236,10 +236,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
 
         // -- Find the most critical need --
+        // Heat is handled passively by ConsumptionSystem (Wood stockpile → warmth),
+        // so we skip it here — NPCs don't "seek" a heating facility.
         int   critIdx = -1;
         float lowest  = std::numeric_limits<float>::max();
         for (int i = 0; i < (int)needs.list.size(); ++i) {
             const auto& n = needs.list[i];
+            if (n.type == NeedType::Heat) continue;   // passive need
             if (n.value < n.criticalThreshold && n.value < lowest) {
                 lowest  = n.value;
                 critIdx = i;
