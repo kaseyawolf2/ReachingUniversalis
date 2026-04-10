@@ -29,6 +29,14 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                         (i == 1) ? "thirst" : "exhaustion";
                     std::printf("[DEATH] Entity %u died of %s\n",
                                 (unsigned)entity, cause);
+                    // Push to event log
+                    auto logView = registry.view<EventLog>();
+                    if (!logView.empty()) {
+                        auto& tm2 = timeView.get<TimeManager>(*timeView.begin());
+                        logView.get<EventLog>(*logView.begin()).Push(
+                            tm2.day, (int)tm2.hourOfDay,
+                            std::string("NPC died of ") + cause);
+                    }
                     break;
                 }
             } else {

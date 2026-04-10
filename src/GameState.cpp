@@ -9,6 +9,7 @@ void GameState::Initialize() {
 
 void GameState::Update(float dt) {
     timeSystem.Update(registry, dt);
+    hud.HandleInput(registry);
     playerInputSystem.Update(registry, dt);
     cameraSystem.Update(registry, dt);
     renderSystem.HandleInput(registry);

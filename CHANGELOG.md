@@ -5,6 +5,24 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP8] HUD and Observation Tools — 2026-04-10
+
+Full observability layer: event log, world status bar, NPC hover tooltip, and F1 debug overlay.
+
+### Added
+- **Event log panel** (bottom-right): renders last 8 `EventLog` entries; scroll with mouse wheel; color-coded (red=blockade, orange=death, green=cleared)
+- **World status bar** (top-centre): shows each settlement's name, Food stock, Water stock, and population count; auto-centres between left and right HUD panels
+- **NPC hover tooltip**: hover any agent in world-space to see role, behavior state, and need percentages; tooltip auto-repositions to stay on screen
+- **F1 debug overlay**: entity count, FPS, NPC/hauler counts, sleeping/working counts, event log size
+- `HUD::HandleInput` — handles F1 toggle and mouse-wheel log scrolling; called from `GameState::Update`
+- Death events now pushed into `EventLog` by `DeathSystem` (day, hour, cause)
+
+### Changed
+- `HUD::Draw` split into sub-methods: `DrawWorldStatus`, `DrawEventLog`, `DrawHoverTooltip`, `DrawDebugOverlay`
+- Key hint strip updated to include `F1:Debug`
+
+---
+
 ## [WP7] Road Blockade and Event Log Foundation — 2026-04-10
 
 Press **B** to toggle the road, watch cascades begin; all events are recorded.
