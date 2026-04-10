@@ -9,8 +9,10 @@ static constexpr float MAP_H  =  720.0f;
 
 // Fixed-seed RNG for reproducible world generation
 static std::mt19937 wg_rng{12345u};
-static std::uniform_real_distribution<float> migrate_dist(2.f, 5.f);   // game-hours
-static std::uniform_real_distribution<float> wait_dist(0.f, 1.f);      // hauler stagger
+static std::uniform_real_distribution<float> migrate_dist(2.f, 5.f);    // game-hours
+static std::uniform_real_distribution<float> wait_dist(0.f, 1.f);       // hauler stagger
+static std::uniform_real_distribution<float> age_dist(0.f, 30.f);       // starting age days
+static std::uniform_real_distribution<float> lifespan_dist(60.f, 100.f);// life expectancy days
 
 // Drain rates: full need lasts ~20 game-hours (Hunger), ~13 (Thirst), ~33 (Energy)
 // At 1x: 1 gameDt second = 1 real second = 1 game minute.
@@ -50,6 +52,10 @@ static void SpawnNPCs(entt::registry& registry,
         registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<Schedule>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);
+        Age age;
+        age.days    = age_dist(wg_rng);
+        age.maxDays = lifespan_dist(wg_rng);
+        registry.emplace<Age>(npc, age);
     }
 }
 
@@ -79,6 +85,10 @@ static void SpawnHaulers(entt::registry& registry,
         registry.emplace<Hauler>(h, haulerComp);
         registry.emplace<Money>(h);   // starting wallet: 50 gold
         registry.emplace<Renderable>(h, SKYBLUE, 7.f);
+        Age hage;
+        hage.days    = age_dist(wg_rng);
+        hage.maxDays = lifespan_dist(wg_rng);
+        registry.emplace<Age>(h, hage);
     }
 }
 

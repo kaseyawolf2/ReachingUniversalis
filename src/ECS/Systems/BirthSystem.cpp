@@ -113,6 +113,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             registry.emplace<DeprivationTimer>(npc, dt);
             registry.emplace<Schedule>(npc);
             registry.emplace<Renderable>(npc, WHITE, 6.f);
+            // New NPC starts at age 0 with a random life expectancy
+            static std::uniform_real_distribution<float> lifespan(60.f, 100.f);
+            Age npcAge;
+            npcAge.days    = 0.f;
+            npcAge.maxDays = lifespan(s_rng);
+            registry.emplace<Age>(npc, npcAge);
 
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);

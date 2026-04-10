@@ -207,6 +207,14 @@ struct EventLog {
     }
 };
 
+// ---- Age ----
+// Tracks an agent's age in game-days; maxDays is the life expectancy.
+// DeathSystem advances age and destroys the entity on reaching maxDays.
+struct Age {
+    float days    = 0.f;    // current age in game-days
+    float maxDays = 80.f;   // life expectancy; randomised at spawn (60–100)
+};
+
 // ---- Tags ----
 
 struct PlayerTag {};   // marks the entity the HUD observes
