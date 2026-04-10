@@ -177,6 +177,14 @@ void GameState::Draw() {
         DrawText(s.name.c_str(),
                  (int)(s.x - MeasureText(s.name.c_str(), 14) / 2),
                  (int)(s.y - s.radius - 18), 14, nameCol);
+        // Specialty label below name
+        if (!s.specialty.empty() && s.pop > 0) {
+            Color specCol = (s.specialty == "Farming") ? Fade(GREEN, 0.75f) :
+                            (s.specialty == "Water")   ? Fade(SKYBLUE, 0.75f) : Fade(BROWN, 0.75f);
+            DrawText(s.specialty.c_str(),
+                     (int)(s.x - MeasureText(s.specialty.c_str(), 11) / 2),
+                     (int)(s.y - s.radius - 4), 11, specCol);
+        }
     }
 
     // Facilities

@@ -55,6 +55,7 @@ struct RenderSnapshot {
         float        woodStock  = 0.f;   // for health ring in winter
         int          pop        = 0;     // 0 = collapsed
         Season       season     = Season::Spring;   // snapshot season for ring logic
+        std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
     };
 
     struct RoadEntry {

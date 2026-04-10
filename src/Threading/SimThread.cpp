@@ -671,11 +671,28 @@ void SimThread::WriteSnapshot() {
         int spop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++spop; });
+
+        // Infer specialty from primary production facility
+        std::string specialty;
+        {
+            ResourceType primary = ResourceType::Food;
+            float maxRate = 0.f;
+            m_registry.view<ProductionFacility>().each(
+                [&](const ProductionFacility& fac) {
+                if (fac.settlement == e && fac.baseRate > maxRate) {
+                    maxRate = fac.baseRate; primary = fac.output;
+                }
+            });
+            if (maxRate > 0.f)
+                specialty = (primary == ResourceType::Food)  ? "Farming" :
+                            (primary == ResourceType::Water) ? "Water"   : "Lumber";
+        }
+
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
-            food, water, wood, spop, snapSeason
+            food, water, wood, spop, snapSeason, specialty
         });
     });
 
