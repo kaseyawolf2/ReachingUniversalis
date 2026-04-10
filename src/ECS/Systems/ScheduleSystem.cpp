@@ -140,19 +140,32 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
-        // ---- Skill decay when not actively working at a facility ----
-        // NPCs lose skill slowly through disuse; practice is the only way to
-        // maintain mastery. Children are exempt — they grow into skills naturally.
-        bool isChild = false;
-        if (const auto* age = registry.try_get<Age>(entity))
-            isChild = (age->days < 15.f);
-        if (!isChild && state.behavior != AgentBehavior::Working) {
-            if (auto* skills = registry.try_get<Skills>(entity)) {
-                float gHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-                float decay = SKILL_DECAY_PER_HOUR * gHrs;
-                skills->farming       = std::max(0.f, skills->farming       - decay);
-                skills->water_drawing = std::max(0.f, skills->water_drawing - decay);
-                skills->woodcutting   = std::max(0.f, skills->woodcutting   - decay);
+        // ---- Skill growth/decay ----
+        // Children (< 15 days) passively grow all skills as they observe community work.
+        // Adults not actively Working lose skill slowly (disuse decay).
+        // Target: child reaches ~0.35 by age 15 if born at 0.1 (0.25 gain over 15 days).
+        //   Gain: 0.25 / (15*24) ≈ 0.000694/hr
+        // Adults decay: 0.005/day = 0.000208/hr — slow, needs continuous practice to maintain.
+        static constexpr float CHILD_SKILL_GAIN_PER_HOUR = 0.25f / (15.f * 24.f);
+        float gHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+
+        if (const auto* age2 = registry.try_get<Age>(entity)) {
+            if (age2->days < 15.f) {
+                // Child: passive growth (observing community)
+                if (auto* skills = registry.try_get<Skills>(entity)) {
+                    float grow = CHILD_SKILL_GAIN_PER_HOUR * gHrs;
+                    skills->farming       = std::min(0.35f, skills->farming       + grow);
+                    skills->water_drawing = std::min(0.35f, skills->water_drawing + grow);
+                    skills->woodcutting   = std::min(0.35f, skills->woodcutting   + grow);
+                }
+            } else if (state.behavior != AgentBehavior::Working) {
+                // Adult not working: decay
+                if (auto* skills = registry.try_get<Skills>(entity)) {
+                    float decay = SKILL_DECAY_PER_HOUR * gHrs;
+                    skills->farming       = std::max(0.f, skills->farming       - decay);
+                    skills->water_drawing = std::max(0.f, skills->water_drawing - decay);
+                    skills->woodcutting   = std::max(0.f, skills->woodcutting   - decay);
+                }
             }
         }
 
