@@ -7,6 +7,7 @@
 #include "ECS/Systems/AgentDecisionSystem.h"
 #include "ECS/Systems/MovementSystem.h"
 #include "ECS/Systems/ProductionSystem.h"
+#include "ECS/Systems/ScheduleSystem.h"
 #include "ECS/Systems/TransportSystem.h"
 #include "ECS/Systems/DeathSystem.h"
 #include "ECS/Systems/CameraSystem.h"
@@ -30,6 +31,7 @@ private:
     AgentDecisionSystem agentDecisionSystem;
     MovementSystem      movementSystem;
     ProductionSystem    productionSystem;
+    ScheduleSystem      scheduleSystem;
     TransportSystem     transportSystem;
     DeathSystem         deathSystem;
     CameraSystem        cameraSystem;

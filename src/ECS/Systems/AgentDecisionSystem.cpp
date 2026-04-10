@@ -114,6 +114,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         auto& timer  = view.get<DeprivationTimer>(entity);
 
         // ============================================================
+        // SLEEPING: ScheduleSystem owns this state — skip entirely
+        // ============================================================
+        if (state.behavior == AgentBehavior::Sleeping) continue;
+
+        // ============================================================
+        // WORKING: only interrupt if a need is critical
+        // ============================================================
+        if (state.behavior == AgentBehavior::Working) {
+            bool anyCritical = false;
+            for (const auto& n : needs.list)
+                if (n.value < n.criticalThreshold) { anyCritical = true; break; }
+            if (!anyCritical) continue;
+            // Critical need — fall through to seeking logic below
+            state.behavior = AgentBehavior::Idle;
+        }
+
+        // ============================================================
         // MIGRATING: move toward target settlement, settle on arrival
         // ============================================================
         if (state.behavior == AgentBehavior::Migrating) {

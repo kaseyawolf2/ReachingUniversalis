@@ -14,6 +14,7 @@ void GameState::Update(float dt) {
     renderSystem.HandleInput(registry);
     needDrainSystem.Update(registry, dt);
     consumptionSystem.Update(registry, dt);
+    scheduleSystem.Update(registry, dt);
     agentDecisionSystem.Update(registry, dt);
     movementSystem.Update(registry, dt);
     productionSystem.Update(registry, dt);

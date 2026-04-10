@@ -31,6 +31,7 @@ set(SOURCES
     src/ECS/Systems/DeathSystem.cpp
     src/ECS/Systems/MovementSystem.cpp
     src/ECS/Systems/ProductionSystem.cpp
+    src/ECS/Systems/ScheduleSystem.cpp
     src/ECS/Systems/TransportSystem.cpp
     src/ECS/Systems/CameraSystem.cpp
     src/ECS/Systems/RenderSystem.cpp

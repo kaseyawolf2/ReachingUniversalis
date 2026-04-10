@@ -5,6 +5,25 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [WP6] Day/Night Schedules and Sleep — 2026-04-10
+
+NPCs follow a daily schedule: sleep at night, work during the day; production scales with active workforce.
+
+### Added
+- `ScheduleSystem` — runs each frame before `AgentDecisionSystem`:
+  - **Sleep** (`sleepHour`–`wakeHour`, default 22:00–06:00): sets `AgentBehavior::Sleeping`, NPC walks at 60% speed toward settlement centre and stops there; no other system overrides sleep
+  - **Wake**: transitions `Sleeping → Idle` at `wakeHour`
+  - **Work** (`workStart`–`workEnd`, default 07:00–17:00): promotes `Idle → Working` so non-critical NPCs look busy; clears `Working → Idle` outside work hours
+- Worker-scaled production in `ProductionSystem`:
+  - Counts `Working`-state NPCs per settlement each tick
+  - Scale factor = `clamp(workers / BASE_WORKERS, 0.1, 2.0)` where `BASE_WORKERS = 5`
+  - Creates cascade: deaths → fewer workers → lower production → more deaths
+
+### Changed
+- `AgentDecisionSystem` skips entities in `Sleeping` state; interrupts `Working` only when a need is below `criticalThreshold`
+
+---
+
 ## [WP5] Player Controls and Camera Follow — 2026-04-10
 
 Direct player movement, camera tracking, stockpile interaction, and respawn.
