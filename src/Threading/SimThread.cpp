@@ -1077,7 +1077,7 @@ void SimThread::WriteSnapshot() {
             panel.consRatePerHour = consRate;
             panel.treasury        = s.treasury;
             panel.pop             = pop;
-            panel.popCap          = 35;   // matches MAX_POP_PER_SETTLEMENT in BirthSystem
+            panel.popCap          = s.popCap;   // dynamic — expands with housing construction
             panel.stability       = stability;
             panel.workers         = workers;
             panel.recentEvents    = std::move(filteredEvents);

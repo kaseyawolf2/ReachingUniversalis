@@ -28,6 +28,12 @@ static constexpr float NEW_FACILITY_RATE = 3.f;
 // Offset from the settlement center to place the new facility.
 static constexpr float PLACEMENT_RADIUS  = 60.f;
 
+// Housing expansion — builds when settlement population is near cap.
+static constexpr float HOUSING_COST         = 300.f;  // more expensive than resource facilities
+static constexpr float HOUSING_POP_FRACTION = 0.80f;  // expand when pop >= 80% of cap
+static constexpr int   HOUSING_CAP_GAIN     = 5;      // pop cap increase per housing built
+static constexpr int   HOUSING_MAX_CAP      = 70;     // absolute maximum population cap
+
 void ConstructionSystem::Update(entt::registry& registry, float realDt) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
@@ -57,6 +63,11 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
         facPos[fac.settlement][fac.output].second += pos.y;
         ++facPosCount[fac.settlement][fac.output];
     });
+
+    // Count population per settlement (for housing decisions)
+    std::map<entt::entity, int> popCount;
+    registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+        [&](const HomeSettlement& hs) { ++popCount[hs.settlement]; });
 
     // Evaluate each settlement for construction opportunity
     registry.view<Position, Settlement, Stockpile, Market>().each(
@@ -146,6 +157,30 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
                 (buildType == ResourceType::Food)  ? "food"  :
                 (buildType == ResourceType::Water) ? "water" : "wood",
                 bestPrice);
+            log->Push(tm.day, (int)tm.hourOfDay, buf);
+        }
+    });
+
+    // ---- Housing expansion ----
+    // Separate pass: when a settlement is crowded and flush with gold, expand its pop cap.
+    // This lets thriving settlements grow beyond the default 35-NPC limit (up to HOUSING_MAX_CAP).
+    registry.view<Position, Settlement>().each(
+        [&](auto e, const Position&, Settlement& s) {
+        if (s.treasury < HOUSING_COST) return;
+        if (s.popCap >= HOUSING_MAX_CAP) return;
+
+        int pop = popCount.count(e) ? popCount.at(e) : 0;
+        if (pop < (int)(s.popCap * HOUSING_POP_FRACTION)) return;
+
+        // Build housing: increase pop cap, charge treasury
+        s.treasury -= HOUSING_COST;
+        s.popCap   += HOUSING_CAP_GAIN;
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "%s built housing (%.0fg) — pop cap now %d",
+                s.name.c_str(), HOUSING_COST, s.popCap);
             log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
     });

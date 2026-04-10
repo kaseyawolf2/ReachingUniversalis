@@ -12,6 +12,7 @@
 //
 // Each birth costs BIRTH_FOOD_COST food and BIRTH_WATER_COST water.
 
+// Default hard cap; actual cap is now stored in Settlement::popCap (can be expanded).
 static constexpr int   MAX_POP_PER_SETTLEMENT = 35;
 static constexpr float BIRTH_INTERVAL         = 3.f * 60.f;   // 3 game-hours
 static constexpr float BIRTH_CHANCE           = 0.25f;        // 25% chance per interval
@@ -79,7 +80,11 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
         float heatMult = SeasonHeatDrainMult(tm.CurrentSeason());
         bool  woodOk   = (heatMult <= 0.f) || (wood >= 10.f);
 
-        bool canBirth = (pop < MAX_POP_PER_SETTLEMENT)
+        // Use the settlement's dynamic pop cap (expandable via housing construction)
+        const auto& settlComp = settlView.get<Settlement>(settl);
+        int effectivePopCap = settlComp.popCap;
+
+        bool canBirth = (pop < effectivePopCap)
                      && (food  >= BIRTH_FOOD_MIN)
                      && (water >= BIRTH_WATER_MIN)
                      && woodOk;

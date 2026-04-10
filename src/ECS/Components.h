@@ -55,6 +55,7 @@ struct Settlement {
     float       modifierDuration   = 0.f;   // game-hours remaining on modifier
     std::string modifierName;              // e.g. "Drought", shown in HUD
     float       treasury = 200.f;          // gold; pays NPC wages; replenished by trade tax
+    int         popCap   = 35;             // max population; can be expanded via housing
 };
 
 struct Stockpile {
