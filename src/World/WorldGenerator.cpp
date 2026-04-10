@@ -155,17 +155,19 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Road>(registry.create(), Road{ millhaven,  wellsworth, false });
 
     // ---- Production facilities ----
+    // Farms require 0.4 water per food unit produced — creates supply-chain dependency
     for (int i = 0; i < 2; ++i) {
         auto farm = registry.create();
         registry.emplace<Position>(farm, 400.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(farm,
-            ProductionFacility{ ResourceType::Food, 4.f, greenfield });
+            ProductionFacility{ ResourceType::Food, 4.f, greenfield,
+                                {{ ResourceType::Water, 0.4f }} });
     }
     for (int i = 0; i < 2; ++i) {
         auto well = registry.create();
         registry.emplace<Position>(well, 2000.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(well,
-            ProductionFacility{ ResourceType::Water, 4.f, wellsworth });
+            ProductionFacility{ ResourceType::Water, 4.f, wellsworth, {} });
     }
     // Shelter/rest spots — Energy need satisfaction
     {

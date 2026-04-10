@@ -61,8 +61,9 @@ struct Stockpile {
 
 struct ProductionFacility {
     ResourceType  output;
-    float         baseRate;          // units per game-hour at 1 worker
+    float         baseRate;                              // units per game-hour at 1 worker
     entt::entity  settlement = entt::null;
+    std::map<ResourceType, float> inputsPerOutput;       // input consumed per 1 unit output (empty = none)
 };
 
 struct Road {

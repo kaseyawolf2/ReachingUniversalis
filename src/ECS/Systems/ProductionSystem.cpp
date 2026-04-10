@@ -42,7 +42,30 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         const auto* settl = registry.try_get<Settlement>(fac.settlement);
         float modifier = settl ? settl->productionModifier : 1.f;
 
+        float grossOutput = fac.baseRate * scale * gameHoursDt * modifier;
+
+        // Consume inputs — if insufficient, scale down production proportionally
+        if (!fac.inputsPerOutput.empty()) {
+            float inputScale = 1.f;
+            for (const auto& [inRes, inPerOut] : fac.inputsPerOutput) {
+                float required = inPerOut * grossOutput;
+                if (required <= 0.f) continue;
+                float available = stockpile->quantities.count(inRes)
+                                  ? stockpile->quantities.at(inRes) : 0.f;
+                if (available <= 0.f) { inputScale = 0.f; break; }
+                inputScale = std::min(inputScale, available / required);
+            }
+            grossOutput *= std::min(1.f, inputScale);
+            // Consume the actual inputs used
+            for (const auto& [inRes, inPerOut] : fac.inputsPerOutput) {
+                float used = inPerOut * grossOutput;
+                stockpile->quantities[inRes] = std::max(0.f,
+                    (stockpile->quantities.count(inRes)
+                     ? stockpile->quantities.at(inRes) : 0.f) - used);
+            }
+        }
+
         float& qty = stockpile->quantities[fac.output];
-        qty = std::min(STOCKPILE_CAP, qty + fac.baseRate * scale * gameHoursDt * modifier);
+        qty = std::min(STOCKPILE_CAP, qty + grossOutput);
     }
 }
