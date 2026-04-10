@@ -160,6 +160,11 @@ struct RenderSnapshot {
     float playerWorldX = 640.f;
     float playerWorldY = 360.f;
 
+    // Best available trade hint for the player HUD
+    // e.g. "Food: buy Ashford 1.2g → sell Wellsworth 7.8g (+6.6g)"
+    // Empty string means prices are too balanced to suggest a trade.
+    std::string tradeHint;
+
     // Event log
     std::vector<EventLog::Entry> logEntries;
 

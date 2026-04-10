@@ -1154,6 +1154,53 @@ void SimThread::WriteSnapshot() {
         }
     }
 
+    // ---- Trade opportunity hint ----
+    // Scan all settlements' market prices to find the best buy-low/sell-high margin
+    // for each resource, then surface the top opportunity as a compact hint string.
+    std::string tradeHint;
+    {
+        struct PriceRecord { float price; std::string name; };
+        // For each resource: track cheapest (buy) and most expensive (sell)
+        static const ResourceType kTradeRes[] = {
+            ResourceType::Food, ResourceType::Water, ResourceType::Wood };
+        static const char* kTradeNames[] = { "Food", "Water", "Wood" };
+
+        float    bestMargin  = 2.0f;  // only show hints with margin > 2g
+        int      bestResIdx  = -1;
+        PriceRecord bestBuy  { 9999.f, "" };
+        PriceRecord bestSell { 0.f,    "" };
+
+        for (int ri = 0; ri < 3; ++ri) {
+            ResourceType res = kTradeRes[ri];
+            PriceRecord lo{ 9999.f, "" }, hi{ 0.f, "" };
+            m_registry.view<Settlement, Market>().each(
+                [&](auto se, const Settlement& s, const Market& mkt) {
+                    float p = mkt.GetPrice(res);
+                    if (p < lo.price) lo = { p, s.name };
+                    if (p > hi.price) hi = { p, s.name };
+                });
+            if (lo.name.empty() || hi.name.empty()) continue;
+            float margin = hi.price - lo.price;
+            if (margin > bestMargin) {
+                bestMargin = margin;
+                bestResIdx = ri;
+                bestBuy    = lo;
+                bestSell   = hi;
+            }
+        }
+
+        if (bestResIdx >= 0) {
+            char buf[128];
+            std::snprintf(buf, sizeof(buf),
+                "%s: buy %s %.1fg → sell %s %.1fg (+%.1fg)",
+                kTradeNames[bestResIdx],
+                bestBuy.name.c_str(),  bestBuy.price,
+                bestSell.name.c_str(), bestSell.price,
+                bestMargin);
+            tradeHint = buf;
+        }
+    }
+
     // ---- Event log ----
     std::vector<EventLog::Entry> logEntries;
     {
@@ -1203,6 +1250,7 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerWaterSkill = playerWaterSkill;
         m_snapshot.playerWoodSkill  = playerWoodSkill;
         m_snapshot.playerInventory = std::move(playerInventory);
+        m_snapshot.tradeHint     = std::move(tradeHint);
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();

@@ -59,6 +59,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     float playerFarmSkill, playerWaterSkill, playerWoodSkill;
     float temperature;
     std::map<ResourceType, int> playerInventory;
+    std::string tradeHint;
     AgentBehavior behavior;
     Season season;
 
@@ -85,15 +86,17 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         playerWaterSkill = snap.playerWaterSkill;
         playerWoodSkill  = snap.playerWoodSkill;
         playerInventory = snap.playerInventory;
+        tradeHint   = snap.tradeHint;
         season      = snap.season;
         temperature = snap.temperature;
     }
 
     // ---- Player need bars (top-left) ----
     if (playerAlive) {
-        int invLines  = (int)playerInventory.size();
-        int skillLine = (playerFarmSkill >= 0.f) ? 1 : 0;
-        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + invLines * 16, Fade(BLACK, 0.55f));
+        int invLines   = (int)playerInventory.size();
+        int skillLine  = (playerFarmSkill >= 0.f) ? 1 : 0;
+        int tradeLines = tradeHint.empty() ? 0 : 1;
+        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + invLines * 16 + tradeLines * 14, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -160,6 +163,12 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         } else {
             DrawText("Cargo: empty", BAR_X, invY, 13, Fade(LIGHTGRAY, 0.5f));
             invY += 16;
+        }
+
+        // Trade opportunity hint
+        if (!tradeHint.empty()) {
+            DrawText(tradeHint.c_str(), BAR_X, invY + 2, 10, Fade(GOLD, 0.85f));
+            invY += 14;
         }
 
         DrawText("WASD:Move  E:Work  Q:Buy  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  F1:Debug",
