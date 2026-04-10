@@ -48,7 +48,18 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
         auto& home  = view.get<HomeSettlement>(entity);
 
         bool sleepTime = (hour >= sched.sleepHour || hour < sched.wakeHour);
-        bool workTime  = (hour >= sched.workStart && hour < sched.workEnd);
+
+        // Age affects work eligibility: children (<15 days) don't work;
+        // elderly (>70 days) work reduced hours (7–12 only).
+        bool workEligible = true;
+        int  workEndAdj   = sched.workEnd;
+        if (const auto* age = registry.try_get<Age>(entity)) {
+            if (age->days < 15.f) workEligible = false;            // child
+            else if (age->days > 70.f) workEndAdj = 12;            // elderly: half-shift
+        }
+
+        bool workTime  = workEligible &&
+                         (hour >= sched.workStart && hour < workEndAdj);
 
         // ---- Transition into sleep ----
         if (sleepTime) {

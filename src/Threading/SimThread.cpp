@@ -326,6 +326,40 @@ void SimThread::ProcessInput() {
         });
     }
 
+    // One-shot: player settle (H) — adopt nearest settlement as home
+    if (m_input.playerSettle.exchange(false)) {
+        static constexpr float SETTLE_RADIUS = 140.f;
+        auto pv  = m_registry.view<PlayerTag, Position, HomeSettlement>();
+        auto lv  = m_registry.view<EventLog>();
+        if (pv.begin() != pv.end()) {
+            auto  pe   = *pv.begin();
+            auto& ppos = pv.get<Position>(pe);
+            auto& home = pv.get<HomeSettlement>(pe);
+
+            entt::entity nearest  = entt::null;
+            float        nearDist = SETTLE_RADIUS * SETTLE_RADIUS;
+            m_registry.view<Position, Settlement>().each(
+                [&](auto e, const Position& sp, const Settlement&) {
+                float dx = sp.x - ppos.x, dy = sp.y - ppos.y;
+                float d  = dx*dx + dy*dy;
+                if (d < nearDist) { nearDist = d; nearest = e; }
+            });
+
+            if (nearest != entt::null && nearest != home.settlement) {
+                home.settlement = nearest;
+                if (lv.begin() != lv.end()) {
+                    const auto& sett = m_registry.get<Settlement>(nearest);
+                    lv.get<EventLog>(*lv.begin()).Push(
+                        tm.day, (int)tm.hourOfDay,
+                        "You settle at " + sett.name);
+                }
+            } else if (nearest == entt::null && lv.begin() != lv.end()) {
+                lv.get<EventLog>(*lv.begin()).Push(
+                    tm.day, (int)tm.hourOfDay, "No settlement nearby to settle in");
+            }
+        }
+    }
+
     // One-shot: player sleep toggle (Z) — toggle between Sleeping and Idle
     if (m_input.playerSleep.exchange(false)) {
         auto pv = m_registry.view<PlayerTag, AgentState, Velocity>();

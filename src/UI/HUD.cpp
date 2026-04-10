@@ -33,6 +33,7 @@ static const char* BehaviorLabel(AgentBehavior b) {
 
 void HUD::HandleInput(const RenderSnapshot& /*snapshot*/) {
     if (IsKeyPressed(KEY_F1)) debugOverlay = !debugOverlay;
+    if (IsKeyPressed(KEY_M))  marketOverlay = !marketOverlay;
     float wheel = GetMouseWheelMove();
     if (wheel != 0.f) {
         logScroll -= (int)wheel;
@@ -140,8 +141,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 16;
         }
 
-        DrawText("WASD:Move  Z:Sleep  T:Trade  B:Road  F:Follow  F1:Debug",
-                 BAR_X, invY + 4, 10, Fade(LIGHTGRAY, 0.6f));
+        DrawText("WASD:Move  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  M:Market  F1:Debug",
+                 BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
     }
 
     // ---- Time panel (top-right) ----
@@ -178,7 +179,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     DrawWorldStatus(snap);
     DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
-    if (debugOverlay) DrawDebugOverlay(snap);
+    if (debugOverlay)  DrawDebugOverlay(snap);
+    if (marketOverlay) DrawMarketOverlay(snap);
 }
 
 // ---- World status bar ----
@@ -354,9 +356,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     Color ageCol  = (ageFrac < 0.6f) ? Fade(GREEN, 0.9f) :
                     (ageFrac < 0.85f) ? YELLOW : RED;
 
-    if (hasName)
-        std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f days",
-                      best->ageDays, best->maxDays);
+    if (hasName) {
+        const char* lifeStage = (best->ageDays < 15.f)  ? "Child"   :
+                                (best->ageDays < 25.f)  ? "Youth"   :
+                                (best->ageDays > 70.f)  ? "Elderly" : "Adult";
+        std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f  [%s]",
+                      best->ageDays, best->maxDays, lifeStage);
+    }
     if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
@@ -382,6 +388,56 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         if (showGold) DrawText(line5, tx, ty + 64, 11, YELLOW);
     } else {
         if (showGold) DrawText(line4, tx, ty + 48, 11, YELLOW);
+    }
+}
+
+// ---- Market overlay (M key) ----
+// Full price + stock table across all settlements — useful for merchant planning.
+
+void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
+    std::vector<RenderSnapshot::SettlementStatus> ws;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        ws = snap.worldStatus;
+    }
+    if (ws.empty()) return;
+
+    static const int MX = 330, MY = 10, ML_H = 18, MFONT = 12;
+    static const int C_NAME = MX+8, C_FOOD = MX+120, C_WAT = MX+230, C_WD = MX+340;
+
+    int rows = 1 + (int)ws.size();
+    int pw   = 410;
+    int ph   = rows * ML_H + 16;
+
+    DrawRectangle(MX, MY, pw, ph, Fade(BLACK, 0.8f));
+    DrawRectangleLines(MX, MY, pw, ph, LIGHTGRAY);
+
+    // Header
+    DrawText("[M] Market Prices", MX + 8, MY + 4, MFONT, YELLOW);
+    DrawText("Settlement", C_NAME, MY + 4 + ML_H, MFONT, Fade(LIGHTGRAY,0.8f));
+    DrawText("Food stk@p",  C_FOOD, MY + 4 + ML_H, MFONT, Fade(GREEN,0.8f));
+    DrawText("Water stk@p", C_WAT,  MY + 4 + ML_H, MFONT, Fade(SKYBLUE,0.8f));
+    DrawText("Wood stk@p",  C_WD,   MY + 4 + ML_H, MFONT, Fade(BROWN,0.8f));
+
+    for (int i = 0; i < (int)ws.size(); ++i) {
+        const auto& s = ws[i];
+        int y = MY + 4 + ML_H * (i + 2);
+
+        char nameBuf[16], foodBuf[20], watBuf[20], wdBuf[20];
+        std::snprintf(nameBuf, sizeof(nameBuf), "%.12s", s.name.c_str());
+        std::snprintf(foodBuf, sizeof(foodBuf), "%.0f@%.1fg", s.food,  s.foodPrice);
+        std::snprintf(watBuf,  sizeof(watBuf),  "%.0f@%.1fg", s.water, s.waterPrice);
+        std::snprintf(wdBuf,   sizeof(wdBuf),   "%.0f@%.1fg", s.wood,  s.woodPrice);
+
+        Color nameCol = (s.pop == 0) ? DARKGRAY : WHITE;
+        Color foodCol = (s.food  < 10.f) ? RED : (s.food  < 30.f) ? ORANGE : GREEN;
+        Color watCol  = (s.water < 10.f) ? RED : (s.water < 30.f) ? ORANGE : SKYBLUE;
+        Color wdCol   = (s.wood  < 10.f) ? RED : (s.wood  < 30.f) ? ORANGE : BROWN;
+
+        DrawText(nameBuf, C_NAME, y, MFONT, nameCol);
+        DrawText(foodBuf, C_FOOD, y, MFONT, foodCol);
+        DrawText(watBuf,  C_WAT,  y, MFONT, watCol);
+        DrawText(wdBuf,   C_WD,   y, MFONT, wdCol);
     }
 }
 

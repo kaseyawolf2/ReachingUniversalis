@@ -20,4 +20,7 @@ private:
 
     int  logScroll    = 0;
     bool debugOverlay = false;
+    bool marketOverlay = false;
+
+    void DrawMarketOverlay(const RenderSnapshot& snapshot) const;
 };
