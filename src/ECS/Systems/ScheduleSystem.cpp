@@ -7,11 +7,6 @@
 static constexpr float SLEEP_ARRIVE  = 25.f;   // distance at which NPC is "at settlement"
 static constexpr float LEISURE_RADIUS = 80.f;  // wander radius around home settlement center
 
-// Wage paid from settlement treasury to each Working NPC per game-hour.
-// Treasury must have at least WAGE_RESERVE before paying wages.
-static constexpr float WAGE_PER_HOUR  = 0.25f;
-static constexpr float WAGE_RESERVE   = 20.f;
-
 // Skill decay per game-hour while NOT actively working at a facility.
 // At 0.005/day ≈ 0.0002/hr — slow enough that NPCs don't forget overnight,
 // but fast enough that prolonged absence matters.
@@ -145,20 +140,6 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
-        // ---- Wage payment: treasury pays Working NPCs per game-hour ----
-        float gameHoursDt2 = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-        if (state.behavior == AgentBehavior::Working &&
-            home.settlement != entt::null && registry.valid(home.settlement)) {
-            if (auto* settl = registry.try_get<Settlement>(home.settlement)) {
-                if (settl->treasury >= WAGE_RESERVE) {
-                    float wage = WAGE_PER_HOUR * gameHoursDt2;
-                    settl->treasury -= wage;
-                    if (auto* money = registry.try_get<Money>(entity))
-                        money->balance += wage;
-                }
-            }
-        }
-
         // ---- Skill decay when not actively working at a facility ----
         // NPCs lose skill slowly through disuse; practice is the only way to
         // maintain mastery. Children are exempt — they grow into skills naturally.
@@ -167,7 +148,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             isChild = (age->days < 15.f);
         if (!isChild && state.behavior != AgentBehavior::Working) {
             if (auto* skills = registry.try_get<Skills>(entity)) {
-                float decay = SKILL_DECAY_PER_HOUR * gameHoursDt2;
+                float gHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+                float decay = SKILL_DECAY_PER_HOUR * gHrs;
                 skills->farming       = std::max(0.f, skills->farming       - decay);
                 skills->water_drawing = std::max(0.f, skills->water_drawing - decay);
                 skills->woodcutting   = std::max(0.f, skills->woodcutting   - decay);
