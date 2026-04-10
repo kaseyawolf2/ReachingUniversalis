@@ -174,37 +174,37 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     }
     if (ws.empty()) return;
 
-    // Format: "Greenfield  F:120@2.1  W:20@8.3  Wd:0@6.0  G:200  [20]  [DROUGHT]"
-    char bufs[4][112]; bool hasEvent[4] = {}; int count = 0;
+    // Format: "Greenfield  F:120@2.1  W:80@8.0  G:200  [20]  [DROUGHT]"
+    // Wood shown in stockpile panel (click settlement) — omitted from status bar to save space.
+    static const int STATUS_FONT = 12;
+    char bufs[4][96]; bool hasEvent[4] = {}; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
         if (s.hasEvent)
-            std::snprintf(bufs[count], 112,
-                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  Wd:%.0f@%.1f  G:%.0f  [%d] [%s]",
+            std::snprintf(bufs[count], 96,
+                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d] [%s]",
                           s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.wood, s.woodPrice,
-                          s.treasury, s.pop, s.eventName.c_str());
+                          s.water, s.waterPrice, s.treasury, s.pop, s.eventName.c_str());
         else
-            std::snprintf(bufs[count], 112,
-                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  Wd:%.0f@%.1f  G:%.0f  [%d]",
+            std::snprintf(bufs[count], 96,
+                          "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d]",
                           s.name.c_str(), s.food, s.foodPrice,
-                          s.water, s.waterPrice, s.wood, s.woodPrice,
-                          s.treasury, s.pop);
+                          s.water, s.waterPrice, s.treasury, s.pop);
         hasEvent[count] = s.hasEvent;
         ++count;
     }
     int totalW = 0;
     for (int i = 0; i < count; ++i)
-        totalW += MeasureText(bufs[i], 13) + (i > 0 ? 30 : 0);
+        totalW += MeasureText(bufs[i], STATUS_FONT) + (i > 0 ? 28 : 0);
     int sx = (SCREEN_W - totalW) / 2;
 
-    DrawRectangle(sx - 8, 4, totalW + 16, 36, Fade(BLACK, 0.55f));
+    DrawRectangle(sx - 8, 4, totalW + 16, 34, Fade(BLACK, 0.55f));
     int cx = sx;
     for (int i = 0; i < count; ++i) {
-        if (i > 0) { DrawText("|", cx, 15, 13, DARKGRAY); cx += 18; }
+        if (i > 0) { DrawText("|", cx, 14, STATUS_FONT, DARKGRAY); cx += 16; }
         Color col = hasEvent[i] ? ORANGE : WHITE;
-        DrawText(bufs[i], cx, 15, 13, col);
-        cx += MeasureText(bufs[i], 13) + 12;
+        DrawText(bufs[i], cx, 14, STATUS_FONT, col);
+        cx += MeasureText(bufs[i], STATUS_FONT) + 12;
     }
 }
 
