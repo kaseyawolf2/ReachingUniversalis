@@ -126,11 +126,19 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     }
     if (ws.empty()) return;
 
-    char bufs[4][48]; int count = 0;
+    // Format: "Greenfield  F:120@2.1  W:20@8.3  [20]  [DROUGHT]"
+    char bufs[4][80]; bool hasEvent[4] = {}; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
-        std::snprintf(bufs[count], 48, "%s  F:%.0f W:%.0f  [%d]",
-                      s.name.c_str(), s.food, s.water, s.pop);
+        if (s.hasEvent)
+            std::snprintf(bufs[count], 80, "%s  F:%.0f@%.1f  W:%.0f@%.1f  [%d] [%s]",
+                          s.name.c_str(), s.food, s.foodPrice,
+                          s.water, s.waterPrice, s.pop, s.eventName.c_str());
+        else
+            std::snprintf(bufs[count], 80, "%s  F:%.0f@%.1f  W:%.0f@%.1f  [%d]",
+                          s.name.c_str(), s.food, s.foodPrice,
+                          s.water, s.waterPrice, s.pop);
+        hasEvent[count] = s.hasEvent;
         ++count;
     }
     int totalW = 0;
@@ -142,7 +150,8 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     int cx = sx;
     for (int i = 0; i < count; ++i) {
         if (i > 0) { DrawText("|", cx, 15, 13, DARKGRAY); cx += 18; }
-        DrawText(bufs[i], cx, 15, 13, WHITE);
+        Color col = hasEvent[i] ? ORANGE : WHITE;
+        DrawText(bufs[i], cx, 15, 13, col);
         cx += MeasureText(bufs[i], 13) + 12;
     }
 }
@@ -175,9 +184,16 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
         const auto& e = entries[idx];
         char buf[96];
         std::snprintf(buf, sizeof(buf), "D%d %02d:xx  %s", e.day, e.hour, e.message.c_str());
-        Color col = (e.message.find("BLOCKED") != std::string::npos) ? RED    :
-                    (e.message.find("died")    != std::string::npos) ? ORANGE :
-                    (e.message.find("CLEARED") != std::string::npos) ? GREEN  : LIGHTGRAY;
+        Color col = (e.message.find("BLOCKED")  != std::string::npos ||
+                     e.message.find("BANDITS")  != std::string::npos ||
+                     e.message.find("DROUGHT")  != std::string::npos ||
+                     e.message.find("BLIGHT")   != std::string::npos) ? RED    :
+                    (e.message.find("died")      != std::string::npos ||
+                     e.message.find("migrating") != std::string::npos) ? ORANGE :
+                    (e.message.find("CLEARED")   != std::string::npos ||
+                     e.message.find("restored")  != std::string::npos ||
+                     e.message.find("reopened")  != std::string::npos ||
+                     e.message.find("Born")      != std::string::npos) ? GREEN  : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
 }
@@ -208,21 +224,29 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     const char* role = (best->role == RenderSnapshot::AgentRole::Player) ? "Player"
                      : (best->role == RenderSnapshot::AgentRole::Hauler) ? "Hauler"
                      : "NPC";
+    bool isHauler = (best->role == RenderSnapshot::AgentRole::Hauler);
 
-    char line1[64], line2[64];
+    char line1[64], line2[64], line3[48] = {};
     std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
     std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%",
                   best->hungerPct * 100.f, best->thirstPct * 100.f, best->energyPct * 100.f);
+    if (isHauler)
+        std::snprintf(line3, sizeof(line3), "Gold: %.1f", best->balance);
 
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
-    int pw = std::max(w1, w2) + 10;
-    int tx = (int)screen.x + 14, ty = (int)screen.y - 36;
+    int w3 = isHauler ? MeasureText(line3, 11) : 0;
+    int pw = std::max({w1, w2, w3}) + 10;
+    int ph = isHauler ? 48 : 32;
+
+    int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
     if (tx + pw > SCREEN_W) tx = (int)screen.x - pw - 10;
     if (ty < 0) ty = (int)screen.y + 12;
 
-    DrawRectangle(tx - 4, ty - 2, pw, 32, Fade(BLACK, 0.75f));
+    DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
     DrawText(line1, tx, ty,      12, WHITE);
     DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
+    if (isHauler)
+        DrawText(line3, tx, ty + 32, 11, YELLOW);
 }
 
 // ---- Debug overlay ----

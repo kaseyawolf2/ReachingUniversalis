@@ -175,7 +175,7 @@ void GameState::Draw() {
 
     // Stockpile panel (screen-space)
     if (panel.open)
-        m_renderSystem.DrawStockpilePanel(panel.name, panel.quantities);
+        m_renderSystem.DrawStockpilePanel(panel);
 
     // HUD
     m_hud.Draw(m_snapshot, m_camera);

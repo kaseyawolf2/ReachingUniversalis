@@ -112,6 +112,8 @@ void SimThread::RunSimStep(float dt) {
     m_movementSystem.Update(m_registry, dt);
     m_productionSystem.Update(m_registry, dt);
     m_transportSystem.Update(m_registry, dt);
+    m_priceSystem.Update(m_registry, dt);         // adjust prices after stockpile changes
+    m_randomEventSystem.Update(m_registry, dt);   // fire events and tick active timers
     m_deathSystem.Update(m_registry, dt);
     m_birthSystem.Update(m_registry, dt);
 }
@@ -230,6 +232,7 @@ void SimThread::WriteSnapshot() {
 
         bool  hasCargo   = false;
         Color cargoColor = WHITE;
+        float balance    = 0.f;
         if (isHauler) {
             if (const auto* inv = m_registry.try_get<Inventory>(e)) {
                 for (const auto& [type, qty] : inv->contents) {
@@ -240,11 +243,13 @@ void SimThread::WriteSnapshot() {
                     break;
                 }
             }
+            if (const auto* money = m_registry.try_get<Money>(e))
+                balance = money->balance;
         }
 
         agents.push_back({ pos.x, pos.y, rend.size,
                            drawColor, ring, hasCargo, cargoColor,
-                           role, hp, tp, ep, astate.behavior });
+                           role, hp, tp, ep, astate.behavior, balance });
     });
 
     // ---- Settlements ----
@@ -284,16 +289,28 @@ void SimThread::WriteSnapshot() {
                       ? sp.quantities.at(ResourceType::Food)  : 0.f;
         float water = sp.quantities.count(ResourceType::Water)
                       ? sp.quantities.at(ResourceType::Water) : 0.f;
+
+        // Market prices (default 1.0 if no market component)
+        float foodPrice = 1.f, waterPrice = 1.f;
+        if (const auto* mkt = m_registry.try_get<Market>(e)) {
+            foodPrice  = mkt->GetPrice(ResourceType::Food);
+            waterPrice = mkt->GetPrice(ResourceType::Water);
+        }
+
         int pop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
-        worldStatus.push_back({ s.name, food, water, pop });
+
+        worldStatus.push_back({ s.name, food, water, foodPrice, waterPrice, pop,
+                                 s.modifierDuration > 0.f, s.modifierName });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
             panel.open       = true;
             panel.name       = s.name;
             panel.quantities = sp.quantities;
+            if (const auto* mkt = m_registry.try_get<Market>(e))
+                panel.prices = mkt->price;
         }
     });
 

@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include <cmath>
 #include <map>
+#include <random>
 
 // A new NPC is born at a settlement when:
 //   - Population at that settlement < MAX_POP_PER_SETTLEMENT
@@ -89,6 +90,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             // Spawn new NPC at a ring around the settlement centre
             float angle = (float)(pop % 20) / 20.f * 2.f * 3.14159f;
             float ring  = 50.f + (float)(pop % 3) * 22.f;
+            // Randomise migration threshold so NPCs don't all flee simultaneously
+            static std::mt19937 s_rng{std::random_device{}()};
+            static std::uniform_real_distribution<float> s_dist(2.f, 5.f);
+            DeprivationTimer dt;
+            dt.migrateThreshold = s_dist(s_rng) * 60.f;  // 2–5 game-hours
+
             auto npc = registry.create();
             registry.emplace<Position>(npc,
                 spos.x + std::cos(angle) * ring,
@@ -98,7 +105,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             registry.emplace<Needs>(npc, MakeNeeds());
             registry.emplace<AgentState>(npc);
             registry.emplace<HomeSettlement>(npc, HomeSettlement{ settl });
-            registry.emplace<DeprivationTimer>(npc);
+            registry.emplace<DeprivationTimer>(npc, dt);
             registry.emplace<Schedule>(npc);
             registry.emplace<Renderable>(npc, WHITE, 6.f);
 

@@ -2,9 +2,15 @@
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <cmath>
+#include <random>
 
 static constexpr float MAP_W = 2400.0f;
 static constexpr float MAP_H  =  720.0f;
+
+// Fixed-seed RNG for reproducible world generation
+static std::mt19937 wg_rng{12345u};
+static std::uniform_real_distribution<float> migrate_dist(2.f, 5.f);   // game-hours
+static std::uniform_real_distribution<float> wait_dist(0.f, 1.f);      // hauler stagger
 
 // Drain rates: full need lasts ~20 game-hours (Hunger), ~13 (Thirst), ~33 (Energy)
 // At 1x: 1 gameDt second = 1 real second = 1 game minute.
@@ -38,7 +44,10 @@ static void SpawnNPCs(entt::registry& registry,
         registry.emplace<Needs>(npc, MakeNeeds());
         registry.emplace<AgentState>(npc);
         registry.emplace<HomeSettlement>(npc, HomeSettlement{ settlement });
-        registry.emplace<DeprivationTimer>(npc);
+        // Randomise migration threshold: NPCs flee at different times (2–5 game-hours)
+        DeprivationTimer dt;
+        dt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
+        registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<Schedule>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);
     }
@@ -57,9 +66,15 @@ static void SpawnHaulers(entt::registry& registry,
         registry.emplace<Needs>(h, MakeNeeds());
         registry.emplace<AgentState>(h);
         registry.emplace<HomeSettlement>(h, HomeSettlement{ settlement });
-        registry.emplace<DeprivationTimer>(h);
+        DeprivationTimer hdt;
+        hdt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
+        registry.emplace<DeprivationTimer>(h, hdt);
         registry.emplace<Inventory>(h, Inventory{ {}, 15 });
-        registry.emplace<Hauler>(h);
+        // Stagger hauler wait timers so they don't all rush for cargo simultaneously
+        Hauler haulerComp;
+        haulerComp.waitTimer = wait_dist(wg_rng);
+        registry.emplace<Hauler>(h, haulerComp);
+        registry.emplace<Money>(h);   // starting wallet: 50 gold
         registry.emplace<Renderable>(h, SKYBLUE, 7.f);
     }
 }
@@ -89,6 +104,11 @@ void WorldGenerator::Populate(entt::registry& registry) {
         { ResourceType::Food,  120.f },
         { ResourceType::Water,  20.f }
     }});
+    // Market: Food cheap (surplus), Water expensive (scarce)
+    registry.emplace<Market>(greenfield, Market{{
+        { ResourceType::Food,  2.0f },
+        { ResourceType::Water, 8.0f }
+    }});
 
     auto wellsworth = registry.create();
     registry.emplace<Position>(wellsworth, 2000.f, 360.f);
@@ -98,6 +118,11 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<Stockpile>(wellsworth, Stockpile{{
         { ResourceType::Food,   20.f },
         { ResourceType::Water, 120.f }
+    }});
+    // Market: Water cheap (surplus), Food expensive (scarce)
+    registry.emplace<Market>(wellsworth, Market{{
+        { ResourceType::Food,  8.0f },
+        { ResourceType::Water, 2.0f }
     }});
 
     // ---- Road ----

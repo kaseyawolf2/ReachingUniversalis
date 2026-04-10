@@ -27,6 +27,7 @@ struct RenderSnapshot {
         AgentRole role;
         float     hungerPct, thirstPct, energyPct;
         AgentBehavior behavior;
+        float     balance = 0.f;   // gold (haulers only, 0 for others)
     };
 
     struct SettlementEntry {
@@ -52,7 +53,11 @@ struct RenderSnapshot {
         std::string name;
         float       food  = 0.f;
         float       water = 0.f;
+        float       foodPrice  = 1.f;   // current market price
+        float       waterPrice = 1.f;
         int         pop   = 0;
+        bool        hasEvent  = false;  // active random event
+        std::string eventName;
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----
@@ -60,6 +65,7 @@ struct RenderSnapshot {
         bool                          open = false;
         std::string                   name;
         std::map<ResourceType, float> quantities;
+        std::map<ResourceType, float> prices;   // market prices for display
     };
 
     // ---- Data fields ----

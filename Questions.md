@@ -23,6 +23,7 @@ defaults are in place — but your answers will shape the next phase of work.
 **Q7** — When an NPC dies in a settlement, should a replacement eventually be
 born (current birth system: pop < 35, enough food/water)? Or should death be
 permanent and settlement collapse be a possible end-state?
+settlements should be allowed to collapse, death is permanent but natually births should eventually replace the dead npcs. but only if npc decide they want a child
 
 **Q8** — Should there be a win/loss condition, or is this an open-ended
 observation sandbox? If there are conditions, what are they? (e.g., "lose if

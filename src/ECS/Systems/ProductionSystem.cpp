@@ -38,7 +38,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         float scale = std::min(MAX_SCALE, static_cast<float>(w) / BASE_WORKERS);
         scale       = std::max(0.1f, scale);   // never fully zero — keep a trickle
 
+        // Apply any active settlement modifier (e.g. drought reduces production)
+        const auto* settl = registry.try_get<Settlement>(fac.settlement);
+        float modifier = settl ? settl->productionModifier : 1.f;
+
         float& qty = stockpile->quantities[fac.output];
-        qty = std::min(STOCKPILE_CAP, qty + fac.baseRate * scale * gameHoursDt);
+        qty = std::min(STOCKPILE_CAP, qty + fac.baseRate * scale * gameHoursDt * modifier);
     }
 }

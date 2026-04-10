@@ -5,11 +5,11 @@
 #include "ECS/Components.h"
 
 // Radius within which an NPC can interact with a production facility.
-static constexpr float FACILITY_RANGE    = 35.0f;
+static constexpr float FACILITY_RANGE = 35.0f;
 // Arrival threshold for reaching a settlement when migrating.
-static constexpr float SETTLE_RANGE      = 130.0f;
-// Stockpile empty time (gameDt seconds) that triggers migration. 2 game-hours.
-static constexpr float MIGRATE_THRESHOLD = 2.f * 60.f;
+static constexpr float SETTLE_RANGE   = 130.0f;
+// Note: migration threshold is now per-NPC (DeprivationTimer::migrateThreshold)
+// so each NPC migrates at a different time, preventing mass simultaneous exodus.
 
 // ---- Static helpers ----
 
@@ -191,7 +191,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         // ============================================================
 
         // -- Check migration trigger first --
-        if (timer.stockpileEmpty >= MIGRATE_THRESHOLD) {
+        if (timer.stockpileEmpty >= timer.migrateThreshold) {
             entt::entity dest = FindMigrationTarget(registry, home.settlement);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;

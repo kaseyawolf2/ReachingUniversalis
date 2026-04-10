@@ -1,5 +1,6 @@
 #pragma once
 #include "ECS/Components.h"
+#include "Threading/RenderSnapshot.h"
 #include <map>
 #include <string>
 
@@ -9,6 +10,5 @@
 
 class RenderSystem {
 public:
-    void DrawStockpilePanel(const std::string& name,
-                            const std::map<ResourceType, float>& quantities) const;
+    void DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel) const;
 };

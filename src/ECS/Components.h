@@ -49,7 +49,10 @@ struct ResourceNode {
 
 struct Settlement {
     std::string name;
-    float       radius = 120.0f;   // visual/interaction radius
+    float       radius = 120.0f;       // visual/interaction radius
+    float       productionModifier = 1.f;   // multiplied into all production output
+    float       modifierDuration   = 0.f;   // game-hours remaining on modifier
+    std::string modifierName;              // e.g. "Drought", shown in HUD
 };
 
 struct Stockpile {
@@ -66,6 +69,7 @@ struct Road {
     entt::entity from = entt::null;
     entt::entity to   = entt::null;
     bool         blocked = false;
+    float        banditTimer = 0.f;   // game-hours until auto-unblock (0 = manual only)
 };
 
 struct HomeSettlement {
@@ -76,7 +80,8 @@ struct HomeSettlement {
 // Used by DeathSystem and AgentDecisionSystem for migration triggering.
 struct DeprivationTimer {
     std::array<float, 3> needsAtZero     = { 0.f, 0.f, 0.f };
-    float                stockpileEmpty  = 0.f;   // seconds with no food OR water
+    float                stockpileEmpty  = 0.f;    // seconds with no food OR water
+    float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
 };
 
 // ---- Inventory / Transport ----
@@ -97,6 +102,23 @@ enum class HaulerState { Idle, GoingToDeposit, GoingHome };
 struct Hauler {
     HaulerState  state            = HaulerState::Idle;
     entt::entity targetSettlement = entt::null;
+    float        waitTimer        = 0.f;   // game-hours before re-evaluating trade
+    float        buyPrice         = 0.f;   // price per unit paid at pickup
+};
+
+// ---- Economy ----
+
+struct Money {
+    float balance = 50.f;   // gold coins
+};
+
+struct Market {
+    std::map<ResourceType, float> price;   // mid-market price per unit
+
+    float GetPrice(ResourceType t) const {
+        auto it = price.find(t);
+        return (it != price.end()) ? it->second : 1.f;
+    }
 };
 
 // ---- Schedule ----
