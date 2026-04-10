@@ -22,7 +22,8 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
 
     // Header with stability bar
     char headBuf[64];
-    std::snprintf(headBuf, sizeof(headBuf), "%s  [%d pop]", panel.name.c_str(), panel.pop);
+    std::snprintf(headBuf, sizeof(headBuf), "%s  [%d/%d pop]",
+                  panel.name.c_str(), panel.pop, panel.popCap);
     DrawText(headBuf, PX + 8, PY + 6, 14, YELLOW);
 
     // Stability bar (right side of header)

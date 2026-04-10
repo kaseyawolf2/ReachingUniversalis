@@ -953,6 +953,7 @@ void SimThread::WriteSnapshot() {
             panel.netRatePerHour  = netRate;
             panel.treasury        = s.treasury;
             panel.pop             = pop;
+            panel.popCap          = 35;   // matches MAX_POP_PER_SETTLEMENT in BirthSystem
             panel.stability       = stability;
             panel.recentEvents    = std::move(filteredEvents);
             if (const auto* mkt = m_registry.try_get<Market>(e))
