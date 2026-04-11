@@ -55,11 +55,38 @@ void GameState::PollInput(float dt) {
     if (IsKeyPressed(KEY_H))    m_input.playerSettle.store(true);
     if (IsKeyPressed(KEY_E))    m_input.playerWork.store(true);
     if (IsKeyPressed(KEY_Q))    m_input.playerBuy.store(true);
+    if (IsKeyPressed(KEY_C))    m_input.playerBuild.store(true);
+    if (IsKeyPressed(KEY_V))    m_input.playerBuyCart.store(true);
+    if (IsKeyPressed(KEY_P))    m_input.playerFoundSettlement.store(true);
+    if (IsKeyPressed(KEY_R))    m_input.roadRepair.store(true);
 
     if (IsKeyPressed(KEY_F)) {
         m_followPlayer = !m_followPlayer;
         m_input.camFollowToggle.store(true);
     }
+
+    // Two-press N: first press selects road start, second press builds the road.
+    if (IsKeyPressed(KEY_N)) {
+        float px, py;
+        {
+            std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+            px = m_snapshot.playerWorldX;
+            py = m_snapshot.playerWorldY;
+        }
+        if (!m_roadBuildMode) {
+            m_roadBuildMode = true;
+            m_roadBuildSrcX = px;
+            m_roadBuildSrcY = py;
+        } else {
+            m_input.roadBuildFromX.store(m_roadBuildSrcX);
+            m_input.roadBuildFromY.store(m_roadBuildSrcY);
+            m_input.roadBuildToX.store(px);
+            m_input.roadBuildToY.store(py);
+            m_input.roadBuild.store(true);
+            m_roadBuildMode = false;
+        }
+    }
+    if (IsKeyPressed(KEY_ESCAPE)) m_roadBuildMode = false;
 
     // ---- Camera pan (arrow keys / drag) — handled entirely on main thread ----
     bool panning = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
@@ -89,7 +116,7 @@ void GameState::PollInput(float dt) {
                         m_camera.zoom + wheel * 0.1f * m_camera.zoom));
     }
 
-    if (IsKeyPressed(KEY_C)) {
+    if (IsKeyPressed(KEY_HOME)) {
         m_camera.target  = { MAP_W * 0.5f, MAP_H * 0.5f };
         m_camera.zoom    = 0.5f;
         m_followPlayer   = false;
@@ -137,14 +164,50 @@ void GameState::Draw() {
     // World drawing
     BeginMode2D(m_camera);
 
-    // Roads
+    // Roads — color-coded by condition: green→yellow→orange→red as condition falls
     for (const auto& r : roads) {
-        Color col = r.blocked ? RED : Fade(BEIGE, 0.6f);
-        DrawLineEx({ r.x1, r.y1 }, { r.x2, r.y2 }, 4.f, col);
+        Color col;
+        if (r.blocked) {
+            col = RED;
+        } else {
+            float c = r.condition;
+            if      (c >= 0.75f) col = Fade(BEIGE, 0.6f);
+            else if (c >= 0.50f) col = Fade(YELLOW,  0.7f);
+            else if (c >= 0.25f) col = Fade(ORANGE,  0.75f);
+            else                 col = Fade(RED,      0.6f);
+        }
+        float lineW = r.blocked ? 3.f : 2.f + r.condition * 2.f;  // thinner as road degrades
+        DrawLineEx({ r.x1, r.y1 }, { r.x2, r.y2 }, lineW, col);
         if (r.blocked) {
             float mx = (r.x1 + r.x2) * 0.5f, my = (r.y1 + r.y2) * 0.5f;
             DrawText("X", (int)mx - 8, (int)my - 10, 24, RED);
         }
+    }
+
+    // Pending road-build line: dashed orange from source to player's current position
+    if (m_roadBuildMode) {
+        float px, py;
+        {
+            std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+            px = m_snapshot.playerWorldX;
+            py = m_snapshot.playerWorldY;
+        }
+        // Draw dashes manually: segment length 12px, gap 8px
+        float dx = px - m_roadBuildSrcX, dy = py - m_roadBuildSrcY;
+        float dist = std::sqrt(dx*dx + dy*dy);
+        if (dist > 1.f) {
+            float ux = dx / dist, uy = dy / dist;
+            static constexpr float SEG = 12.f, GAP = 8.f;
+            float t = 0.f;
+            while (t < dist) {
+                float t2 = std::min(t + SEG, dist);
+                DrawLineEx({ m_roadBuildSrcX + ux*t,  m_roadBuildSrcY + uy*t  },
+                            { m_roadBuildSrcX + ux*t2, m_roadBuildSrcY + uy*t2 },
+                            2.5f, Fade(ORANGE, 0.8f));
+                t = t2 + GAP;
+            }
+        }
+        DrawCircleV({ m_roadBuildSrcX, m_roadBuildSrcY }, 8.f, Fade(ORANGE, 0.6f));
     }
 
     // Active trade routes: thin lines from hauler to destination
@@ -171,8 +234,14 @@ void GameState::Draw() {
             ring = s.selected ? YELLOW :
                    (minStock > 30.f) ? Fade(GREEN, 0.7f)  :
                    (minStock > 10.f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+            // Plague override — ring pulses purple
+            if (s.modifierName == "Plague")
+                ring = s.selected ? YELLOW : Color{ 180, 60, 220, 200 };
         }
         DrawCircleV({ s.x, s.y }, s.radius, fill);
+        // During plague, also draw a second outer ring to make it more visible
+        if (s.pop > 0 && s.modifierName == "Plague")
+            DrawCircleLinesV({ s.x, s.y }, s.radius + 4.f, Fade(Color{180,60,220,255}, 0.5f));
         DrawCircleLinesV({ s.x, s.y }, s.radius, ring);
         Color nameCol = (s.pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
         DrawText(s.name.c_str(),
@@ -185,6 +254,18 @@ void GameState::Draw() {
             DrawText(s.specialty.c_str(),
                      (int)(s.x - MeasureText(s.specialty.c_str(), 11) / 2),
                      (int)(s.y - s.radius - 4), 11, specCol);
+        }
+        // Active event modifier label (Plague, Drought, etc.) — drawn below the circle
+        if (!s.modifierName.empty() && s.pop > 0) {
+            Color modCol = (s.modifierName == "Plague")         ? Color{200, 80, 240, 220} :
+                           (s.modifierName == "Drought")         ? Fade(ORANGE, 0.90f) :
+                           (s.modifierName == "Heat Wave")       ? Color{255, 160, 40, 220} :
+                           (s.modifierName == "Festival")        ? Fade(GOLD, 0.90f)   :
+                           (s.modifierName == "Harvest Bounty") ? Fade(GREEN, 0.90f)  :
+                                                                   Fade(YELLOW, 0.85f);
+            DrawText(s.modifierName.c_str(),
+                     (int)(s.x - MeasureText(s.modifierName.c_str(), 10) / 2),
+                     (int)(s.y + s.radius + 5), 10, modCol);
         }
     }
 
@@ -213,12 +294,32 @@ void GameState::Draw() {
 
     EndMode2D();
 
+    // ---- Night overlay: darken the world during night hours ----
+    // Day (8-17): fully transparent; dawn/dusk: smooth ramp; night (20-5): max darkness.
+    {
+        float hourOfDay;
+        {
+            std::lock_guard<std::mutex> lock(m_snapshot.mutex);
+            hourOfDay = m_snapshot.hourOfDay;
+        }
+        // Build darkness factor: 0 = full day, 1 = full night
+        float darkness = 0.f;
+        if      (hourOfDay >= 20.f || hourOfDay < 5.f)  darkness = 1.f;
+        else if (hourOfDay >= 18.f && hourOfDay < 20.f) darkness = (hourOfDay - 18.f) / 2.f;
+        else if (hourOfDay >=  5.f && hourOfDay <  8.f) darkness = 1.f - (hourOfDay - 5.f) / 3.f;
+        // Max alpha 0.55 — enough to make night feel dark without obscuring gameplay
+        if (darkness > 0.f) {
+            unsigned char alpha = (unsigned char)(darkness * 140.f);
+            DrawRectangle(0, 0, 1280, 720, Color{ 0, 0, 20, alpha });
+        }
+    }
+
     // Stockpile panel (screen-space)
     if (panel.open)
         m_renderSystem.DrawStockpilePanel(panel);
 
     // HUD
-    m_hud.Draw(m_snapshot, m_camera);
+    m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);
 }
 
 // ---- SkyColor --------------------------------------------------------

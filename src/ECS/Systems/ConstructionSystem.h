@@ -13,5 +13,6 @@ public:
     void Update(entt::registry& registry, float realDt);
 
 private:
-    float m_checkAccum = 0.f;   // game-hours since last check
+    float m_checkAccum    = 0.f;   // game-hours since last facility construction check
+    float m_roadBuildAccum = 0.f;  // game-hours since last autonomous road-building check
 };

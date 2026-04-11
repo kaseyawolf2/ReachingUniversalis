@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include <cmath>
 #include <map>
+#include <set>
 #include <vector>
 #include <limits>
 
@@ -33,6 +34,31 @@ static constexpr float HOUSING_COST         = 300.f;  // more expensive than res
 static constexpr float HOUSING_POP_FRACTION = 0.80f;  // expand when pop >= 80% of cap
 static constexpr int   HOUSING_CAP_GAIN     = 5;      // pop cap increase per housing built
 static constexpr int   HOUSING_MAX_CAP      = 70;     // absolute maximum population cap
+
+// Facility degradation — facilities decay unless the settlement pays maintenance.
+// Without maintenance (treasury empty): DEGRADE_RATE_UNMAINTAINED per day.
+// With maintenance: DEGRADE_RATE_MAINTAINED per day (normal upkeep slows decay).
+// Facilities below FACILITY_MIN_RATE collapse and are removed.
+static constexpr float DEGRADE_RATE_UNMAINTAINED = 0.05f;   // 5%/day without upkeep
+static constexpr float DEGRADE_RATE_MAINTAINED   = 0.008f;  // 0.8%/day with upkeep
+static constexpr float MAINTENANCE_COST_PER_FAC  = 3.f;     // gold per facility per game-day
+static constexpr float FACILITY_MIN_RATE         = 0.4f;    // below this → collapse
+
+// Autonomous road building — isolated wealthy settlements fund new connections.
+// Checks every ROAD_BUILD_INTERVAL game-hours. Costs ROAD_AUTO_COST from the
+// building settlement's treasury. Only builds if no existing direct road to target.
+static constexpr float ROAD_BUILD_INTERVAL = 72.f;    // game-hours between road checks
+static constexpr float ROAD_AUTO_COST      = 400.f;   // treasury cost for auto-built road
+static constexpr float ROAD_BUILD_MIN_TRES = 800.f;   // min treasury to fund a new road
+
+// Road degradation — roads lose condition each CHECK_INTERVAL unless maintained.
+// Each settlement pays half the maintenance; if neither can pay, road decays faster.
+// A road below ROAD_COLLAPSE_THRESHOLD auto-blocks until repaired (R key).
+static constexpr float ROAD_MAINT_COST_EACH      = 5.f;     // gold per road per day, per endpoint
+static constexpr float ROAD_DECAY_MAINTAINED     = 0.010f;  // 1%/day with full upkeep
+static constexpr float ROAD_DECAY_PARTIAL        = 0.025f;  // 2.5%/day with one endpoint paying
+static constexpr float ROAD_DECAY_UNMAINTAINED   = 0.045f;  // 4.5%/day with neither paying
+static constexpr float ROAD_COLLAPSE_THRESHOLD   = 0.15f;   // below this → auto-block
 
 void ConstructionSystem::Update(entt::registry& registry, float realDt) {
     auto tv = registry.view<TimeManager>();
@@ -184,4 +210,189 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
             log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
     });
+
+    // ---- Facility degradation ----
+    // Each productive facility slowly loses efficiency (baseRate decay per game-day).
+    // Settlements pay maintenance from treasury each check interval to slow the decay.
+    // If treasury is too low to maintain all facilities, decay accelerates.
+    // Facilities that fall below FACILITY_MIN_RATE collapse (entity destroyed + logged).
+    {
+        // Count facilities per settlement to compute maintenance cost
+        std::map<entt::entity, int> facsBySettl;
+        registry.view<ProductionFacility>().each([&](auto, const ProductionFacility& fac) {
+            if (fac.baseRate > 0.f) ++facsBySettl[fac.settlement];
+        });
+
+        // Determine maintenance payment per settlement
+        std::map<entt::entity, bool> maintained;
+        registry.view<Settlement>().each([&](auto e, Settlement& s) {
+            int facs = facsBySettl.count(e) ? facsBySettl.at(e) : 0;
+            float mainCost = MAINTENANCE_COST_PER_FAC * facs;
+            if (s.treasury >= mainCost) {
+                s.treasury  -= mainCost;
+                maintained[e] = true;
+            } else {
+                maintained[e] = false;
+                // Partial deduction: pay what we can
+                s.treasury = std::max(0.f, s.treasury - mainCost);
+            }
+        });
+
+        // Degrade facility baseRates, collect collapses
+        std::vector<entt::entity> toCollapse;
+        registry.view<ProductionFacility>().each(
+            [&](auto fe, ProductionFacility& fac) {
+            if (fac.baseRate <= 0.f) return;  // shelter nodes exempt
+            bool isMaintained = maintained.count(fac.settlement)
+                                ? maintained.at(fac.settlement) : false;
+            float decayFrac = isMaintained ? DEGRADE_RATE_MAINTAINED
+                                           : DEGRADE_RATE_UNMAINTAINED;
+            // Per CHECK_INTERVAL hours: decay fraction is decayFrac * (CHECK_INTERVAL/24)
+            fac.baseRate -= fac.baseRate * decayFrac * (CHECK_INTERVAL / 24.f);
+            if (fac.baseRate < FACILITY_MIN_RATE)
+                toCollapse.push_back(fe);
+        });
+
+        for (auto fe : toCollapse) {
+            if (!registry.valid(fe)) continue;
+            const auto& fac = registry.get<ProductionFacility>(fe);
+            std::string where = "?";
+            const char* facName = "facility";
+            if (fac.settlement != entt::null && registry.valid(fac.settlement))
+                if (const auto* s = registry.try_get<Settlement>(fac.settlement))
+                    where = s->name;
+            if (fac.output == ResourceType::Food)  facName = "farm";
+            else if (fac.output == ResourceType::Water) facName = "well";
+            else if (fac.output == ResourceType::Wood)  facName = "lumber mill";
+
+            if (log) {
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "%s's %s COLLAPSED from disrepair (no maintenance gold)",
+                    where.c_str(), facName);
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+            registry.destroy(fe);
+        }
+    }
+
+    // ---- Road degradation ----
+    // Roads decay each CHECK_INTERVAL. Both endpoint settlements contribute to maintenance.
+    // If both pay → slow decay; one pays → medium decay; neither → fast decay.
+    // Roads below ROAD_COLLAPSE_THRESHOLD are auto-blocked until the player repairs them.
+    {
+        std::vector<entt::entity> toBlock;
+        registry.view<Road>().each([&](auto re, Road& road) {
+            if (!registry.valid(road.from) || !registry.valid(road.to)) return;
+
+            // Collect maintenance contribution from each endpoint settlement
+            int paidCount = 0;
+            auto tryPay = [&](entt::entity se) {
+                if (se == entt::null || !registry.valid(se)) return;
+                auto* s = registry.try_get<Settlement>(se);
+                if (!s) return;
+                if (s->treasury >= ROAD_MAINT_COST_EACH) {
+                    s->treasury -= ROAD_MAINT_COST_EACH;
+                    ++paidCount;
+                }
+            };
+            tryPay(road.from);
+            tryPay(road.to);
+
+            float decayFrac = (paidCount == 2) ? ROAD_DECAY_MAINTAINED  :
+                              (paidCount == 1) ? ROAD_DECAY_PARTIAL      :
+                                                 ROAD_DECAY_UNMAINTAINED;
+            // Per CHECK_INTERVAL hours: scale by proportion of a day
+            road.condition -= road.condition * decayFrac * (CHECK_INTERVAL / 24.f);
+            road.condition  = std::max(0.f, road.condition);
+
+            if (!road.blocked && road.condition < ROAD_COLLAPSE_THRESHOLD)
+                toBlock.push_back(re);
+        });
+
+        for (auto re : toBlock) {
+            if (!registry.valid(re)) continue;
+            auto& road = registry.get<Road>(re);
+            road.blocked = true;
+            if (log) {
+                std::string nameA = "?", nameB = "?";
+                if (const auto* sa = registry.try_get<Settlement>(road.from)) nameA = sa->name;
+                if (const auto* sb = registry.try_get<Settlement>(road.to))   nameB = sb->name;
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "Road %s–%s COLLAPSED from disrepair (condition %.0f%%)",
+                    nameA.c_str(), nameB.c_str(), road.condition * 100.f);
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+        }
+    }
+
+    // ---- Autonomous road building ----
+    // Wealthy settlements that lack a direct road to a neighbour fund construction
+    // every ROAD_BUILD_INTERVAL game-hours. Only one road per check per settlement.
+    m_roadBuildAccum += gameHoursDt;
+    if (m_roadBuildAccum >= ROAD_BUILD_INTERVAL) {
+        m_roadBuildAccum -= ROAD_BUILD_INTERVAL;
+
+        // Build set of existing direct connections
+        std::set<std::pair<uint32_t,uint32_t>> existingRoads;
+        registry.view<Road>().each([&](const Road& road) {
+            uint32_t a = static_cast<uint32_t>(entt::to_integral(road.from));
+            uint32_t b = static_cast<uint32_t>(entt::to_integral(road.to));
+            if (a > b) std::swap(a, b);
+            existingRoads.insert({a, b});
+        });
+
+        // Collect all settlement positions
+        struct SettlInfo { entt::entity e; float x, y; };
+        std::vector<SettlInfo> allSettls;
+        registry.view<Position, Settlement>().each(
+            [&](auto e, const Position& pos, const Settlement&) {
+            allSettls.push_back({ e, pos.x, pos.y });
+        });
+
+        registry.view<Position, Settlement>().each(
+            [&](auto e, const Position& pos, Settlement& s) {
+            if (s.treasury < ROAD_BUILD_MIN_TRES) return;
+
+            // Find nearest settlement without an existing direct road
+            entt::entity target = entt::null;
+            float bestDist2     = std::numeric_limits<float>::max();
+
+            for (const auto& si : allSettls) {
+                if (si.e == e) continue;
+                uint32_t a = static_cast<uint32_t>(entt::to_integral(e));
+                uint32_t b = static_cast<uint32_t>(entt::to_integral(si.e));
+                if (a > b) std::swap(a, b);
+                if (existingRoads.count({a, b})) continue;   // already connected
+
+                float dx = si.x - pos.x, dy = si.y - pos.y;
+                float d2 = dx*dx + dy*dy;
+                if (d2 < bestDist2) { bestDist2 = d2; target = si.e; }
+            }
+
+            if (target == entt::null) return;
+            if (s.treasury < ROAD_AUTO_COST) return;
+
+            s.treasury -= ROAD_AUTO_COST;
+            auto newRoad = registry.create();
+            registry.emplace<Road>(newRoad, Road{ e, target, false, 0.f });
+
+            // Record so we don't double-build this tick
+            uint32_t a = static_cast<uint32_t>(entt::to_integral(e));
+            uint32_t b = static_cast<uint32_t>(entt::to_integral(target));
+            if (a > b) std::swap(a, b);
+            existingRoads.insert({a, b});
+
+            std::string nameB = "?";
+            if (const auto* ts = registry.try_get<Settlement>(target)) nameB = ts->name;
+            if (log) {
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "%s funded road to %s (%.0fg) — new trade route opened",
+                    s.name.c_str(), nameB.c_str(), ROAD_AUTO_COST);
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+        });
+    }
 }

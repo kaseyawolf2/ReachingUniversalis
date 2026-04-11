@@ -73,7 +73,8 @@ struct Road {
     entt::entity from = entt::null;
     entt::entity to   = entt::null;
     bool         blocked = false;
-    float        banditTimer = 0.f;   // game-hours until auto-unblock (0 = manual only)
+    float        banditTimer  = 0.f;   // game-hours until auto-unblock (0 = manual only)
+    float        condition    = 1.f;   // 0-1, road quality; below ROAD_COLLAPSE threshold → auto-blocked
 };
 
 struct HomeSettlement {

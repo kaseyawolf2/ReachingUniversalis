@@ -94,4 +94,17 @@ private:
     // Price trend tracking: sample prices every N days
     std::map<entt::entity, std::map<ResourceType, float>> m_pricePrev;
     int                                                    m_priceSampleDay{0};
+
+    // Player trade ledger — last 6 trades, newest first
+    std::vector<RenderSnapshot::TradeRecord> m_tradeLedger;
+    void PushTradeRecord(const std::string& desc, float profit);
+
+    // Population milestone tracker — fires log events at pop milestones per settlement
+    std::map<entt::entity, int> m_popMilestone;  // last milestone logged per settlement
+
+    // Population history for sparkline: maps settlement entity → ring buffer of daily pop samples
+    // Sampled once per game-day (at the same interval as m_popPrev).
+    // Maximum POPHISTORY_MAX entries (oldest overwritten).
+    static constexpr int POPHISTORY_MAX = 30;
+    std::map<entt::entity, std::vector<int>> m_popHistory;  // newest at back
 };

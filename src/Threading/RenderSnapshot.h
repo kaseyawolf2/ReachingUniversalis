@@ -42,6 +42,9 @@ struct RenderSnapshot {
         float farmingSkill     = -1.f;
         float waterSkill       = -1.f;
         float woodcuttingSkill = -1.f;
+        // Contentment: weighted average of all needs (0 = miserable, 1 = thriving)
+        // Hunger 30%, Thirst 30%, Energy 20%, Heat 20%
+        float contentment = 1.f;
     };
 
     struct SettlementEntry {
@@ -56,11 +59,13 @@ struct RenderSnapshot {
         int          pop        = 0;     // 0 = collapsed
         Season       season     = Season::Spring;   // snapshot season for ring logic
         std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
+        std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
     };
 
     struct RoadEntry {
         float x1, y1, x2, y2;
         bool  blocked;
+        float condition = 1.f;   // 0-1 road quality; affects render color
         // Settlement names and prices at each end (for hover tooltip)
         std::string nameA, nameB;
         float foodA  = 0.f, waterA = 0.f, woodA = 0.f;
@@ -110,7 +115,11 @@ struct RenderSnapshot {
         int                           popCap    = 35;   // max pop from BirthSystem
         float                         stability = 0.f;   // 0-1 composite settlement health
         int                           workers   = 0;     // current number of Working NPCs
+        std::string                   modifierName;      // active event ("Plague", "Drought", etc.)
+        float                         modifierHoursLeft = 0.f;
         std::vector<EventLog::Entry>  recentEvents;      // last 5 events mentioning this settlement
+        // Population history — one entry per sample day, newest last (up to 30 points)
+        std::vector<int>              popHistory;
     };
 
     // ---- Data fields ----
@@ -161,10 +170,21 @@ struct RenderSnapshot {
     float playerWorldX = 640.f;
     float playerWorldY = 360.f;
 
+    // Player trade ledger — last few completed trades (newest first)
+    struct TradeRecord {
+        std::string  description;  // e.g. "Sold 3 food at Wellsworth +18.0g"
+        float        profit;       // positive = gain, negative = loss
+    };
+    std::vector<TradeRecord> tradeLedger;   // max 6 entries
+
     // Best available trade hint for the player HUD
     // e.g. "Food: buy Ashford 1.2g → sell Wellsworth 7.8g (+6.6g)"
     // Empty string means prices are too balanced to suggest a trade.
     std::string tradeHint;
+
+    // Set when the player is standing inside a plague-afflicted settlement.
+    // Triggers a warning in the player HUD panel.
+    bool playerInPlagueZone = false;
 
     // Event log
     std::vector<EventLog::Entry> logEntries;

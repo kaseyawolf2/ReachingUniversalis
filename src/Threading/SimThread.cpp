@@ -22,6 +22,11 @@ SimThread::~SimThread() {
     Stop();
 }
 
+void SimThread::PushTradeRecord(const std::string& desc, float profit) {
+    m_tradeLedger.insert(m_tradeLedger.begin(), { desc, profit });
+    if ((int)m_tradeLedger.size() > 6) m_tradeLedger.resize(6);
+}
+
 void SimThread::Start() {
     m_running = true;
     m_thread  = std::thread(&SimThread::Run, this);
@@ -296,6 +301,10 @@ void SimThread::ProcessInput() {
                     if (auto* destSettl2 = m_registry.try_get<Settlement>(nearSettl))
                         destSettl2->treasury += taxTotal;
                     inv.contents.clear();
+                    char ledgBuf[80];
+                    std::snprintf(ledgBuf, sizeof(ledgBuf),
+                        "Sold at %s +%.0fg", settl.name.c_str(), earned);
+                    PushTradeRecord(ledgBuf, earned);
                     if (log2) log2->Push(day2, hr2,
                         "Sold goods at " + settl.name
                         + " for " + std::to_string((int)earned) + "g (tax "
@@ -536,10 +545,426 @@ void SimThread::ProcessInput() {
                         std::snprintf(buf, sizeof(buf), "Bought %d %s at %s for %.2fg (%.2fg/unit)",
                                       buyQty, rname, sname.c_str(), totalCost, cheapPrice);
                         if (blog) blog->Push(tm.day, (int)tm.hourOfDay, buf);
+                        char ledg[80];
+                        std::snprintf(ledg, sizeof(ledg), "Bought %dx%s @%s -%.0fg",
+                                      buyQty, rname, sname.c_str(), totalCost);
+                        PushTradeRecord(ledg, -totalCost);
                     } else {
                         if (blog) blog->Push(tm.day, (int)tm.hourOfDay,
                             "Nothing affordable to buy at " + sname + " (stockpile empty or no gold)");
                     }
+                }
+            }
+        }
+    }
+
+    // One-shot: player buy cart (V key) — spend 300g at a nearby settlement to
+    // increase carry capacity by 10. Can be done multiple times (up to a cap of 45).
+    if (m_input.playerBuyCart.exchange(false)) {
+        static constexpr float CART_COST    = 300.f;
+        static constexpr float CART_RADIUS  = 150.f;
+        static constexpr int   CART_GAIN    = 10;
+        static constexpr int   CART_MAX_CAP = 45;
+        auto pvc = m_registry.view<PlayerTag, Position, Money, Inventory>();
+        auto lvc = m_registry.view<EventLog>();
+        EventLog* blogc = (lvc.begin() == lvc.end()) ? nullptr
+                        : &lvc.get<EventLog>(*lvc.begin());
+        if (pvc.begin() != pvc.end()) {
+            auto  pec  = *pvc.begin();
+            auto& ppc  = pvc.get<Position>(pec);
+            auto& monc = pvc.get<Money>(pec);
+            auto& invc = pvc.get<Inventory>(pec);
+
+            // Must be near a settlement
+            entt::entity nearSettlC = entt::null;
+            float nearDistC = CART_RADIUS * CART_RADIUS;
+            m_registry.view<Position, Settlement>().each(
+                [&](auto se, const Position& sp, const Settlement&) {
+                float dx = sp.x - ppc.x, dy = sp.y - ppc.y;
+                if (dx*dx + dy*dy < nearDistC) { nearDistC = dx*dx+dy*dy; nearSettlC = se; }
+            });
+
+            if (nearSettlC == entt::null) {
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay,
+                    "Cart: must be near a settlement to purchase");
+            } else if (invc.maxCapacity >= CART_MAX_CAP) {
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay,
+                    "Cart: already at maximum carry capacity");
+            } else if (monc.balance < CART_COST) {
+                char buf[80];
+                std::snprintf(buf, sizeof(buf), "Cart: need %.0fg (have %.0fg)",
+                    CART_COST, monc.balance);
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf);
+            } else {
+                monc.balance      -= CART_COST;
+                invc.maxCapacity  += CART_GAIN;
+                char buf[80];
+                std::snprintf(buf, sizeof(buf),
+                    "Bought a cart — carry capacity now %d (paid %.0fg)",
+                    invc.maxCapacity, CART_COST);
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+        }
+    }
+
+    // One-shot: player build (C key) — spend 200g to fund a new production facility
+    // at the nearest settlement, building whichever resource has the highest market price.
+    if (m_input.playerBuild.exchange(false)) {
+        static constexpr float BUILD_RADIUS = 150.f;
+        static constexpr float BUILD_COST   = 200.f;
+        static constexpr float BUILD_RATE   = 3.f;
+        auto pv5 = m_registry.view<PlayerTag, Position, Money>();
+        auto lv5 = m_registry.view<EventLog>();
+        EventLog* blog5 = (lv5.begin() == lv5.end()) ? nullptr
+                        : &lv5.get<EventLog>(*lv5.begin());
+        if (pv5.begin() != pv5.end()) {
+            auto  pe5  = *pv5.begin();
+            auto& pp5  = pv5.get<Position>(pe5);
+            auto& mon5 = pv5.get<Money>(pe5);
+
+            // Find nearest settlement within BUILD_RADIUS
+            entt::entity nearSettl5 = entt::null;
+            float nearDist5 = BUILD_RADIUS * BUILD_RADIUS;
+            m_registry.view<Position, Settlement>().each(
+                [&](auto se, const Position& sp, const Settlement&) {
+                float dx = sp.x - pp5.x, dy = sp.y - pp5.y;
+                float d2 = dx*dx + dy*dy;
+                if (d2 < nearDist5) { nearDist5 = d2; nearSettl5 = se; }
+            });
+
+            if (nearSettl5 == entt::null) {
+                if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay,
+                    "Build: no settlement nearby — move closer first");
+            } else if (mon5.balance < BUILD_COST) {
+                char buf[80];
+                std::snprintf(buf, sizeof(buf),
+                    "Build: need %.0fg (have %.0fg)", BUILD_COST, mon5.balance);
+                if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf);
+            } else {
+                // Pick the most expensive resource at this settlement
+                const auto* mkt5 = m_registry.try_get<Market>(nearSettl5);
+                const auto* sPos5 = m_registry.try_get<Position>(nearSettl5);
+                const auto* st5   = m_registry.try_get<Settlement>(nearSettl5);
+                if (mkt5 && sPos5) {
+                    ResourceType buildType5 = ResourceType::Food;
+                    float bestPrice5 = -1.f;
+                    for (auto r : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                        float p = mkt5->GetPrice(r);
+                        if (p > bestPrice5) { bestPrice5 = p; buildType5 = r; }
+                    }
+                    // Deduct gold and create facility at player's current position
+                    mon5.balance -= BUILD_COST;
+                    auto newFac5 = m_registry.create();
+                    m_registry.emplace<Position>(newFac5, pp5.x, pp5.y);
+                    m_registry.emplace<ProductionFacility>(newFac5,
+                        ProductionFacility{ buildType5, BUILD_RATE, nearSettl5, {} });
+                    const char* rname5 = (buildType5 == ResourceType::Food)  ? "farm"      :
+                                         (buildType5 == ResourceType::Water) ? "well"      : "lumber mill";
+                    char buf[140];
+                    std::snprintf(buf, sizeof(buf),
+                        "You built a %s for %s (%.0fg)",
+                        rname5, st5 ? st5->name.c_str() : "?", BUILD_COST);
+                    if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf);
+                }
+            }
+        }
+    }
+
+    // One-shot: player found settlement (P key) — spend 1,500g to establish a new settlement
+    // at the player's current location. Minimum distance from any existing settlement: 400px.
+    // Seeds with shelter + one production facility + 4 starter NPCs + 1 hauler.
+    if (m_input.playerFoundSettlement.exchange(false)) {
+        static constexpr float FOUND_COST       = 1500.f;
+        static constexpr float FOUND_MIN_DIST   = 400.f;
+        static constexpr float MAP_W_F          = 2400.f;
+        static constexpr float MAP_H_F          =  720.f;
+
+        auto pvf = m_registry.view<PlayerTag, Position, Money, HomeSettlement>();
+        auto lvf = m_registry.view<EventLog>();
+        EventLog* blogf = (lvf.begin() == lvf.end()) ? nullptr
+                        : &lvf.get<EventLog>(*lvf.begin());
+
+        if (pvf.begin() != pvf.end()) {
+            auto  pef  = *pvf.begin();
+            auto& ppf  = pvf.get<Position>(pef);
+            auto& monf = pvf.get<Money>(pef);
+            auto& hmf  = pvf.get<HomeSettlement>(pef);
+
+            // Check gold
+            if (monf.balance < FOUND_COST) {
+                char buf[80];
+                std::snprintf(buf, sizeof(buf),
+                    "Found settlement: need %.0fg (have %.0fg)", FOUND_COST, monf.balance);
+                if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay, buf);
+            } else {
+                // Check distance from existing settlements
+                float nearestSettlDist = FOUND_MIN_DIST * FOUND_MIN_DIST;
+                bool tooClose = false;
+                m_registry.view<Position, Settlement>().each(
+                    [&](auto se, const Position& sp, const Settlement&) {
+                    float dx = sp.x - ppf.x, dy = sp.y - ppf.y;
+                    if (dx*dx + dy*dy < nearestSettlDist) tooClose = true;
+                });
+
+                if (tooClose) {
+                    if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay,
+                        "Found settlement: too close to an existing settlement (need 400+ distance)");
+                } else if (ppf.x < 60.f || ppf.x > MAP_W_F - 60.f ||
+                           ppf.y < 60.f || ppf.y > MAP_H_F - 60.f) {
+                    if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay,
+                        "Found settlement: too close to the map edge");
+                } else {
+                    // Pick a settlement name
+                    static const char* FOUND_NAMES[] = {
+                        "Ironvale","Copperhold","Stoneford","Ashgate","Saltmere",
+                        "Thornwick","Coalport","Silversea","Flintridge","Emberhaven",
+                        "Crowpeak","Dustmoor","Glassford","Shadowfen","Pinegrave"
+                    };
+                    static int nameIdx = 0;
+                    const char* newName = FOUND_NAMES[nameIdx % 15];
+                    ++nameIdx;
+
+                    // Deduct gold
+                    monf.balance -= FOUND_COST;
+
+                    // Create settlement entity
+                    auto newSettl = m_registry.create();
+                    m_registry.emplace<Position>(newSettl, ppf.x, ppf.y);
+                    m_registry.emplace<Settlement>(newSettl,
+                        Settlement{ newName, 120.f, 1.f, 0.f, "", 300.f, 15 });
+                    m_registry.emplace<BirthTracker>(newSettl);
+                    m_registry.emplace<StockpileAlert>(newSettl);
+                    m_registry.emplace<Stockpile>(newSettl, Stockpile{{
+                        { ResourceType::Food,  60.f },
+                        { ResourceType::Water, 60.f },
+                        { ResourceType::Wood,  40.f }
+                    }});
+                    // Starting market: mid-range prices
+                    m_registry.emplace<Market>(newSettl, Market{{
+                        { ResourceType::Food,  4.f },
+                        { ResourceType::Water, 4.f },
+                        { ResourceType::Wood,  4.f }
+                    }});
+
+                    // Shelter node
+                    {
+                        auto rest = m_registry.create();
+                        m_registry.emplace<Position>(rest, ppf.x, ppf.y + 50.f);
+                        m_registry.emplace<ProductionFacility>(rest,
+                            ProductionFacility{ ResourceType::Shelter, 0.f, newSettl, {} });
+                    }
+
+                    // One production facility — pick resource type that's most scarce
+                    // (highest average price across existing settlements)
+                    {
+                        float bestPrice = 0.f;
+                        ResourceType buildRes = ResourceType::Food;
+                        for (auto res : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                            float totalP = 0.f; int cnt = 0;
+                            m_registry.view<Market>().each([&](auto me, const Market& mkt) {
+                                if (me == newSettl) return;
+                                totalP += mkt.GetPrice(res); ++cnt;
+                            });
+                            float avgP = (cnt > 0) ? totalP / cnt : 0.f;
+                            if (avgP > bestPrice) { bestPrice = avgP; buildRes = res; }
+                        }
+                        auto fac = m_registry.create();
+                        m_registry.emplace<Position>(fac, ppf.x - 50.f, ppf.y - 50.f);
+                        m_registry.emplace<ProductionFacility>(fac,
+                            ProductionFacility{ buildRes, 3.f, newSettl, {} });
+                    }
+
+                    // Spawn 4 starter NPCs
+                    static constexpr float DRAIN_H = 0.00083f, DRAIN_T = 0.00125f,
+                                           DRAIN_E = 0.00050f, DRAIN_X = 0.00200f;
+                    static constexpr float REFILL_H = 0.004f, REFILL_T = 0.006f,
+                                           REFILL_E = 0.002f, REFILL_X = 0.010f;
+                    std::mt19937 frng{std::random_device{}()};
+                    std::uniform_real_distribution<float> ad(5.f, 35.f), ld(60.f, 100.f);
+                    std::uniform_real_distribution<float> tr(0.80f, 1.20f), sk(0.35f, 0.65f);
+                    std::uniform_real_distribution<float> ang(0.f, 6.28f);
+                    static const char* FN[] = {"Aldric","Bryn","Clara","Daven","Elara","Finn","Gareth","Holt"};
+                    static const char* LN[] = {"Smith","Miller","Cooper","Reed","Stone","Vale"};
+                    std::uniform_int_distribution<int> fn(0,7), ln(0,5);
+
+                    for (int i = 0; i < 4; ++i) {
+                        float a = ang(frng);
+                        auto npc = m_registry.create();
+                        m_registry.emplace<Position>(npc, ppf.x + std::cos(a)*50.f, ppf.y + std::sin(a)*50.f);
+                        m_registry.emplace<Velocity>(npc, 0.f, 0.f);
+                        m_registry.emplace<MoveSpeed>(npc, 60.f);
+                        Needs nn{{ Need{NeedType::Hunger,1.f,DRAIN_H*tr(frng),0.3f,REFILL_H},
+                                   Need{NeedType::Thirst,1.f,DRAIN_T*tr(frng),0.3f,REFILL_T},
+                                   Need{NeedType::Energy,1.f,DRAIN_E*tr(frng),0.3f,REFILL_E},
+                                   Need{NeedType::Heat,  1.f,DRAIN_X*tr(frng),0.3f,REFILL_X} }};
+                        m_registry.emplace<Needs>(npc, nn);
+                        m_registry.emplace<AgentState>(npc);
+                        m_registry.emplace<HomeSettlement>(npc, HomeSettlement{newSettl});
+                        DeprivationTimer dtt; dtt.migrateThreshold = 5.f * 60.f;
+                        m_registry.emplace<DeprivationTimer>(npc, dtt);
+                        m_registry.emplace<Schedule>(npc);
+                        m_registry.emplace<Renderable>(npc, WHITE, 6.f);
+                        m_registry.emplace<Money>(npc, Money{10.f});
+                        Age age; age.days = ad(frng); age.maxDays = ld(frng);
+                        m_registry.emplace<Age>(npc, age);
+                        m_registry.emplace<Name>(npc, Name{std::string(FN[fn(frng)])+" "+LN[ln(frng)]});
+                        m_registry.emplace<Skills>(npc, Skills{sk(frng),sk(frng),sk(frng)});
+                    }
+
+                    // Spawn 1 hauler
+                    {
+                        float a = ang(frng);
+                        auto h = m_registry.create();
+                        m_registry.emplace<Position>(h, ppf.x + std::cos(a)*80.f, ppf.y + std::sin(a)*80.f);
+                        m_registry.emplace<Velocity>(h, 0.f, 0.f);
+                        m_registry.emplace<MoveSpeed>(h, 70.f);
+                        Needs hn{{ Need{NeedType::Hunger,1.f,DRAIN_H,0.3f,REFILL_H},
+                                   Need{NeedType::Thirst,1.f,DRAIN_T,0.3f,REFILL_T},
+                                   Need{NeedType::Energy,1.f,0.f,    0.3f,REFILL_E},
+                                   Need{NeedType::Heat,  1.f,DRAIN_X,0.3f,REFILL_X} }};
+                        m_registry.emplace<Needs>(h, hn);
+                        m_registry.emplace<AgentState>(h);
+                        m_registry.emplace<HomeSettlement>(h, HomeSettlement{newSettl});
+                        DeprivationTimer hdtt; hdtt.migrateThreshold = 5.f * 60.f;
+                        m_registry.emplace<DeprivationTimer>(h, hdtt);
+                        m_registry.emplace<Inventory>(h, Inventory{{}, 15});
+                        m_registry.emplace<Hauler>(h, Hauler{});
+                        m_registry.emplace<Money>(h, Money{50.f});
+                        m_registry.emplace<Renderable>(h, SKYBLUE, 7.f);
+                        Age ha; ha.days = ad(frng); ha.maxDays = ld(frng);
+                        m_registry.emplace<Age>(h, ha);
+                        m_registry.emplace<Name>(h, Name{std::string(FN[fn(frng)])+" "+LN[ln(frng)]});
+                    }
+
+                    // Relocate the player to this settlement as their new home
+                    hmf.settlement = newSettl;
+
+                    if (blogf) {
+                        char buf[120];
+                        std::snprintf(buf, sizeof(buf),
+                            "You founded %s (%.0fg) — 4 settlers + 1 hauler arrived!",
+                            newName, FOUND_COST);
+                        blogf->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                }
+            }
+        }
+    }
+
+    // One-shot: road repair (R key) — pay 50g to unblock the nearest blocked road within 80px.
+    if (m_input.roadRepair.exchange(false)) {
+        static constexpr float REPAIR_RADIUS = 80.f;
+        static constexpr float REPAIR_COST   = 50.f;
+        auto pv6 = m_registry.view<PlayerTag, Position, Money>();
+        auto lv6 = m_registry.view<EventLog>();
+        EventLog* blog6 = (lv6.begin() == lv6.end()) ? nullptr
+                        : &lv6.get<EventLog>(*lv6.begin());
+        if (pv6.begin() != pv6.end()) {
+            auto  pe6  = *pv6.begin();
+            auto& pp6  = pv6.get<Position>(pe6);
+            auto& mon6 = pv6.get<Money>(pe6);
+
+            entt::entity nearRoad6 = entt::null;
+            float        nearDist6 = REPAIR_RADIUS * REPAIR_RADIUS;
+            m_registry.view<Road>().each([&](auto re, const Road& road) {
+                if (!road.blocked) return;
+                const auto* posA = m_registry.try_get<Position>(road.from);
+                const auto* posB = m_registry.try_get<Position>(road.to);
+                if (!posA || !posB) return;
+                float mx6 = (posA->x + posB->x) * 0.5f;
+                float my6 = (posA->y + posB->y) * 0.5f;
+                float dx = mx6 - pp6.x, dy = my6 - pp6.y;
+                float d2 = dx*dx + dy*dy;
+                if (d2 < nearDist6) { nearDist6 = d2; nearRoad6 = re; }
+            });
+
+            if (nearRoad6 == entt::null) {
+                if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay,
+                    "Road repair: no blocked road nearby (walk closer to a blocked road)");
+            } else if (mon6.balance < REPAIR_COST) {
+                char buf[80];
+                std::snprintf(buf, sizeof(buf),
+                    "Road repair: need %.0fg (have %.0fg)", REPAIR_COST, mon6.balance);
+                if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay, buf);
+            } else {
+                auto& road6 = m_registry.get<Road>(nearRoad6);
+                road6.blocked     = false;
+                road6.banditTimer = 0.f;
+                road6.condition   = 1.f;   // full restoration on repair
+                mon6.balance     -= REPAIR_COST;
+                if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay,
+                    "You repaired the road (paid " + std::to_string((int)REPAIR_COST) + "g)");
+            }
+        }
+    }
+
+    // One-shot: road build (N key, two-press) — pay 400g to connect two settlements.
+    if (m_input.roadBuild.exchange(false)) {
+        static constexpr float ROAD_BUILD_COST   = 400.f;
+        static constexpr float SETTLE_SNAP_RADIUS = 200.f;
+        float fromX = m_input.roadBuildFromX.load();
+        float fromY = m_input.roadBuildFromY.load();
+        float toX   = m_input.roadBuildToX.load();
+        float toY   = m_input.roadBuildToY.load();
+
+        auto lv7 = m_registry.view<EventLog>();
+        EventLog* blog7 = (lv7.begin() == lv7.end()) ? nullptr
+                        : &lv7.get<EventLog>(*lv7.begin());
+        auto pv7 = m_registry.view<PlayerTag, Money>();
+
+        if (pv7.begin() != pv7.end()) {
+            auto  pe7  = *pv7.begin();
+            auto& mon7 = pv7.get<Money>(pe7);
+
+            // Find nearest settlement to each endpoint
+            auto findNearest = [&](float wx, float wy) -> entt::entity {
+                entt::entity best = entt::null;
+                float bestD2 = SETTLE_SNAP_RADIUS * SETTLE_SNAP_RADIUS;
+                m_registry.view<Position, Settlement>().each(
+                    [&](auto se, const Position& sp, const Settlement&) {
+                    float dx = sp.x - wx, dy = sp.y - wy;
+                    float d2 = dx*dx + dy*dy;
+                    if (d2 < bestD2) { bestD2 = d2; best = se; }
+                });
+                return best;
+            };
+
+            entt::entity sA = findNearest(fromX, fromY);
+            entt::entity sB = findNearest(toX, toY);
+
+            if (sA == entt::null || sB == entt::null) {
+                if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
+                    "Road build: must press N near a settlement at both start and end");
+            } else if (sA == sB) {
+                if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
+                    "Road build: start and end must be different settlements");
+            } else if (mon7.balance < ROAD_BUILD_COST) {
+                char buf[80];
+                std::snprintf(buf, sizeof(buf),
+                    "Road build: need %.0fg (have %.0fg)", ROAD_BUILD_COST, mon7.balance);
+                if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf);
+            } else {
+                // Check if road already exists between these two settlements
+                bool exists = false;
+                m_registry.view<Road>().each([&](const Road& r) {
+                    if ((r.from == sA && r.to == sB) || (r.from == sB && r.to == sA))
+                        exists = true;
+                });
+                if (exists) {
+                    if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
+                        "Road build: a road already connects those settlements");
+                } else {
+                    auto newRoad = m_registry.create();
+                    m_registry.emplace<Road>(newRoad, Road{ sA, sB, false, 0.f });
+                    mon7.balance -= ROAD_BUILD_COST;
+                    std::string nameA = "?", nameB = "?";
+                    if (const auto* st = m_registry.try_get<Settlement>(sA)) nameA = st->name;
+                    if (const auto* st = m_registry.try_get<Settlement>(sB)) nameB = st->name;
+                    char buf[120];
+                    std::snprintf(buf, sizeof(buf),
+                        "You built a road: %s ↔ %s (%.0fg)",
+                        nameA.c_str(), nameB.c_str(), ROAD_BUILD_COST);
+                    if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf);
                 }
             }
         }
@@ -656,6 +1081,17 @@ void SimThread::WriteSnapshot() {
             ageDays = age->days;
             maxDays = age->maxDays;
         }
+
+        // Life-stage color tint (only when not overridden by need-distress color).
+        // Distress colors are RED/ORANGE/YELLOW; healthy adults are WHITE/SKYBLUE.
+        // We tint healthy children warm-yellow and healthy elders cool-silver.
+        bool isHealthyColor = !isPlayer && !isHauler
+                           && drawColor.r == 255 && drawColor.g == 255 && drawColor.b == 255;
+        if (isHealthyColor) {
+            if      (ageDays < 15.f)  drawColor = Color{ 255, 240, 160, 255 };  // child: warm yellow
+            else if (ageDays > 65.f)  drawColor = Color{ 180, 200, 220, 255 };  // elder: cool silver
+        }
+
         std::string npcName;
         if (const auto* n = m_registry.try_get<Name>(e))
             npcName = n->value;
@@ -743,13 +1179,17 @@ void SimThread::WriteSnapshot() {
             else if (ageDays > 65.f) drawSize *= 1.05f;
         }
 
+        // Contentment: weighted average of needs
+        float contentment = 0.30f * hp + 0.30f * tp + 0.20f * ep + 0.20f * htp;
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
                            hasRouteDest, routeDestX, routeDestY,
                            profession, homeSettlName,
-                           farmSkill, waterSkill, woodSkill });
+                           farmSkill, waterSkill, woodSkill,
+                           contentment });
     });
 
     // ---- Settlements ----
@@ -797,7 +1237,8 @@ void SimThread::WriteSnapshot() {
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
-            food, water, wood, spop, snapSeason, specialty
+            food, water, wood, spop, snapSeason, specialty,
+            s.modifierName
         });
     });
 
@@ -823,7 +1264,7 @@ void SimThread::WriteSnapshot() {
         };
         fillRoadEnd(road.from, nA, fA, wA, dA);
         fillRoadEnd(road.to,   nB, fB, wB, dB);
-        roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked,
+        roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked, road.condition,
                           nA, nB, fA, wA, dA, fB, wB, dB });
     });
 
@@ -886,17 +1327,41 @@ void SimThread::WriteSnapshot() {
     {
         auto tmv2 = m_registry.view<TimeManager>();
         if (tmv2.begin() != tmv2.end()) {
-            int curDay = tmv2.get<TimeManager>(*tmv2.begin()).day;
+            int curDay  = tmv2.get<TimeManager>(*tmv2.begin()).day;
+            int curHour = (int)tmv2.get<TimeManager>(*tmv2.begin()).hourOfDay;
 
-            // Population snapshot (every 3 days)
+            // Population snapshot (every 3 days) + milestone logging
             if (curDay >= m_popSampleDay + 3) {
                 m_popSampleDay = curDay;
-                m_registry.view<Position, Settlement>().each(
-                    [&](auto e, const Position&, const Settlement&) {
+                auto lvm = m_registry.view<EventLog>();
+                EventLog* popLog = (lvm.begin() == lvm.end()) ? nullptr
+                                 : &lvm.get<EventLog>(*lvm.begin());
+                m_registry.view<Settlement>().each(
+                    [&](auto e, const Settlement& settl) {
                     int curPop = 0;
                     m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
                         [&](const HomeSettlement& hs) { if (hs.settlement == e) ++curPop; });
                     m_popPrev[e] = curPop;
+
+                    // Append to population history ring buffer
+                    auto& hist = m_popHistory[e];
+                    hist.push_back(curPop);
+                    if ((int)hist.size() > POPHISTORY_MAX)
+                        hist.erase(hist.begin());
+
+                    // Milestone notifications at 10, 20, 30, 40, 50, 60 pop
+                    int lastMs = m_popMilestone.count(e) ? m_popMilestone[e] : 0;
+                    for (int ms : {10, 20, 30, 40, 50, 60}) {
+                        if (curPop >= ms && lastMs < ms) {
+                            m_popMilestone[e] = ms;
+                            if (popLog) {
+                                char buf[80];
+                                std::snprintf(buf, sizeof(buf),
+                                    "%s reaches %d citizens!", settl.name.c_str(), ms);
+                                popLog->Push(curDay, curHour, buf);
+                            }
+                        }
+                    }
                 });
             }
 
@@ -1075,14 +1540,19 @@ void SimThread::WriteSnapshot() {
             panel.netRatePerHour  = netRate;
             panel.prodRatePerHour = prodRate;
             panel.consRatePerHour = consRate;
-            panel.treasury        = s.treasury;
-            panel.pop             = pop;
-            panel.popCap          = s.popCap;   // dynamic — expands with housing construction
-            panel.stability       = stability;
-            panel.workers         = workers;
+            panel.treasury         = s.treasury;
+            panel.pop              = pop;
+            panel.popCap           = s.popCap;
+            panel.stability        = stability;
+            panel.workers          = workers;
+            panel.modifierName     = s.modifierName;
+            panel.modifierHoursLeft = s.modifierDuration;
             panel.recentEvents    = std::move(filteredEvents);
             if (const auto* mkt = m_registry.try_get<Market>(e))
                 panel.prices = mkt->price;
+            // Population history sparkline
+            if (m_popHistory.count(e))
+                panel.popHistory = m_popHistory.at(e);
         }
     });
 
@@ -1156,6 +1626,19 @@ void SimThread::WriteSnapshot() {
             }
         }
     }
+
+    // ---- Plague zone detection ----
+    // Player is considered "in a plague zone" if they're within the radius of any
+    // settlement currently afflicted by Plague. This flag causes extra need drain
+    // in NeedDrainSystem and shows a warning in the HUD.
+    bool playerInPlagueZone = false;
+    m_registry.view<Position, Settlement>().each(
+        [&](const Position& sp, const Settlement& s) {
+        if (s.modifierName != "Plague") return;
+        float dx = playerWX - sp.x, dy = playerWY - sp.y;
+        if (dx*dx + dy*dy <= s.radius * s.radius)
+            playerInPlagueZone = true;
+    });
 
     // ---- Trade opportunity hint ----
     // If the player is near a settlement (within BUY_RADIUS), shows the best trade
@@ -1346,6 +1829,8 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerInventory         = std::move(playerInventory);
         m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
         m_snapshot.tradeHint               = std::move(tradeHint);
+        m_snapshot.playerInPlagueZone      = playerInPlagueZone;
+        m_snapshot.tradeLedger             = m_tradeLedger;
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.econTotalGold     = econTotalGold;
         m_snapshot.econAvgNpcWealth  = econAvgNpcWealth;

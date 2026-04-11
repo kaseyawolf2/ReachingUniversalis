@@ -44,7 +44,7 @@ void HUD::HandleInput(const RenderSnapshot& /*snapshot*/) {
 
 // ---- Draw ----
 
-void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
+void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuildMode) {
     // Take a local copy of the parts we need — snapshot may be updated by sim
     // thread mid-draw if we read directly, so copy once under lock.
     // The lock is already released by GameState::Draw before calling us;
@@ -58,11 +58,13 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     float playerAgeDays, playerMaxDays, playerGold;
     float playerFarmSkill, playerWaterSkill, playerWoodSkill;
     float temperature;
+    bool  playerInPlagueZone;
     std::map<ResourceType, int> playerInventory;
     int         playerInventoryCapacity = 15;
     std::string tradeHint;
     AgentBehavior behavior;
     Season season;
+    std::vector<RenderSnapshot::TradeRecord> tradeLedger;
 
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -88,9 +90,11 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         playerWoodSkill  = snap.playerWoodSkill;
         playerInventory         = snap.playerInventory;
         playerInventoryCapacity = snap.playerInventoryCapacity;
-        tradeHint   = snap.tradeHint;
-        season      = snap.season;
-        temperature = snap.temperature;
+        tradeHint            = snap.tradeHint;
+        tradeLedger          = snap.tradeLedger;
+        season               = snap.season;
+        temperature          = snap.temperature;
+        playerInPlagueZone   = snap.playerInPlagueZone;
     }
 
     // ---- Player need bars (top-left) ----
@@ -98,8 +102,10 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         int invItemLines = std::max(1, (int)playerInventory.size()); // at least 1 for "(empty)"
         int skillLine    = (playerFarmSkill >= 0.f) ? 1 : 0;
         int tradeLines   = tradeHint.empty() ? 0 : 1;
+        int ledgerLines  = tradeLedger.empty() ? 0 : (1 + std::min((int)tradeLedger.size(), 4));
+        int plagueLines  = playerInPlagueZone ? 1 : 0;
         // +1 for cargo header row (always shown), invItemLines for item rows
-        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14, Fade(BLACK, 0.55f));
+        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -122,9 +128,13 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         int roadY = stateY + 20;
         DrawText(roadBlocked ? "!! ROAD BLOCKED !!" : "Road: open",
                  BAR_X, roadY, 13, roadBlocked ? RED : Fade(GREEN, 0.8f));
+        if (playerInPlagueZone) {
+            DrawText("!! PLAGUE ZONE !! needs drain 1.5x",
+                     BAR_X, roadY + 14, 11, Color{200, 80, 240, 255});
+        }
 
         // Gold balance
-        int goldY = roadY + 18;
+        int goldY = roadY + (playerInPlagueZone ? 30 : 18);
         char goldBuf[32];
         std::snprintf(goldBuf, sizeof(goldBuf), "%.1fg", playerGold);
         DrawText("Gold:", BAR_X, goldY, 14, LIGHTGRAY);
@@ -183,7 +193,28 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
             invY += 14;
         }
 
-        DrawText("WASD:Move  E:Work  Q:Buy  Z:Sleep  H:Settle  T:Trade  B:Road  F:Follow  F1:Debug",
+        // Trade ledger (last 4 trades)
+        if (!tradeLedger.empty()) {
+            DrawText("Ledger:", BAR_X, invY + 2, 10, Fade(LIGHTGRAY, 0.55f));
+            invY += 12;
+            int shown = std::min((int)tradeLedger.size(), 4);
+            for (int i = 0; i < shown; ++i) {
+                Color tc = tradeLedger[i].profit >= 0.f ? Fade(GREEN, 0.75f) : Fade(RED, 0.75f);
+                DrawText(tradeLedger[i].description.c_str(), BAR_X + 4, invY, 9, tc);
+                invY += 11;
+            }
+            invY += 2;
+        }
+
+        // Road build mode banner
+        if (roadBuildMode) {
+            DrawRectangle(BAR_X - 2, invY + 2, 320, 14, Fade(ORANGE, 0.25f));
+            DrawText("ROAD BUILD — walk to destination, press N to connect (ESC cancel)",
+                     BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            invY += 16;
+        }
+
+        DrawText("WASD:Move  E:Work  Q:Buy  C:Build  R:Repair  N:Road  V:Cart  P:Found  Z:Sleep  H:Settle  T:Trade",
                  BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
     }
 
@@ -218,6 +249,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
         DrawText(fpsBuf,   px + 8, 80, 12, Fade(LIGHTGRAY, 0.6f));
     }
 
+    UpdateNotifications(snap);
     DrawWorldStatus(snap);
     DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
@@ -225,6 +257,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera) {
     DrawRoadTooltip(snap, camera);
     if (debugOverlay)  DrawDebugOverlay(snap);
     if (marketOverlay) DrawMarketOverlay(snap);
+    DrawMinimap(snap);
+    DrawNotifications();
 }
 
 // ---- World status bar ----
@@ -333,29 +367,39 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
         const auto& e = entries[idx];
         char buf[96];
         std::snprintf(buf, sizeof(buf), "D%d %02d:xx  %s", e.day, e.hour, e.message.c_str());
-        Color col = (e.message.find("BLOCKED")   != std::string::npos ||
-                     e.message.find("BANDITS")   != std::string::npos ||
-                     e.message.find("DROUGHT")   != std::string::npos ||
-                     e.message.find("BLIGHT")    != std::string::npos ||
-                     e.message.find("DISEASE")   != std::string::npos ||
-                     e.message.find("BLIZZARD")  != std::string::npos ||
-                     e.message.find("FLOOD")     != std::string::npos ||
-                     e.message.find("cold")      != std::string::npos ||
-                     e.message.find("COLLAPSED") != std::string::npos) ? RED    :
-                    (e.message.find("died")       != std::string::npos ||
-                     e.message.find("migrating")  != std::string::npos ||
-                     e.message.find("MIGRATION")  != std::string::npos) ? ORANGE :
-                    (e.message.find("CLEARED")       != std::string::npos ||
-                     e.message.find("restored")      != std::string::npos ||
-                     e.message.find("reopened")      != std::string::npos ||
-                     e.message.find("Born")          != std::string::npos ||
-                     e.message.find("TRADE BOOM")    != std::string::npos ||
-                     e.message.find("BOUNTY")        != std::string::npos ||
-                     e.message.find("OFF-MAP")       != std::string::npos ||
-                     e.message.find("respawned")     != std::string::npos ||
-                     e.message.find("built a new")   != std::string::npos ||
+        Color col = (e.message.find("BLOCKED")    != std::string::npos ||
+                     e.message.find("BANDITS")    != std::string::npos ||
+                     e.message.find("DROUGHT")    != std::string::npos ||
+                     e.message.find("BLIGHT")     != std::string::npos ||
+                     e.message.find("DISEASE")    != std::string::npos ||
+                     e.message.find("PLAGUE")     != std::string::npos ||
+                     e.message.find("BLIZZARD")   != std::string::npos ||
+                     e.message.find("FLOOD")      != std::string::npos ||
+                     e.message.find("FIRE")       != std::string::npos ||
+                     e.message.find("EARTHQUAKE") != std::string::npos ||
+                     e.message.find("cold")       != std::string::npos ||
+                     e.message.find("COLLAPSED")  != std::string::npos) ? RED    :
+                    (e.message.find("died")        != std::string::npos ||
+                     e.message.find("migrating")   != std::string::npos ||
+                     e.message.find("MIGRATION")   != std::string::npos ||
+                     e.message.find("HEAT WAVE")   != std::string::npos ||
+                     e.message.find("bankrupt")    != std::string::npos) ? ORANGE :
+                    (e.message.find("CLEARED")        != std::string::npos ||
+                     e.message.find("restored")       != std::string::npos ||
+                     e.message.find("reopened")       != std::string::npos ||
+                     e.message.find("Born")           != std::string::npos ||
+                     e.message.find("TRADE BOOM")     != std::string::npos ||
+                     e.message.find("BOUNTY")         != std::string::npos ||
+                     e.message.find("WINDFALL")       != std::string::npos ||
+                     e.message.find("FESTIVAL")       != std::string::npos ||
+                     e.message.find("RAINSTORM")      != std::string::npos ||
+                     e.message.find("reaches")        != std::string::npos ||
+                     e.message.find("OFF-MAP")        != std::string::npos ||
+                     e.message.find("respawned")      != std::string::npos ||
+                     e.message.find("built a new")    != std::string::npos ||
+                     e.message.find("funded road")    != std::string::npos ||
                      e.message.find("became a hauler") != std::string::npos) ? GREEN  :
-                    (e.message.find("--- ")       != std::string::npos) ? SKYBLUE : LIGHTGRAY;
+                    (e.message.find("--- ")        != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
 }
@@ -425,8 +469,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         const char* lifeStage = (best->ageDays < 15.f)  ? "Child"   :
                                 (best->ageDays < 25.f)  ? "Youth"   :
                                 (best->ageDays > 70.f)  ? "Elderly" : "Adult";
-        std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f  [%s]",
-                      best->ageDays, best->maxDays, lifeStage);
+        // Contentment rating label
+        const char* mood = (best->contentment >= 0.85f) ? "Thriving"  :
+                           (best->contentment >= 0.65f) ? "Content"   :
+                           (best->contentment >= 0.40f) ? "Stressed"  :
+                           (best->contentment >= 0.20f) ? "Suffering" : "Desperate";
+        std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f  [%s]  %s",
+                      best->ageDays, best->maxDays, lifeStage, mood);
     }
     if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
@@ -506,6 +555,12 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     }
     if (!best) return;
 
+    Season curSeason;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        curSeason = snap.season;
+    }
+
     const char* typeName = (best->output == ResourceType::Food)  ? "Farm"        :
                            (best->output == ResourceType::Water) ? "Well"        :
                            (best->output == ResourceType::Wood)  ? "Lumber Mill" : "Facility";
@@ -513,22 +568,28 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
                            (best->output == ResourceType::Water) ? "water" : "wood";
 
     static constexpr int BASE_WORKERS = 5;
-    float scale    = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
-    float skillMult = 0.5f + best->avgSkill;   // same formula as ProductionSystem
-    float estOutput = best->baseRate * scale * skillMult;  // units/game-hour (no season)
+    float scale      = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
+    float skillMult  = 0.5f + best->avgSkill;             // same formula as ProductionSystem
+    float seasonMult = SeasonProductionModifier(curSeason);
+    float estOutput  = best->baseRate * scale * skillMult * seasonMult;
 
-    char line1[64], line2[64], line3[64], line4[64];
+    char line1[64], line2[64], line3[64], line4[64], line5[64];
     std::snprintf(line1, sizeof(line1), "%s @ %s", typeName,
                   best->settlementName.empty() ? "?" : best->settlementName.c_str());
     std::snprintf(line2, sizeof(line2), "Workers: %d  Skill: %.0f%%",
                   best->workerCount, best->avgSkill * 100.f);
-    std::snprintf(line3, sizeof(line3), "Base: %.1f %s/hr", best->baseRate, resUnit);
+    std::snprintf(line3, sizeof(line3), "Base: %.1f %s/hr  Season: %.0f%%",
+                  best->baseRate, resUnit, seasonMult * 100.f);
     std::snprintf(line4, sizeof(line4), "Est. output: ~%.1f %s/hr", estOutput, resUnit);
+    // Degradation indicator: base rate below starting value (4.0) means decay has happened
+    float healthPct = std::min(100.f, best->baseRate / 4.0f * 100.f);
+    std::snprintf(line5, sizeof(line5), "Facility health: %.0f%%", healthPct);
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
-                       MeasureText(line3, 11), MeasureText(line4, 11) }) + 12;
-    int h = 4 * 16 + 4;
+                       MeasureText(line3, 11), MeasureText(line4, 11),
+                       MeasureText(line5, 11) }) + 12;
+    int h = 5 * 16 + 4;
     int tx = (int)screen.x + 18, ty = (int)screen.y - h;
     if (tx + w > SCREEN_W) tx = (int)screen.x - w - 10;
     if (ty < 0) ty = (int)screen.y + 14;
@@ -538,9 +599,13 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
                    (best->output == ResourceType::Water) ? SKYBLUE : BROWN;
     DrawText(line1, tx, ty,      12, typeCol);
     DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
-    DrawText(line3, tx, ty + 32, 11, Fade(LIGHTGRAY, 0.7f));
-    Color outCol = (estOutput >= best->baseRate) ? GREEN : (estOutput >= best->baseRate * 0.5f) ? YELLOW : RED;
+    Color seasonCol = (seasonMult >= 1.0f) ? GREEN : (seasonMult >= 0.5f) ? YELLOW : RED;
+    DrawText(line3, tx, ty + 32, 11, seasonCol);
+    Color outCol = (estOutput >= best->baseRate) ? GREEN
+                 : (estOutput >= best->baseRate * 0.5f) ? YELLOW : RED;
     DrawText(line4, tx, ty + 48, 11, outCol);
+    Color healthCol = (healthPct >= 80.f) ? GREEN : (healthPct >= 50.f) ? YELLOW : RED;
+    DrawText(line5, tx, ty + 64, 11, healthCol);
 }
 
 // ---- Market overlay (M key) ----
@@ -548,9 +613,11 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
 
 void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
     std::vector<RenderSnapshot::SettlementStatus> ws;
+    std::vector<RenderSnapshot::RoadEntry>        roads;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
-        ws = snap.worldStatus;
+        ws    = snap.worldStatus;
+        roads = snap.roads;
     }
     if (ws.empty()) return;
 
@@ -603,6 +670,110 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
         DrawText(wdBuf,   C_WD,   y, MFONT, wdCol);
         DrawText(trendStr(s.woodPriceTrend),  C_WD   - 10, y, MFONT, trendCol(s.woodPriceTrend));
     }
+
+    // ---- Best Trade Routes section ----
+    // For each non-blocked road compute the best single-resource arbitrage.
+    // Show top 5 opportunities sorted by profit margin (buy-low sell-high price diff).
+    if (roads.empty()) return;
+
+    struct TradeOpp {
+        std::string from, to;  // buy-at → sell-at
+        const char* resource;
+        float       buyPrice, sellPrice, margin;
+        float       condition;
+        bool        blocked;
+        Color       resColor;
+    };
+
+    std::vector<TradeOpp> opps;
+    opps.reserve(roads.size() * 6);  // up to 3 resources × 2 directions per road
+
+    for (const auto& r : roads) {
+        if (r.nameA.empty() || r.nameB.empty()) continue;
+
+        // For each resource, consider both directions
+        struct ResData { const char* name; float pA, pB; Color col; };
+        ResData res[3] = {
+            { "Food",  r.foodA,  r.foodB,  GREEN   },
+            { "Water", r.waterA, r.waterB, SKYBLUE },
+            { "Wood",  r.woodA,  r.woodB,  BROWN   },
+        };
+        for (const auto& rd : res) {
+            if (rd.pA <= 0.f || rd.pB <= 0.f) continue;
+            float margin = 0.f;
+            std::string from, to;
+            if (rd.pA > rd.pB * 1.05f) {
+                // buy at B, sell at A
+                margin = rd.pA - rd.pB;
+                from   = r.nameB;
+                to     = r.nameA;
+            } else if (rd.pB > rd.pA * 1.05f) {
+                // buy at A, sell at B
+                margin = rd.pB - rd.pA;
+                from   = r.nameA;
+                to     = r.nameB;
+            } else continue;  // less than 5% difference — not worth showing
+
+            opps.push_back({ from, to, rd.name,
+                             std::min(rd.pA, rd.pB), std::max(rd.pA, rd.pB),
+                             margin, r.condition, r.blocked, rd.col });
+        }
+    }
+
+    // Sort descending by margin
+    std::sort(opps.begin(), opps.end(),
+              [](const TradeOpp& a, const TradeOpp& b){ return a.margin > b.margin; });
+
+    static const int MAX_SHOW = 5;
+    int showN = std::min((int)opps.size(), MAX_SHOW);
+    if (showN == 0) return;
+
+    static const int TX = MX, TY_START = MY + ph + 6;
+    static const int TW = pw, TLH = 16, TFONT = 11;
+    int tph = (2 + showN) * TLH + 8;
+
+    DrawRectangle(TX, TY_START, TW, tph, Fade(BLACK, 0.8f));
+    DrawRectangleLines(TX, TY_START, TW, tph, DARKGRAY);
+    DrawText("Best trade routes (buy→sell, +margin/unit):",
+             TX + 6, TY_START + 4, TFONT, Fade(GOLD, 0.9f));
+
+    // Column headers
+    int hy = TY_START + 4 + TLH;
+    DrawText("Route",    TX + 6,   hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("Res",      TX + 190, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("Buy@",     TX + 235, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("Sell@",    TX + 280, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("+g/u",     TX + 330, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("Rd",       TX + 375, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+
+    for (int i = 0; i < showN; ++i) {
+        const auto& op = opps[i];
+        int ry = TY_START + 4 + TLH * (i + 2);
+
+        char routeBuf[40], buyBuf[12], sellBuf[12], margBuf[10], condBuf[8];
+        std::snprintf(routeBuf, sizeof(routeBuf), "%.10s→%.10s",
+                      op.from.c_str(), op.to.c_str());
+        std::snprintf(buyBuf,  sizeof(buyBuf),  "%.2fg", op.buyPrice);
+        std::snprintf(sellBuf, sizeof(sellBuf), "%.2fg", op.sellPrice);
+        std::snprintf(margBuf, sizeof(margBuf), "+%.2fg", op.margin);
+        std::snprintf(condBuf, sizeof(condBuf), "%.0f%%", op.condition * 100.f);
+
+        // Fade out blocked/degraded routes
+        float alpha = op.blocked ? 0.4f : (op.condition < 0.25f ? 0.6f : 0.9f);
+        Color routeCol = op.blocked ? Fade(RED, alpha) : Fade(WHITE, alpha);
+        Color condCol  = (op.condition >= 0.75f) ? Fade(GREEN, alpha) :
+                         (op.condition >= 0.50f) ? Fade(YELLOW, alpha) :
+                         (op.condition >= 0.25f) ? Fade(ORANGE, alpha) : Fade(RED, alpha);
+        Color margCol  = Fade(GOLD, alpha);
+
+        DrawText(routeBuf, TX + 6,   ry, TFONT, routeCol);
+        DrawText(op.resource, TX + 190, ry, TFONT, Fade(op.resColor, alpha));
+        DrawText(buyBuf,   TX + 235, ry, TFONT, Fade(GREEN, alpha));
+        DrawText(sellBuf,  TX + 280, ry, TFONT, Fade(RED, alpha));
+        DrawText(margBuf,  TX + 330, ry, TFONT, margCol);
+        DrawText(condBuf,  TX + 375, ry, TFONT, condCol);
+        if (op.blocked) DrawText("[BLK]", TX + 350, ry, 9, Fade(RED, 0.7f));
+    }
 }
 
 // ---- Debug overlay ----
@@ -613,7 +784,8 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     Season dbgSeason;
     float  dbgTemp, econTotal, econAvg, econRichest;
     std::string econRichestName;
-    std::vector<RenderSnapshot::AgentEntry> agentCopy;
+    std::vector<RenderSnapshot::AgentEntry>        agentCopy;
+    std::vector<RenderSnapshot::SettlementStatus>  settlCopy;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents    = (int)snap.agents.size();
@@ -626,6 +798,7 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         dbgSeason = snap.season;
         dbgTemp   = snap.temperature;
         agentCopy = snap.agents;
+        settlCopy = snap.worldStatus;
         haulerCount     = snap.econHaulerCount;
         econTotal       = snap.econTotalGold;
         econAvg         = snap.econAvgNpcWealth;
@@ -680,6 +853,127 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
                     LIGHTGRAY;
         DrawText(lines[i], OX+6, OY+4+i*OLH, 13, col);
     }
+
+    // ---- Per-settlement breakdown (appended below global panel) ----
+    if (!settlCopy.empty()) {
+        static const int SX = OX, SLH = 15, SFONT = 11;
+        int sy0 = OY + rows * OLH + 14;
+        // Each settlement: 2 lines (name+pop, resources)
+        int sph = (int)settlCopy.size() * SLH * 2 + SLH + 10;
+        int sw  = OW + 60;   // slightly wider for resource data
+
+        DrawRectangle(SX, sy0, sw, sph, Fade(BLACK, 0.72f));
+        DrawRectangleLines(SX, sy0, sw, sph, DARKGRAY);
+        DrawText("Settlements:", SX + 4, sy0 + 4, SFONT, Fade(YELLOW, 0.8f));
+
+        int sy = sy0 + 4 + SLH;
+        for (const auto& s : settlCopy) {
+            // Line 1: Name [pop] treasury trend
+            char line1[64], line2[80];
+            const char* trendC = (s.popTrend == '+') ? "+" :
+                                 (s.popTrend == '-') ? "-" : "=";
+            Color trendCol = (s.popTrend == '+') ? GREEN :
+                             (s.popTrend == '-') ? RED : Fade(LIGHTGRAY, 0.5f);
+            std::snprintf(line1, sizeof(line1), "%-10.10s [%d] %.0fg",
+                          s.name.c_str(), s.pop, s.treasury);
+            Color nameCol = s.hasEvent ? Color{255,200,80,230} : WHITE;
+            DrawText(line1, SX + 4, sy, SFONT, nameCol);
+            DrawText(trendC, SX + sw - 14, sy, SFONT, trendCol);
+            if (s.hasEvent && !s.eventName.empty()) {
+                char evBuf[16];
+                std::snprintf(evBuf, sizeof(evBuf), "!%-.8s", s.eventName.c_str());
+                DrawText(evBuf, SX + 4 + MeasureText(line1, SFONT) + 4,
+                         sy, 9, Fade(ORANGE, 0.8f));
+            }
+            sy += SLH;
+
+            // Line 2: F/W/D stocks with color coding
+            std::snprintf(line2, sizeof(line2),
+                          "  F:%.0f W:%.0f D:%.0f  @%.1f/%.1f/%.1f",
+                          s.food, s.water, s.wood,
+                          s.foodPrice, s.waterPrice, s.woodPrice);
+            Color l2col = Fade(LIGHTGRAY, 0.65f);
+            // Color by worst resource
+            if (s.food < 10.f || s.water < 10.f || s.wood < 10.f)
+                l2col = Fade(RED, 0.75f);
+            else if (s.food < 30.f || s.water < 30.f || s.wood < 30.f)
+                l2col = Fade(ORANGE, 0.75f);
+            DrawText(line2, SX + 4, sy, SFONT - 1, l2col);
+            sy += SLH;
+        }
+    }
+}
+
+// ---- Minimap ----
+// Always-visible overview in the bottom-right corner.
+// World bounds: 2400 × 720 world units.
+// Shows: roads (color by condition), settlements (dot, color by health), player (white dot).
+
+void HUD::DrawMinimap(const RenderSnapshot& snap) const {
+    static constexpr float WORLD_W = 2400.f;
+    static constexpr float WORLD_H  =  720.f;
+
+    // Minimap display rectangle (screen coords)
+    static constexpr int MM_W  = 240;   // pixel width
+    static constexpr int MM_H  =  72;   // pixel height (same aspect as world: 2400/720 → 10:3)
+    static constexpr int MM_X  = SCREEN_W - MM_W - 6;
+    static constexpr int MM_Y  = SCREEN_H - MM_H - 6;
+
+    // Scale factors
+    auto worldToMM = [&](float wx, float wy) -> Vector2 {
+        return {
+            MM_X + (wx / WORLD_W) * MM_W,
+            MM_Y + (wy / WORLD_H) * MM_H
+        };
+    };
+
+    std::vector<RenderSnapshot::SettlementEntry>   settls;
+    std::vector<RenderSnapshot::RoadEntry>         roads;
+    float playerX, playerY;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        settls  = snap.settlements;
+        roads   = snap.roads;
+        playerX = snap.playerWorldX;
+        playerY = snap.playerWorldY;
+    }
+
+    // Background
+    DrawRectangle(MM_X - 1, MM_Y - 1, MM_W + 2, MM_H + 2, Fade(BLACK, 0.70f));
+    DrawRectangleLines(MM_X - 1, MM_Y - 1, MM_W + 2, MM_H + 2, Fade(LIGHTGRAY, 0.4f));
+
+    // Roads
+    for (const auto& r : roads) {
+        Vector2 a = worldToMM(r.x1, r.y1);
+        Vector2 b = worldToMM(r.x2, r.y2);
+        Color col = r.blocked ? Fade(RED, 0.6f) :
+                    (r.condition >= 0.5f) ? Fade(BEIGE, 0.45f) :
+                    Fade(ORANGE, 0.50f);
+        DrawLineV(a, b, col);
+    }
+
+    // Settlements — colored by health (food/water/wood stock)
+    for (const auto& s : settls) {
+        Vector2 p = worldToMM(s.x, s.y);
+        // Color: red = some stock critically low, orange = any low, green = ok
+        bool critical = (s.foodStock < 5.f || s.waterStock < 5.f);
+        bool low      = (s.foodStock < 20.f || s.waterStock < 20.f);
+        Color dotCol  = critical ? RED : low ? ORANGE : GREEN;
+        if (s.pop == 0) dotCol = DARKGRAY;
+        // Active event → yellow border
+        float dotR = s.selected ? 4.f : 3.f;
+        DrawCircleV(p, dotR + 1.f, Fade(s.selected ? WHITE : BLACK, 0.7f));
+        DrawCircleV(p, dotR,       dotCol);
+        if (!s.modifierName.empty())
+            DrawCircleLines((int)p.x, (int)p.y, dotR + 2.f, Fade(YELLOW, 0.8f));
+    }
+
+    // Player position — small white dot
+    Vector2 pp = worldToMM(playerX, playerY);
+    DrawCircleV(pp, 2.5f, WHITE);
+
+    // Label
+    DrawText("MAP", MM_X + 2, MM_Y + 2, 8, Fade(LIGHTGRAY, 0.4f));
 }
 
 // ---- Road hover tooltip ----
@@ -714,8 +1008,8 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     }
     if (!best) return;
 
-    // Format: show settlement names + price table + status
-    char line1[80], line2[48], line3[48], line4[48], line5[48];
+    // Format: show settlement names + price table + condition + status
+    char line1[80], line2[48], line3[48], line4[48], line5[48], line6[48];
     std::snprintf(line1, sizeof(line1), "%s ←→ %s%s",
                   best->nameA.c_str(), best->nameB.c_str(),
                   best->blocked ? "  [BLOCKED]" : "");
@@ -732,7 +1026,13 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
                   best->waterA, arrow(best->waterA, best->waterB), best->waterB);
     std::snprintf(line4, sizeof(line4), "Wood:  %4.1f %s %4.1f",
                   best->woodA,  arrow(best->woodA,  best->woodB),  best->woodB);
-    std::snprintf(line5, sizeof(line5), "← %s prices / %s prices →",
+
+    const char* condStr = (best->condition >= 0.75f) ? "Good"   :
+                          (best->condition >= 0.50f) ? "Fair"   :
+                          (best->condition >= 0.25f) ? "Poor"   : "Critical";
+    std::snprintf(line5, sizeof(line5), "Condition: %.0f%%  [%s]",
+                  best->condition * 100.f, condStr);
+    std::snprintf(line6, sizeof(line6), "← %s prices / %s prices →",
                   best->nameA.c_str(), best->nameB.c_str());
 
     // Position tooltip at midpoint of road
@@ -742,12 +1042,17 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
 
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11), MeasureText(line4, 11),
-                       MeasureText(line5, 10) }) + 12;
-    int h = 5 * 16 + 4;
+                       MeasureText(line5, 11), MeasureText(line6, 10) }) + 12;
+    int h = 6 * 16 + 4;
     int tx = (int)screen.x - w / 2, ty = (int)screen.y - h - 8;
     if (tx < 4) tx = 4;
     if (tx + w > SCREEN_W - 4) tx = SCREEN_W - 4 - w;
     if (ty < 4) ty = (int)screen.y + 10;
+
+    // Condition color: green → yellow → orange → red
+    Color condCol = (best->condition >= 0.75f) ? GREEN  :
+                    (best->condition >= 0.50f) ? YELLOW :
+                    (best->condition >= 0.25f) ? ORANGE : RED;
 
     DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.78f));
     Color c1 = best->blocked ? RED : WHITE;
@@ -755,7 +1060,8 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     DrawText(line2, tx, ty + 16,  11, GREEN);
     DrawText(line3, tx, ty + 32,  11, SKYBLUE);
     DrawText(line4, tx, ty + 48,  11, BROWN);
-    DrawText(line5, tx, ty + 64,  10, Fade(LIGHTGRAY, 0.5f));
+    DrawText(line5, tx, ty + 64,  11, condCol);
+    DrawText(line6, tx, ty + 80,  10, Fade(LIGHTGRAY, 0.5f));
 }
 
 // ---- DrawNeedBar ----
@@ -770,4 +1076,99 @@ void HUD::DrawNeedBar(int x, int y, float value, float critThreshold,
     Color fill    = (value < critThreshold) ? RED : barColor;
     if (fillW > 0) DrawRectangle(barX, y, fillW, BAR_H, fill);
     DrawRectangleLines(barX, y, BAR_W, BAR_H, WHITE);
+}
+
+// ---- Notification overlay -----------------------------------------------
+
+static bool ContainsAny(const std::string& s,
+                         std::initializer_list<const char*> keywords) {
+    for (const char* kw : keywords)
+        if (s.find(kw) != std::string::npos) return true;
+    return false;
+}
+
+void HUD::UpdateNotifications(const RenderSnapshot& snap) {
+    // Tick down existing notifications
+    float dt = GetFrameTime();
+    for (auto& n : m_notifications) n.timeLeft -= dt;
+    m_notifications.erase(
+        std::remove_if(m_notifications.begin(), m_notifications.end(),
+                       [](const Notification& n){ return n.timeLeft <= 0.f; }),
+        m_notifications.end());
+
+    // Scan new log entries for critical keywords
+    std::vector<EventLog::Entry> entries;
+    {
+        std::lock_guard<std::mutex> lk(snap.mutex);
+        entries = snap.logEntries;
+    }
+    int newSize = (int)entries.size();
+    if (newSize <= m_lastLogSize) { m_lastLogSize = newSize; return; }
+
+    // entries[0] is newest — check entries added since last frame
+    int newCount = newSize - m_lastLogSize;
+    m_lastLogSize = newSize;
+    for (int i = 0; i < std::min(newCount, newSize); ++i) {
+        const std::string& msg = entries[i].message;
+
+        Color col = WHITE;
+        bool  show = false;
+
+        if (ContainsAny(msg, {"PLAGUE erupts", "PLAGUE spreads"})) {
+            col = Color{200, 80, 240, 255}; show = true;
+        } else if (ContainsAny(msg, {"has COLLAPSED"})) {
+            col = Fade(RED, 0.95f); show = true;  // settlement collapse
+        } else if (ContainsAny(msg, {"COLLAPSED from disrepair"})) {
+            col = Fade(ORANGE, 0.90f); show = true;  // facility collapse
+        } else if (ContainsAny(msg, {"EARTHQUAKE"})) {
+            col = Fade(RED, 0.95f); show = true;
+        } else if (ContainsAny(msg, {"FIRE at"})) {
+            col = Color{255, 120, 30, 255}; show = true;
+        } else if (ContainsAny(msg, {"BLIZZARD"})) {
+            col = Fade(SKYBLUE, 0.95f); show = true;
+        } else if (ContainsAny(msg, {"HEAT WAVE"})) {
+            col = Color{255, 180, 50, 255}; show = true;
+        } else if (ContainsAny(msg, {"DISEASE", "DROUGHT"})) {
+            col = Fade(ORANGE, 0.95f); show = true;
+        } else if (ContainsAny(msg, {"BANDITS blocking"})) {
+            col = Fade(RED, 0.85f); show = true;
+        } else if (ContainsAny(msg, {"HARVEST BOUNTY", "TRADE BOOM", "MIGRATION WAVE", "FESTIVAL"})) {
+            col = Fade(GREEN, 0.95f); show = true;
+        } else if (ContainsAny(msg, {"RAINSTORM", "OFF-MAP CONVOY", "LUMBER WINDFALL"})) {
+            col = Fade(SKYBLUE, 0.85f); show = true;
+        } else if (ContainsAny(msg, {"reaches", " citizens!"})) {
+            col = Fade(GOLD, 0.95f); show = true;  // population milestone
+        } else if (ContainsAny(msg, {"funded road"})) {
+            col = Fade(GREEN, 0.85f); show = true;  // new autonomous road
+        }
+
+        if (show) {
+            // Don't stack identical messages
+            bool dup = false;
+            for (const auto& existing : m_notifications)
+                if (existing.message == msg) { dup = true; break; }
+            if (!dup)
+                m_notifications.push_back({ msg, 5.f, col });
+        }
+    }
+}
+
+void HUD::DrawNotifications() {
+    if (m_notifications.empty()) return;
+
+    static const float NOTIF_DURATION = 5.f;
+    const int cx = SCREEN_W / 2;
+    int ny = SCREEN_H / 2 - (int)(m_notifications.size() * 22) / 2;
+
+    for (const auto& n : m_notifications) {
+        float alpha = std::min(1.f, n.timeLeft / 1.0f);  // fade out in last 1s
+        Color col = n.color;
+        col.a = (unsigned char)(col.a * alpha);
+
+        int tw = MeasureText(n.message.c_str(), 14);
+        int bx = cx - tw / 2 - 6, bw = tw + 12, bh = 20;
+        DrawRectangle(bx, ny - 2, bw, bh, Fade(BLACK, 0.55f * alpha));
+        DrawText(n.message.c_str(), cx - tw / 2, ny, 14, col);
+        ny += 24;
+    }
 }
