@@ -9,11 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child abandonment on settlement collapse** — When a settlement collapses (pop hits 0,
-  logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
-  have their `HomeSettlement` cleared and `AgentState::target` set to `entt::null` so they become
-  wanderers. Add this cleanup to `DeathSystem.cpp` in the settlement-collapse check block (after
-  line 130). Log: "Orphaned children of Ashford scattered."
+_(none)_
 
 ---
 
@@ -176,6 +172,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   panel block), and if the cap is being hit (pop >= popCap - 2), tint the pop number in ORANGE to
   signal crowding. No new fields needed — just a colour change based on existing data.
 
+- [ ] **Wandering orphan re-settlement** — Children with `ChildTag` and no `HomeSettlement`
+  (orphans) should autonomously seek a new home. In `AgentDecisionSystem`, after the existing
+  migration logic, add a check: if the entity has `ChildTag`, `!HomeSettlement` (or
+  `hs.settlement == entt::null`), and is within 200 units of any settlement with available pop
+  capacity, assign that settlement as their new `HomeSettlement`. Log: "Orphan Aldric found a
+  new home at Thornvale."
+
+- [ ] **Collapse cooldown — settlement ruins** — After a settlement collapses (enters
+  `m_collapsed` in DeathSystem), set a `Settlement::ruinTimer = 300.f` game-hours. While
+  `ruinTimer > 0`, the settlement cannot have new births (check in `BirthSystem`) and the
+  settlement dot renders in DARKGRAY in `GameState.cpp`. Drain `ruinTimer` by `gameDt` in
+  `DeathSystem`. Gives a natural recovery period before repopulation.
+
+- [ ] **Orphan count in collapse log** — In `DeathSystem`'s orphan-scatter block, include the
+  orphan count in both log messages: change "Orphaned children of Ashford scattered." to
+  "3 children of Ashford orphaned and scattered." This requires counting orphans before the
+  loop (or using the already-counted `orphanCount` to format the string more expressively).
+
 ---
 
 ## Done
@@ -195,6 +209,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Child abandonment on settlement collapse** — DeathSystem settlement-collapse block now
+  iterates over ChildTag entities at the collapsed settlement, clears their HomeSettlement and
+  nulls AgentState::target so they become wanderers. Logs "Orphaned children of X scattered."
 
 - [x] **Child count in world status bar** — Added `childCount` to `SettlementStatus` in
   `RenderSnapshot.h`. SimThread passes `childPop` (from its existing pop-counting loop) into
