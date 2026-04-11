@@ -41,6 +41,36 @@ struct AgentState {
     entt::entity  target   = entt::null;
 };
 
+// ---- Profession ----
+// Persistent component assigned at spawn and updated when an NPC changes role.
+// Used for migration preference and tooltip display.
+enum class ProfessionType { Farmer, WaterCarrier, Lumberjack, Hauler, Idle };
+
+struct Profession {
+    ProfessionType type = ProfessionType::Idle;
+};
+
+// Helper: map ResourceType → ProfessionType for production-facility matching.
+inline ProfessionType ProfessionForResource(ResourceType rt) {
+    switch (rt) {
+        case ResourceType::Food:  return ProfessionType::Farmer;
+        case ResourceType::Water: return ProfessionType::WaterCarrier;
+        case ResourceType::Wood:  return ProfessionType::Lumberjack;
+        default:                  return ProfessionType::Idle;
+    }
+}
+
+// Helper: ProfessionType → display string
+inline const char* ProfessionLabel(ProfessionType p) {
+    switch (p) {
+        case ProfessionType::Farmer:       return "Farmer";
+        case ProfessionType::WaterCarrier: return "Water Carrier";
+        case ProfessionType::Lumberjack:   return "Woodcutter";
+        case ProfessionType::Hauler:       return "Merchant";
+        default:                           return "Idle";
+    }
+}
+
 // ---- World components ----
 
 struct ResourceNode {

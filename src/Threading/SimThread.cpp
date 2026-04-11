@@ -1145,43 +1145,26 @@ void SimThread::WriteSnapshot() {
         if (const auto* n = m_registry.try_get<Name>(e))
             npcName = n->value;
 
-        // Infer profession from the NPC's strongest skill (reflects actual aptitude,
-        // not just where they happen to live). Falls back to settlement primary if
-        // skills are uniform (all equal) or absent.
+        // Populate profession string from the persistent Profession component.
+        // Haulers are always "Merchant". Falls back to skill inference if no component.
         std::string profession;
-        if (!isHauler && !isPlayer) {
-            const auto* sk = m_registry.try_get<Skills>(e);
-            if (sk) {
-                float mx = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
-                // Only assign if one skill meaningfully leads
-                float spread = mx - std::min({sk->farming, sk->water_drawing, sk->woodcutting});
-                if (spread > 0.05f) {
-                    profession = (sk->farming       == mx) ? "Farmer"       :
-                                 (sk->water_drawing == mx) ? "Water Carrier" : "Woodcutter";
-                }
-            }
-            // Fallback: infer from home settlement's primary production
-            if (profession.empty()) {
-                if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
-                    if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
-                        ResourceType primary = ResourceType::Food;
-                        float maxRate = 0.f;
-                        m_registry.view<ProductionFacility>().each(
-                            [&](const ProductionFacility& fac) {
-                            if (fac.settlement == hs->settlement && fac.baseRate > maxRate) {
-                                maxRate = fac.baseRate;
-                                primary = fac.output;
-                            }
-                        });
-                        if (maxRate > 0.f)
-                            profession = (primary == ResourceType::Food)  ? "Farmer"       :
-                                         (primary == ResourceType::Water) ? "Water Carrier" :
-                                         (primary == ResourceType::Wood)  ? "Woodcutter"   : "";
+        if (isHauler) {
+            profession = "Merchant";
+        } else if (!isPlayer) {
+            if (const auto* prof = m_registry.try_get<Profession>(e)) {
+                profession = ProfessionLabel(prof->type);
+            } else {
+                // Fallback: infer from strongest skill (for NPCs without a component)
+                const auto* sk = m_registry.try_get<Skills>(e);
+                if (sk) {
+                    float mx = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                    float spread = mx - std::min({sk->farming, sk->water_drawing, sk->woodcutting});
+                    if (spread > 0.05f) {
+                        profession = (sk->farming       == mx) ? "Farmer"       :
+                                     (sk->water_drawing == mx) ? "Water Carrier" : "Woodcutter";
                     }
                 }
             }
-        } else if (isHauler) {
-            profession = "Merchant";
         }
 
         // Trade route destination for haulers en route (makes trade flow visible)

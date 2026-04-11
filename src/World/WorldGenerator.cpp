@@ -59,7 +59,8 @@ static Needs MakeNeeds() {
 
 static void SpawnNPCs(entt::registry& registry,
                       entt::entity settlement,
-                      float cx, float cy, int count) {
+                      float cx, float cy, int count,
+                      ProfessionType profession = ProfessionType::Idle) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI;
         float ring  = 40.f + (i % 3) * 22.f;
@@ -90,6 +91,7 @@ static void SpawnNPCs(entt::registry& registry,
         // Starting skills: vary ±0.15 around 0.5 baseline
         static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
         registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
+        registry.emplace<Profession>(npc, Profession{ profession });
     }
 }
 
@@ -247,9 +249,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     }
 
     // ---- Population ----
-    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20);
-    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20);
-    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20);
+    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, ProfessionType::Farmer);
+    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, ProfessionType::WaterCarrier);
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, ProfessionType::Lumberjack);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);

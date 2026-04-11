@@ -121,6 +121,20 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
             stockpile.quantities[ResourceType::Water] -= BIRTH_WATER_COST;
 
+            // Determine this settlement's primary profession from its highest-rate facility.
+            ProfessionType settlProfession = ProfessionType::Idle;
+            {
+                float maxRate = 0.f;
+                registry.view<ProductionFacility>().each(
+                    [&](const ProductionFacility& fac) {
+                        if (fac.settlement != settl) return;
+                        if (fac.baseRate > maxRate) {
+                            maxRate = fac.baseRate;
+                            settlProfession = ProfessionForResource(fac.output);
+                        }
+                    });
+            }
+
             // Spawn new NPC at a ring around the settlement centre
             float angle = (float)(pop % 20) / 20.f * 2.f * 3.14159f;
             float ring  = 50.f + (float)(pop % 3) * 22.f;
@@ -203,6 +217,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             else if (aptIdx == 1) npcSkills.water_drawing = 0.15f;
             else                  npcSkills.woodcutting   = 0.15f;
             registry.emplace<Skills>(npc, npcSkills);
+            registry.emplace<Profession>(npc, Profession{ settlProfession });
             registry.emplace<ChildTag>(npc);
 
             // Find the wealthiest adult at this settlement to name as parent.
@@ -268,6 +283,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 else if (aptIdx == 1) twinSkills.water_drawing = 0.15f;
                 else                  twinSkills.woodcutting   = 0.15f;
                 registry.emplace<Skills>(npc2, twinSkills);
+                registry.emplace<Profession>(npc2, Profession{ settlProfession });
                 registry.emplace<ChildTag>(npc2);
 
                 if (log) {

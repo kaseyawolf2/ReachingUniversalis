@@ -123,6 +123,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
         h.state      = HaulerState::Idle;
         h.waitTimer  = 0.f;
         registry.emplace<Hauler>(e, h);
+        registry.emplace_or_replace<Profession>(e, Profession{ ProfessionType::Hauler });
         registry.emplace_or_replace<Inventory>(e, Inventory{ {}, 15 });
 
         // Haulers work around the clock — zero out energy drain

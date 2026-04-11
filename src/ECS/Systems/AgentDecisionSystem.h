@@ -14,5 +14,6 @@ private:
 
     entt::entity FindMigrationTarget(entt::registry& registry,
                                      entt::entity homeSettlement,
-                                     const Skills* skills = nullptr);
+                                     const Skills* skills = nullptr,
+                                     const Profession* profession = nullptr);
 };

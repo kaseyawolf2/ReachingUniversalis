@@ -85,7 +85,8 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement,
-                                                        const Skills* skills) {
+                                                        const Skills* skills,
+                                                        const Profession* profession) {
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -96,6 +97,18 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         if (skills->woodcutting   > best) {                               affinityType = ResourceType::Wood;  }
         // Only apply affinity bonus if the skill is meaningfully developed (> 0.25)
         hasAffinity = (best > 0.25f);
+    }
+
+    // Determine profession-based affinity resource type (additional bonus on top of skills).
+    ResourceType profAffinityType = ResourceType::Food;
+    bool         hasProfAffinity  = false;
+    if (profession) {
+        switch (profession->type) {
+            case ProfessionType::Farmer:       profAffinityType = ResourceType::Food;  hasProfAffinity = true; break;
+            case ProfessionType::WaterCarrier: profAffinityType = ResourceType::Water; hasProfAffinity = true; break;
+            case ProfessionType::Lumberjack:   profAffinityType = ResourceType::Wood;  hasProfAffinity = true; break;
+            default: break;
+        }
     }
 
     entt::entity best      = entt::null;
@@ -143,6 +156,16 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
             registry.view<ProductionFacility>().each([&](const ProductionFacility& fac) {
                 if (fac.settlement == dest && fac.output == affinityType && fac.baseRate > 0.f)
                     total *= 1.20f;
+            });
+        }
+
+        // Profession-affinity bonus: additional +15% if profession matches settlement output.
+        // Stacks with skill affinity — a skilled farmer who identifies as a Farmer
+        // gets a combined 35% bonus toward farming settlements.
+        if (hasProfAffinity) {
+            registry.view<ProductionFacility>().each([&](const ProductionFacility& fac) {
+                if (fac.settlement == dest && fac.output == profAffinityType && fac.baseRate > 0.f)
+                    total *= 1.15f;
             });
         }
 
@@ -257,8 +280,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 effectiveMigrateThreshold *= 0.50f;
 
         if (timer.stockpileEmpty >= effectiveMigrateThreshold) {
-            const auto* skills = registry.try_get<Skills>(entity);
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills);
+            const auto* skills     = registry.try_get<Skills>(entity);
+            const auto* profession = registry.try_get<Profession>(entity);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;
