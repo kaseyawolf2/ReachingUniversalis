@@ -39,8 +39,10 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
 
     // Count Working-state NPCs per settlement and accumulate skill per resource type.
     // Apprentice children (ChildTag, age 12–14) count as 0.2 workers (produce at 20% rate).
+    // Also count elders (age > 60) at their home settlement for the wisdom/experience bonus.
     struct SkillAccum { float sum = 0.f; int count = 0; };
     std::map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
+    std::map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::map<entt::entity, std::array<SkillAccum, 3>> skillData;
 
@@ -56,9 +58,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     // Include player if Working — they contribute to the facility they're at.
     registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler>)
         .each([&](auto e, const AgentState& as, const HomeSettlement& hs) {
+            if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
+            const auto* ageComp = registry.try_get<Age>(e);
+            // Elder bonus: count elders present at home settlement (regardless of working).
+            if (ageComp && ageComp->days > 60.f) {
+                elderCount[hs.settlement]++;
+                return;  // elders don't contribute as workers
+            }
             if (as.behavior != AgentBehavior::Working) return;
             // Apprentice children contribute at 20% of adult rate.
-            const auto* ageComp = registry.try_get<Age>(e);
             bool isApprentice = registry.all_of<ChildTag>(e)
                                 && ageComp
                                 && ageComp->days >= 12.f
@@ -98,9 +106,12 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
-        // Apply settlement modifier (drought etc.) and season modifier
+        // Apply settlement modifier (drought etc.), season modifier, and elder wisdom bonus.
+        // Elder bonus: each elder at home = +0.5% production, capped at +5%.
         const auto* settl = registry.try_get<Settlement>(fac.settlement);
-        float modifier = (settl ? settl->productionModifier : 1.f) * seasonMod;
+        int   elders     = elderCount.count(fac.settlement) ? elderCount.at(fac.settlement) : 0;
+        float elderBonus = 1.f + std::min(0.05f, elders * 0.005f);
+        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus;
 
         float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 

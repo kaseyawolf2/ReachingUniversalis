@@ -127,9 +127,10 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
         bool sleepTime = (hour >= effSleepHour || hour < effWakeHour);
 
-        // Age affects work eligibility: children (<15 days) don't work;
-        // elderly (>70 days) work reduced hours (7–12 only).
-        // Apprentices (12–14) get a 2-hour window (10:00–12:00) — partial work only.
+        // Age affects work eligibility:
+        //   < 12 days : young child — no work
+        //  12–14 days : apprentice — 2-hour window (10:00–12:00) only
+        //  > 60 days  : elder — retired, no work
         bool workEligible  = true;
         bool isApprentice  = false;
         int  workEndAdj    = sched.workEnd + seasonWorkEndAdj;
@@ -139,8 +140,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 workEligible  = true;       // allow Working state
             } else if (age->days < 12.f) {
                 workEligible  = false;      // young child: no work
-            } else if (age->days > 70.f) {
-                workEndAdj = std::min(workEndAdj, 12); // elderly: half-shift
+            } else if (age->days > 60.f) {
+                workEligible  = false;      // elder: fully retired
             }
         }
 

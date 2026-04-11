@@ -55,7 +55,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             const auto* astate  = registry.try_get<AgentState>(entity);
             const auto* ageComp = registry.try_get<Age>(entity);
             bool isChild = ageComp && ageComp->days < 15.f;
-            if (settl && money && astate && !isChild && astate->behavior == AgentBehavior::Working) {
+            bool isElder = ageComp && ageComp->days > 60.f;
+            if (settl && money && astate && !isChild && !isElder && astate->behavior == AgentBehavior::Working) {
                 // Scale wage by the NPC's best skill — specialised workers earn more.
                 // Determine which facility type the NPC is working at to pick the right skill.
                 float skillMult = 1.0f;
@@ -70,6 +71,13 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     settl->treasury -= wage;
                     money->balance  += wage;
                 }
+            }
+            // Elders draw subsistence from their own savings (no treasury cost).
+            // Rate: 0.1 g/game-hour — covers basic needs out of accumulated wealth.
+            static constexpr float ELDER_SUBSISTENCE_RATE = 0.1f;
+            if (money && isElder) {
+                float cost = ELDER_SUBSISTENCE_RATE * gameHoursDt;
+                money->balance = std::max(0.f, money->balance - cost);
             }
         }
 
