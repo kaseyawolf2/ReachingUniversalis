@@ -34,6 +34,9 @@ struct RenderSnapshot {
         // Hauler route destination (only set when hauler is carrying goods to a settlement)
         bool  hasRouteDest = false;
         float destX = 0.f, destY = 0.f;
+        // Hauler cargo contents (populated for Hauler role only)
+        std::map<ResourceType, int> cargo;
+        std::string destSettlName;   // name of destination settlement
         // NPC's inferred profession based on home settlement's primary output
         std::string profession;
         // Settlement name the agent calls home (empty if player or no home)

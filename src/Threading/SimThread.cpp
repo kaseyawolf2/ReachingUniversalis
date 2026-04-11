@@ -1147,6 +1147,8 @@ void SimThread::WriteSnapshot() {
         // Trade route destination for haulers en route (makes trade flow visible)
         bool  hasRouteDest = false;
         float routeDestX = 0.f, routeDestY = 0.f;
+        std::map<ResourceType, int> haulerCargo;
+        std::string haulerDestName;
         if (isHauler) {
             if (const auto* h = m_registry.try_get<Hauler>(e)) {
                 if (h->state == HaulerState::GoingToDeposit &&
@@ -1156,8 +1158,12 @@ void SimThread::WriteSnapshot() {
                     hasRouteDest = true;
                     routeDestX   = dp.x;
                     routeDestY   = dp.y;
+                    if (const auto* ds = m_registry.try_get<Settlement>(h->targetSettlement))
+                        haulerDestName = ds->name;
                 }
             }
+            if (const auto* inv = m_registry.try_get<Inventory>(e))
+                haulerCargo = inv->contents;
         }
 
         // Home settlement name for tooltip
@@ -1196,6 +1202,7 @@ void SimThread::WriteSnapshot() {
                            role, hp, tp, ep, htp, astate.behavior,
                            balance, ageDays, maxDays, npcName,
                            hasRouteDest, routeDestX, routeDestY,
+                           std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
                            farmSkill, waterSkill, woodSkill,
                            contentment });

@@ -492,6 +492,28 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         std::snprintf(line4, sizeof(line4), "Age: %.0f / %.0f  [%s]  %s",
                       best->ageDays, best->maxDays, lifeStage, mood);
     }
+    // Hauler cargo line
+    char cargoLine[64] = {};
+    bool showCargo = false;
+    if (isHauler && !best->cargo.empty()) {
+        int off = 0;
+        off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "Cargo: ");
+        for (const auto& [type, qty] : best->cargo) {
+            const char* rn = (type == ResourceType::Food)  ? "Food"  :
+                             (type == ResourceType::Water) ? "Water" :
+                             (type == ResourceType::Wood)  ? "Wood"  : "?";
+            off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "%s×%d ", rn, qty);
+        }
+        if (!best->destSettlName.empty()) {
+            std::snprintf(cargoLine + off, sizeof(cargoLine) - off,
+                          "→ %s", best->destSettlName.c_str());
+        }
+        showCargo = true;
+    } else if (isHauler) {
+        std::snprintf(cargoLine, sizeof(cargoLine), "Cargo: (empty — seeking route)");
+        showCargo = true;
+    }
+
     if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
@@ -523,14 +545,16 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     int lineCount = hasName ? 4 : 3;
-    if (showGold) lineCount++;
+    if (showGold)  lineCount++;
     if (showSkill) lineCount++;
+    if (showCargo) lineCount++;
 
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
-    int w5 = showGold  ? MeasureText(line5, 11) : 0;
-    int w6 = showSkill ? MeasureText(line6, 11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5, w6}) + 10;
+    int w5 = showGold  ? MeasureText(line5,    11) : 0;
+    int w6 = showSkill ? MeasureText(line6,    11) : 0;
+    int wc = showCargo ? MeasureText(cargoLine, 11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5, w6, wc}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -545,7 +569,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)  { DrawText(line5, tx, ly, 11, YELLOW); ly += 16; }
-    if (showSkill) { DrawText(line6, tx, ly, 11, skillColor); }
+    if (showSkill) { DrawText(line6, tx, ly, 11, skillColor); ly += 16; }
+    if (showCargo) { DrawText(cargoLine, tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
 
 // ---- Facility hover tooltip ----
@@ -629,11 +654,16 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
 void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
     std::vector<RenderSnapshot::SettlementStatus> ws;
     std::vector<RenderSnapshot::RoadEntry>        roads;
+    int playerRep = 0;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
-        ws    = snap.worldStatus;
-        roads = snap.roads;
+        ws        = snap.worldStatus;
+        roads     = snap.roads;
+        playerRep = snap.playerReputation;
     }
+    // Tax-adjusted margin: net = sell*(1-tax) - buy, where tax falls with reputation
+    float repDiscount  = std::min(0.10f, playerRep * 0.0005f);
+    float effectiveTax = 0.20f - repDiscount;
     if (ws.empty()) return;
 
     static const int MX = 330, MY = 10, ML_H = 18, MFONT = 12;
@@ -694,7 +724,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
     struct TradeOpp {
         std::string from, to;  // buy-at → sell-at
         const char* resource;
-        float       buyPrice, sellPrice, margin;
+        float       buyPrice, sellPrice, netPerUnit;
         float       condition;
         bool        blocked;
         Color       resColor;
@@ -715,29 +745,30 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
         };
         for (const auto& rd : res) {
             if (rd.pA <= 0.f || rd.pB <= 0.f) continue;
-            float margin = 0.f;
+            float buyP = 0.f, sellP = 0.f;
             std::string from, to;
             if (rd.pA > rd.pB * 1.05f) {
                 // buy at B, sell at A
-                margin = rd.pA - rd.pB;
-                from   = r.nameB;
-                to     = r.nameA;
+                buyP = rd.pB; sellP = rd.pA;
+                from = r.nameB; to = r.nameA;
             } else if (rd.pB > rd.pA * 1.05f) {
                 // buy at A, sell at B
-                margin = rd.pB - rd.pA;
-                from   = r.nameA;
-                to     = r.nameB;
+                buyP = rd.pA; sellP = rd.pB;
+                from = r.nameA; to = r.nameB;
             } else continue;  // less than 5% difference — not worth showing
 
+            float net = sellP * (1.f - effectiveTax) - buyP;
+            if (net <= 0.f) continue;  // not profitable after tax
+
             opps.push_back({ from, to, rd.name,
-                             std::min(rd.pA, rd.pB), std::max(rd.pA, rd.pB),
-                             margin, r.condition, r.blocked, rd.col });
+                             buyP, sellP, net,
+                             r.condition, r.blocked, rd.col });
         }
     }
 
-    // Sort descending by margin
+    // Sort descending by tax-adjusted net
     std::sort(opps.begin(), opps.end(),
-              [](const TradeOpp& a, const TradeOpp& b){ return a.margin > b.margin; });
+              [](const TradeOpp& a, const TradeOpp& b){ return a.netPerUnit > b.netPerUnit; });
 
     static const int MAX_SHOW = 5;
     int showN = std::min((int)opps.size(), MAX_SHOW);
@@ -749,7 +780,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
 
     DrawRectangle(TX, TY_START, TW, tph, Fade(BLACK, 0.8f));
     DrawRectangleLines(TX, TY_START, TW, tph, DARKGRAY);
-    DrawText("Best trade routes (buy→sell, +margin/unit):",
+    DrawText("Best trade routes (buy→sell, net/unit after tax):",
              TX + 6, TY_START + 4, TFONT, Fade(GOLD, 0.9f));
 
     // Column headers
@@ -758,7 +789,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
     DrawText("Res",      TX + 190, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
     DrawText("Buy@",     TX + 235, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
     DrawText("Sell@",    TX + 280, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
-    DrawText("+g/u",     TX + 330, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
+    DrawText("Net/u",    TX + 330, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
     DrawText("Rd",       TX + 375, hy, TFONT, Fade(LIGHTGRAY, 0.6f));
 
     for (int i = 0; i < showN; ++i) {
@@ -770,7 +801,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
                       op.from.c_str(), op.to.c_str());
         std::snprintf(buyBuf,  sizeof(buyBuf),  "%.2fg", op.buyPrice);
         std::snprintf(sellBuf, sizeof(sellBuf), "%.2fg", op.sellPrice);
-        std::snprintf(margBuf, sizeof(margBuf), "+%.2fg", op.margin);
+        std::snprintf(margBuf, sizeof(margBuf), "+%.2fg", op.netPerUnit);
         std::snprintf(condBuf, sizeof(condBuf), "%.0f%%", op.condition * 100.f);
 
         // Fade out blocked/degraded routes
