@@ -371,4 +371,70 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             MoveToward(vel, pos, facPos.x, facPos.y, speed);
         }
     }
+
+    // ============================================================
+    // GOSSIP / PRICE SHARING
+    // When two NPCs from different settlements are within 30 units,
+    // the "visitor's" home Market prices nudge 5% toward the local
+    // settlement's prices. Runs at most once per 6 game-hours per NPC.
+    // ============================================================
+    static constexpr float GOSSIP_RADIUS    = 30.f;
+    static constexpr float GOSSIP_NUDGE     = 0.05f;   // 5% nudge toward other's prices
+    static constexpr float GOSSIP_COOLDOWN  = 6.f;     // game-hours between gossip events
+    float gameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+
+    // Collect snapshot of NPC positions/home-settlements for the O(N²) check.
+    // We use a simple vector to avoid re-querying inside nested loops.
+    struct GossipEntry {
+        entt::entity entity;
+        float        x, y;
+        entt::entity homeSettl;
+    };
+    std::vector<GossipEntry> gossipAgents;
+    registry.view<Position, HomeSettlement, DeprivationTimer>(
+        entt::exclude<Hauler, PlayerTag>).each(
+        [&](auto e, const Position& p, const HomeSettlement& hs, DeprivationTimer& tmr) {
+            // Drain cooldown every frame
+            if (tmr.gossipCooldown > 0.f)
+                tmr.gossipCooldown = std::max(0.f, tmr.gossipCooldown - gameHoursDt);
+            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                gossipAgents.push_back({ e, p.x, p.y, hs.settlement });
+        });
+
+    for (std::size_t i = 0; i < gossipAgents.size(); ++i) {
+        auto& A = gossipAgents[i];
+        auto* tmrA = registry.try_get<DeprivationTimer>(A.entity);
+        if (!tmrA || tmrA->gossipCooldown > 0.f) continue;
+
+        // A needs a Market at their home settlement to update
+        auto* mktA = registry.try_get<Market>(A.homeSettl);
+        if (!mktA) continue;
+
+        for (std::size_t j = i + 1; j < gossipAgents.size(); ++j) {
+            auto& B = gossipAgents[j];
+            if (B.homeSettl == A.homeSettl) continue;   // same settlement — no gossip
+
+            float dx = B.x - A.x, dy = B.y - A.y;
+            if (dx*dx + dy*dy > GOSSIP_RADIUS * GOSSIP_RADIUS) continue;
+
+            auto* tmrB = registry.try_get<DeprivationTimer>(B.entity);
+            auto* mktB = registry.try_get<Market>(B.homeSettl);
+            if (!mktB) continue;
+
+            // Nudge A's home prices toward B's, and B's home prices toward A's.
+            for (auto& [res, priceA] : mktA->price) {
+                float priceB = mktB->GetPrice(res);
+                priceA += (priceB - priceA) * GOSSIP_NUDGE;
+            }
+            if (tmrB && tmrB->gossipCooldown <= 0.f) {
+                for (auto& [res, priceB] : mktB->price) {
+                    float priceA = mktA->GetPrice(res);
+                    priceB += (priceA - priceB) * GOSSIP_NUDGE;
+                }
+                tmrB->gossipCooldown = GOSSIP_COOLDOWN;
+            }
+            tmrA->gossipCooldown = GOSSIP_COOLDOWN;
+            break;  // A gossips with at most one NPC per cooldown window
+        }
+    }
 }
