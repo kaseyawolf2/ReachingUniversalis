@@ -9,11 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Surname tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when an NPC's name contains a
-  space, show their surname in a subtle way: after the main name line, if two or more agents in
-  `agentCopy` share the same last name (check `npcName.rfind(' ')` to extract surname), append
-  "(Family: <surname>)" to `line1`. This makes family clusters visible just by hovering. Compute
-  a surname→count map from `agentCopy` once before the hit-test loop.
+_(none)_
 
 ---
 
@@ -156,6 +152,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GOLD` colour instead of white. No new component needed — use the existing `money` float in
   `AgentEntry`. Makes wealth inequality immediately legible.
 
+- [ ] **Family size in tooltip** — Extend the `(Family: X)` suffix added in `DrawHoverTooltip`
+  (HUD.cpp) to include the family size: change to "(Family: X ×N)" where N is the `surnameCount`
+  value for that surname. This tells the player at a glance how large a dynasty has grown without
+  needing extra UI. Just pass the count integer into the snprintf format string.
+
+- [ ] **NPC mood colour on world dot** — In `GameState.cpp`, agent dots are currently all WHITE.
+  Tint the dot colour by the NPC's contentment: `contentment >= 0.7` → `GREEN`, `>= 0.4` →
+  `YELLOW`, `< 0.4` → `RED`. Use `AgentEntry::contentment` (already in the snapshot). Children and
+  haulers keep their existing colour logic. This makes settlement health instantly readable from the
+  overworld view.
+
+- [ ] **Settlement name in event log** — In `RandomEventSystem.cpp`, random events like "Drought at
+  Ashford" currently emit to the global EventLog with just the settlement name in the string. Add
+  the settlement's current population in brackets: "Drought at Ashford [pop 12]". Read from
+  `Settlement::` component and `popCount` computed locally. Helps the player gauge event severity.
+
 ---
 
 ## Done
@@ -175,6 +187,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Surname tooltip** — HUD::DrawHoverTooltip builds a surname→count map from the agents
+  snapshot once before the hit-test loop. If the hovered NPC's surname appears on 2+ agents,
+  appends "  (Family: Surname)" to line1. line1 expanded to 128 chars to fit the suffix.
 
 - [x] **Birth announcement names parent** — BirthSystem.cpp finds the wealthiest adult (highest
   `Money.balance`) at the settlement at birth time and appends "(to Name)" to the birth log message.
