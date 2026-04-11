@@ -9,20 +9,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
-
----
-
-## Backlog
-
-### NPC Lifecycle & Identity
-
 - [ ] **Family surname on birth** — In `BirthSystem.cpp`, newborns currently get a random first
   and last name. If the settlement has any adult NPC with a `Name` containing a space (i.e., a
   surname), use the most common surname among adult residents as the newborn's last name (50%
   chance), otherwise keep the random last name. This ties newborns to existing family lines.
   Count surnames with a `std::map<std::string, int>` inside the birth block, pick the most
   frequent, apply it to both `npc` and `npc2` (twin).
+
+---
+
+## Backlog
+
+### NPC Lifecycle & Identity
 
 - [ ] **Birth announcement names parent** — In `BirthSystem.cpp`, when a new NPC is born,
   the log currently says "Born: Aldric Smith at Ashford". Find the adult with the highest
