@@ -9,12 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child follow indicator in tooltip** — When hovering over a child (role == Child), the
-  HUD tooltip in `HUD::DrawHoverTooltip` (HUD.cpp ~line 445) should show which adult they are
-  currently following. `AgentEntry` doesn't yet carry the followed adult's name. Add a
-  `std::string followingName` field to `AgentEntry` in `RenderSnapshot.h`, populate it in
-  `SimThread::WriteSnapshot` for Child entities by reading `AgentState::target` → `Name`,
-  and display it in the tooltip as "Following: Aldric Smith".
+_(none)_
 
 ---
 
@@ -22,12 +17,30 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Lifecycle & Identity
 
+- [ ] **Graduation log improvement** — Currently `ScheduleSystem` logs "X came of age at Y"
+  with no mention of family. After the `ChildTag` removal (graduation block in `ScheduleSystem.cpp`),
+  if `followingName` is non-empty (the adult they followed), append it to the log message:
+  "Aldric Smith came of age at Ashford (raised by Brom Smith)". This gives the event log a
+  visible sense of family lineage without needing a formal family system yet. Retrieve the
+  followed adult's name the same way WriteSnapshot does: `AgentState::target → Name`.
+
 - [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
   followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
   same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
   visible family lines in the event log over time.
 
 - [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
+  `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
+  to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status loop
+  (around line 1486 where `hCount` is computed — use `m_registry.all_of<ChildTag>(ne)` while
+  counting `HomeSettlement`), and display it in `DrawWorldStatus` as a greyed "(Nc)" suffix
+  after the population number.
+
+- [ ] **Child abandonment on settlement collapse** — When a settlement collapses (pop hits 0,
+  logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
+  have their `HomeSettlement` cleared and `AgentState::target` set to `entt::null` so they become
+  wanderers. Add this cleanup to `DeathSystem.cpp` in the settlement-collapse check block (after
+  line 130). Log: "Orphaned children of Ashford scattered." — `RenderSnapshot::SettlementStatus` (shown in
   `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
   to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status section
   (near line 1486 where `hCount` is computed), and display it in `DrawWorldStatus` as a small
@@ -141,6 +154,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Child follow indicator in tooltip** — `followingName` added to `AgentEntry`. SimThread
+  WriteSnapshot resolves `AgentState::target → Name` for Child entities. HUD tooltip shows
+  "Following: Aldric Smith" in sky-blue when present.
 
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
