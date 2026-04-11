@@ -9,14 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Helped-NPC gratitude follow** — When a starving NPC receives charity, have them briefly
-  move toward their helper for 30–60 game-seconds as a gesture of gratitude. In
-  `AgentDecisionSystem`'s charity block, after setting `starvingTmr->helpedTimer`, also store
-  the helper entity in a new `entt::entity gratitudeTarget = entt::null` field on `DeprivationTimer`
-  (alongside a `float gratitudeTimer = 0.f`). In the main NPC behaviour loop, before the
-  critical-need check: if `gratitudeTimer > 0`, decrement it and `MoveToward` the gratitudeTarget
-  (if still valid), then skip the rest of the behaviour for that frame.
-
 ---
 
 ## Backlog
@@ -36,6 +28,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   duration. During Celebrating: movement speed halved, needs drain 50% slower, they move toward
   the settlement centre. Add `Celebrating` to the `AgentBehavior` enum and handle it in
   `AgentDecisionSystem` and `NeedDrainSystem`.
+
+- [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
+  when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
+  GRATITUDE block, after computing target position, check if within 25 units of the helper:
+  if so, set `vel = {0, 0}` (polite stop) but still decrement the timer and `continue`. This
+  makes NPCs stand near their helper for the remainder of the gratitude window rather than
+  endlessly bumping into them.
+
+- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, add a faint indication in the
+  tooltip. In `SimThread::WriteSnapshot`, add a `bool isGrateful = false` field to `AgentEntry`
+  (alongside `recentlyHelped`), set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`,
+  when `isGrateful`, show a small dim line "Grateful to neighbour" in LIME (below the "Fed by
+  neighbour" line if also present). Mirrors the `showHelped` pattern already in place.
 
 ### NPC Crime & Consequence
 
@@ -269,6 +274,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Helped-NPC gratitude follow** — Added `gratitudeTarget` (entt::entity) and
+  `gratitudeTimer` (float, real-seconds) to `DeprivationTimer`. Charity block sets random 30–60s
+  timer and stores helper entity. New GRATITUDE block in main behaviour loop (before migration
+  check): if active, NPC moves toward helper at 70% speed and skips all other decisions. Clears
+  on expiry or if helper is destroyed. Added `<random>` include to AgentDecisionSystem.
 
 - [x] **Charity shown in tooltip** — Added `helpedTimer` float to `DeprivationTimer`. Set to 1.f
   (game-hour) on charity receiver in `AgentDecisionSystem`; drained each frame. `SimThread` reads
