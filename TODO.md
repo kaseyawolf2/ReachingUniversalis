@@ -9,11 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession identity** — Add a `Profession` component with an enum: `Farmer`, `WaterCarrier`,
-  `Lumberjack`, `Hauler`, `Idle`. Assigned at spawn based on home settlement's primary output.
-  When an NPC migrates in `AgentDecisionSystem`, they prefer settlements that match their profession.
-  Show profession in NPC tooltip (already have `profession` string in `AgentEntry`, just populate it
-  from the component rather than inferring it).
+_(none)_
 
 ---
 
@@ -204,6 +200,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   of wandering. In `AgentDecisionSystem`, after the wander-target logic, if `hour >= 18 && hour < 21`
   and behavior == Idle, set velocity toward `homePos` at 60% speed. No new component needed.
 
+- [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
+  complete in `AgentDecisionSystem`), update their `Profession` component to match the new
+  settlement's primary output facility. Use the same `ProfessionForResource` helper from
+  Components.h. This reflects NPCs adapting to their new community's trade over time.
+
+- [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
+  a short profession abbreviation in grey: "Fa" = Farmer, "Wa" = Water Carrier, "Lu" = Lumberjack,
+  "Me" = Merchant. Read from `AgentEntry::profession` (already populated from the Profession
+  component). No new fields needed.
+
+- [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
+  at their skill-matched facility, check if their `Profession` type matches the facility output
+  (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
+  `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
+  AND identify with their profession.
+
 ---
 
 ## Done
@@ -223,6 +236,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Profession identity** — Added `ProfessionType` enum and `Profession` component to
+  Components.h with helpers. WorldGenerator assigns profession at spawn per settlement type.
+  BirthSystem detects settlement primary facility and emplaces Profession on newborns/twins.
+  AgentDecisionSystem: +15% migration score bonus when profession matches destination output
+  (stacks with existing +20% skill affinity). EconomicMobilitySystem sets Profession::Hauler
+  on graduation. SimThread reads from component instead of inferring each frame.
 
 - [x] **Elder retirement** — ScheduleSystem: age > 60 sets `workEligible=false` (full retirement).
   ConsumptionSystem: `isElder` guard blocks wages; elders drain own `Money` at 0.1g/game-hour.
