@@ -9,20 +9,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
-
----
-
-## Backlog
-
-### NPC Lifecycle & Identity
-
 - [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
   `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
   to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status loop
   (around line 1486 where `hCount` is computed — use `m_registry.all_of<ChildTag>(ne)` while
   counting `HomeSettlement`), and display it in `DrawWorldStatus` as a greyed "(Nc)" suffix
   after the population number.
+
+---
+
+## Backlog
+
+### NPC Lifecycle & Identity
 
 - [ ] **Child abandonment on settlement collapse** — When a settlement collapses (pop hits 0,
   logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
