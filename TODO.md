@@ -9,13 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity shown in tooltip** — When an NPC has recently received charity (their
-  `charityTimer` was just reset OR their `Money.balance` jumped above their hunger tier), add a
-  faint "Fed by neighbour" status line to `HUD::DrawHoverTooltip`. Simpler approach: add a
-  `bool recentlyHelped = false` flag to `DeprivationTimer` (set true on receiving charity, cleared
-  after 1 game-hour). In SimThread WriteSnapshot, populate a new `bool recentlyHelped` field on
-  `AgentEntry`. In HUD tooltip, show a dim `LIME`-coloured "(helped)" suffix on line1 when set.
-
 ---
 
 ## Backlog
@@ -23,6 +16,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
+
+- [ ] **Helped-NPC gratitude follow** — When a starving NPC receives charity, have them briefly
+  move toward their helper for 30–60 game-seconds as a gesture of gratitude. In
+  `AgentDecisionSystem`'s charity block, after setting `starvingTmr->helpedTimer`, also store
+  the helper entity in a new `entt::entity gratitudeTarget = entt::null` field on `DeprivationTimer`
+  (alongside a `float gratitudeTimer = 0.f`). In the main NPC behaviour loop, before the
+  critical-need check: if `gratitudeTimer > 0`, decrement it and `MoveToward` the gratitudeTarget
+  (if still valid), then skip the rest of the behaviour for that frame.
 
 - [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
   warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
@@ -57,6 +58,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   at Ashford." No new components — just expand the `charityLog->Push` format string using
   `registry.try_get<Name>` on `starving.entity` and `registry.try_get<Settlement>` on
   `starving.homeSettl`.
+
+- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity a
+  second (or Nth) time, change the log message to: "Aldric helped a starving neighbour (×2)."
+  Track a `std::map<entt::entity, int> s_charityCount` static inside `AgentDecisionSystem::Update`
+  (like `s_bankruptTimer` in EconomicMobilitySystem). Prune entries for destroyed entities each
+  check. Use the counter in the `charityLog->Push` format: if count > 1, append " (×N)".
 
 - [ ] **Bandit NPCs from desperation** — Wandering exiles with `money.balance < 2g` for more than
   48 game-hours become `BanditTag` entities. Bandits move toward roads (target the midpoint of the
@@ -262,6 +269,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Charity shown in tooltip** — Added `helpedTimer` float to `DeprivationTimer`. Set to 1.f
+  (game-hour) on charity receiver in `AgentDecisionSystem`; drained each frame. `SimThread` reads
+  `helpedTimer > 0` → `AgentEntry::recentlyHelped`. `HUD` tooltip shows a dim lime "Fed by
+  neighbour" extra line when set; disappears automatically after 1 game-hour.
 
 - [x] **NPC helping starving neighbours** — Added `charityTimer` to `DeprivationTimer`. In
   `AgentDecisionSystem`, well-fed NPCs (Hunger > 0.8, Money > 20g, cooldown 0) scan within 80
