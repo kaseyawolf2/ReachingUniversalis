@@ -9,12 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
-  `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
-  to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status loop
-  (around line 1486 where `hCount` is computed — use `m_registry.all_of<ChildTag>(ne)` while
-  counting `HomeSettlement`), and display it in `DrawWorldStatus` as a greyed "(Nc)" suffix
-  after the population number.
+_(none)_
 
 ---
 
@@ -166,6 +161,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the settlement's current population in brackets: "Drought at Ashford [pop 12]". Read from
   `Settlement::` component and `popCount` computed locally. Helps the player gauge event severity.
 
+- [ ] **Child count in stockpile tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp, the tooltip
+  shown when hovering a settlement dot), add a "Children: N" line when `childCount > 0`. Read
+  `SettlementStatus::childCount` from the `worldStatus` entry that matches the hovered settlement
+  name. Display it in faded LIGHTGRAY below the population line. No new components needed.
+
+- [ ] **Hunger crisis indicator in world status** — In `DrawWorldStatus` (HUD.cpp), if any NPC at
+  a settlement has `hungerPct < 0.15f` (near starvation), add a small "!" warning after the food
+  stock. Track via a new `bool hungerCrisis` field in `SettlementStatus` (RenderSnapshot.h) set
+  in SimThread's world-status loop using `m_registry.view<HomeSettlement, Needs>`. Draw the "!"
+  in RED tint immediately after the food number.
+
+- [ ] **Population cap shown in stockpile panel header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the header currently shows "[12/35 pop, 3 child]" (popCap already wired in).
+  Verify `StockpilePanel::popCap` is being written by SimThread (check WriteSnapshot around the
+  panel block), and if the cap is being hit (pop >= popCap - 2), tint the pop number in ORANGE to
+  signal crowding. No new fields needed — just a colour change based on existing data.
+
 ---
 
 ## Done
@@ -185,6 +197,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Child count in world status bar** — Added `childCount` to `SettlementStatus` in
+  `RenderSnapshot.h`. SimThread passes `childPop` (from its existing pop-counting loop) into
+  `worldStatus`. `DrawWorldStatus` draws a faded `(Nc)` suffix after each settlement's status.
 
 - [x] **Surname tooltip** — HUD::DrawHoverTooltip builds a surname→count map from the agents
   snapshot once before the hit-test loop. If the hovered NPC's surname appears on 2+ agents,
