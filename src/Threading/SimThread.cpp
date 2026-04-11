@@ -1523,7 +1523,7 @@ void SimThread::WriteSnapshot() {
 
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
-                                 pop, hCount, s.treasury,
+                                 pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend });
 

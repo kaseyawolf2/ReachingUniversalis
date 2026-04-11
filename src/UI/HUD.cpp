@@ -337,9 +337,27 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         hasEvent[count] = s.hasEvent;
         ++count;
     }
+
+    // Second pass: record child counts per entry for the greyed suffix drawn separately.
+    // We store them indexed parallel to bufs[].
+    int childCounts[4] = {};
+    {
+        int ci = 0;
+        for (const auto& s : ws) {
+            if (ci >= 4) break;
+            childCounts[ci++] = s.childCount;
+        }
+    }
+    // Pre-build child suffix strings (e.g. " (3c)") for width measurement and drawing.
+    char childSuffix[4][16] = {};
+    for (int i = 0; i < count; ++i) {
+        if (childCounts[i] > 0)
+            std::snprintf(childSuffix[i], sizeof(childSuffix[i]), " (%dc)", childCounts[i]);
+    }
+
     int totalW = 0;
     for (int i = 0; i < count; ++i)
-        totalW += MeasureText(bufs[i], STATUS_FONT) + (i > 0 ? 28 : 0);
+        totalW += MeasureText(bufs[i], STATUS_FONT) + MeasureText(childSuffix[i], STATUS_FONT) + (i > 0 ? 28 : 0);
     int sx = (SCREEN_W - totalW) / 2;
 
     DrawRectangle(sx - 8, 4, totalW + 16, 34, Fade(BLACK, 0.55f));
@@ -350,7 +368,12 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         bool woodLow = showWood && (ws[i].wood < 20.f) && (season == Season::Winter);
         Color col = woodLow ? RED : (hasEvent[i] ? ORANGE : WHITE);
         DrawText(bufs[i], cx, 14, STATUS_FONT, col);
-        cx += MeasureText(bufs[i], STATUS_FONT) + 12;
+        cx += MeasureText(bufs[i], STATUS_FONT);
+        if (childCounts[i] > 0) {
+            DrawText(childSuffix[i], cx, 14, STATUS_FONT, Fade(LIGHTGRAY, 0.6f));
+            cx += MeasureText(childSuffix[i], STATUS_FONT);
+        }
+        cx += 12;
     }
 }
 

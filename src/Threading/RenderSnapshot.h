@@ -98,6 +98,7 @@ struct RenderSnapshot {
         float       woodPrice  = 1.f;
         int         pop       = 0;
         int         haulers   = 0;     // hauler count (separate from pop)
+        int         childCount = 0;    // NPCs under age 15 (subset of pop)
         float       treasury  = 0.f;   // settlement gold reserves
         bool        hasEvent  = false;  // active random event
         std::string eventName;
