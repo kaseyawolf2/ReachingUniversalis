@@ -9,18 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Child HUD visibility** — `RenderSnapshot::AgentEntry` already has `ageDays`. In
+  `WriteSnapshot`, set `role = AgentRole::Child` (add this enum value) for entities with `ChildTag`,
+  and in `HUD::DrawAgents` render children as a smaller white dot with no ring, so they're visually
+  distinct from adults. Also show child count in the settlement stockpile panel next to population.
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Child HUD visibility** — `RenderSnapshot::AgentEntry` already has `ageDays`. In
-  `WriteSnapshot`, set `role = AgentRole::Child` (add this enum value) for entities with `ChildTag`,
-  and in `HUD::DrawAgents` render children as a smaller white dot with no ring, so they're visually
-  distinct from adults. Also show child count in the settlement stockpile panel next to population.
 
 - [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
   followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
