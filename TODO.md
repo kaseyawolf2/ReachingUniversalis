@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gossip / price sharing** — When two NPCs from *different* settlements are within 30 units of
-  each other (check positions in `AgentDecisionSystem`), they exchange price knowledge: the visiting
-  NPC's home settlement `Market` prices nudge 5% toward the local settlement's prices. This simulates
-  word-of-mouth market information spreading without roads. Run once per pair per 6 game-hours
-  (use a cooldown on `DeprivationTimer` or a new lightweight component).
-
 ---
 
 ## Backlog
@@ -217,9 +211,39 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
   movement. Implement in `AgentDecisionSystem` after the evening gathering block.
 
+- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
+  an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
+  (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
+  (elders retain some tacit knowledge). No new component needed — `Skills` and `Age` already
+  exist. This creates an economic lifecycle: NPCs peak in middle age, then their output contribution
+  falls as the elder bonus fades and their skill degrades.
+
+- [ ] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
+  std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
+  NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
+  (capped at 1.0). Affinity above 0.5 means "friend": friends share food charity (threshold reduced
+  from 5g to 1g for the helping-neighbour check), and when one migrates, the other has a 30% chance
+  to follow. Log "Aldric and Mira left Ashford together." Decay affinity by 0.001/game-hour when
+  apart. No UI needed yet — the effects on migration and charity are the observable outcome.
+
+- [ ] **NPC rumour propagation via gossip** — Extend the existing gossip system
+  (`AgentDecisionSystem.cpp`). Add a `Rumour` component: `enum RumourType { PlagueNearby,
+  GoodHarvest, BanditRoads }` with a `hops` int (decrements per gossip exchange) and an `origin`
+  settlement entity. When `RandomEventSystem` fires a plague or drought, attach a `Rumour` to 1–2
+  NPCs at that settlement. During gossip exchanges, spread the rumour to the other NPC (if their
+  settlement doesn't already have it and `hops > 0`). When a rumour arrives at a settlement,
+  nudge that settlement's relevant stockpile fear: plague → food hoarding (+10% Food price at
+  Market), drought → water scarcity (+15% Water price). Log "Rumour of plague reached Thornvale."
+
 ---
 
 ## Done
+
+- [x] **Gossip / price sharing** — AgentDecisionSystem.cpp: after main NPC loop, builds a
+  `GossipEntry` snapshot of all non-hauler/player NPCs with valid home settlements. O(N²) pair check
+  within 30 units; different-settlement pairs only. On match: each home `Market` nudges 5% toward
+  the other's prices. Cooldown 6 game-hours on `DeprivationTimer::gossipCooldown`. Each NPC gossips
+  with at most one stranger per cooldown window.
 
 - [x] **Parent–child naming** — ScheduleSystem graduation block extracts parent's last name from
   `raisedBy` (rfind ' ') and replaces the NPC's last name with it before the log reads `who`.
