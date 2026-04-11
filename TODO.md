@@ -9,10 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child HUD visibility** — `RenderSnapshot::AgentEntry` already has `ageDays`. In
-  `WriteSnapshot`, set `role = AgentRole::Child` (add this enum value) for entities with `ChildTag`,
-  and in `HUD::DrawAgents` render children as a smaller white dot with no ring, so they're visually
-  distinct from adults. Also show child count in the settlement stockpile panel next to population.
+_(none)_
 
 ---
 
@@ -20,10 +17,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Lifecycle & Identity
 
+- [ ] **Child follow indicator in tooltip** — When hovering over a child (role == Child), the
+  HUD tooltip in `HUD::DrawHoverTooltip` (HUD.cpp ~line 445) should show which adult they are
+  currently following. `AgentEntry` doesn't yet carry the followed adult's name. Add a
+  `std::string followingName` field to `AgentEntry` in `RenderSnapshot.h`, populate it in
+  `SimThread::WriteSnapshot` for Child entities by reading `AgentState::target` → `Name`,
+  and display it in the tooltip as "Following: Aldric Smith".
+
 - [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
   followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
   same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
   visible family lines in the event log over time.
+
+- [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
+  `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
+  to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status section
+  (near line 1486 where `hCount` is computed), and display it in `DrawWorldStatus` as a small
+  italic "(Nc)" suffix after the pop number, greyed out.
 
 - [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
   enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
@@ -133,6 +143,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
+  `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
+  header shows child count when > 0. HUD tooltip shows "Child" role label.
 
 - [x] **Child → Adult lifecycle** — `ChildTag` added; BirthSystem emits it for newborns/twins.
   ScheduleSystem: children follow nearest adult at home settlement during leisure hours (target
