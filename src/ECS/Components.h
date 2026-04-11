@@ -120,6 +120,7 @@ struct DeprivationTimer {
     float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase
     float                stealCooldown   = 0.f;    // game-hours until NPC can steal again (0 = can steal)
     float                gossipCooldown  = 0.f;    // game-hours until NPC can gossip prices again (0 = ready)
+    float                charityTimer    = 0.f;    // game-hours until NPC can help a starving neighbour again (0 = ready)
 };
 
 // ---- Inventory / Transport ----

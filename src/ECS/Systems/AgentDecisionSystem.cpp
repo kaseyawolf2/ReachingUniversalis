@@ -502,4 +502,108 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
     }
+
+    // ============================================================
+    // CHARITY: NPC helps starving neighbour
+    // A well-fed wealthy NPC (Hunger > 0.8, Money > 20g) within
+    // CHARITY_RADIUS units of a starving NPC (Hunger < 0.2) gifts 5g.
+    // The starving NPC uses it to buy food immediately (market purchase).
+    // Happens at most once per 24 game-hours per helper.
+    // ============================================================
+    static constexpr float CHARITY_RADIUS   = 80.f;
+    static constexpr float CHARITY_GIFT     = 5.f;
+    static constexpr float CHARITY_COOLDOWN = 24.f;   // game-hours
+    static constexpr float HUNGER_HELPER    = 0.8f;   // well-fed threshold
+    static constexpr float HUNGER_STARVING  = 0.2f;   // starving threshold
+    static constexpr float MONEY_HELPER_MIN = 20.f;   // must have at least this to donate
+
+    // Drain charity timers and build candidate list
+    struct CharityEntry {
+        entt::entity entity;
+        float        x, y;
+        float        hunger;
+        float        balance;
+        entt::entity homeSettl;
+        bool         canHelp;     // well-fed + rich + cooldown done
+        bool         isStarving;
+    };
+    std::vector<CharityEntry> charityAgents;
+    registry.view<Position, Needs, Money, HomeSettlement, DeprivationTimer>(
+        entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+        [&](auto e, const Position& p, const Needs& n, const Money& m,
+            const HomeSettlement& hs, DeprivationTimer& tmr) {
+            tmr.charityTimer = std::max(0.f, tmr.charityTimer - gameHoursDt);
+            if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
+            float hunger = n.list[(int)NeedType::Hunger].value;
+            charityAgents.push_back({
+                e, p.x, p.y, hunger, m.balance, hs.settlement,
+                /*canHelp=*/  (hunger >= HUNGER_HELPER && m.balance >= MONEY_HELPER_MIN
+                               && tmr.charityTimer <= 0.f),
+                /*isStarving*/(hunger < HUNGER_STARVING)
+            });
+        });
+
+    // Get EventLog for charity messages
+    auto elv2 = registry.view<EventLog>();
+    EventLog* charityLog = (elv2.begin() == elv2.end())
+                           ? nullptr : &elv2.get<EventLog>(*elv2.begin());
+    auto tmv2 = registry.view<TimeManager>();
+    int  charityDay  = 1;
+    int  charityHour = 0;
+    if (tmv2.begin() != tmv2.end()) {
+        const auto& ctm = tmv2.get<TimeManager>(*tmv2.begin());
+        charityDay  = ctm.day;
+        charityHour = (int)ctm.hourOfDay;
+    }
+
+    for (auto& helper : charityAgents) {
+        if (!helper.canHelp) continue;
+
+        for (auto& starving : charityAgents) {
+            if (starving.entity == helper.entity) continue;
+            if (!starving.isStarving) continue;
+
+            float dx = starving.x - helper.x, dy = starving.y - helper.y;
+            if (dx*dx + dy*dy > CHARITY_RADIUS * CHARITY_RADIUS) continue;
+
+            // Transfer gold: helper → starving NPC (peer transfer, gold flow rule satisfied)
+            auto* helperMoney   = registry.try_get<Money>(helper.entity);
+            auto* starvingMoney = registry.try_get<Money>(starving.entity);
+            auto* starvingTmr   = registry.try_get<DeprivationTimer>(starving.entity);
+            if (!helperMoney || !starvingMoney) continue;
+
+            helperMoney->balance  -= CHARITY_GIFT;
+            starvingMoney->balance += CHARITY_GIFT;
+
+            // Immediately buy food for the starving NPC at home market price
+            auto* mkt = registry.try_get<Market>(starving.homeSettl);
+            auto* sp  = registry.try_get<Stockpile>(starving.homeSettl);
+            auto* sett = registry.try_get<Settlement>(starving.homeSettl);
+            if (mkt && sp && sett) {
+                float price = mkt->GetPrice(ResourceType::Food);
+                if (starvingMoney->balance >= price) {
+                    starvingMoney->balance -= price;
+                    sett->treasury         += price;
+                    sp->quantities[ResourceType::Food] += 1.f;
+                }
+            }
+
+            // Reset the starving NPC's purchaseTimer so ConsumptionSystem acts promptly
+            if (starvingTmr) starvingTmr->purchaseTimer = 0.f;
+
+            // Set helper cooldown
+            auto* helperTmr = registry.try_get<DeprivationTimer>(helper.entity);
+            if (helperTmr) helperTmr->charityTimer = CHARITY_COOLDOWN;
+            helper.canHelp = false;   // don't help a second NPC this frame
+
+            // Log
+            if (charityLog) {
+                std::string who = "An NPC";
+                if (const auto* n = registry.try_get<Name>(helper.entity)) who = n->value;
+                charityLog->Push(charityDay, charityHour,
+                    who + " helped a starving neighbour.");
+            }
+            break;   // helper gives to at most one starving NPC per cooldown window
+        }
+    }
 }
