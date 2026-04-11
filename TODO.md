@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity shown in tooltip** — When an NPC has recently received charity (their
+  `charityTimer` was just reset OR their `Money.balance` jumped above their hunger tier), add a
+  faint "Fed by neighbour" status line to `HUD::DrawHoverTooltip`. Simpler approach: add a
+  `bool recentlyHelped = false` flag to `DeprivationTimer` (set true on receiving charity, cleared
+  after 1 game-hour). In SimThread WriteSnapshot, populate a new `bool recentlyHelped` field on
+  `AgentEntry`. In HUD tooltip, show a dim `LIME`-coloured "(helped)" suffix on line1 when set.
+
 ---
 
 ## Backlog
@@ -16,13 +23,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Charity shown in tooltip** — When an NPC has recently received charity (their
-  `charityTimer` was just reset OR their `Money.balance` jumped above their hunger tier), add a
-  faint "Fed by neighbour" status line to `HUD::DrawHoverTooltip`. Simpler approach: add a
-  `bool recentlyHelped = false` flag to `DeprivationTimer` (set true on receiving charity, cleared
-  after 1 game-hour). In SimThread WriteSnapshot, populate a new `bool recentlyHelped` field on
-  `AgentEntry`. In HUD tooltip, show a dim `LIME`-coloured "(helped)" suffix on line1 when set.
 
 - [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
   warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
