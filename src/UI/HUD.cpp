@@ -431,6 +431,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         agents = snap.agents;
     }
 
+    // Build surname→count map once so the tooltip can show family clusters.
+    std::map<std::string, int> surnameCount;
+    for (const auto& a : agents) {
+        auto sp = a.npcName.rfind(' ');
+        if (sp != std::string::npos)
+            ++surnameCount[a.npcName.substr(sp + 1)];
+    }
+
     const RenderSnapshot::AgentEntry* best = nullptr;
     float bestDist = 12.f;
     for (const auto& a : agents) {
@@ -449,7 +457,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);
 
-    char line1[80], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[64] = {};
+    char line1[128], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[64] = {};
     // First line: name + profession + home settlement (if known)
     if (!best->npcName.empty()) {
         if (!best->homeSettlementName.empty())
@@ -459,6 +467,19 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
             std::snprintf(line1, sizeof(line1), "%s (%s)", best->npcName.c_str(), role);
     } else {
         std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
+    }
+    // Append family indicator if this NPC shares a surname with at least one other agent.
+    {
+        auto sp = best->npcName.rfind(' ');
+        if (sp != std::string::npos) {
+            std::string surname = best->npcName.substr(sp + 1);
+            auto it = surnameCount.find(surname);
+            if (it != surnameCount.end() && it->second >= 2) {
+                size_t used = std::strlen(line1);
+                std::snprintf(line1 + used, sizeof(line1) - used,
+                              "  (Family: %s)", surname.c_str());
+            }
+        }
     }
 
     bool hasName = !best->npcName.empty();
