@@ -167,6 +167,8 @@ void SimThread::RespawnPlayer() {
     age.maxDays = lifespan(rng);
     m_registry.emplace<Age>(player, age);
     m_registry.emplace<Name>(player, Name{ "You" });
+    // New character starts with average skills (same as initial spawn in WorldGenerator)
+    m_registry.emplace<Skills>(player, Skills{ 0.4f, 0.4f, 0.4f });
 }
 
 // ---- One simulation step ----------------------------------------------
@@ -350,9 +352,15 @@ void SimThread::ProcessInput() {
                         mon.balance -= cost;
                         // Purchase price goes to the selling settlement's treasury
                         settl.treasury += cost;
+                        const char* rn2 = (bestRes == ResourceType::Food)  ? "food"  :
+                                          (bestRes == ResourceType::Water) ? "water" : "wood";
                         if (log2) log2->Push(day2, hr2,
                             "Bought " + std::to_string(bestQty) + " goods at "
                             + settl.name + " for " + std::to_string((int)cost) + "g");
+                        char ledg2[80];
+                        std::snprintf(ledg2, sizeof(ledg2), "Bought %dx%s @%s -%.0fg",
+                                      bestQty, rn2, settl.name.c_str(), cost);
+                        PushTradeRecord(ledg2, -cost);
                     } else {
                         if (log2) log2->Push(day2, hr2,
                             "Nothing profitable to buy at " + settl.name);
