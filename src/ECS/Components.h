@@ -360,3 +360,10 @@ struct Skills {
 
 struct PlayerTag {};   // marks the entity the HUD observes
 struct ChildTag  {};   // NPC under age 15; removed at graduation (age 15)
+
+// ---- Family ----
+// Assigned when two adults at the same settlement form a household.
+// Children inherit the tag at birth.
+struct FamilyTag {
+    std::string name;   // family/household name (usually a shared surname)
+};

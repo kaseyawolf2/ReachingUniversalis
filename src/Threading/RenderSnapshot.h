@@ -50,6 +50,8 @@ struct RenderSnapshot {
         float contentment = 1.f;
         // For Child role: name of the adult they are currently following (empty if none)
         std::string followingName;
+        // FamilyTag name if this NPC belongs to a named household (empty if none)
+        std::string familyName;
     };
 
     struct SettlementEntry {

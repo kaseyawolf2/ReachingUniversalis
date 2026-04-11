@@ -491,16 +491,23 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     } else {
         std::snprintf(line1, sizeof(line1), "%s | %s", role, BehaviorLabel(best->behavior));
     }
-    // Append family indicator if this NPC shares a surname with at least one other agent.
+    // Append family indicator.
+    // Prefer the explicit FamilyTag name; fall back to surname-count heuristic.
     {
-        auto sp = best->npcName.rfind(' ');
-        if (sp != std::string::npos) {
-            std::string surname = best->npcName.substr(sp + 1);
-            auto it = surnameCount.find(surname);
-            if (it != surnameCount.end() && it->second >= 2) {
-                size_t used = std::strlen(line1);
-                std::snprintf(line1 + used, sizeof(line1) - used,
-                              "  (Family: %s)", surname.c_str());
+        if (!best->familyName.empty()) {
+            size_t used = std::strlen(line1);
+            std::snprintf(line1 + used, sizeof(line1) - used,
+                          "  (Family: %s)", best->familyName.c_str());
+        } else {
+            auto sp = best->npcName.rfind(' ');
+            if (sp != std::string::npos) {
+                std::string surname = best->npcName.substr(sp + 1);
+                auto it = surnameCount.find(surname);
+                if (it != surnameCount.end() && it->second >= 2) {
+                    size_t used = std::strlen(line1);
+                    std::snprintf(line1 + used, sizeof(line1) - used,
+                                  "  (Family: %s)", surname.c_str());
+                }
             }
         }
     }

@@ -1227,6 +1227,10 @@ void SimThread::WriteSnapshot() {
                 followingName = fn->value;
         }
 
+        std::string familyName;
+        if (const auto* ft = m_registry.try_get<FamilyTag>(e))
+            familyName = ft->name;
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1235,7 +1239,8 @@ void SimThread::WriteSnapshot() {
                            std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
                            farmSkill, waterSkill, woodSkill,
-                           contentment, std::move(followingName) });
+                           contentment, std::move(followingName),
+                           std::move(familyName) });
     });
 
     // ---- Settlements ----

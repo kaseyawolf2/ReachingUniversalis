@@ -220,6 +220,21 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             registry.emplace<Profession>(npc, Profession{ settlProfession });
             registry.emplace<ChildTag>(npc);
 
+            // Inherit FamilyTag from any paired adult at this settlement (if one exists).
+            {
+                std::map<std::string, int> familyFreq;
+                registry.view<HomeSettlement, FamilyTag>(entt::exclude<ChildTag, PlayerTag>).each(
+                    [&](const HomeSettlement& hs2, const FamilyTag& ft) {
+                        if (hs2.settlement != settl || ft.name.empty()) return;
+                        ++familyFreq[ft.name];
+                    });
+                if (!familyFreq.empty()) {
+                    auto best = std::max_element(familyFreq.begin(), familyFreq.end(),
+                        [](const auto& a, const auto& b){ return a.second < b.second; });
+                    registry.emplace<FamilyTag>(npc, FamilyTag{ best->first });
+                }
+            }
+
             // Find the wealthiest adult at this settlement to name as parent.
             std::string parentName;
             {
@@ -285,6 +300,21 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 registry.emplace<Skills>(npc2, twinSkills);
                 registry.emplace<Profession>(npc2, Profession{ settlProfession });
                 registry.emplace<ChildTag>(npc2);
+
+                // Inherit FamilyTag for twin (same logic as first sibling)
+                {
+                    std::map<std::string, int> familyFreq2;
+                    registry.view<HomeSettlement, FamilyTag>(entt::exclude<ChildTag, PlayerTag>).each(
+                        [&](const HomeSettlement& hs2, const FamilyTag& ft) {
+                            if (hs2.settlement != settl || ft.name.empty()) return;
+                            ++familyFreq2[ft.name];
+                        });
+                    if (!familyFreq2.empty()) {
+                        auto best = std::max_element(familyFreq2.begin(), familyFreq2.end(),
+                            [](const auto& a, const auto& b){ return a.second < b.second; });
+                        registry.emplace<FamilyTag>(npc2, FamilyTag{ best->first });
+                    }
+                }
 
                 if (log) {
                     const auto& s = settlView.get<Settlement>(settl);

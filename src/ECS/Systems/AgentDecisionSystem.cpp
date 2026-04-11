@@ -437,4 +437,69 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             break;  // A gossips with at most one NPC per cooldown window
         }
     }
+
+    // ============================================================
+    // FAMILY PAIRING
+    // Every 12 game-hours, find pairs of unpaired adults (age ≥ 18,
+    // same settlement, no FamilyTag) and give them a shared FamilyTag.
+    // The family name is the most common surname at that settlement;
+    // on a tie the first NPC's surname is used.
+    // ============================================================
+    static constexpr float FAMILY_CHECK_INTERVAL = 12.f;   // game-hours
+    static float s_familyAccum = 0.f;
+    s_familyAccum += gameHoursDt;
+    if (s_familyAccum >= FAMILY_CHECK_INTERVAL) {
+        s_familyAccum -= FAMILY_CHECK_INTERVAL;
+
+        // Collect unpaired adults grouped by settlement
+        struct UnpairedAdult {
+            entt::entity entity;
+            std::string  surname;
+        };
+        std::map<entt::entity, std::vector<UnpairedAdult>> bySettlement;
+
+        registry.view<Age, HomeSettlement, Name>(
+            entt::exclude<FamilyTag, ChildTag, Hauler, PlayerTag>).each(
+            [&](auto e, const Age& age, const HomeSettlement& hs, const Name& n) {
+                if (age.days < 18.f) return;
+                if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
+                std::string surname;
+                auto sp = n.value.rfind(' ');
+                if (sp != std::string::npos) surname = n.value.substr(sp + 1);
+                bySettlement[hs.settlement].push_back({ e, surname });
+            });
+
+        for (auto& [settl, adults] : bySettlement) {
+            if (adults.size() < 2) continue;
+
+            // Build surname frequency map from ALL residents (adults + paired) for tie-breaking.
+            std::map<std::string, int> surnameFreq;
+            registry.view<HomeSettlement, Name>(entt::exclude<ChildTag, PlayerTag>).each(
+                [&](const HomeSettlement& hs2, const Name& n2) {
+                    if (hs2.settlement != settl) return;
+                    auto sp2 = n2.value.rfind(' ');
+                    if (sp2 != std::string::npos)
+                        ++surnameFreq[n2.value.substr(sp2 + 1)];
+                });
+
+            // Pair adults two-by-two
+            for (std::size_t i = 0; i + 1 < adults.size(); i += 2) {
+                auto& A = adults[i];
+                auto& B = adults[i + 1];
+
+                // Determine family name: most common surname at this settlement
+                std::string familyName = A.surname;
+                if (!surnameFreq.empty()) {
+                    auto best = std::max_element(surnameFreq.begin(), surnameFreq.end(),
+                        [](const auto& x, const auto& y){ return x.second < y.second; });
+                    if (!best->first.empty()) familyName = best->first;
+                }
+                if (familyName.empty()) familyName = B.surname;
+                if (familyName.empty()) continue;
+
+                registry.emplace_or_replace<FamilyTag>(A.entity, FamilyTag{ familyName });
+                registry.emplace_or_replace<FamilyTag>(B.entity, FamilyTag{ familyName });
+            }
+        }
+    }
 }
