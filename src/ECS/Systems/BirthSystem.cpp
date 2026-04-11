@@ -1,5 +1,6 @@
 #include "BirthSystem.h"
 #include "ECS/Components.h"
+#include <algorithm>
 #include <cmath>
 #include <map>
 #include <random>
@@ -158,7 +159,28 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             };
             static std::uniform_int_distribution<int> fd(0, 29);
             static std::uniform_int_distribution<int> ld(0, 19);
-            std::string npcName = std::string(FIRSTS[fd(s_rng)]) + " " + LASTS[ld(s_rng)];
+
+            // Find the most common adult surname at this settlement.
+            // 50% chance the newborn inherits it, tying them to existing family lines.
+            std::string familySurname;
+            {
+                std::map<std::string, int> surnameCount;
+                registry.view<HomeSettlement, Name>(entt::exclude<ChildTag, PlayerTag>).each(
+                    [&](const HomeSettlement& hs, const Name& n) {
+                    if (hs.settlement != settl) return;
+                    auto sp = n.value.rfind(' ');
+                    if (sp != std::string::npos)
+                        ++surnameCount[n.value.substr(sp + 1)];
+                });
+                if (!surnameCount.empty() && chance_dist(s_rng) < 0.5f) {
+                    auto it = std::max_element(surnameCount.begin(), surnameCount.end(),
+                        [](const auto& a, const auto& b) { return a.second < b.second; });
+                    familySurname = it->first;
+                }
+            }
+
+            std::string npcName = std::string(FIRSTS[fd(s_rng)]) + " " +
+                (familySurname.empty() ? LASTS[ld(s_rng)] : familySurname);
             registry.emplace<Name>(npc, Name{ npcName });
             // Newborns inherit a small starting purse — participating in the
             // emergency market purchase system from birth.
@@ -219,7 +241,8 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 registry.emplace<Renderable>(npc2, WHITE, 6.f);
                 Age twinAge; twinAge.days = 0.f; twinAge.maxDays = lifespan(s_rng);
                 registry.emplace<Age>(npc2, twinAge);
-                std::string twinName = std::string(FIRSTS[fd(s_rng)]) + " " + LASTS[ld(s_rng)];
+                std::string twinName = std::string(FIRSTS[fd(s_rng)]) + " " +
+                    (familySurname.empty() ? LASTS[ld(s_rng)] : familySurname);
                 registry.emplace<Name>(npc2, Name{ twinName });
                 registry.emplace<Money>(npc2, Money{ 5.f });
                 auto& twinNeeds = registry.get<Needs>(npc2);
