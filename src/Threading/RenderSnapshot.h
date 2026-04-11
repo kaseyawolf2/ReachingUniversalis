@@ -17,7 +17,7 @@ struct RenderSnapshot {
 
     // ---- Drawable world objects ----
 
-    enum class AgentRole { NPC, Hauler, Player };
+    enum class AgentRole { NPC, Hauler, Player, Child };
 
     struct AgentEntry {
         float     x, y, size;
@@ -116,6 +116,7 @@ struct RenderSnapshot {
         std::map<ResourceType, float> consRatePerHour; // gross consumption rate estimate
         float                         treasury  = 0.f;
         int                           pop       = 0;
+        int                           childCount = 0;   // NPCs under age 15
         int                           popCap    = 35;   // max pop from BirthSystem
         float                         stability = 0.f;   // 0-1 composite settlement health
         int                           workers   = 0;     // current number of Working NPCs

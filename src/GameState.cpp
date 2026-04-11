@@ -308,7 +308,9 @@ void GameState::Draw() {
     // Agents
     for (const auto& a : agents) {
         DrawCircleV({ a.x, a.y }, a.size, a.color);
-        DrawCircleLinesV({ a.x, a.y }, a.size + 1.f, a.ringColor);
+        // Children have no ring — keeps them visually distinct from working adults
+        if (a.role != RenderSnapshot::AgentRole::Child)
+            DrawCircleLinesV({ a.x, a.y }, a.size + 1.f, a.ringColor);
         if (a.hasCargoDot)
             DrawCircleV({ a.x + a.size + 4.f, a.y - a.size }, 4.f, a.cargoDotColor);
     }

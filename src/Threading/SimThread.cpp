@@ -1083,8 +1083,10 @@ void SimThread::WriteSnapshot() {
 
         bool isPlayer = m_registry.all_of<PlayerTag>(e);
         bool isHauler = m_registry.all_of<Hauler>(e);
+        bool isChild  = m_registry.all_of<ChildTag>(e);
         RenderSnapshot::AgentRole role = isPlayer ? RenderSnapshot::AgentRole::Player
                                        : isHauler ? RenderSnapshot::AgentRole::Hauler
+                                       : isChild  ? RenderSnapshot::AgentRole::Child
                                                   : RenderSnapshot::AgentRole::NPC;
 
         Color drawColor = rend.color;
@@ -1480,9 +1482,13 @@ void SimThread::WriteSnapshot() {
             woodPrice  = mkt->GetPrice(ResourceType::Wood);
         }
 
-        int pop = 0;
+        int pop = 0, childPop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-            [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
+            [&](auto ne, const HomeSettlement& hs) {
+            if (hs.settlement != e) return;
+            ++pop;
+            if (m_registry.all_of<ChildTag>(ne)) ++childPop;
+        });
         int hCount = haulerCount2.count(e) ? haulerCount2.at(e) : 0;
 
         // Population trend ('+', '=', '-')
@@ -1596,6 +1602,7 @@ void SimThread::WriteSnapshot() {
             panel.consRatePerHour = consRate;
             panel.treasury         = s.treasury;
             panel.pop              = pop;
+            panel.childCount       = childPop;
             panel.popCap           = s.popCap;
             panel.stability        = stability;
             panel.workers          = workers;
