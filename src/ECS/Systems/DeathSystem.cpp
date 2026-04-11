@@ -83,15 +83,26 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
     // represents the community inheriting from its members (bequests, estate sale, etc.).
     for (auto e : toRemove) {
         if (!registry.valid(e)) continue;
+        const auto* hs = registry.try_get<HomeSettlement>(e);
+
+        // Hauler cargo recovery: return goods in transit to home settlement
+        if (const auto* inv = registry.try_get<Inventory>(e)) {
+            if (!inv->contents.empty() && hs && hs->settlement != entt::null &&
+                registry.valid(hs->settlement)) {
+                if (auto* sp = registry.try_get<Stockpile>(hs->settlement)) {
+                    for (const auto& [type, qty] : inv->contents)
+                        sp->quantities[type] += qty;
+                }
+            }
+        }
+
         if (const auto* money = registry.try_get<Money>(e)) {
             static constexpr float INHERITANCE_FRACTION = 0.5f;
             static constexpr float MIN_INHERITANCE      = 10.f;   // only meaningful estates
             if (money->balance >= MIN_INHERITANCE) {
-                if (const auto* hs = registry.try_get<HomeSettlement>(e)) {
-                    if (hs->settlement != entt::null && registry.valid(hs->settlement)) {
-                        if (auto* settl = registry.try_get<Settlement>(hs->settlement)) {
-                            settl->treasury += money->balance * INHERITANCE_FRACTION;
-                        }
+                if (hs && hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                    if (auto* settl = registry.try_get<Settlement>(hs->settlement)) {
+                        settl->treasury += money->balance * INHERITANCE_FRACTION;
                     }
                 }
             }

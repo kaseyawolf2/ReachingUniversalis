@@ -260,12 +260,19 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 break;
             }
 
-            // Abort if road blocked mid-trip — return goods to home stockpile
+            // Abort if road blocked mid-trip — return goods and refund purchase price
             if (!RouteOpen(registry, home.settlement, hauler.targetSettlement)) {
-                auto* sp = registry.try_get<Stockpile>(home.settlement);
+                auto* sp     = registry.try_get<Stockpile>(home.settlement);
+                auto* settl  = registry.try_get<Settlement>(home.settlement);
+                auto* money  = registry.try_get<Money>(entity);
                 if (sp) {
-                    for (auto& [type, qty] : inv.contents)
+                    for (auto& [type, qty] : inv.contents) {
                         sp->quantities[type] += qty;
+                        // Refund purchase cost: deduct from settlement treasury back to hauler
+                        float refund = hauler.buyPrice * qty;
+                        if (money) money->balance    += refund;
+                        if (settl && settl->treasury >= refund) settl->treasury -= refund;
+                    }
                 }
                 inv.contents.clear();
                 hauler.state = HaulerState::GoingHome;

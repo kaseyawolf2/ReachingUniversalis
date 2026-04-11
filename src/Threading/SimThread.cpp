@@ -545,6 +545,9 @@ void SimThread::ProcessInput() {
                         inv4.contents[cheapRes]     += buyQty;
                         float totalCost = cheapPrice * buyQty;
                         mon4.balance                -= totalCost;
+                        // Purchase price goes to the selling settlement's treasury
+                        if (auto* settl4 = m_registry.try_get<Settlement>(nearS))
+                            settl4->treasury += totalCost;
                         const char* rname = (cheapRes == ResourceType::Food)  ? "food"  :
                                             (cheapRes == ResourceType::Water) ? "water" : "wood";
                         char buf[120];
@@ -604,6 +607,9 @@ void SimThread::ProcessInput() {
             } else {
                 monc.balance      -= CART_COST;
                 invc.maxCapacity  += CART_GAIN;
+                // Cart is purchased from the settlement — credit its treasury
+                if (auto* cartSettl = m_registry.try_get<Settlement>(nearSettlC))
+                    cartSettl->treasury += CART_COST;
                 char buf[80];
                 std::snprintf(buf, sizeof(buf),
                     "Bought a cart — carry capacity now %d (paid %.0fg)",
@@ -731,14 +737,14 @@ void SimThread::ProcessInput() {
                     const char* newName = FOUND_NAMES[nameIdx % 15];
                     ++nameIdx;
 
-                    // Deduct gold
+                    // Deduct gold — it becomes the new settlement's seed treasury
                     monf.balance -= FOUND_COST;
 
                     // Create settlement entity
                     auto newSettl = m_registry.create();
                     m_registry.emplace<Position>(newSettl, ppf.x, ppf.y);
                     m_registry.emplace<Settlement>(newSettl,
-                        Settlement{ newName, 120.f, 1.f, 0.f, "", 300.f, 15 });
+                        Settlement{ newName, 120.f, 1.f, 0.f, "", FOUND_COST, 15 });
                     m_registry.emplace<BirthTracker>(newSettl);
                     m_registry.emplace<StockpileAlert>(newSettl);
                     m_registry.emplace<Stockpile>(newSettl, Stockpile{{
@@ -841,6 +847,30 @@ void SimThread::ProcessInput() {
                         Age ha; ha.days = ad(frng); ha.maxDays = ld(frng);
                         m_registry.emplace<Age>(h, ha);
                         m_registry.emplace<Name>(h, Name{std::string(FN[fn(frng)])+" "+LN[ln(frng)]});
+                    }
+
+                    // Automatically connect to the nearest existing settlement via road
+                    {
+                        entt::entity linkTarget = entt::null;
+                        float        linkDist2  = std::numeric_limits<float>::max();
+                        m_registry.view<Position, Settlement>().each(
+                            [&](auto se, const Position& sp, const Settlement&) {
+                            if (se == newSettl) return;
+                            float dx = sp.x - ppf.x, dy = sp.y - ppf.y;
+                            float d2 = dx*dx + dy*dy;
+                            if (d2 < linkDist2) { linkDist2 = d2; linkTarget = se; }
+                        });
+                        if (linkTarget != entt::null) {
+                            auto nr = m_registry.create();
+                            m_registry.emplace<Road>(nr, Road{ newSettl, linkTarget, false, 0.f });
+                            if (blogf) {
+                                std::string linkedName = "?";
+                                if (const auto* ls = m_registry.try_get<Settlement>(linkTarget))
+                                    linkedName = ls->name;
+                                blogf->Push(tm.day, (int)tm.hourOfDay,
+                                    "Road opened: " + std::string(newName) + " ↔ " + linkedName);
+                            }
+                        }
                     }
 
                     // Relocate the player to this settlement as their new home
