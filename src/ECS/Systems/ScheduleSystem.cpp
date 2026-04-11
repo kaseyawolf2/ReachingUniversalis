@@ -80,6 +80,21 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     if (const auto* pn = registry.try_get<Name>(state.target))
                         raisedBy = pn->value;
 
+                // Inherit parent's last name (family lineage)
+                if (!raisedBy.empty()) {
+                    auto parentSpace = raisedBy.rfind(' ');
+                    if (parentSpace != std::string::npos) {
+                        std::string parentLast = raisedBy.substr(parentSpace + 1);
+                        if (auto* n = registry.try_get<Name>(entity)) {
+                            auto mySpace = n->value.rfind(' ');
+                            if (mySpace != std::string::npos)
+                                n->value = n->value.substr(0, mySpace + 1) + parentLast;
+                            else
+                                n->value += " " + parentLast;
+                        }
+                    }
+                }
+
                 registry.remove<ChildTag>(entity);
 
                 auto logv2 = registry.view<EventLog>();
