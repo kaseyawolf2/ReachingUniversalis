@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Festival: interrupt critical needs** — Currently Celebrating NPCs ignore critical needs.
+  In `AgentDecisionSystem`'s CELEBRATING block, before the `continue`, check if any need is
+  below `criticalThreshold` (same loop as the WORKING check). If so, set `state.behavior =
+  AgentBehavior::Idle` and fall through to normal seeking — NPCs leave the celebration to eat
+  or drink, then can re-enter Celebrating on the next tick when no longer critical (since the
+  festival modifier is still active, the block will re-enter Celebrating automatically).
+
 ---
 
 ## Backlog
@@ -16,13 +23,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Festival: interrupt critical needs** — Currently Celebrating NPCs ignore critical needs.
-  In `AgentDecisionSystem`'s CELEBRATING block, before the `continue`, check if any need is
-  below `criticalThreshold` (same loop as the WORKING check). If so, set `state.behavior =
-  AgentBehavior::Idle` and fall through to normal seeking — NPCs leave the celebration to eat
-  or drink, then can re-enter Celebrating on the next tick when no longer critical (since the
-  festival modifier is still active, the block will re-enter Celebrating automatically).
 
 - [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
   dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
