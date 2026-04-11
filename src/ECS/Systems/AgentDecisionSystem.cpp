@@ -220,19 +220,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 state.behavior = AgentBehavior::Idle;
                 // Fall through to normal decision-making below
             } else {
-                // Drift toward settlement centre at half speed
-                if (home.settlement != entt::null && registry.valid(home.settlement)) {
-                    const auto& homePos = registry.get<Position>(home.settlement);
-                    static constexpr float CELEBRATE_ARRIVE = 45.f;
-                    float dx = homePos.x - pos.x, dy = homePos.y - pos.y;
-                    if (dx*dx + dy*dy > CELEBRATE_ARRIVE * CELEBRATE_ARRIVE)
-                        MoveToward(vel, pos, homePos.x, homePos.y, speed * 0.5f);
-                    else
-                        vel.vx = vel.vy = 0.f;
+                // Leave celebration if any need becomes critical (same check as WORKING)
+                bool anyCritical = false;
+                for (const auto& n : needs.list)
+                    if (n.value < n.criticalThreshold) { anyCritical = true; break; }
+                if (anyCritical) {
+                    state.behavior = AgentBehavior::Idle;
+                    // Fall through to normal seeking below; re-enters Celebrating next tick
+                    // when no longer critical (festival still active)
                 } else {
-                    vel.vx = vel.vy = 0.f;
+                    // Drift toward settlement centre at half speed
+                    if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                        const auto& homePos = registry.get<Position>(home.settlement);
+                        static constexpr float CELEBRATE_ARRIVE = 45.f;
+                        float dx = homePos.x - pos.x, dy = homePos.y - pos.y;
+                        if (dx*dx + dy*dy > CELEBRATE_ARRIVE * CELEBRATE_ARRIVE)
+                            MoveToward(vel, pos, homePos.x, homePos.y, speed * 0.5f);
+                        else
+                            vel.vx = vel.vy = 0.f;
+                    } else {
+                        vel.vx = vel.vy = 0.f;
+                    }
+                    continue;
                 }
-                continue;
             }
         }
 
