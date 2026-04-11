@@ -34,7 +34,7 @@ struct MoveSpeed { float value; };
 
 // ---- Agent behaviour ----
 
-enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying, Migrating, Sleeping, Working };
+enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisfying, Migrating, Sleeping, Working, Celebrating };
 
 struct AgentState {
     AgentBehavior behavior = AgentBehavior::Idle;

@@ -26,6 +26,7 @@ static const char* BehaviorLabel(AgentBehavior b) {
         case AgentBehavior::Migrating:    return "Migrating";
         case AgentBehavior::Sleeping:     return "Sleeping";
         case AgentBehavior::Working:      return "Working";
+        case AgentBehavior::Celebrating:  return "Celebrating";
     }
     return "Unknown";
 }

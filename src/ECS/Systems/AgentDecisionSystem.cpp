@@ -205,6 +205,38 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (state.behavior == AgentBehavior::Sleeping) continue;
 
         // ============================================================
+        // CELEBRATING: move toward settlement centre at half speed.
+        // Stays active while the home settlement has the "Festival" modifier.
+        // Reverts to Idle when the festival ends.
+        // ============================================================
+        if (state.behavior == AgentBehavior::Celebrating) {
+            // Check if the festival is still active at home settlement
+            bool festivalActive = false;
+            if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                    festivalActive = (s->modifierName == "Festival");
+            }
+            if (!festivalActive) {
+                state.behavior = AgentBehavior::Idle;
+                // Fall through to normal decision-making below
+            } else {
+                // Drift toward settlement centre at half speed
+                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                    const auto& homePos = registry.get<Position>(home.settlement);
+                    static constexpr float CELEBRATE_ARRIVE = 45.f;
+                    float dx = homePos.x - pos.x, dy = homePos.y - pos.y;
+                    if (dx*dx + dy*dy > CELEBRATE_ARRIVE * CELEBRATE_ARRIVE)
+                        MoveToward(vel, pos, homePos.x, homePos.y, speed * 0.5f);
+                    else
+                        vel.vx = vel.vy = 0.f;
+                } else {
+                    vel.vx = vel.vy = 0.f;
+                }
+                continue;
+            }
+        }
+
+        // ============================================================
         // WORKING: only interrupt if a need is critical
         // ============================================================
         if (state.behavior == AgentBehavior::Working) {

@@ -43,12 +43,16 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
         auto& needs = view.get<Needs>(entity);
 
         // If the entity is sleeping, restore energy instead of draining it.
-        bool sleeping = false;
-        if (const auto* state = registry.try_get<AgentState>(entity))
-            sleeping = (state->behavior == AgentBehavior::Sleeping);
+        bool sleeping    = false;
+        bool celebrating = false;
+        if (const auto* state = registry.try_get<AgentState>(entity)) {
+            sleeping    = (state->behavior == AgentBehavior::Sleeping);
+            celebrating = (state->behavior == AgentBehavior::Celebrating);
+        }
 
         bool isPlayer = registry.all_of<PlayerTag>(entity);
-        float plagueMult = (isPlayer) ? playerPlagueMult : 1.f;
+        float plagueMult     = (isPlayer) ? playerPlagueMult : 1.f;
+        float celebrateMult  = celebrating ? 0.5f : 1.f;
 
         for (auto& need : needs.list) {
             if (sleeping && need.type == NeedType::Energy) {
@@ -57,7 +61,7 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
             } else {
                 float mult = (need.type == NeedType::Energy) ? energyDrainMult :
                              (need.type == NeedType::Heat)   ? heatDrainMult   : 1.f;
-                need.value -= need.drainRate * mult * plagueMult * gameDt;
+                need.value -= need.drainRate * mult * plagueMult * celebrateMult * gameDt;
                 if (need.value < 0.0f) need.value = 0.0f;
             }
         }
