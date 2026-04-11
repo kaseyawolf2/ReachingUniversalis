@@ -9,19 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Profession identity** — Add a `Profession` component with an enum: `Farmer`, `WaterCarrier`,
+  `Lumberjack`, `Hauler`, `Idle`. Assigned at spawn based on home settlement's primary output.
+  When an NPC migrates in `AgentDecisionSystem`, they prefer settlements that match their profession.
+  Show profession in NPC tooltip (already have `profession` string in `AgentEntry`, just populate it
+  from the component rather than inferring it).
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Profession identity** — Add a `Profession` component with an enum: `Farmer`, `WaterCarrier`,
-  `Lumberjack`, `Hauler`, `Idle`. Assigned at spawn based on home settlement's primary output.
-  When an NPC migrates in `AgentDecisionSystem`, they prefer settlements that match their profession.
-  Show profession in NPC tooltip (already have `profession` string in `AgentEntry`, just populate it
-  from the component rather than inferring it).
 
 - [ ] **Named families** — When two adult NPCs of the same `HomeSettlement` are both over age 18 and
   have no `FamilyTag`, give them a shared `FamilyTag{ familyName }` (combine their surnames or pick
