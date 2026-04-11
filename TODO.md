@@ -9,10 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Evening gathering** — Between hours 18–21, NPCs without an active task (not `Working`,
-  `SeekingFood`, etc.) should move toward their home settlement's centre position instead of
-  wandering. This is purely a `Velocity` target change in `AgentDecisionSystem` — no new component
-  needed. Makes the world look alive: NPCs cluster at dusk.
+_(none)_
 
 ---
 
@@ -193,11 +190,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   accumulate and bequeath wealth). Add an `isElder` check in the inheritance block and use 0.8f
   instead of `INHERITANCE_FRACTION`. Log: "Aldric Smith left an estate of 45g to Ashford."
 
-- [ ] **Evening gathering** (moved up priority) — Between hours 18–21, NPCs in `AgentBehavior::Idle`
-  with a valid `HomeSettlement` should move toward their home settlement's centre position instead
-  of wandering. In `AgentDecisionSystem`, after the wander-target logic, if `hour >= 18 && hour < 21`
-  and behavior == Idle, set velocity toward `homePos` at 60% speed. No new component needed.
-
 - [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
   complete in `AgentDecisionSystem`), update their `Profession` component to match the new
   settlement's primary output facility. Use the same `ProfessionForResource` helper from
@@ -214,6 +206,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
   `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
   AND identify with their profession.
+
+- [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
+  scatter slightly from the settlement centre rather than all heading to the same facility at once.
+  In `AgentDecisionSystem` (or `ScheduleSystem`), when transitioning from Sleeping to Idle at
+  wake time, nudge the NPC's position by a small random offset (±30 units) so they don't
+  all path-find from the exact same spot. No new component needed.
+
+- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
+  within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
+  (`vel = 0`) for 30–60 game-seconds to simulate chatting. Track with a `chatTimer` float on
+  `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
+  movement. Implement in `AgentDecisionSystem` after the evening gathering block.
 
 ---
 
@@ -234,6 +238,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Evening gathering** — AgentDecisionSystem: extracted `currentHour` from TimeManager at
+  top of Update(). In the no-critical-needs branch (critIdx==-1), hours 18–21 NPCs with a valid
+  home settlement move toward its centre at 60% speed (stop within 40 units). No new component.
 
 - [x] **Profession identity** — Added `ProfessionType` enum and `Profession` component to
   Components.h with helpers. WorldGenerator assigns profession at spawn per settlement type.
