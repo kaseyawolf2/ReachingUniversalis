@@ -48,6 +48,8 @@ struct RenderSnapshot {
         // Contentment: weighted average of all needs (0 = miserable, 1 = thriving)
         // Hunger 30%, Thirst 30%, Energy 20%, Heat 20%
         float contentment = 1.f;
+        // For Child role: name of the adult they are currently following (empty if none)
+        std::string followingName;
     };
 
     struct SettlementEntry {

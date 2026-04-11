@@ -518,6 +518,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGold)
         std::snprintf(line5, sizeof(line5), "Gold: %.1f", best->balance);
 
+    // Following line: shown for children that have a cached follow target
+    char followLine[64] = {};
+    bool showFollow = false;
+    if (best->role == RenderSnapshot::AgentRole::Child && !best->followingName.empty()) {
+        std::snprintf(followLine, sizeof(followLine), "Following: %s", best->followingName.c_str());
+        showFollow = true;
+    }
+
     // Skill line: show the relevant skill for this agent's profession
     bool showSkill = false;
     Color skillColor = GREEN;
@@ -546,16 +554,18 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     int lineCount = hasName ? 4 : 3;
-    if (showGold)  lineCount++;
-    if (showSkill) lineCount++;
-    if (showCargo) lineCount++;
+    if (showGold)   lineCount++;
+    if (showFollow) lineCount++;
+    if (showSkill)  lineCount++;
+    if (showCargo)  lineCount++;
 
     int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
-    int w5 = showGold  ? MeasureText(line5,    11) : 0;
-    int w6 = showSkill ? MeasureText(line6,    11) : 0;
-    int wc = showCargo ? MeasureText(cargoLine, 11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5, w6, wc}) + 10;
+    int w5 = showGold   ? MeasureText(line5,      11) : 0;
+    int wf = showFollow ? MeasureText(followLine,  11) : 0;
+    int w6 = showSkill  ? MeasureText(line6,       11) : 0;
+    int wc = showCargo  ? MeasureText(cargoLine,   11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -569,9 +579,10 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
     DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
-    if (showGold)  { DrawText(line5, tx, ly, 11, YELLOW); ly += 16; }
-    if (showSkill) { DrawText(line6, tx, ly, 11, skillColor); ly += 16; }
-    if (showCargo) { DrawText(cargoLine, tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
+    if (showGold)   { DrawText(line5,     tx, ly, 11, YELLOW);               ly += 16; }
+    if (showFollow) { DrawText(followLine, tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }
+    if (showSkill)  { DrawText(line6,     tx, ly, 11, skillColor);           ly += 16; }
+    if (showCargo)  { DrawText(cargoLine, tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
 
 // ---- Facility hover tooltip ----

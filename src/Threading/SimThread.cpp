@@ -1237,6 +1237,13 @@ void SimThread::WriteSnapshot() {
         // Contentment: weighted average of needs
         float contentment = 0.30f * hp + 0.30f * tp + 0.20f * ep + 0.20f * htp;
 
+        // For children: name of the adult they are following (AgentState::target)
+        std::string followingName;
+        if (isChild && astate.target != entt::null && m_registry.valid(astate.target)) {
+            if (const auto* fn = m_registry.try_get<Name>(astate.target))
+                followingName = fn->value;
+        }
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1245,7 +1252,7 @@ void SimThread::WriteSnapshot() {
                            std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
                            farmSkill, waterSkill, woodSkill,
-                           contentment });
+                           contentment, std::move(followingName) });
     });
 
     // ---- Settlements ----
