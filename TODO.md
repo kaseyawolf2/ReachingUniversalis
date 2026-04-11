@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
-  (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
-  duration. During Celebrating: movement speed halved, needs drain 50% slower, they move toward
-  the settlement centre. Add `Celebrating` to the `AgentBehavior` enum and handle it in
-  `AgentDecisionSystem` and `NeedDrainSystem`.
-
 ---
 
 ## Backlog
@@ -22,6 +16,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
+
+- [ ] **Festival: interrupt critical needs** — Currently Celebrating NPCs ignore critical needs.
+  In `AgentDecisionSystem`'s CELEBRATING block, before the `continue`, check if any need is
+  below `criticalThreshold` (same loop as the WORKING check). If so, set `state.behavior =
+  AgentBehavior::Idle` and fall through to normal seeking — NPCs leave the celebration to eat
+  or drink, then can re-enter Celebrating on the next tick when no longer critical (since the
+  festival modifier is still active, the block will re-enter Celebrating automatically).
+
+- [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
+  dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
+  settlement dots are drawn; check `SettlementEntry::modifierName == "Festival"` and use
+  `Fade(GOLD, 0.85f)` instead of the normal WHITE/GREEN color. Only applies during the festival
+  window, reverts automatically when `modifierName` clears.
 
 - [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
   when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
@@ -282,6 +289,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Celebration behaviour** — Added `AgentBehavior::Celebrating` to enum and `BehaviorLabel`.
+  `RandomEventSystem` sets all non-hauler/player NPCs at a festival settlement to Celebrating.
+  `AgentDecisionSystem` CELEBRATING block moves them toward centre at 50% speed; auto-reverts
+  to Idle when `Settlement::modifierName` is no longer "Festival". `NeedDrainSystem` applies 0.5×
+  drain multiplier while celebrating.
 
 - [x] **Charity warmth modifier** — In `AgentDecisionSystem`'s charity block, after setting the
   helper's cooldown, reads `Needs` component and bumps `needs.list[(int)NeedType::Heat].value`
