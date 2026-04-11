@@ -9,18 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
+  enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
+  rate and gain skill at 2× the normal child passive rate. Implement in `ScheduleSystem` by adding
+  an apprentice work window when `age->days >= 12.f && age->days < 15.f`.
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
-  enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
-  rate and gain skill at 2× the normal child passive rate. Implement in `ScheduleSystem` by adding
-  an apprentice work window when `age->days >= 12.f && age->days < 15.f`.
 
 - [ ] **Elder retirement** — NPCs over age 60 stop working (`AgentBehavior::Working` → `Idle` for
   elders in `ScheduleSystem`). They no longer drain from the settlement treasury (no wages). Instead
