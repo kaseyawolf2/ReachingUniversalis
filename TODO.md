@@ -9,19 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Child abandonment on settlement collapse** — When a settlement collapses (pop hits 0,
+  logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
+  have their `HomeSettlement` cleared and `AgentState::target` set to `entt::null` so they become
+  wanderers. Add this cleanup to `DeathSystem.cpp` in the settlement-collapse check block (after
+  line 130). Log: "Orphaned children of Ashford scattered."
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Child abandonment on settlement collapse** — When a settlement collapses (pop hits 0,
-  logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
-  have their `HomeSettlement` cleared and `AgentState::target` set to `entt::null` so they become
-  wanderers. Add this cleanup to `DeathSystem.cpp` in the settlement-collapse check block (after
-  line 130). Log: "Orphaned children of Ashford scattered."
 
 - [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
   enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
