@@ -53,6 +53,12 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
     // (Avoids changing the Hauler struct for a single system's internal state.)
     static std::map<entt::entity, float> s_bankruptTimer;
 
+    // Prune stale timer entries for destroyed entities
+    for (auto it = s_bankruptTimer.begin(); it != s_bankruptTimer.end(); ) {
+        if (!registry.valid(it->first)) it = s_bankruptTimer.erase(it);
+        else ++it;
+    }
+
     std::vector<entt::entity> toDegrade;
     registry.view<Hauler, Money, HomeSettlement>(entt::exclude<PlayerTag>).each(
         [&](auto e, const Hauler&, const Money& money, const HomeSettlement&) {
