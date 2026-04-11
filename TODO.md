@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
+  (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
+  duration. During Celebrating: movement speed halved, needs drain 50% slower, they move toward
+  the settlement centre. Add `Celebrating` to the `AgentBehavior` enum and handle it in
+  `AgentDecisionSystem` and `NeedDrainSystem`.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
-  (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
-  duration. During Celebrating: movement speed halved, needs drain 50% slower, they move toward
-  the settlement centre. Add `Celebrating` to the `AgentBehavior` enum and handle it in
-  `AgentDecisionSystem` and `NeedDrainSystem`.
 
 - [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
   when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
