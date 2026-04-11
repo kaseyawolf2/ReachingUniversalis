@@ -179,8 +179,10 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
-    float dt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
+    const auto& tm = timeView.get<TimeManager>(*timeView.begin());
+    float dt = tm.GameDt(realDt);
     if (dt <= 0.f) return;
+    int currentHour = (int)tm.hourOfDay;
 
     // Exclude Haulers (TransportSystem handles them) and Player (PlayerInputSystem).
     auto view = registry.view<Needs, AgentState, Position, Velocity,
@@ -327,7 +329,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (critIdx == -1) {
             state.behavior = AgentBehavior::Idle;
             state.target   = entt::null;
-            vel.vx = vel.vy = 0.f;
+
+            // ---- Evening gathering (hours 18–21) ----
+            // Idle NPCs drift toward their home settlement centre at dusk,
+            // making the world visually alive: people return home in the evening.
+            if (currentHour >= 18 && currentHour < 21 &&
+                home.settlement != entt::null && registry.valid(home.settlement)) {
+                const auto& homePos = registry.get<Position>(home.settlement);
+                static constexpr float GATHER_ARRIVE = 40.f;
+                float dx = homePos.x - pos.x, dy = homePos.y - pos.y;
+                float dist2 = dx*dx + dy*dy;
+                if (dist2 > GATHER_ARRIVE * GATHER_ARRIVE) {
+                    MoveToward(vel, pos, homePos.x, homePos.y, speed * 0.6f);
+                } else {
+                    vel.vx = vel.vy = 0.f;
+                }
+            } else {
+                vel.vx = vel.vy = 0.f;
+            }
             continue;
         }
 
