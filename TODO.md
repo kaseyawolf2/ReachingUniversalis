@@ -9,10 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
-  followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
-  same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
-  visible family lines in the event log over time.
+_(none)_
 
 ---
 
@@ -20,11 +17,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Lifecycle & Identity
 
+- [ ] **Family surname on birth** — In `BirthSystem.cpp`, newborns currently get a random first
+  and last name. If the settlement has any adult NPC with a `Name` containing a space (i.e., a
+  surname), use the most common surname among adult residents as the newborn's last name (50%
+  chance), otherwise keep the random last name. This ties newborns to existing family lines.
+  Count surnames with a `std::map<std::string, int>` inside the birth block, pick the most
+  frequent, apply it to both `npc` and `npc2` (twin).
+
 - [ ] **Birth announcement names parent** — In `BirthSystem.cpp`, when a new NPC is born,
   the log currently says "Born: Aldric Smith at Ashford". Find the adult with the highest
   `Money.balance` at that settlement (as a proxy for "most established parent") and append
   their name: "Born: Aldric Smith at Ashford (to Brom Cooper)". Use a simple loop over
   `HomeSettlement, Money` filtered to the current settlement inside the birth block.
+
+- [ ] **Surname tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when an NPC's name contains a
+  space, show their surname in a subtle way: after the main name line, if two or more agents in
+  `agentCopy` share the same last name (check `npcName.rfind(' ')` to extract surname), append
+  "(Family: <surname>)" to `line1`. This makes family clusters visible just by hovering. Compute
+  a surname→count map from `agentCopy` once before the hit-test loop.
 
 - [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
   `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
@@ -147,6 +157,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Parent–child naming** — ScheduleSystem graduation block extracts parent's last name from
+  `raisedBy` (rfind ' ') and replaces the NPC's last name with it before the log reads `who`.
+  Log now reads "Aldric Cooper came of age at Ashford (raised by Brom Cooper)".
 
 - [x] **Graduation log improvement** — ScheduleSystem graduation block now reads
   `AgentState::target → Name` before removing ChildTag and appends "(raised by X)" when
