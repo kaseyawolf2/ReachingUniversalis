@@ -9,19 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Elder retirement** — NPCs over age 60 stop working (`AgentBehavior::Working` → `Idle` for
+  elders in `ScheduleSystem`). They no longer drain from the settlement treasury (no wages). Instead
+  they slowly drain their own `Money` balance for subsistence. Add a settlement "elder bonus": each
+  elder alive at home = +0.5% production modifier on the `Settlement` (experience/wisdom effect),
+  capped at +5%. Apply in `ProductionSystem`.
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Elder retirement** — NPCs over age 60 stop working (`AgentBehavior::Working` → `Idle` for
-  elders in `ScheduleSystem`). They no longer drain from the settlement treasury (no wages). Instead
-  they slowly drain their own `Money` balance for subsistence. Add a settlement "elder bonus": each
-  elder alive at home = +0.5% production modifier on the `Settlement` (experience/wisdom effect),
-  capped at +5%. Apply in `ProductionSystem`.
 
 - [ ] **Profession identity** — Add a `Profession` component with an enum: `Farmer`, `WaterCarrier`,
   `Lumberjack`, `Hauler`, `Idle`. Assigned at spawn based on home settlement's primary output.
