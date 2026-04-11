@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Festival NPC colour** — While an NPC has `behavior == Celebrating`, tint their dot
-  in `GameState.cpp`'s agent render loop. Find where agent colour is resolved from `AgentEntry`;
-  add a check: if `AgentEntry::behavior == AgentBehavior::Celebrating`, override `drawColor` with
-  `Fade(GOLD, 0.85f)`. This makes celebrating crowds visually distinct from the regular NPC
-  swarm without any new snapshot fields — `AgentEntry::behavior` is already populated.
-
 ---
 
 ## Backlog
@@ -28,6 +22,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement dots are drawn; check `SettlementEntry::modifierName == "Festival"` and use
   `Fade(GOLD, 0.85f)` instead of the normal WHITE/GREEN color. Only applies during the festival
   window, reverts automatically when `modifierName` clears.
+
+- [ ] **Festival NPC count in event log** — When the Festival event fires in
+  `RandomEventSystem`, include the number of celebrating NPCs in the log message. After counting
+  NPCs set to Celebrating (the loop already iterates them), store the count and replace the
+  `snprintf` format: "FESTIVAL at Ashford — 12 celebrating, treasury +120g, production +35% (16h)".
+  Read the count from the same view loop that sets `behavior = Celebrating`; no new component.
+
+- [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
+  already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
+  home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
+  the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
+  in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
 
 - [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
   when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
@@ -288,6 +294,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Festival NPC colour** — In `GameState.cpp`'s agent draw loop, compute `drawColor` at
+  render time: if `AgentEntry::behavior == Celebrating`, use `Fade(GOLD, 0.85f)` instead of
+  `a.color`. No new snapshot fields. Reverts automatically when festival ends.
 
 - [x] **Festival: interrupt critical needs** — Inside CELEBRATING's festival-active branch in
   `AgentDecisionSystem`, added critical-need check (same as WORKING block). If any need is below
