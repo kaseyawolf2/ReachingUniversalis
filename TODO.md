@@ -9,16 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Named families** — When two adult NPCs of the same `HomeSettlement` are both over age 18 and
+  have no `FamilyTag`, give them a shared `FamilyTag{ familyName }` (combine their surnames or pick
+  a new one). Children born via `BirthSystem` inherit the `FamilyTag` of their "parents" (the two
+  most recently paired adults). Show family name in NPC tooltip.
+
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Named families** — When two adult NPCs of the same `HomeSettlement` are both over age 18 and
-  have no `FamilyTag`, give them a shared `FamilyTag{ familyName }` (combine their surnames or pick
-  a new one). Children born via `BirthSystem` inherit the `FamilyTag` of their "parents" (the two
-  most recently paired adults). Show family name in NPC tooltip.
 
 ### NPC Social Behaviour
 
