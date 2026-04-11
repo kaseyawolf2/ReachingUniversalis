@@ -9,17 +9,28 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child → Adult lifecycle** — NPCs under age 15 should have no `Schedule` and not receive wages
-  in `ConsumptionSystem`. They follow a parent (nearest adult at same `HomeSettlement`) during the
-  day instead of working. At age 15 they gain a `Schedule` and a starting skill set biased toward
-  their home settlement's primary production type. Check `Age::days` in `ConsumptionSystem` and
-  `ScheduleSystem` — skip children in both.
+_(none)_
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
+
+- [ ] **Child HUD visibility** — `RenderSnapshot::AgentEntry` already has `ageDays`. In
+  `WriteSnapshot`, set `role = AgentRole::Child` (add this enum value) for entities with `ChildTag`,
+  and in `HUD::DrawAgents` render children as a smaller white dot with no ring, so they're visually
+  distinct from adults. Also show child count in the settlement stockpile panel next to population.
+
+- [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
+  followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
+  same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
+  visible family lines in the event log over time.
+
+- [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
+  enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
+  rate and gain skill at 2× the normal child passive rate. Implement in `ScheduleSystem` by adding
+  an apprentice work window when `age->days >= 12.f && age->days < 15.f`.
 
 - [ ] **Elder retirement** — NPCs over age 60 stop working (`AgentBehavior::Working` → `Idle` for
   elders in `ScheduleSystem`). They no longer drain from the settlement treasury (no wages). Instead
@@ -125,7 +136,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Done
 
-_(tasks moved here as they complete)_
+- [x] **Child → Adult lifecycle** — `ChildTag` added; BirthSystem emits it for newborns/twins.
+  ScheduleSystem: children follow nearest adult at home settlement during leisure hours (target
+  cached on `AgentState::target`). At age 15: `ChildTag` removed, skill boosted toward home
+  settlement's primary production, "came of age" logged. ConsumptionSystem: age < 15 wage guard.
 
 ---
 
