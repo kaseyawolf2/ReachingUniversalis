@@ -9,20 +9,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
-
----
-
-## Backlog
-
-### NPC Lifecycle & Identity
-
 - [ ] **Child follow indicator in tooltip** — When hovering over a child (role == Child), the
   HUD tooltip in `HUD::DrawHoverTooltip` (HUD.cpp ~line 445) should show which adult they are
   currently following. `AgentEntry` doesn't yet carry the followed adult's name. Add a
   `std::string followingName` field to `AgentEntry` in `RenderSnapshot.h`, populate it in
   `SimThread::WriteSnapshot` for Child entities by reading `AgentState::target` → `Name`,
   and display it in the tooltip as "Following: Aldric Smith".
+
+---
+
+## Backlog
+
+### NPC Lifecycle & Identity
 
 - [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
   followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
