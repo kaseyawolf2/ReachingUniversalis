@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Gossip / price sharing** — When two NPCs from *different* settlements are within 30 units of
+  each other (check positions in `AgentDecisionSystem`), they exchange price knowledge: the visiting
+  NPC's home settlement `Market` prices nudge 5% toward the local settlement's prices. This simulates
+  word-of-mouth market information spreading without roads. Run once per pair per 6 game-hours
+  (use a cooldown on `DeprivationTimer` or a new lightweight component).
 
 ---
 
@@ -23,12 +27,6 @@ _(none)_
   most recently paired adults). Show family name in NPC tooltip.
 
 ### NPC Social Behaviour
-
-- [ ] **Gossip / price sharing** — When two NPCs from *different* settlements are within 30 units of
-  each other (check positions in `AgentDecisionSystem`), they exchange price knowledge: the visiting
-  NPC's home settlement `Market` prices nudge 5% toward the local settlement's prices. This simulates
-  word-of-mouth market information spreading without roads. Run once per pair per 6 game-hours
-  (use a cooldown on `DeprivationTimer` or a new lightweight component).
 
 - [ ] **NPC helping starving neighbours** — If an NPC has `Hunger > 0.8` and is near another NPC
   with `Hunger < 0.2` and `Money.balance > 20g`, the wealthy NPC "gifts" 5g and the starving NPC
