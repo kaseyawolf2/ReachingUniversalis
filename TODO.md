@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Festival NPC colour** — While an NPC has `behavior == Celebrating`, tint their dot
+  in `GameState.cpp`'s agent render loop. Find where agent colour is resolved from `AgentEntry`;
+  add a check: if `AgentEntry::behavior == AgentBehavior::Celebrating`, override `drawColor` with
+  `Fade(GOLD, 0.85f)`. This makes celebrating crowds visually distinct from the regular NPC
+  swarm without any new snapshot fields — `AgentEntry::behavior` is already populated.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Festival NPC colour** — While an NPC has `behavior == Celebrating`, tint their dot
-  in `GameState.cpp`'s agent render loop. Find where agent colour is resolved from `AgentEntry`;
-  add a check: if `AgentEntry::behavior == AgentBehavior::Celebrating`, override `drawColor` with
-  `Fade(GOLD, 0.85f)`. This makes celebrating crowds visually distinct from the regular NPC
-  swarm without any new snapshot fields — `AgentEntry::behavior` is already populated.
 
 - [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
   dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
