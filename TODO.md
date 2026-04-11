@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
+  warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
+  `helperTmr->charityTimer`, also set the helper's `Heat` need to `min(1.0, heat + 0.15)` directly.
+  This models the "warm glow" of altruism: the helper feels better after giving. No new component —
+  just write to `needs.list[(int)NeedType::Heat].value` via `registry.try_get<Needs>`.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
-  warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
-  `helperTmr->charityTimer`, also set the helper's `Heat` need to `min(1.0, heat + 0.15)` directly.
-  This models the "warm glow" of altruism: the helper feels better after giving. No new component —
-  just write to `needs.list[(int)NeedType::Heat].value` via `registry.try_get<Needs>`.
 
 - [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
   (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
