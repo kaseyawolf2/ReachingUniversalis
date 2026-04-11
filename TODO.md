@@ -9,11 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Named families** — When two adult NPCs of the same `HomeSettlement` are both over age 18 and
-  have no `FamilyTag`, give them a shared `FamilyTag{ familyName }` (combine their surnames or pick
-  a new one). Children born via `BirthSystem` inherit the `FamilyTag` of their "parents" (the two
-  most recently paired adults). Show family name in NPC tooltip.
-
 ---
 
 ## Backlog
@@ -211,6 +206,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
   movement. Implement in `AgentDecisionSystem` after the evening gathering block.
 
+- [ ] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
+  check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
+  is still alive. If not (both partners gone), remove `FamilyTag` from all surviving children
+  (age < 15 `ChildTag` entities with the same family name at that settlement) so they can form
+  new families later. Log "The [name] family line has ended at [settlement]." when the last adult
+  member dies. Implement in the existing death-cleanup block.
+
+- [ ] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
+  count how many other agents at that settlement share the same `familyName` and append " ×N" in
+  dim color (DARKGRAY) when N ≥ 2. E.g. "Aldric Smith ×3" shows there are 3 members of the Smith
+  family. Requires adding `familyName` to `StockpilePanel::AgentInfo` — check the existing struct
+  and populate it in SimThread's WriteSnapshot near the StockpilePanel block.
+
 - [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
   an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
   (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
@@ -238,6 +247,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Named families** — Added `FamilyTag { std::string name; }` to Components.h. Every 12
+  game-hours, AgentDecisionSystem pairs unpaired adults (age ≥ 18, same settlement) two-by-two,
+  assigning the most common settlement surname as the family name. BirthSystem inherits the dominant
+  FamilyTag onto newborns and twins. HUD tooltip shows "(Family: X)" from FamilyTag if set,
+  falling back to the surname-count heuristic for untagged NPCs.
 
 - [x] **Gossip / price sharing** — AgentDecisionSystem.cpp: after main NPC loop, builds a
   `GossipEntry` snapshot of all non-hauler/player NPCs with valid home settlements. O(N²) pair check
