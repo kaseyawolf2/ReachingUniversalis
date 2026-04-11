@@ -9,14 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
----
-
-## Backlog
-
-### NPC Lifecycle & Identity
-
-### NPC Social Behaviour
-
 - [ ] **Helped-NPC gratitude follow** — When a starving NPC receives charity, have them briefly
   move toward their helper for 30–60 game-seconds as a gesture of gratitude. In
   `AgentDecisionSystem`'s charity block, after setting `starvingTmr->helpedTimer`, also store
@@ -24,6 +16,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (alongside a `float gratitudeTimer = 0.f`). In the main NPC behaviour loop, before the
   critical-need check: if `gratitudeTimer > 0`, decrement it and `MoveToward` the gratitudeTarget
   (if still valid), then skip the rest of the behaviour for that frame.
+
+---
+
+## Backlog
+
+### NPC Lifecycle & Identity
+
+### NPC Social Behaviour
 
 - [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
   warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
