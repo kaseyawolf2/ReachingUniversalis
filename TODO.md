@@ -9,11 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder retirement** — NPCs over age 60 stop working (`AgentBehavior::Working` → `Idle` for
-  elders in `ScheduleSystem`). They no longer drain from the settlement treasury (no wages). Instead
-  they slowly drain their own `Money` balance for subsistence. Add a settlement "elder bonus": each
-  elder alive at home = +0.5% production modifier on the `Settlement` (experience/wisdom effect),
-  capped at +5%. Apply in `ProductionSystem`.
+_(none)_
 
 ---
 
@@ -194,11 +190,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Read the `Skills` component just before removing `ChildTag`; find the highest value and its
   label. No new components needed.
 
-- [ ] **Elder subsistence drain** — In `ConsumptionSystem.cpp`, add a check after the wage block:
-  if an NPC has `Age::days > 60.f` AND no `ChildTag`, deduct a small subsistence cost
-  (0.05g/game-hour) from their own `Money::balance` (floor at 0). This represents elder NPCs
-  spending savings for food/shelter rather than drawing wages. No treasury credit needed — it
-  models personal consumption spending out of the economy.
+- [ ] **Elder count in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp), after
+  the population line, add an "Elders: N (+X% prod)" line when any elders are present at the
+  settlement. Add `int elderCount = 0` and `float elderBonus = 0.f` to `SettlementStatus` in
+  `RenderSnapshot.h`; populate in SimThread's world-status loop using `age->days > 60.f`; display
+  in the tooltip in grey with the bonus percentage.
+
+- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
+  dies of old age, increase the inheritance fraction from 0.5 to 0.8 (elders have more time to
+  accumulate and bequeath wealth). Add an `isElder` check in the inheritance block and use 0.8f
+  instead of `INHERITANCE_FRACTION`. Log: "Aldric Smith left an estate of 45g to Ashford."
+
+- [ ] **Evening gathering** (moved up priority) — Between hours 18–21, NPCs in `AgentBehavior::Idle`
+  with a valid `HomeSettlement` should move toward their home settlement's centre position instead
+  of wandering. In `AgentDecisionSystem`, after the wander-target logic, if `hour >= 18 && hour < 21`
+  and behavior == Idle, set velocity toward `homePos` at 60% speed. No new component needed.
 
 ---
 
@@ -219,6 +225,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Elder retirement** — ScheduleSystem: age > 60 sets `workEligible=false` (full retirement).
+  ConsumptionSystem: `isElder` guard blocks wages; elders drain own `Money` at 0.1g/game-hour.
+  ProductionSystem: `elderCount` map; each elder at home = +0.5% production bonus, capped +5%.
 
 - [x] **Child work apprenticeship** — ScheduleSystem: age 12–14 children get `isApprentice` flag;
   they enter Working state during hours 10–12 only, still follow adults at leisure. Skill passive
