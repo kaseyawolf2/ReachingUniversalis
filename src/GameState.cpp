@@ -307,7 +307,10 @@ void GameState::Draw() {
 
     // Agents
     for (const auto& a : agents) {
-        DrawCircleV({ a.x, a.y }, a.size, a.color);
+        // Celebrating NPCs glow gold for the duration of the festival
+        Color drawColor = (a.behavior == AgentBehavior::Celebrating)
+                          ? Fade(GOLD, 0.85f) : a.color;
+        DrawCircleV({ a.x, a.y }, a.size, drawColor);
         // Children have no ring — keeps them visually distinct from working adults
         if (a.role != RenderSnapshot::AgentRole::Child)
             DrawCircleLinesV({ a.x, a.y }, a.size + 1.f, a.ringColor);
