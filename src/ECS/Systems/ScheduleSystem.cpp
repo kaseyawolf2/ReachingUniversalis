@@ -129,15 +129,25 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
         // Age affects work eligibility: children (<15 days) don't work;
         // elderly (>70 days) work reduced hours (7–12 only).
-        bool workEligible = true;
-        int  workEndAdj   = sched.workEnd + seasonWorkEndAdj;
+        // Apprentices (12–14) get a 2-hour window (10:00–12:00) — partial work only.
+        bool workEligible  = true;
+        bool isApprentice  = false;
+        int  workEndAdj    = sched.workEnd + seasonWorkEndAdj;
         if (const auto* age = registry.try_get<Age>(entity)) {
-            if (age->days < 15.f) workEligible = false;            // child
-            else if (age->days > 70.f) workEndAdj = std::min(workEndAdj, 12); // elderly: half-shift
+            if (age->days >= 12.f && age->days < 15.f) {
+                isApprentice  = true;       // near-adult child: limited work window
+                workEligible  = true;       // allow Working state
+            } else if (age->days < 12.f) {
+                workEligible  = false;      // young child: no work
+            } else if (age->days > 70.f) {
+                workEndAdj = std::min(workEndAdj, 12); // elderly: half-shift
+            }
         }
 
-        bool workTime  = workEligible &&
-                         (hour >= sched.workStart && hour < workEndAdj);
+        // Apprentice work window: 10:00–12:00 only (2 game-hours).
+        bool workTime = isApprentice
+                        ? (hour >= 10 && hour < 12)
+                        : (workEligible && hour >= sched.workStart && hour < workEndAdj);
 
         // ---- Transition into sleep ----
         if (sleepTime) {
@@ -253,9 +263,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
         if (const auto* age2 = registry.try_get<Age>(entity)) {
             if (age2->days < 15.f) {
-                // Child: passive growth (observing community)
+                // Child / apprentice: passive growth (observing community).
+                // Apprentices in Working state get 2× the passive rate (hands-on learning).
                 if (auto* skills = registry.try_get<Skills>(entity)) {
-                    float grow = CHILD_SKILL_GAIN_PER_HOUR * gHrs;
+                    float multiplier = (isApprentice && state.behavior == AgentBehavior::Working)
+                                       ? 2.0f : 1.0f;
+                    float grow = CHILD_SKILL_GAIN_PER_HOUR * gHrs * multiplier;
                     // The highest skill is the aptitude — it gets a slightly higher cap.
                     float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
                     float capF = (skills->farming       == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
@@ -285,8 +298,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
             const auto& homePos = registry.get<Position>(home.settlement);
 
-            if (!workEligible) {
-                // Children: follow the nearest adult at their home settlement.
+            if (!workEligible || isApprentice) {
+                // Children (including apprentices): follow the nearest adult at their home settlement.
                 // Cache the target in AgentState::target; re-evaluate when stale.
                 bool needTarget = (state.target == entt::null ||
                                    !registry.valid(state.target));

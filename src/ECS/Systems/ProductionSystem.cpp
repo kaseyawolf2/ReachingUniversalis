@@ -38,8 +38,9 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     });
 
     // Count Working-state NPCs per settlement and accumulate skill per resource type.
+    // Apprentice children (ChildTag, age 12–14) count as 0.2 workers (produce at 20% rate).
     struct SkillAccum { float sum = 0.f; int count = 0; };
-    std::map<entt::entity, int> workers;
+    std::map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::map<entt::entity, std::array<SkillAccum, 3>> skillData;
 
@@ -56,7 +57,13 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler>)
         .each([&](auto e, const AgentState& as, const HomeSettlement& hs) {
             if (as.behavior != AgentBehavior::Working) return;
-            workers[hs.settlement]++;
+            // Apprentice children contribute at 20% of adult rate.
+            const auto* ageComp = registry.try_get<Age>(e);
+            bool isApprentice = registry.all_of<ChildTag>(e)
+                                && ageComp
+                                && ageComp->days >= 12.f
+                                && ageComp->days < 15.f;
+            workers[hs.settlement] += isApprentice ? 0.2f : 1.0f;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
                 arr[0].sum += skills->farming;       arr[0].count++;
@@ -74,8 +81,8 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         auto* stockpile = registry.try_get<Stockpile>(fac.settlement);
         if (!stockpile) continue;
 
-        int   w     = workers.count(fac.settlement) ? workers.at(fac.settlement) : 0;
-        float scale = std::min(MAX_SCALE, static_cast<float>(w) / BASE_WORKERS);
+        float w     = workers.count(fac.settlement) ? workers.at(fac.settlement) : 0.f;
+        float scale = std::min(MAX_SCALE, w / static_cast<float>(BASE_WORKERS));
         scale       = std::max(0.1f, scale);   // never fully zero — keep a trickle
 
         // Skill multiplier: average relevant skill of working NPCs (0→1, default 0.5).
