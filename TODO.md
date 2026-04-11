@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC helping starving neighbours** — If an NPC has `Hunger > 0.8` and is near another NPC
+  with `Hunger < 0.2` and `Money.balance > 20g`, the wealthy NPC "gifts" 5g and the starving NPC
+  uses it to immediately buy food (trigger the emergency purchase path in `ConsumptionSystem`).
+  Log the event: "Aldric helped a starving neighbour." Happens at most once per 24 game-hours per
+  helper (track with a float timer).
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **NPC helping starving neighbours** — If an NPC has `Hunger > 0.8` and is near another NPC
-  with `Hunger < 0.2` and `Money.balance > 20g`, the wealthy NPC "gifts" 5g and the starving NPC
-  uses it to immediately buy food (trigger the emergency purchase path in `ConsumptionSystem`).
-  Log the event: "Aldric helped a starving neighbour." Happens at most once per 24 game-hours per
-  helper (track with a float timer).
 
 - [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
   (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
