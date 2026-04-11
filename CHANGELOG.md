@@ -5,6 +5,36 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Economy Integrity] Gold flow audit, cargo recovery, event fixes — 2026-04-11
+
+### Fixed
+- **Cart purchase (V key) gold leak**: Settlement treasury was not receiving cart purchase price
+  (CART_COST). Player's gold deducted but no treasury credit — gold disappeared from economy.
+- **Settlement founding treasury seed**: New settlements founded with P key now start with the
+  full FOUND_COST (1,500g) in treasury instead of a fixed 300g. The player's investment becomes
+  the settlement's seed capital, giving it a genuine chance to survive and trade.
+- **Hauler mid-trip abort refund**: When a road blocks while a hauler is en route, goods are
+  returned to the home stockpile AND the purchase price is refunded from the settlement treasury
+  back to the hauler. Previously the hauler lost their purchase cost with no recourse.
+- **Hauler/NPC death cargo leak**: Dead entities' cargo was silently destroyed with `registry.destroy`.
+  DeathSystem now returns all inventory contents to the home settlement's stockpile before
+  destroying the entity, preserving goods in the economy.
+- **KillFraction cargo and inheritance**: Plague/fire/earthquake kills (via KillFraction) bypassed
+  DeathSystem's cleanup. KillFraction now applies 50% gold inheritance and cargo recovery to home
+  stockpile for each victim, matching the regular death path.
+- **Migration wave pop cap**: Random event case 5 spawned NPCs without checking settlement pop cap,
+  potentially overfilling settlements. Now caps arrivals to available slots.
+- **T-key auto-buy missing trade record**: T-key auto-trade only recorded the sell side in the
+  trade ledger, not the buy. Both halves of a trip now appear so players can track round-trip P&L.
+- **Player respawn missing Skills**: Respawned player entity was missing the Skills component,
+  breaking skill display, work productivity bonus, and the migration skill-affinity system.
+- **TimeSystem dead code**: `TimeSystem::HandleInput` was never called (pause/speed are handled via
+  InputSnapshot in SimThread). Removed the dead function and its Raylib dependency from TimeSystem.
+- **Bankruptcy timer memory**: EconomicMobilitySystem's `s_bankruptTimer` map accumulated stale
+  entries for destroyed hauler entities. Added a prune pass each check interval.
+
+---
+
 ## [Roads & Disease] Player road building/repair, plague spreading — 2026-04-11
 
 ### Added
