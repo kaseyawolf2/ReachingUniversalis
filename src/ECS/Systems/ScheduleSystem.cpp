@@ -74,6 +74,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 if (auto* sk = registry.try_get<Skills>(entity))
                     sk->Advance(primary, 0.15f);
 
+                // Capture the followed adult's name before removing ChildTag
+                std::string raisedBy;
+                if (state.target != entt::null && registry.valid(state.target))
+                    if (const auto* pn = registry.try_get<Name>(state.target))
+                        raisedBy = pn->value;
+
                 registry.remove<ChildTag>(entity);
 
                 auto logv2 = registry.view<EventLog>();
@@ -84,9 +90,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     if (home.settlement != entt::null && registry.valid(home.settlement))
                         if (const auto* s = registry.try_get<Settlement>(home.settlement))
                             where = s->name;
+                    std::string msg = who + " came of age at " + where;
+                    if (!raisedBy.empty())
+                        msg += " (raised by " + raisedBy + ")";
                     logv2.get<EventLog>(*logv2.begin()).Push(
-                        tm.day, (int)tm.hourOfDay,
-                        who + " came of age at " + where);
+                        tm.day, (int)tm.hourOfDay, msg);
                 }
             }
         }
