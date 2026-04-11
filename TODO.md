@@ -9,13 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Festival: interrupt critical needs** — Currently Celebrating NPCs ignore critical needs.
-  In `AgentDecisionSystem`'s CELEBRATING block, before the `continue`, check if any need is
-  below `criticalThreshold` (same loop as the WORKING check). If so, set `state.behavior =
-  AgentBehavior::Idle` and fall through to normal seeking — NPCs leave the celebration to eat
-  or drink, then can re-enter Celebrating on the next tick when no longer critical (since the
-  festival modifier is still active, the block will re-enter Celebrating automatically).
-
 ---
 
 ## Backlog
@@ -23,6 +16,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
+
+- [ ] **Festival NPC colour** — While an NPC has `behavior == Celebrating`, tint their dot
+  in `GameState.cpp`'s agent render loop. Find where agent colour is resolved from `AgentEntry`;
+  add a check: if `AgentEntry::behavior == AgentBehavior::Celebrating`, override `drawColor` with
+  `Fade(GOLD, 0.85f)`. This makes celebrating crowds visually distinct from the regular NPC
+  swarm without any new snapshot fields — `AgentEntry::behavior` is already populated.
 
 - [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
   dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
@@ -289,6 +288,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Festival: interrupt critical needs** — Inside CELEBRATING's festival-active branch in
+  `AgentDecisionSystem`, added critical-need check (same as WORKING block). If any need is below
+  `criticalThreshold`, sets `behavior = Idle` and falls through; NPC re-enters Celebrating next
+  tick automatically when needs recover (festival modifier still active on settlement).
 
 - [x] **Celebration behaviour** — Added `AgentBehavior::Celebrating` to enum and `BehaviorLabel`.
   `RandomEventSystem` sets all non-hauler/player NPCs at a festival settlement to Celebrating.
