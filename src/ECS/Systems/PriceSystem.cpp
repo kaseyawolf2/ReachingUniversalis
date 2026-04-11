@@ -33,6 +33,10 @@ static float SeasonPriceFloor(ResourceType res, Season season) {
     return PRICE_MIN;
 }
 
+// Fraction of price gap that closes per game-hour due to arbitrage pressure
+// on an open road. Low enough to preserve meaningful differentials.
+static constexpr float ARBITRAGE_RATE = 0.003f;
+
 void PriceSystem::Update(entt::registry& registry, float realDt) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
@@ -42,6 +46,7 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
     Season season = tm.CurrentSeason();
 
+    // ---- Supply/demand price adjustment per settlement ----
     registry.view<Market, Stockpile>().each(
         [&](Market& mkt, const Stockpile& sp) {
             for (auto& [res, price] : mkt.price) {
@@ -53,9 +58,33 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
                 else if (stock < PRICE_LOW_STOCK)
                     price *= std::pow(1.f + PRICE_RISE_RATE, gameHoursDt);
 
-                // Apply seasonal floor — prices can't drop below seasonal demand level
                 float floor = SeasonPriceFloor(res, season);
                 price = std::max(floor, std::min(PRICE_MAX, price));
             }
         });
+
+    // ---- Arbitrage convergence on open roads ----
+    // For each open road, prices at both ends slowly converge toward each other.
+    // This models the steady effect of hauler activity compressing trade margins.
+    float convergeFrac = std::min(1.f, ARBITRAGE_RATE * gameHoursDt);
+    registry.view<Road>().each([&](const Road& road) {
+        if (road.blocked) return;
+        if (!registry.valid(road.from) || !registry.valid(road.to)) return;
+        auto* mktA = registry.try_get<Market>(road.from);
+        auto* mktB = registry.try_get<Market>(road.to);
+        if (!mktA || !mktB) return;
+
+        for (auto& [res, priceA] : mktA->price) {
+            auto it = mktB->price.find(res);
+            if (it == mktB->price.end()) continue;
+            float& priceB = it->second;
+            float mid     = (priceA + priceB) * 0.5f;
+            priceA += (mid - priceA) * convergeFrac;
+            priceB += (mid - priceB) * convergeFrac;
+            // Re-apply floors after convergence
+            Season s = season;
+            priceA = std::max(SeasonPriceFloor(res, s), priceA);
+            priceB = std::max(SeasonPriceFloor(res, s), priceB);
+        }
+    });
 }

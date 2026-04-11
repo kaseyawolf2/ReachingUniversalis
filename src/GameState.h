@@ -44,4 +44,9 @@ private:
 
     RenderSystem m_renderSystem;
     HUD          m_hud;
+
+    // Road-build mode: tracks the intermediate state between the first and second N key press.
+    bool  m_roadBuildMode = false;
+    float m_roadBuildSrcX = 0.f;
+    float m_roadBuildSrcY = 0.f;
 };

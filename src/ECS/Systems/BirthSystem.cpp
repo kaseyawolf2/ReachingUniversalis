@@ -100,11 +100,21 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
         if (tracker.accumulator >= BIRTH_INTERVAL) {
             tracker.accumulator -= BIRTH_INTERVAL;
 
-            // NPCs decide whether to have a child (probabilistic)
+            // NPCs decide whether to have a child based on settlement prosperity.
+            // Wealth threshold: if treasury > 200g and food + water surplus is good,
+            // birth chance increases. Struggling settlements hold back.
             static std::mt19937 s_rng{std::random_device{}()};
-            static std::uniform_real_distribution<float> s_dist(1.f, 10.f);   // wide range for staggered migration
+            static std::uniform_real_distribution<float> s_dist(1.f, 10.f);
             static std::uniform_real_distribution<float> chance_dist(0.f, 1.f);
-            if (chance_dist(s_rng) > BIRTH_CHANCE) continue;
+
+            float birthChance = BIRTH_CHANCE;
+            const auto& settlComp2 = settlView.get<Settlement>(settl);
+            if (settlComp2.treasury > 300.f && food > 80.f && water > 80.f)
+                birthChance = 0.50f;  // prosperous: more eager
+            else if (settlComp2.treasury < 50.f || food < 40.f || water < 40.f)
+                birthChance = 0.10f;  // struggling: reluctant
+
+            if (chance_dist(s_rng) > birthChance) continue;
 
             // Deduct birth cost
             stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
@@ -176,6 +186,55 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 const auto& s = settlView.get<Settlement>(settl);
                 log->Push(tm.day, (int)tm.hourOfDay,
                           "Born: " + npcName + " at " + s.name);
+            }
+
+            // Twins: 10% chance of a second birth at the same time
+            // (only if pop cap not exceeded and stockpile has room)
+            static constexpr float TWIN_CHANCE = 0.10f;
+            int popNow = popCount.count(settl) ? popCount[settl] + 1 : 1;
+            if (chance_dist(s_rng) < TWIN_CHANCE
+                && popNow < effectivePopCap
+                && stockpile.quantities[ResourceType::Food]  >= BIRTH_FOOD_COST
+                && stockpile.quantities[ResourceType::Water] >= BIRTH_WATER_COST) {
+
+                stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
+                stockpile.quantities[ResourceType::Water] -= BIRTH_WATER_COST;
+
+                float angle2 = angle + 3.14159f;  // opposite side of the settlement
+                DeprivationTimer dt2;
+                dt2.migrateThreshold = s_dist(s_rng) * 60.f;
+
+                auto npc2 = registry.create();
+                registry.emplace<Position>(npc2,
+                    spos.x + std::cos(angle2) * ring,
+                    spos.y + std::sin(angle2) * ring);
+                registry.emplace<Velocity>(npc2, 0.f, 0.f);
+                registry.emplace<MoveSpeed>(npc2, 60.f);
+                registry.emplace<Needs>(npc2, MakeNeeds());
+                registry.emplace<AgentState>(npc2);
+                registry.emplace<HomeSettlement>(npc2, HomeSettlement{ settl });
+                registry.emplace<DeprivationTimer>(npc2, dt2);
+                registry.emplace<Schedule>(npc2);
+                registry.emplace<Renderable>(npc2, WHITE, 6.f);
+                Age twinAge; twinAge.days = 0.f; twinAge.maxDays = lifespan(s_rng);
+                registry.emplace<Age>(npc2, twinAge);
+                std::string twinName = std::string(FIRSTS[fd(s_rng)]) + " " + LASTS[ld(s_rng)];
+                registry.emplace<Name>(npc2, Name{ twinName });
+                registry.emplace<Money>(npc2, Money{ 5.f });
+                auto& twinNeeds = registry.get<Needs>(npc2);
+                for (auto& need : twinNeeds.list) need.drainRate *= trait_dist(s_rng);
+                // Twin shares same aptitude bias as first sibling (family trait)
+                Skills twinSkills{ 0.08f, 0.08f, 0.08f };
+                if      (aptIdx == 0) twinSkills.farming       = 0.15f;
+                else if (aptIdx == 1) twinSkills.water_drawing = 0.15f;
+                else                  twinSkills.woodcutting   = 0.15f;
+                registry.emplace<Skills>(npc2, twinSkills);
+
+                if (log) {
+                    const auto& s = settlView.get<Settlement>(settl);
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                              "Born (twins!): " + npcName + " & " + twinName + " at " + s.name);
+                }
             }
         }
     }

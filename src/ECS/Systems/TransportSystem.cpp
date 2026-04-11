@@ -34,47 +34,106 @@ struct TradeRoute {
     float        buyPrice = 0.f;
 };
 
-// Scan all reachable settlements for the most profitable trade.
+// Scan all reachable settlements for the most profitable trade, weighted by
+// proximity: profit-per-distance so close routes beat distant ones.
 static TradeRoute FindBestRoute(entt::registry& registry,
                                  entt::entity homeSettlement,
                                  int maxCapacity) {
     TradeRoute best;
+    float bestScore = 0.f;  // profit / max(100, distance) — avoids zero division
 
     auto* homeSp  = registry.try_get<Stockpile>(homeSettlement);
     auto* homeMkt = registry.try_get<Market>(homeSettlement);
-    if (!homeSp || !homeMkt) return best;
+    const auto* homePos = registry.try_get<Position>(homeSettlement);
+    if (!homeSp || !homeMkt || !homePos) return best;
 
-    // Build reachable-destination list from open roads
-    std::vector<entt::entity> dests;
+    // Build reachable-destination list from open roads, carrying road condition.
+    // Poor-condition roads get a penalty applied to the route score so haulers
+    // prefer better-maintained routes when multiple options are available.
+    struct DestInfo { entt::entity e; float conditionPenalty; };
+    std::vector<DestInfo> dests;
     registry.view<Road>().each([&](const Road& road) {
         if (road.blocked) return;
-        if (road.from == homeSettlement) dests.push_back(road.to);
-        else if (road.to == homeSettlement) dests.push_back(road.from);
+        // Condition penalty: 0 = perfect road (no penalty), 1 = near-collapse (50% penalty)
+        float penalty = 1.f - std::max(0.15f, road.condition);  // range [0, 0.85]
+        float condPenalty = penalty * 0.6f;  // scale to [0, 0.51] — max ~50% score reduction
+        if (road.from == homeSettlement) dests.push_back({ road.to,   condPenalty });
+        else if (road.to == homeSettlement) dests.push_back({ road.from, condPenalty });
     });
 
-    for (entt::entity destEnt : dests) {
+    for (const auto& di : dests) {
+        entt::entity destEnt = di.e;
         if (!registry.valid(destEnt)) continue;
         auto* destMkt = registry.try_get<Market>(destEnt);
-        if (!destMkt) continue;
+        auto* destPos = registry.try_get<Position>(destEnt);
+        if (!destMkt || !destPos) continue;
+
+        float dx = destPos->x - homePos->x, dy = destPos->y - homePos->y;
+        float dist = std::sqrt(dx*dx + dy*dy);
 
         for (const auto& [res, homePrice] : homeMkt->price) {
             float destPrice = destMkt->GetPrice(res);
-            if (destPrice <= homePrice) continue;   // no margin this direction
+            if (destPrice <= homePrice) continue;
 
             auto stockIt = homeSp->quantities.find(res);
             float stock  = (stockIt != homeSp->quantities.end()) ? stockIt->second : 0.f;
-            // Haul at most half the stock, capped to carry capacity
             int qty = std::min(maxCapacity, (int)(stock * 0.5f));
             if (qty <= 0) continue;
 
             float profit = (destPrice - homePrice) * qty;
-            if (profit > best.profit) {
+            float score  = profit / std::max(100.f, dist);  // profit-per-distance
+            score *= (1.f - di.conditionPenalty);            // road condition discount
+            if (score > bestScore) {
+                bestScore     = score;
                 best.dest     = destEnt;
                 best.resType  = res;
                 best.qty      = qty;
                 best.profit   = profit;
                 best.buyPrice = homePrice;
             }
+        }
+    }
+    return best;
+}
+
+// When a hauler arrives at destination, check if there's a profitable return
+// trip (destination → home) — load cargo and carry it back, saving an empty trip.
+static TradeRoute FindReturnTrip(entt::registry& registry,
+                                  entt::entity currentSettl,
+                                  entt::entity homeSettl,
+                                  int maxCapacity) {
+    TradeRoute best;
+    auto* curSp  = registry.try_get<Stockpile>(currentSettl);
+    auto* curMkt = registry.try_get<Market>(currentSettl);
+    auto* homeMkt = registry.try_get<Market>(homeSettl);
+    if (!curSp || !curMkt || !homeMkt) return best;
+
+    // Check that road is still open in the return direction
+    bool open = false;
+    registry.view<Road>().each([&](const Road& r) {
+        if (!r.blocked &&
+            ((r.from == currentSettl && r.to == homeSettl) ||
+             (r.to == currentSettl && r.from == homeSettl)))
+            open = true;
+    });
+    if (!open) return best;
+
+    for (const auto& [res, curPrice] : curMkt->price) {
+        float homePrice = homeMkt->GetPrice(res);
+        if (homePrice <= curPrice) continue;
+
+        auto stockIt = curSp->quantities.find(res);
+        float stock  = (stockIt != curSp->quantities.end()) ? stockIt->second : 0.f;
+        int qty = std::min(maxCapacity, (int)(stock * 0.5f));
+        if (qty <= 0) continue;
+
+        float profit = (homePrice - curPrice) * qty;
+        if (profit > best.profit) {
+            best.dest     = homeSettl;
+            best.resType  = res;
+            best.qty      = qty;
+            best.profit   = profit;
+            best.buyPrice = curPrice;
         }
     }
     return best;
@@ -221,6 +280,24 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 }
 
                 inv.contents.clear();
+
+                // Return-trip opportunism: check if destination has profitable goods to
+                // carry home rather than returning empty-handed.
+                static constexpr float RETURN_MIN_PROFIT = 2.f;
+                TradeRoute returnTrip = FindReturnTrip(registry,
+                    hauler.targetSettlement, home.settlement, inv.maxCapacity);
+                if (returnTrip.dest != entt::null && returnTrip.profit >= RETURN_MIN_PROFIT) {
+                    auto* srcSp = registry.try_get<Stockpile>(hauler.targetSettlement);
+                    if (srcSp) {
+                        srcSp->quantities[returnTrip.resType] -= returnTrip.qty;
+                        inv.contents[returnTrip.resType] = returnTrip.qty;
+                        hauler.buyPrice         = returnTrip.buyPrice;
+                        hauler.targetSettlement = returnTrip.dest;  // = home
+                        // Stay in GoingToDeposit state — home is the new destination
+                        break;
+                    }
+                }
+
                 hauler.state = HaulerState::GoingHome;
             }
             break;

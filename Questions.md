@@ -70,3 +70,41 @@ the player should be no different to an NPC. they shouldnt have a special power 
 **Q13** — Do you want a save/load system (serialize registry state to disk)
 before adding more complexity, or is that out of scope for this alpha?
 saving would be nice but that can be push to the side for now, but plan on adding this later
+
+---
+
+## New Questions (2026-04-11, autonomous session)
+
+**Q14** — Settlement founding by player: Should the player be able to spend a large
+amount of gold (e.g. 1,500g) and found a brand-new settlement at their current
+location? This would be a meaningful late-game goal. Any thoughts on starting
+conditions (initial stockpile, first NPC, facility)?
+*[Self-resolved: implemented via KEY_P — costs 1500g, requires 400+ distance from
+existing settlements; spawns settlement with initial stocks, 1 farm, a starter NPC,
+and a road to the nearest existing settlement.]*
+
+**Q15** — Plague affecting the player: Should plague slow the player or drain needs
+faster when near an infected settlement? Currently the player is fully immune.
+*[Self-resolved: implemented — player needs drain 1.5× when inside a plague
+settlement radius; HUD shows purple "PLAGUE ZONE" warning.]*
+
+**Q16** — Gold economy / sinks: In the late game, settlements accumulate a lot of
+gold and become stable. Should I add maintenance costs for facilities/roads to
+keep the economy dynamic, or is gradual wealth accumulation the intended feel?
+*[Self-resolved: facility maintenance (3g/fac/day) and road maintenance (5g/road/day
+per endpoint) now implemented; facilities collapse after ~20 days unmaintained;
+roads auto-block below 15% condition.]*
+
+**Q17** — Minimap: Would you like a small overview map in a corner showing
+settlements, roads, and player position at ~10% scale?
+*[Self-resolved: implemented — 240×72 minimap always visible in bottom-right
+corner, color-coded by stock health and road condition.]*
+
+**Q18** — Cart / inventory upgrade: Should the player be able to spend gold to
+permanently upgrade their carry capacity (e.g., buy a cart for 300g to go from
+15 to 25 units)? Currently capacity is fixed at 15.
+*[Self-resolved: already implemented — KEY_V when near a settlement; costs 300g,
+adds 10 capacity per purchase, caps at 45.]*
+
+*Written: 2026-04-11 (autonomous overnight session)*
+*Updated: 2026-04-11 (self-resolved Q14–Q18)*

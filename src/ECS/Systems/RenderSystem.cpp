@@ -14,8 +14,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     for (const auto& [type, qty] : panel.quantities)
         if (type != ResourceType::Shelter) resLines += 2;
     int eventLines  = (int)panel.recentEvents.size();
+    int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
-    int ph          = totalLines * LINE_H + 14;
+    int ph          = totalLines * LINE_H + 14 + sparklineH;
 
     DrawRectangle(PX, PY, PW, ph, Fade(BLACK, 0.75f));
     DrawRectangleLines(PX, PY, PW, ph, LIGHTGRAY);
@@ -46,6 +47,21 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     Color tresCol = (panel.treasury < 50.f) ? RED : (panel.treasury < 150.f) ? ORANGE : GOLD;
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
+
+    // Active event modifier (if any)
+    if (!panel.modifierName.empty()) {
+        char modBuf[64];
+        std::snprintf(modBuf, sizeof(modBuf), "Event: %s (%.0fh left)",
+                      panel.modifierName.c_str(), panel.modifierHoursLeft);
+        Color modCol = (panel.modifierName == "Plague")         ? Color{200, 80, 240, 255} :
+                       (panel.modifierName == "Drought")         ? ORANGE :
+                       (panel.modifierName == "Heat Wave")       ? Color{255, 160, 40, 255} :
+                       (panel.modifierName == "Harvest Bounty") ? Fade(GREEN, 0.9f) :
+                       (panel.modifierName == "Festival")       ? Fade(GOLD, 0.9f) :
+                                                                   YELLOW;
+        DrawText(modBuf, PX + 8, y, 12, modCol);
+        y += LINE_H;
+    }
 
     // Blank separator line
     y += 2;
@@ -104,24 +120,77 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             // Color-code events
             bool isGood = (e.message.find("Born")       != std::string::npos ||
                            e.message.find("BOUNTY")     != std::string::npos ||
+                           e.message.find("WINDFALL")   != std::string::npos ||
+                           e.message.find("FESTIVAL")   != std::string::npos ||
+                           e.message.find("reaches")    != std::string::npos ||
                            e.message.find("restored")   != std::string::npos ||
                            e.message.find("CONVOY")     != std::string::npos ||
                            e.message.find("BOOM")       != std::string::npos ||
                            e.message.find("RAIN")       != std::string::npos ||
+                           e.message.find("funded road") != std::string::npos ||
                            e.message.find("built a new") != std::string::npos ||
-                           e.message.find("became a hauler") != std::string::npos);
+                           e.message.find("became a hauler") != std::string::npos ||
+                           e.message.find("IMMIGRANT")  != std::string::npos);
             bool isBad  = (e.message.find("COLLAPSED")  != std::string::npos ||
                            e.message.find("died")       != std::string::npos ||
                            e.message.find("DISEASE")    != std::string::npos ||
+                           e.message.find("PLAGUE")     != std::string::npos ||
+                           e.message.find("FIRE")       != std::string::npos ||
+                           e.message.find("EARTHQUAKE") != std::string::npos ||
                            e.message.find("DROUGHT")    != std::string::npos ||
                            e.message.find("BLIGHT")     != std::string::npos ||
                            e.message.find("EMPTY")      != std::string::npos ||
                            e.message.find("BLIZZARD")   != std::string::npos ||
                            e.message.find("stole")      != std::string::npos ||
-                           e.message.find("BANDITS")    != std::string::npos);
+                           e.message.find("BANDITS")    != std::string::npos ||
+                           e.message.find("CRISIS")     != std::string::npos);
             Color ec = isGood ? Fade(GREEN, 0.8f) : isBad ? Fade(RED, 0.8f) : Fade(LIGHTGRAY, 0.7f);
             DrawText(ebuf, PX + 8, y, 11, ec);
             y += LINE_H - 3;
         }
+    }
+
+    // Population sparkline — mini chart of historical population
+    if (!panel.popHistory.empty()) {
+        y += 4;
+        DrawText("Pop history:", PX + 8, y, 10, Fade(LIGHTGRAY, 0.6f));
+        y += 12;
+
+        // Find min/max for scaling
+        int pMin = panel.popHistory[0], pMax = panel.popHistory[0];
+        for (int v : panel.popHistory) {
+            if (v < pMin) pMin = v;
+            if (v > pMax) pMax = v;
+        }
+        int range = std::max(1, pMax - pMin);
+
+        static const int CHART_H = 24;
+        static const int CHART_W = PW - 20;
+        int n = (int)panel.popHistory.size();
+
+        // Draw background
+        DrawRectangle(PX + 8, y, CHART_W, CHART_H, Fade(WHITE, 0.05f));
+
+        // Draw bars
+        float barW = (float)CHART_W / n;
+        for (int i = 0; i < n; ++i) {
+            float frac = (float)(panel.popHistory[i] - pMin) / range;
+            int bh    = std::max(1, (int)(frac * CHART_H));
+            int bx    = PX + 8 + (int)(i * barW);
+            int bw    = std::max(1, (int)barW - 1);
+            // Color by trend: newest bar is brightest, oldest faded
+            float alpha = 0.4f + 0.6f * ((float)(i + 1) / n);
+            Color barCol = (panel.popHistory[i] == pMax) ? Fade(GOLD, alpha) :
+                           (panel.popHistory[i] > (pMin + pMax) / 2) ? Fade(GREEN, alpha) :
+                           Fade(RED, alpha);
+            DrawRectangle(bx, y + CHART_H - bh, bw, bh, barCol);
+        }
+        // Min/max labels
+        char minBuf[8], maxBuf[8];
+        std::snprintf(minBuf, sizeof(minBuf), "%d", pMin);
+        std::snprintf(maxBuf, sizeof(maxBuf), "%d", pMax);
+        DrawText(minBuf, PX + 8 + CHART_W + 3, y + CHART_H - 8, 9, Fade(LIGHTGRAY, 0.6f));
+        DrawText(maxBuf, PX + 8 + CHART_W + 3, y,                9, Fade(LIGHTGRAY, 0.6f));
+        y += CHART_H + 4;
     }
 }

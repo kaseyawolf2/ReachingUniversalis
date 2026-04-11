@@ -37,7 +37,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
     float gameDt = tm.GameDt(realDt);
     if (gameDt <= 0.f) return;
 
-    int hour = (int)tm.hourOfDay;
+    int hour   = (int)tm.hourOfDay;
+    Season season = tm.CurrentSeason();
 
     // Exclude haulers (TransportSystem owns them) and the player.
     auto view = registry.view<Schedule, AgentState, Position, Velocity,
@@ -52,15 +53,26 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
         float speed = view.get<MoveSpeed>(entity).value;
         auto& home  = view.get<HomeSettlement>(entity);
 
-        bool sleepTime = (hour >= sched.sleepHour || hour < sched.wakeHour);
+        // Seasonal day length adjustment:
+        //   Winter: shorter days — sleep 2h earlier, wake 1h later, end work 2h earlier
+        //   Summer: slightly longer productive hours — no adjustment needed (baseline)
+        //   Spring/Autumn: base schedule
+        int seasonSleepAdj  = (season == Season::Winter) ? -2 : 0;  // negative = earlier sleep
+        int seasonWakeAdj   = (season == Season::Winter) ?  1 : 0;  // positive = later wake
+        int seasonWorkEndAdj = (season == Season::Winter) ? -2 : 0; // negative = earlier end
+
+        int effSleepHour = sched.sleepHour + seasonSleepAdj;
+        int effWakeHour  = sched.wakeHour  + seasonWakeAdj;
+
+        bool sleepTime = (hour >= effSleepHour || hour < effWakeHour);
 
         // Age affects work eligibility: children (<15 days) don't work;
         // elderly (>70 days) work reduced hours (7–12 only).
         bool workEligible = true;
-        int  workEndAdj   = sched.workEnd;
+        int  workEndAdj   = sched.workEnd + seasonWorkEndAdj;
         if (const auto* age = registry.try_get<Age>(entity)) {
             if (age->days < 15.f) workEligible = false;            // child
-            else if (age->days > 70.f) workEndAdj = 12;            // elderly: half-shift
+            else if (age->days > 70.f) workEndAdj = std::min(workEndAdj, 12); // elderly: half-shift
         }
 
         bool workTime  = workEligible &&

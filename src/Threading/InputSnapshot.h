@@ -24,6 +24,15 @@ struct InputSnapshot {
     std::atomic<bool> playerSettle   {false};  // H: adopt nearest settlement as home
     std::atomic<bool> playerWork     {false};  // E: work at nearest production facility
     std::atomic<bool> playerBuy      {false};  // Q: buy 1 unit of cheapest resource at nearest settlement
+    std::atomic<bool> playerBuild    {false};  // C: invest 200g to build a new production facility
+    std::atomic<bool> playerBuyCart      {false};  // V: pay 300g at a settlement to expand carry capacity by 10
+    std::atomic<bool> playerFoundSettlement{false};  // P: pay 1500g to found a new settlement at current location
+    std::atomic<bool> roadRepair     {false};  // R: pay 50g to clear nearest blocked road
+    std::atomic<bool> roadBuild      {false};  // N (two-press): pay 400g to build a new road
+    std::atomic<float> roadBuildFromX{0.f};    // world-space coords of road start (player pos on 1st N press)
+    std::atomic<float> roadBuildFromY{0.f};
+    std::atomic<float> roadBuildToX  {0.f};    // world-space coords of road end (player pos on 2nd N press)
+    std::atomic<float> roadBuildToY  {0.f};
 
     // ---- Continuous player movement (normalised, -1..1) ----
     std::atomic<float> playerMoveX{0.f};

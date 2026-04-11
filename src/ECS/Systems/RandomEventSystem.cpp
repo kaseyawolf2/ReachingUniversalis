@@ -19,21 +19,25 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
     if (gameDt <= 0.f) return;
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
 
-    // Tick down active settlement modifiers (drought recovery)
-    registry.view<Settlement>().each([&](Settlement& s) {
+    // Get EventLog for use in Update() body
+    auto logView = registry.view<EventLog>();
+    EventLog* log = (logView.begin() == logView.end()) ? nullptr
+                  : &logView.get<EventLog>(*logView.begin());
+
+    // Tick down active settlement modifiers (drought/plague recovery)
+    registry.view<Settlement>().each([&](auto e, Settlement& s) {
         if (s.modifierDuration > 0.f) {
             s.modifierDuration -= gameHoursDt;
             if (s.modifierDuration <= 0.f) {
                 s.modifierDuration   = 0.f;
                 s.productionModifier = 1.f;
-
-                auto lv = registry.view<EventLog>();
-                if (lv.begin() != lv.end())
-                    lv.get<EventLog>(*lv.begin()).Push(
-                        tm.day, (int)tm.hourOfDay,
-                        s.modifierName + " ends at " + s.name + " — production restored");
-
+                bool wasPlague = (s.modifierName == "Plague");
+                if (log)
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        s.modifierName + " ends at " + s.name +
+                        (wasPlague ? " — plague contained" : " — production restored"));
                 s.modifierName.clear();
+                if (wasPlague) m_plagueSpreadTimer.erase(e);
             }
         }
     });
@@ -54,6 +58,57 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             }
         }
     });
+
+    // ---- Plague spreading ----
+    // Each infected settlement tries to spread to a connected (non-blocked-road) neighbour
+    // once per PLAGUE_SPREAD_INTERVAL game-hours.
+    static constexpr float PLAGUE_SPREAD_INTERVAL = 20.f;   // game-hours between spread attempts
+    static constexpr float PLAGUE_SPREAD_CHANCE   = 0.60f;  // 60% chance spread succeeds
+    static constexpr float PLAGUE_MODIFIER        = 0.45f;  // production drop during plague
+    static constexpr float PLAGUE_DURATION        = 72.f;   // game-hours plague lasts
+
+    for (auto& [plagueSettl, timer] : m_plagueSpreadTimer) {
+        if (!registry.valid(plagueSettl)) continue;
+        timer -= gameHoursDt;
+        if (timer > 0.f) continue;
+        timer = PLAGUE_SPREAD_INTERVAL;
+
+        // Find open-road neighbours of this settlement
+        std::vector<entt::entity> neighbors;
+        registry.view<Road>().each([&](const Road& r) {
+            if (r.blocked) return;
+            if (r.from == plagueSettl && registry.valid(r.to))   neighbors.push_back(r.to);
+            if (r.to   == plagueSettl && registry.valid(r.from)) neighbors.push_back(r.from);
+        });
+        if (neighbors.empty()) continue;
+
+        std::uniform_int_distribution<int>    pickN(0, (int)neighbors.size() - 1);
+        std::uniform_real_distribution<float> chance(0.f, 1.f);
+        if (chance(m_rng) > PLAGUE_SPREAD_CHANCE) continue;
+
+        entt::entity target2 = neighbors[pickN(m_rng)];
+        if (!registry.valid(target2)) continue;
+        if (m_plagueSpreadTimer.count(target2)) continue;  // already infected
+
+        auto* ts = registry.try_get<Settlement>(target2);
+        if (!ts || ts->modifierDuration > 0.f) continue;  // already has another event
+
+        ts->productionModifier = PLAGUE_MODIFIER;
+        ts->modifierDuration   = PLAGUE_DURATION;
+        ts->modifierName       = "Plague";
+        m_plagueSpreadTimer[target2] = PLAGUE_SPREAD_INTERVAL;
+
+        int killed = KillFraction(registry, target2, 0.10f);
+
+        const auto* src = registry.try_get<Settlement>(plagueSettl);
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "PLAGUE spreads from %s to %s — %d died",
+                src ? src->name.c_str() : "?", ts->name.c_str(), killed);
+            log->Push(tm.day, (int)tm.hourOfDay, buf);
+        }
+    }
 
     // Count down to next event
     m_nextEvent -= gameHoursDt;
@@ -87,7 +142,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     if (settlements.empty()) return;
 
     std::uniform_int_distribution<int> pickSettl(0, (int)settlements.size() - 1);
-    std::uniform_int_distribution<int> pickType(0, 10); // 0-5=always 6=winter 7=spring 8=autumn 9=off-map 10=rainstorm
+    std::uniform_int_distribution<int> pickType(0, 17); // 0-5=always 6=winter 7=spring 8=autumn 9=off-map 10=rainstorm 11=festival 12=earthquake 13=fire 14=heatwave 15=lumberwindfall 16=skilled_immigrant 17=market_crisis
 
     entt::entity target = settlements[pickSettl(m_rng)];
     auto* settl = registry.try_get<Settlement>(target);
@@ -136,21 +191,25 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         break;
     }
 
-    case 3: {   // Disease outbreak — kills 15% of settlement population instantly
-        std::vector<entt::entity> victims;
-        registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-            [&](auto e, const HomeSettlement& hs) {
-                if (hs.settlement == target) victims.push_back(e);
-            });
-        if (victims.size() < 3) break;   // too small to be meaningful
-        std::shuffle(victims.begin(), victims.end(), m_rng);
-        int killCount = std::max(1, (int)(victims.size() * 0.15f));
-        for (int i = 0; i < killCount; ++i) {
-            if (registry.valid(victims[i])) registry.destroy(victims[i]);
+    case 3: {   // Plague outbreak — production debuff + death + spreading
+        if (settl->modifierDuration > 0.f) break;   // already has an active event
+        if (m_plagueSpreadTimer.count(target)) break; // already infected
+
+        static constexpr float PLAGUE_INIT_MODIFIER = 0.45f;
+        static constexpr float PLAGUE_INIT_DURATION = 72.f;
+        settl->productionModifier = PLAGUE_INIT_MODIFIER;
+        settl->modifierDuration   = PLAGUE_INIT_DURATION;
+        settl->modifierName       = "Plague";
+        m_plagueSpreadTimer[target] = 20.f;  // first spread attempt in 20 game-hours
+
+        int killCount = KillFraction(registry, target, 0.15f);
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "PLAGUE erupts at %s — %d died, disease spreading via roads!",
+                settl->name.c_str(), killCount);
+            log->Push(day, hour, buf);
         }
-        if (log) log->Push(day, hour,
-            "DISEASE outbreak at " + settl->name
-            + " — " + std::to_string(killCount) + " died");
         break;
     }
 
@@ -333,5 +392,288 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             + " " + resName + " (paid " + std::to_string((int)cost) + "g)");
         break;
     }
+
+    case 11: {  // Festival — boosts treasury and gives short production bonus
+        // Represent merchants and travelers visiting the settlement for a festival.
+        // The influx of trade brings gold into the treasury; the festive mood
+        // boosts production output for a short window.
+        static constexpr float FESTIVAL_GOLD     = 120.f;
+        static constexpr float FESTIVAL_MODIFIER = 1.35f;
+        static constexpr float FESTIVAL_DURATION = 16.f;   // game-hours
+
+        if (settl->modifierDuration > 0.f) break;   // already affected by another event
+        {
+            int spop = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+                [&](const HomeSettlement& hs) { if (hs.settlement == target) ++spop; });
+            if (spop < 5) break;   // too small for a notable festival
+        }
+
+        settl->treasury          += FESTIVAL_GOLD;
+        settl->productionModifier = FESTIVAL_MODIFIER;
+        settl->modifierDuration   = FESTIVAL_DURATION;
+        settl->modifierName       = "Festival";
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "FESTIVAL at %s — treasury +%.0fg, production +35%% (%dh)",
+                settl->name.c_str(), FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
+            log->Push(day, hour, buf);
+        }
+        break;
     }
+
+    case 13: {  // Fire — burns stored food and wood, kills a few NPCs
+        auto* sp = registry.try_get<Stockpile>(target);
+        if (!sp) break;
+
+        std::uniform_real_distribution<float> burnFrac(0.35f, 0.55f);
+        float fraction = burnFrac(m_rng);
+
+        float foodLost = 0.f, woodLost = 0.f;
+        auto fitFood = sp->quantities.find(ResourceType::Food);
+        if (fitFood != sp->quantities.end() && fitFood->second > 5.f) {
+            foodLost = fitFood->second * fraction;
+            fitFood->second -= foodLost;
+        }
+        auto fitWood = sp->quantities.find(ResourceType::Wood);
+        if (fitWood != sp->quantities.end() && fitWood->second > 5.f) {
+            woodLost = fitWood->second * fraction;
+            fitWood->second -= woodLost;
+        }
+
+        int killed = KillFraction(registry, target, 0.05f);
+
+        if (log) {
+            char buf[160];
+            std::snprintf(buf, sizeof(buf),
+                "FIRE at %s — %.0f food, %.0f wood destroyed, %d died",
+                settl->name.c_str(), foodLost, woodLost, killed);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+
+    case 14: {  // Heat wave (Summer only) — production penalty + water shortage stress
+        if (season != Season::Summer) break;
+        if (settl->modifierDuration > 0.f) break;   // already affected
+
+        static constexpr float HEATWAVE_MODIFIER = 0.75f;
+        static constexpr float HEATWAVE_DURATION = 10.f;   // game-hours
+
+        settl->productionModifier = HEATWAVE_MODIFIER;
+        settl->modifierDuration   = HEATWAVE_DURATION;
+        settl->modifierName       = "Heat Wave";
+
+        // Destroy 20-35% of water stockpile (evaporation / dehydration)
+        auto* sp = registry.try_get<Stockpile>(target);
+        if (sp) {
+            auto it = sp->quantities.find(ResourceType::Water);
+            if (it != sp->quantities.end() && it->second > 5.f) {
+                std::uniform_real_distribution<float> evap(0.20f, 0.35f);
+                float lost = it->second * evap(m_rng);
+                it->second -= lost;
+            }
+        }
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "HEAT WAVE strikes %s — production -25%%, water reserves drained (%dh)",
+                settl->name.c_str(), (int)HEATWAVE_DURATION);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+
+    case 15: {  // Lumber windfall (Spring/Autumn) — storm brings easy wood
+        if (season != Season::Spring && season != Season::Autumn) break;
+        auto* sp = registry.try_get<Stockpile>(target);
+        if (!sp) break;
+
+        std::uniform_real_distribution<float> lumberAmt(50.f, 80.f);
+        float windfall = lumberAmt(m_rng);
+        sp->quantities[ResourceType::Wood] += windfall;
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "LUMBER WINDFALL at %s — storm felled trees, +%.0f wood",
+                settl->name.c_str(), windfall);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+
+    case 16: {  // Skilled Immigrant — a talented NPC arrives at the target settlement
+        // Spawn one NPC with high skill in a random resource type.
+        // This boosts production at under-populated or skill-poor settlements.
+        const auto* spos = registry.try_get<Position>(target);
+        if (!spos) break;
+
+        // Count current pop to check cap
+        int curPop16 = 0;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs) { if (hs.settlement == target) ++curPop16; });
+        if (curPop16 >= settl->popCap) break;  // no room
+
+        static constexpr float DRAIN_HUNGER = 0.00083f;
+        static constexpr float DRAIN_THIRST = 0.00125f;
+        static constexpr float DRAIN_ENERGY = 0.00050f;
+        static constexpr float DRAIN_HEAT   = 0.00200f;
+        static constexpr float CRIT_THRESH  = 0.3f;
+
+        auto npc16 = registry.create();
+        float angle16 = std::uniform_real_distribution<float>(0.f, 6.28f)(m_rng);
+        registry.emplace<Position>(npc16,
+            spos->x + std::cos(angle16) * 60.f,
+            spos->y + std::sin(angle16) * 60.f);
+        registry.emplace<Velocity>(npc16, 0.f, 0.f);
+        registry.emplace<MoveSpeed>(npc16, 60.f);
+        registry.emplace<Needs>(npc16, Needs{{
+            Need{NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESH, 0.004f},
+            Need{NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESH, 0.006f},
+            Need{NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESH, 0.002f},
+            Need{NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESH, 0.010f},
+        }});
+        registry.emplace<AgentState>(npc16);
+        registry.emplace<HomeSettlement>(npc16, HomeSettlement{ target });
+        DeprivationTimer dt16;
+        dt16.migrateThreshold = std::uniform_real_distribution<float>(2.f, 5.f)(m_rng) * 60.f;
+        registry.emplace<DeprivationTimer>(npc16, dt16);
+        registry.emplace<Schedule>(npc16);
+        registry.emplace<Renderable>(npc16, WHITE, 6.f);
+        Age age16; age16.days = 20.f + std::uniform_real_distribution<float>(0.f, 15.f)(m_rng);
+        age16.maxDays = std::uniform_real_distribution<float>(60.f, 100.f)(m_rng);
+        registry.emplace<Age>(npc16, age16);
+        registry.emplace<Money>(npc16, Money{ 30.f });  // arrives with savings
+
+        // High skill in one randomly chosen area (0.75+); normal in others
+        static const char* FIRST_N[] = {
+            "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
+            "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric"
+        };
+        static const char* LAST_N[] = {
+            "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
+            "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh"
+        };
+        std::uniform_int_distribution<int> fn(0,19), ln(0,15);
+        std::string immName = std::string(FIRST_N[fn(m_rng)]) + " " + LAST_N[ln(m_rng)];
+        registry.emplace<Name>(npc16, Name{ immName });
+
+        std::uniform_int_distribution<int> apt16(0, 2);
+        int aptIdx16 = apt16(m_rng);
+        float highSkill = 0.75f + std::uniform_real_distribution<float>(0.f, 0.20f)(m_rng);
+        Skills sk16{ 0.35f, 0.35f, 0.35f };
+        const char* specialty16 = "Farmer";
+        if      (aptIdx16 == 0) { sk16.farming       = highSkill; specialty16 = "Farmer";       }
+        else if (aptIdx16 == 1) { sk16.water_drawing  = highSkill; specialty16 = "Water Carrier"; }
+        else                    { sk16.woodcutting    = highSkill; specialty16 = "Woodcutter";    }
+        registry.emplace<Skills>(npc16, sk16);
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "SKILLED IMMIGRANT: %s (%s) arrives at %s — skill %.0f%%",
+                immName.c_str(), specialty16, settl->name.c_str(), highSkill * 100.f);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+
+    case 17: {  // Market Crisis — panic drives prices up 3× at one settlement temporarily
+        // Sets a 3× modifier on all market prices at the target settlement.
+        // Implemented by multiplying the current Market prices directly;
+        // PriceSystem will gradually bring them back toward equilibrium.
+        auto* mkt = registry.try_get<Market>(target);
+        if (!mkt) break;
+
+        // Only trigger if prices are currently reasonable (not already spiked)
+        bool alreadySpiked = false;
+        for (const auto& [rt, p] : mkt->price)
+            if (p > 15.f) { alreadySpiked = true; break; }
+        if (alreadySpiked) break;
+
+        float spikeBase = std::uniform_real_distribution<float>(2.5f, 3.5f)(m_rng);
+        for (auto& [rt, p] : mkt->price)
+            p = std::min(20.f, p * spikeBase);
+
+        if (log) {
+            char buf[120];
+            std::snprintf(buf, sizeof(buf),
+                "MARKET CRISIS at %s — panic buying, all prices spike %.1f×!",
+                settl->name.c_str(), spikeBase);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+
+    case 12: {  // Earthquake — destroys some facilities, blocks all roads for a time
+        {
+            int spop2 = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+                [&](const HomeSettlement& hs) { if (hs.settlement == target) ++spop2; });
+            if (spop2 < 3) break;
+        }
+
+        static constexpr float QUAKE_ROAD_BLOCK_DURATION = 6.f;  // game-hours
+        static constexpr float QUAKE_FACILITY_DESTROY_CHANCE = 0.30f;
+
+        // Block all roads temporarily
+        int blockedRoads = 0;
+        registry.view<Road>().each([&](Road& road) {
+            if (!road.blocked) {
+                road.blocked     = true;
+                road.banditTimer = QUAKE_ROAD_BLOCK_DURATION;
+                ++blockedRoads;
+            }
+        });
+
+        // Destroy a fraction of this settlement's non-shelter facilities
+        std::vector<entt::entity> settlFacs;
+        registry.view<ProductionFacility>().each(
+            [&](auto fe, const ProductionFacility& fac) {
+            if (fac.settlement == target && fac.baseRate > 0.f)
+                settlFacs.push_back(fe);
+        });
+        std::uniform_real_distribution<float> chance2(0.f, 1.f);
+        int destroyed = 0;
+        for (auto fe : settlFacs) {
+            if (chance2(m_rng) < QUAKE_FACILITY_DESTROY_CHANCE) {
+                registry.destroy(fe);
+                ++destroyed;
+            }
+        }
+
+        if (log) {
+            char buf[140];
+            std::snprintf(buf, sizeof(buf),
+                "EARTHQUAKE at %s — %d facilit%s destroyed, all roads blocked (%dh)",
+                settl->name.c_str(), destroyed,
+                destroyed == 1 ? "y" : "ies", (int)QUAKE_ROAD_BLOCK_DURATION);
+            log->Push(day, hour, buf);
+        }
+        break;
+    }
+    }
+}
+
+// ---- KillFraction -------------------------------------------------------
+// Kills `fraction` of the non-player NPCs homed at `settl`.
+// Returns the count killed.
+int RandomEventSystem::KillFraction(entt::registry& registry,
+                                     entt::entity settl, float fraction)
+{
+    std::vector<entt::entity> victims;
+    registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+        [&](auto e, const HomeSettlement& hs) {
+            if (hs.settlement == settl) victims.push_back(e);
+        });
+    if (victims.size() < 3) return 0;
+    std::shuffle(victims.begin(), victims.end(), m_rng);
+    int killCount = std::max(1, (int)(victims.size() * fraction));
+    for (int i = 0; i < killCount; ++i)
+        if (registry.valid(victims[i])) registry.destroy(victims[i]);
+    return killCount;
 }

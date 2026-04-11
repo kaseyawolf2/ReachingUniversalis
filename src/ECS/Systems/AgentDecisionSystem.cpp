@@ -118,6 +118,12 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                       ? sp->quantities.at(ResourceType::Water) : 0.f;
         float total = food + water;
 
+        // Plague penalty: NPCs strongly avoid plague-infected destinations
+        if (const auto* ds = registry.try_get<Settlement>(dest)) {
+            if (ds->modifierName == "Plague")
+                total *= 0.20f;  // 80% less attractive — flee or avoid
+        }
+
         // Skill-affinity bonus: +20% score if destination primarily produces
         // the resource matching the NPC's strongest skill.
         if (hasAffinity) {
@@ -231,7 +237,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         // ============================================================
 
         // -- Check migration trigger first --
-        if (timer.stockpileEmpty >= timer.migrateThreshold) {
+        // NPCs in a plague settlement are more fearful and migrate at half the normal threshold.
+        float effectiveMigrateThreshold = timer.migrateThreshold;
+        if (const auto* hs = registry.try_get<Settlement>(home.settlement))
+            if (hs->modifierName == "Plague")
+                effectiveMigrateThreshold *= 0.50f;
+
+        if (timer.stockpileEmpty >= effectiveMigrateThreshold) {
             const auto* skills = registry.try_get<Skills>(entity);
             entt::entity dest = FindMigrationTarget(registry, home.settlement, skills);
             if (dest != entt::null) {

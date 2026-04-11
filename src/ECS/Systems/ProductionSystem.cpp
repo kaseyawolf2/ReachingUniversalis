@@ -97,6 +97,18 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
 
         float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 
+        // Yield cycle: each facility has a slow sinusoidal ±20% variation
+        // (period 15–25 game-days, phase staggered by entity ID) to simulate
+        // natural variance like soil depletion, fish stock cycles, wood growth.
+        {
+            float gameHours  = tm.gameSeconds * GAME_MINS_PER_REAL_SEC / 60.f;
+            uint32_t eid     = entt::to_integral(entity);
+            float period     = 15.f * 24.f + (float)(eid % 240);  // 15–25 day period in hours
+            float phase      = (float)(eid % 628) * 0.01f;        // 0–6.28 offset per facility
+            float cycleMult  = 1.f + 0.20f * std::sin(6.28318f * gameHours / period + phase);
+            grossOutput *= cycleMult;
+        }
+
         // Consume inputs — if insufficient, scale down production proportionally
         if (!fac.inputsPerOutput.empty()) {
             float inputScale = 1.f;

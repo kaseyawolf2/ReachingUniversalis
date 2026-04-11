@@ -1140,6 +1140,10 @@ void HUD::UpdateNotifications(const RenderSnapshot& snap) {
             col = Fade(GOLD, 0.95f); show = true;  // population milestone
         } else if (ContainsAny(msg, {"funded road"})) {
             col = Fade(GREEN, 0.85f); show = true;  // new autonomous road
+        } else if (ContainsAny(msg, {"SKILLED IMMIGRANT"})) {
+            col = Fade(GOLD, 0.90f); show = true;
+        } else if (ContainsAny(msg, {"MARKET CRISIS"})) {
+            col = Fade(ORANGE, 0.95f); show = true;
         }
 
         if (show) {

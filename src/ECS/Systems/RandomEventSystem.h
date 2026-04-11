@@ -1,5 +1,6 @@
 #pragma once
 #include <entt/entt.hpp>
+#include <map>
 #include <random>
 
 // Fires random world events at intervals to stress the simulation:
@@ -18,5 +19,11 @@ private:
     std::mt19937 m_rng{std::random_device{}()};
     float        m_nextEvent = 72.f;   // game-hours until next event (first fires at day 3)
 
+    // Active plagues: settlement entity → game-hours until next spread attempt
+    std::map<entt::entity, float> m_plagueSpreadTimer;
+
     void TriggerEvent(entt::registry& registry, int day, int hour);
+    // Kill killFraction of the settlement's population (excluding player).
+    // Returns number of NPCs killed. Used by both initial outbreak and spread.
+    int KillFraction(entt::registry& registry, entt::entity settl, float fraction);
 };

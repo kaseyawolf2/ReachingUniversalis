@@ -5,6 +5,37 @@ Format: `[version/milestone] - date - description`
 
 ---
 
+## [Roads & Disease] Player road building/repair, plague spreading — 2026-04-11
+
+### Added
+- **Player road repair (R key)**: Press R near a blocked road (within 80px) to pay 50g and
+  clear it immediately. Gives the player a direct role in keeping trade flowing after bandit
+  raids or blizzards. Logs a failure message if no blocked road is nearby or funds insufficient.
+- **Player road building (N key, two-press)**: Press N near one settlement, walk to another,
+  press N again to build a new road connection between them for 400g. A dashed orange preview
+  line shows the pending start-point during selection. ESC cancels. Validates that the two
+  endpoints resolve to different settlements and that no road already exists between them.
+- **Plague spreading system**: Disease outbreaks now propagate to neighbouring settlements via
+  open roads. Each infected settlement attempts to spread every 20 game-hours (60% success
+  chance); if a road is blocked, disease cannot cross it. Infected settlements get a 55%
+  production penalty for 72 game-hours. Plague visually shows as a purple double-ring on the
+  map. Blocking a road mid-plague can contain the outbreak — blocking roads now has strategic
+  defensive value.
+- **Visual road-build pending line**: While in road-build mode (after first N press), a dashed
+  orange line is drawn from the selected source position to the player's current world position,
+  giving clear real-time feedback about what will be connected.
+
+### Fixed
+- **KEY_C duplicate binding**: Camera-reset action (center map, zoom out) was bound to C,
+  conflicting with the Player Build action. Moved camera reset to Home key.
+
+### Changed
+- Controls hint updated: R:Repair, N:Road added; Home replaces C for camera reset.
+- Disease outbreak (random event 3) now sets `modifierName = "Plague"` and enters the
+  spreading pipeline rather than being a one-time NPC kill with no further consequences.
+
+---
+
 ## [Observability & Growth] Trade hints, economy stats, dynamic population caps — 2026-04-10
 
 ### Added
