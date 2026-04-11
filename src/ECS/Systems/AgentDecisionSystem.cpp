@@ -1,6 +1,7 @@
 #include "AgentDecisionSystem.h"
 #include <cmath>
 #include <limits>
+#include <random>
 #include <string>
 #include "ECS/Components.h"
 
@@ -269,6 +270,26 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
             continue;
         }
+
+        // ============================================================
+        // GRATITUDE: briefly move toward the NPC who recently helped you
+        // ============================================================
+        if (timer.gratitudeTimer > 0.f) {
+            timer.gratitudeTimer -= dt;
+            if (timer.gratitudeTarget != entt::null && registry.valid(timer.gratitudeTarget)) {
+                const auto& tgtPos = registry.get<Position>(timer.gratitudeTarget);
+                MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.7f);
+                state.behavior = AgentBehavior::Idle;
+            } else {
+                // Helper gone — cancel gratitude
+                timer.gratitudeTimer  = 0.f;
+                timer.gratitudeTarget = entt::null;
+            }
+            continue;
+        }
+        // Clear stale target once timer expires
+        if (timer.gratitudeTarget != entt::null && timer.gratitudeTimer <= 0.f)
+            timer.gratitudeTarget = entt::null;
 
         // ============================================================
         // IDLE / SEEKING: decide what to do this tick
@@ -591,9 +612,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             // Reset the starving NPC's purchaseTimer so ConsumptionSystem acts promptly.
             // Mark them as recently helped (shown in HUD tooltip for 1 game-hour).
+            // Set gratitude walk: move toward helper for 30–60 real-seconds.
             if (starvingTmr) {
-                starvingTmr->purchaseTimer = 0.f;
-                starvingTmr->helpedTimer   = 1.f;   // 1 game-hour display window
+                starvingTmr->purchaseTimer   = 0.f;
+                starvingTmr->helpedTimer     = 1.f;   // 1 game-hour display window
+                starvingTmr->gratitudeTarget = helper.entity;
+                static std::uniform_real_distribution<float> s_gratDist(30.f, 60.f);
+                static std::mt19937 s_gratRng{ std::random_device{}() };
+                starvingTmr->gratitudeTimer  = s_gratDist(s_gratRng);
             }
 
             // Set helper cooldown
