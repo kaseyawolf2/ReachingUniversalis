@@ -205,10 +205,25 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             registry.emplace<Skills>(npc, npcSkills);
             registry.emplace<ChildTag>(npc);
 
+            // Find the wealthiest adult at this settlement to name as parent.
+            std::string parentName;
+            {
+                float bestBalance = -1.f;
+                registry.view<HomeSettlement, Money, Name>(entt::exclude<ChildTag, PlayerTag>).each(
+                    [&](const HomeSettlement& hs, const Money& m, const Name& n) {
+                        if (hs.settlement != settl) return;
+                        if (m.balance > bestBalance) {
+                            bestBalance = m.balance;
+                            parentName  = n.value;
+                        }
+                    });
+            }
+
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
-                log->Push(tm.day, (int)tm.hourOfDay,
-                          "Born: " + npcName + " at " + s.name);
+                std::string msg = "Born: " + npcName + " at " + s.name;
+                if (!parentName.empty()) msg += " (to " + parentName + ")";
+                log->Push(tm.day, (int)tm.hourOfDay, msg);
             }
 
             // Twins: 10% chance of a second birth at the same time
@@ -257,8 +272,9 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
 
                 if (log) {
                     const auto& s = settlView.get<Settlement>(settl);
-                    log->Push(tm.day, (int)tm.hourOfDay,
-                              "Born (twins!): " + npcName + " & " + twinName + " at " + s.name);
+                    std::string msg = "Born (twins!): " + npcName + " & " + twinName + " at " + s.name;
+                    if (!parentName.empty()) msg += " (to " + parentName + ")";
+                    log->Push(tm.day, (int)tm.hourOfDay, msg);
                 }
             }
         }

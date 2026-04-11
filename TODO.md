@@ -9,24 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family surname on birth** — In `BirthSystem.cpp`, newborns currently get a random first
-  and last name. If the settlement has any adult NPC with a `Name` containing a space (i.e., a
-  surname), use the most common surname among adult residents as the newborn's last name (50%
-  chance), otherwise keep the random last name. This ties newborns to existing family lines.
-  Count surnames with a `std::map<std::string, int>` inside the birth block, pick the most
-  frequent, apply it to both `npc` and `npc2` (twin).
+_(none)_
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Birth announcement names parent** — In `BirthSystem.cpp`, when a new NPC is born,
-  the log currently says "Born: Aldric Smith at Ashford". Find the adult with the highest
-  `Money.balance` at that settlement (as a proxy for "most established parent") and append
-  their name: "Born: Aldric Smith at Ashford (to Brom Cooper)". Use a simple loop over
-  `HomeSettlement, Money` filtered to the current settlement inside the birth block.
 
 - [ ] **Surname tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when an NPC's name contains a
   space, show their surname in a subtle way: after the main name line, if two or more agents in
@@ -152,6 +141,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlements have a 10% trade tax surcharge between them. Allied settlements (formed by prolonged
   fair trade) get a 5% discount. Show rivalry/alliance in the settlement tooltip.
 
+- [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
+  add an age line: "Age: 23" (integer days). Read `AgentEntry::age` (already in the struct as a
+  float). For children, show "Age: 8 (child)". This gives the player immediate lifecycle context
+  without opening extra panels.
+
+- [ ] **Deathbed log with age** — In `DeathSystem.cpp`, the death log currently says "Died: Aldric
+  Smith (old age) at Ashford". Append the NPC's age: "Died: Aldric Smith at age 72 (old age) at
+  Ashford". Find where `maxDays` is checked, read `age->days` cast to int, and include it in the
+  `log->Push` call. Also apply to hunger/thirst/heat deaths: "Died: Mira Reed (hunger) age 31 at
+  Ashford".
+
+- [ ] **Richest NPC highlighted in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the agent list already renders NPC names. After building the list, find the
+  agent with the highest `money` field in `StockpilePanel::agents` and render their name in gold
+  `GOLD` colour instead of white. No new component needed — use the existing `money` float in
+  `AgentEntry`. Makes wealth inequality immediately legible.
+
 ---
 
 ## Done
@@ -171,6 +177,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Birth announcement names parent** — BirthSystem.cpp finds the wealthiest adult (highest
+  `Money.balance`) at the settlement at birth time and appends "(to Name)" to the birth log message.
+  Applied to both single births and twins. Uses a simple view loop over `HomeSettlement, Money, Name`.
+
+- [x] **Family surname on birth** — BirthSystem.cpp scans adult residents' surnames at each
+  settlement, picks the most common one, and 50% of the time assigns it as the newborn's last name.
+  Twins share the same familySurname as their sibling. Builds visible family clusters over time.
 
 - [x] **Child → Adult lifecycle** — `ChildTag` added; BirthSystem emits it for newborns/twins.
   ScheduleSystem: children follow nearest adult at home settlement during leisure hours (target
