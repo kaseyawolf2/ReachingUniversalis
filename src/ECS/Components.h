@@ -121,6 +121,7 @@ struct DeprivationTimer {
     float                stealCooldown   = 0.f;    // game-hours until NPC can steal again (0 = can steal)
     float                gossipCooldown  = 0.f;    // game-hours until NPC can gossip prices again (0 = ready)
     float                charityTimer    = 0.f;    // game-hours until NPC can help a starving neighbour again (0 = ready)
+    float                helpedTimer     = 0.f;    // game-hours since receiving charity; > 0 → "recently helped"
 };
 
 // ---- Inventory / Transport ----

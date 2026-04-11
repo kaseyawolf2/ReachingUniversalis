@@ -533,6 +533,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         [&](auto e, const Position& p, const Needs& n, const Money& m,
             const HomeSettlement& hs, DeprivationTimer& tmr) {
             tmr.charityTimer = std::max(0.f, tmr.charityTimer - gameHoursDt);
+            tmr.helpedTimer  = std::max(0.f, tmr.helpedTimer  - gameHoursDt);
             if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
             float hunger = n.list[(int)NeedType::Hunger].value;
             charityAgents.push_back({
@@ -588,8 +589,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // Reset the starving NPC's purchaseTimer so ConsumptionSystem acts promptly
-            if (starvingTmr) starvingTmr->purchaseTimer = 0.f;
+            // Reset the starving NPC's purchaseTimer so ConsumptionSystem acts promptly.
+            // Mark them as recently helped (shown in HUD tooltip for 1 game-hour).
+            if (starvingTmr) {
+                starvingTmr->purchaseTimer = 0.f;
+                starvingTmr->helpedTimer   = 1.f;   // 1 game-hour display window
+            }
 
             // Set helper cooldown
             auto* helperTmr = registry.try_get<DeprivationTimer>(helper.entity);

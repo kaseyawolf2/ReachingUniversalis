@@ -52,6 +52,8 @@ struct RenderSnapshot {
         std::string followingName;
         // FamilyTag name if this NPC belongs to a named household (empty if none)
         std::string familyName;
+        // True if this NPC received charity within the last game-hour
+        bool recentlyHelped = false;
     };
 
     struct SettlementEntry {

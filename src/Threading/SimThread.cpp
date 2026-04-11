@@ -1231,6 +1231,10 @@ void SimThread::WriteSnapshot() {
         if (const auto* ft = m_registry.try_get<FamilyTag>(e))
             familyName = ft->name;
 
+        bool recentlyHelped = false;
+        if (const auto* dt = m_registry.try_get<DeprivationTimer>(e))
+            recentlyHelped = (dt->helpedTimer > 0.f);
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1240,7 +1244,7 @@ void SimThread::WriteSnapshot() {
                            profession, homeSettlName,
                            farmSkill, waterSkill, woodSkill,
                            contentment, std::move(followingName),
-                           std::move(familyName) });
+                           std::move(familyName), recentlyHelped });
     });
 
     // ---- Settlements ----
