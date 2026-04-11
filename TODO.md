@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC helping starving neighbours** — If an NPC has `Hunger > 0.8` and is near another NPC
-  with `Hunger < 0.2` and `Money.balance > 20g`, the wealthy NPC "gifts" 5g and the starving NPC
-  uses it to immediately buy food (trigger the emergency purchase path in `ConsumptionSystem`).
-  Log the event: "Aldric helped a starving neighbour." Happens at most once per 24 game-hours per
-  helper (track with a float timer).
-
 ---
 
 ## Backlog
@@ -22,6 +16,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
+
+- [ ] **Charity shown in tooltip** — When an NPC has recently received charity (their
+  `charityTimer` was just reset OR their `Money.balance` jumped above their hunger tier), add a
+  faint "Fed by neighbour" status line to `HUD::DrawHoverTooltip`. Simpler approach: add a
+  `bool recentlyHelped = false` flag to `DeprivationTimer` (set true on receiving charity, cleared
+  after 1 game-hour). In SimThread WriteSnapshot, populate a new `bool recentlyHelped` field on
+  `AgentEntry`. In HUD tooltip, show a dim `LIME`-coloured "(helped)" suffix on line1 when set.
+
+- [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
+  warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
+  `helperTmr->charityTimer`, also set the helper's `Heat` need to `min(1.0, heat + 0.15)` directly.
+  This models the "warm glow" of altruism: the helper feels better after giving. No new component —
+  just write to `needs.list[(int)NeedType::Heat].value` via `registry.try_get<Needs>`.
 
 - [ ] **Celebration behaviour** — When a Festival event fires in `RandomEventSystem`, affected NPCs
   (home settlement matches) should enter a new `AgentBehavior::Celebrating` state for the event
@@ -42,6 +49,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   no schedule). They can re-settle at a new settlement by spending 30g (implement as an extended
   version of the existing H-key settle logic, triggered automatically for wanderers in
   `AgentDecisionSystem` when they have enough gold).
+
+- [ ] **Charity recipient log detail** — Extend the charity log message to name both parties:
+  change "X helped a starving neighbour." to "X helped [Recipient Name] at [Settlement]."
+  In `AgentDecisionSystem`'s charity block, after finding the starving NPC, read their `Name`
+  component and their home settlement's `Settlement::name`. Format: "Aldric helped Mira Reed
+  at Ashford." No new components — just expand the `charityLog->Push` format string using
+  `registry.try_get<Name>` on `starving.entity` and `registry.try_get<Settlement>` on
+  `starving.homeSettl`.
 
 - [ ] **Bandit NPCs from desperation** — Wandering exiles with `money.balance < 2g` for more than
   48 game-hours become `BanditTag` entities. Bandits move toward roads (target the midpoint of the
@@ -247,6 +262,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **NPC helping starving neighbours** — Added `charityTimer` to `DeprivationTimer`. In
+  `AgentDecisionSystem`, well-fed NPCs (Hunger > 0.8, Money > 20g, cooldown 0) scan within 80
+  units for starving NPCs (Hunger < 0.2). On match: 5g transfers peer-to-peer, then immediate
+  market food purchase (gold → treasury, food to stockpile). purchaseTimer reset. Cooldown 24
+  game-hours per helper. Logs "X helped a starving neighbour."
 
 - [x] **Named families** — Added `FamilyTag { std::string name; }` to Components.h. Every 12
   game-hours, AgentDecisionSystem pairs unpaired adults (age ≥ 18, same settlement) two-by-two,
