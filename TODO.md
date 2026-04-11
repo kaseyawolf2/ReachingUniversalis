@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Evening gathering** — Between hours 18–21, NPCs without an active task (not `Working`,
+  `SeekingFood`, etc.) should move toward their home settlement's centre position instead of
+  wandering. This is purely a `Velocity` target change in `AgentDecisionSystem` — no new component
+  needed. Makes the world look alive: NPCs cluster at dusk.
 
 ---
 
@@ -23,11 +26,6 @@ _(none)_
   most recently paired adults). Show family name in NPC tooltip.
 
 ### NPC Social Behaviour
-
-- [ ] **Evening gathering** — Between hours 18–21, NPCs without an active task (not `Working`,
-  `SeekingFood`, etc.) should move toward their home settlement's centre position instead of
-  wandering. This is purely a `Velocity` target change in `AgentDecisionSystem` — no new component
-  needed. Makes the world look alive: NPCs cluster at dusk.
 
 - [ ] **Gossip / price sharing** — When two NPCs from *different* settlements are within 30 units of
   each other (check positions in `AgentDecisionSystem`), they exchange price knowledge: the visiting
