@@ -9,18 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
+  followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
+  same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
+  visible family lines in the event log over time.
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
-  followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
-  same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
-  visible family lines in the event log over time.
 
 - [ ] **Birth announcement names parent** — In `BirthSystem.cpp`, when a new NPC is born,
   the log currently says "Born: Aldric Smith at Ashford". Find the adult with the highest
