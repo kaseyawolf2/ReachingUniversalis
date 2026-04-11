@@ -116,7 +116,20 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                       ? sp->quantities.at(ResourceType::Food)  : 0.f;
         float water = sp->quantities.count(ResourceType::Water)
                       ? sp->quantities.at(ResourceType::Water) : 0.f;
+        float wood  = sp->quantities.count(ResourceType::Wood)
+                      ? sp->quantities.at(ResourceType::Wood)  : 0.f;
         float total = food + water;
+
+        // In cold seasons (Autumn/Winter), wood stock matters for warmth.
+        // Settlements with good wood reserve get a bonus — cold NPCs flee to warmth.
+        auto tmv = registry.view<TimeManager>();
+        if (!tmv.empty()) {
+            Season season = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason();
+            float heatMult = SeasonHeatDrainMult(season);
+            if (heatMult > 0.f) {
+                total += wood * heatMult * 1.5f;  // weight wood by how cold the season is
+            }
+        }
 
         // Plague penalty: NPCs strongly avoid plague-infected destinations
         if (const auto* ds = registry.try_get<Settlement>(dest)) {

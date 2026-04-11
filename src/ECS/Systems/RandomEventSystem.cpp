@@ -619,15 +619,20 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
         static constexpr float QUAKE_ROAD_BLOCK_DURATION = 6.f;  // game-hours
         static constexpr float QUAKE_FACILITY_DESTROY_CHANCE = 0.30f;
+        static constexpr float QUAKE_ROAD_DAMAGE = 0.30f;  // condition lost on connected roads
 
-        // Block all roads temporarily
+        // Block only roads connected to the epicenter settlement and damage their condition
         int blockedRoads = 0;
         registry.view<Road>().each([&](Road& road) {
+            bool connected = (road.from == target || road.to == target);
+            if (!connected) return;
             if (!road.blocked) {
                 road.blocked     = true;
                 road.banditTimer = QUAKE_ROAD_BLOCK_DURATION;
                 ++blockedRoads;
             }
+            // Earthquake physically damages the road surface
+            road.condition = std::max(0.f, road.condition - QUAKE_ROAD_DAMAGE);
         });
 
         // Destroy a fraction of this settlement's non-shelter facilities

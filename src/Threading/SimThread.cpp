@@ -348,6 +348,8 @@ void SimThread::ProcessInput() {
                         inv.contents[bestRes]     = bestQty;
                         float cost = bestBuy * bestQty;
                         mon.balance -= cost;
+                        // Purchase price goes to the selling settlement's treasury
+                        settl.treasury += cost;
                         if (log2) log2->Push(day2, hr2,
                             "Bought " + std::to_string(bestQty) + " goods at "
                             + settl.name + " for " + std::to_string((int)cost) + "g");
@@ -1659,9 +1661,14 @@ void SimThread::WriteSnapshot() {
         static constexpr float HINT_RADIUS    = 200.f; // wider than BUY_RADIUS for early warning
         static constexpr float MIN_MARGIN     = 2.0f;
 
+        // Effective tax rate after reputation discount (matches player sell code)
+        static constexpr float TRADE_TAX_BASE_H = 0.20f;
+        float repDiscount_h = std::min(0.10f, m_playerReputation * 0.0005f);
+        float effectiveTax_h = TRADE_TAX_BASE_H - repDiscount_h;
+
         struct HintResult {
             int   resIdx   = -1;
-            float buyPrice = 0.f, sellPrice = 0.f, margin = 0.f;
+            float buyPrice = 0.f, sellPrice = 0.f, netPerUnit = 0.f;
             std::string buyName, sellName;
         };
 
@@ -1682,14 +1689,15 @@ void SimThread::WriteSnapshot() {
                         float p = mkt.GetPrice(res);
                         if (p > bestSell) { bestSell = p; bestSellName = s.name; }
                     });
-                float margin = bestSell - buyP;
-                if (margin > best.margin && margin > MIN_MARGIN) {
-                    best.resIdx   = ri;
-                    best.buyPrice = buyP;
-                    best.sellPrice= bestSell;
-                    best.margin   = margin;
-                    best.buyName  = fromName ? fromName->name : "?";
-                    best.sellName = bestSellName;
+                // Real net per unit: sell revenue after tax, minus buy cost
+                float net = bestSell * (1.f - effectiveTax_h) - buyP;
+                if (net > best.netPerUnit && net > MIN_MARGIN * (1.f - effectiveTax_h)) {
+                    best.resIdx    = ri;
+                    best.buyPrice  = buyP;
+                    best.sellPrice = bestSell;
+                    best.netPerUnit= net;
+                    best.buyName   = fromName ? fromName->name : "?";
+                    best.sellName  = bestSellName;
                 }
             }
             return best;
@@ -1710,7 +1718,7 @@ void SimThread::WriteSnapshot() {
             result = computeHint(nearSettl);
         }
 
-        // Fallback: global best if no nearby settlement or margin is too low
+        // Fallback: global best if no nearby settlement or net is too low
         if (result.resIdx < 0) {
             struct PriceRecord { float price; std::string name; };
             for (int ri = 0; ri < 3; ++ri) {
@@ -1723,9 +1731,9 @@ void SimThread::WriteSnapshot() {
                         if (p > hi.price) hi = { p, s.name };
                     });
                 if (lo.name.empty() || hi.name.empty()) continue;
-                float margin = hi.price - lo.price;
-                if (margin > result.margin && margin > MIN_MARGIN) {
-                    result = { ri, lo.price, hi.price, margin, lo.name, hi.name };
+                float net = hi.price * (1.f - effectiveTax_h) - lo.price;
+                if (net > result.netPerUnit && net > MIN_MARGIN) {
+                    result = { ri, lo.price, hi.price, net, lo.name, hi.name };
                 }
             }
         }
@@ -1733,11 +1741,11 @@ void SimThread::WriteSnapshot() {
         if (result.resIdx >= 0) {
             char buf[128];
             std::snprintf(buf, sizeof(buf),
-                "%s: buy %s %.1fg → sell %s %.1fg (+%.1fg)",
+                "%s: buy %s %.1fg → sell %s %.1fg (net +%.1fg/unit)",
                 kTradeNames[result.resIdx],
                 result.buyName.c_str(),  result.buyPrice,
                 result.sellName.c_str(), result.sellPrice,
-                result.margin);
+                result.netPerUnit);
             tradeHint = buf;
         }
     }

@@ -80,7 +80,10 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             int qty = std::min(maxCapacity, (int)(stock * 0.5f));
             if (qty <= 0) continue;
 
-            float profit = (destPrice - homePrice) * qty;
+            // Net profit = sell revenue - buy cost - tax (20% of sell)
+            static constexpr float TAX_RATE = 0.20f;
+            float gross  = destPrice * qty;
+            float profit = gross - homePrice * qty - gross * TAX_RATE;
             float score  = profit / std::max(100.f, dist);  // profit-per-distance
             score *= (1.f - di.conditionPenalty);            // road condition discount
             if (score > bestScore) {
@@ -127,7 +130,10 @@ static TradeRoute FindReturnTrip(entt::registry& registry,
         int qty = std::min(maxCapacity, (int)(stock * 0.5f));
         if (qty <= 0) continue;
 
-        float profit = (homePrice - curPrice) * qty;
+        // Net profit after tax (20% of sell at home)
+        static constexpr float TAX_RATE = 0.20f;
+        float gross  = homePrice * qty;
+        float profit = gross - curPrice * qty - gross * TAX_RATE;
         if (profit > best.profit) {
             best.dest     = homeSettl;
             best.resType  = res;
@@ -210,15 +216,33 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                                  : MIN_TRIP_PROFIT;
 
             if (best.dest != entt::null && best.profit >= effectiveMin) {
-                // Load goods from home stockpile
-                auto* sp = registry.try_get<Stockpile>(home.settlement);
+                auto* sp    = registry.try_get<Stockpile>(home.settlement);
+                auto* money = registry.try_get<Money>(entity);
+                auto* settl = registry.try_get<Settlement>(home.settlement);
                 if (!sp) break;
+
+                // Hauler buys goods from home settlement at current market price.
+                // If they can't afford the full lot, reduce quantity to their budget.
+                float totalCost = best.buyPrice * best.qty;
+                if (money && money->balance < totalCost && best.buyPrice > 0.f) {
+                    best.qty  = (int)(money->balance / best.buyPrice);
+                    totalCost = best.buyPrice * best.qty;
+                }
+                if (best.qty <= 0) {
+                    ++hauler.waitCycles;
+                    hauler.waitTimer = WAIT_INTERVAL;
+                    break;
+                }
+
                 sp->quantities[best.resType] -= best.qty;
                 inv.contents[best.resType]    = best.qty;
-                hauler.buyPrice         = best.buyPrice;
+                hauler.buyPrice               = best.buyPrice;
+                // Purchase: gold leaves hauler, enters home settlement treasury
+                if (money) money->balance   -= totalCost;
+                if (settl) settl->treasury  += totalCost;
                 hauler.targetSettlement = best.dest;
                 hauler.state            = HaulerState::GoingToDeposit;
-                hauler.waitCycles       = 0;   // reset patience on successful route
+                hauler.waitCycles       = 0;
             } else {
                 // No good route yet — wait before re-evaluating (patience increases)
                 ++hauler.waitCycles;
@@ -266,7 +290,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         float sellPrice = destMkt ? destMkt->GetPrice(type) : hauler.buyPrice;
                         float gross = sellPrice * qty;
                         float tax   = gross * TRADE_TAX;
-                        earned       += gross - hauler.buyPrice * qty - tax;
+                        // Buying cost was paid at source — earn full revenue minus tax
+                        earned       += gross - tax;
                         taxCollected += tax;
                     }
                 }
@@ -287,14 +312,28 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 TradeRoute returnTrip = FindReturnTrip(registry,
                     hauler.targetSettlement, home.settlement, inv.maxCapacity);
                 if (returnTrip.dest != entt::null && returnTrip.profit >= RETURN_MIN_PROFIT) {
-                    auto* srcSp = registry.try_get<Stockpile>(hauler.targetSettlement);
+                    entt::entity curSettlEnt = hauler.targetSettlement;  // save before overwrite
+                    auto* srcSp    = registry.try_get<Stockpile>(curSettlEnt);
+                    auto* retMoney = registry.try_get<Money>(entity);
+                    auto* curSettl = registry.try_get<Settlement>(curSettlEnt);
                     if (srcSp) {
-                        srcSp->quantities[returnTrip.resType] -= returnTrip.qty;
-                        inv.contents[returnTrip.resType] = returnTrip.qty;
-                        hauler.buyPrice         = returnTrip.buyPrice;
-                        hauler.targetSettlement = returnTrip.dest;  // = home
-                        // Stay in GoingToDeposit state — home is the new destination
-                        break;
+                        // Cap qty by affordability
+                        float retCost = returnTrip.buyPrice * returnTrip.qty;
+                        if (retMoney && retMoney->balance < retCost && returnTrip.buyPrice > 0.f) {
+                            returnTrip.qty  = (int)(retMoney->balance / returnTrip.buyPrice);
+                            retCost         = returnTrip.buyPrice * returnTrip.qty;
+                        }
+                        if (returnTrip.qty > 0) {
+                            srcSp->quantities[returnTrip.resType] -= returnTrip.qty;
+                            inv.contents[returnTrip.resType] = returnTrip.qty;
+                            hauler.buyPrice         = returnTrip.buyPrice;
+                            // Purchase return goods from current settlement
+                            if (retMoney) retMoney->balance    -= retCost;
+                            if (curSettl) curSettl->treasury   += retCost;
+                            hauler.targetSettlement = returnTrip.dest;  // = home
+                            // Stay in GoingToDeposit state — home is the new destination
+                            break;
+                        }
                     }
                 }
 

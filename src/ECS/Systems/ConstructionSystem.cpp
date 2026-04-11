@@ -327,6 +327,52 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // ---- Autonomous road repair ----
+    // When a road's condition drops below ROAD_REPAIR_THRESHOLD, wealthy endpoint
+    // settlements invest extra gold to restore it. Simulates coordinated maintenance
+    // spending when both parties have enough reserves to care about the route.
+    static constexpr float ROAD_REPAIR_THRESHOLD = 0.70f;  // trigger repairs below 70%
+    static constexpr float ROAD_REPAIR_COST       = 30.f;  // gold per endpoint per check
+    static constexpr float ROAD_REPAIR_AMOUNT     = 0.20f; // condition restored per paying endpoint
+    static constexpr float ROAD_REPAIR_MIN_TRES   = 200.f; // min treasury to afford repairs
+    {
+        registry.view<Road>().each([&](Road& road) {
+            if (road.condition >= ROAD_REPAIR_THRESHOLD) return;
+            if (!registry.valid(road.from) || !registry.valid(road.to)) return;
+
+            float repairGain = 0.f;
+            auto tryRepair = [&](entt::entity se) {
+                if (se == entt::null || !registry.valid(se)) return;
+                auto* s = registry.try_get<Settlement>(se);
+                if (!s || s->treasury < ROAD_REPAIR_MIN_TRES) return;
+                if (s->treasury >= ROAD_REPAIR_COST) {
+                    s->treasury -= ROAD_REPAIR_COST;
+                    repairGain  += ROAD_REPAIR_AMOUNT;
+                }
+            };
+            tryRepair(road.from);
+            tryRepair(road.to);
+
+            if (repairGain > 0.f) {
+                road.condition = std::min(1.f, road.condition + repairGain);
+                // If repair brought a blocked road above collapse threshold, unblock it
+                if (road.blocked && road.condition > ROAD_COLLAPSE_THRESHOLD * 1.5f) {
+                    road.blocked = false;
+                    if (log) {
+                        std::string nameA = "?", nameB = "?";
+                        if (const auto* sa = registry.try_get<Settlement>(road.from)) nameA = sa->name;
+                        if (const auto* sb = registry.try_get<Settlement>(road.to))   nameB = sb->name;
+                        char buf[120];
+                        std::snprintf(buf, sizeof(buf),
+                            "Road %s–%s repaired by settlements — traffic resumes",
+                            nameA.c_str(), nameB.c_str());
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                }
+            }
+        });
+    }
+
     // ---- Autonomous road building ----
     // Wealthy settlements that lack a direct road to a neighbour fund construction
     // every ROAD_BUILD_INTERVAL game-hours. Only one road per check per settlement.

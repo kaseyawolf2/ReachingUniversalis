@@ -261,6 +261,21 @@ void GameState::Draw() {
                      (int)(s.x - MeasureText(s.specialty.c_str(), 11) / 2),
                      (int)(s.y - s.radius - 4), 11, specCol);
         }
+        // Settlement tier badge (I–IV) drawn at top-right of circle
+        if (s.pop > 0) {
+            const char* tier = (s.pop <= 10)  ? "I"   :
+                               (s.pop <= 20)  ? "II"  :
+                               (s.pop <= 35)  ? "III" : "IV";
+            Color tierCol   = (s.pop <= 10)   ? Fade(LIGHTGRAY, 0.6f) :
+                               (s.pop <= 20)  ? Fade(GREEN, 0.7f)    :
+                               (s.pop <= 35)  ? Fade(GOLD, 0.8f)     : Fade(ORANGE, 0.9f);
+            int tierW = MeasureText(tier, 10);
+            float ta = 0.785f;  // 45° = top-right
+            int tx2 = (int)(s.x + std::cos(ta) * (s.radius + 4.f)) - tierW/2;
+            int ty2 = (int)(s.y - std::sin(ta) * (s.radius + 4.f)) - 5;
+            DrawText(tier, tx2, ty2, 10, tierCol);
+        }
+
         // Active event modifier label (Plague, Drought, etc.) — drawn below the circle
         if (!s.modifierName.empty() && s.pop > 0) {
             Color modCol = (s.modifierName == "Plague")         ? Color{200, 80, 240, 220} :

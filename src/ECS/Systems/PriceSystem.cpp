@@ -66,13 +66,17 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
     // ---- Arbitrage convergence on open roads ----
     // For each open road, prices at both ends slowly converge toward each other.
     // This models the steady effect of hauler activity compressing trade margins.
-    float convergeFrac = std::min(1.f, ARBITRAGE_RATE * gameHoursDt);
     registry.view<Road>().each([&](const Road& road) {
         if (road.blocked) return;
         if (!registry.valid(road.from) || !registry.valid(road.to)) return;
         auto* mktA = registry.try_get<Market>(road.from);
         auto* mktB = registry.try_get<Market>(road.to);
         if (!mktA || !mktB) return;
+
+        // Degraded roads have weaker arbitrage pressure — fewer haulers brave poor roads.
+        // condition=1.0 → full rate; condition=0.15 → 25% rate.
+        float condFactor = 0.25f + 0.75f * road.condition;
+        float convergeFrac = std::min(1.f, ARBITRAGE_RATE * gameHoursDt * condFactor);
 
         for (auto& [res, priceA] : mktA->price) {
             auto it = mktB->price.find(res);
