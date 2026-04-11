@@ -57,6 +57,7 @@ struct RenderSnapshot {
         float        waterStock = 0.f;
         float        woodStock  = 0.f;   // for health ring in winter
         int          pop        = 0;     // 0 = collapsed
+        int          popCap     = 35;    // max population cap (for visual indicator)
         Season       season     = Season::Spring;   // snapshot season for ring logic
         std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
         std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
@@ -165,6 +166,11 @@ struct RenderSnapshot {
     float         playerWoodSkill  = -1.f;
     std::map<ResourceType, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity
+
+    // Player reputation — earned by trading, building, founding, repairing
+    int   playerReputation    = 0;
+    // Rank title corresponding to reputation level
+    std::string playerRank;
 
     // Camera follow target (player world position)
     float playerWorldX = 640.f;

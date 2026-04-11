@@ -283,9 +283,12 @@ void SimThread::ProcessInput() {
                 auto* sp2   = m_registry.try_get<Stockpile>(nearSettl);
                 auto* mkt2  = m_registry.try_get<Market>(nearSettl);
 
-                // If carrying goods → sell them here (same 20% trade tax as haulers)
+                // If carrying goods → sell them here (same 20% trade tax as haulers).
+                // Reputation reduces the tax: at Legend (200+) up to 10% less tax (= 10% effective).
                 if (inv.TotalItems() > 0 && sp2 && mkt2) {
-                    static constexpr float TRADE_TAX = 0.20f;
+                    static constexpr float TRADE_TAX_BASE = 0.20f;
+                    float repDiscount = std::min(0.10f, m_playerReputation * 0.0005f);  // 0.05%/rep up to 10%
+                    float effectiveTax = TRADE_TAX_BASE - repDiscount;
                     float earned = 0.f;
                     float taxTotal = 0.f;
                     for (auto& [type, qty] : inv.contents) {
@@ -293,7 +296,7 @@ void SimThread::ProcessInput() {
                         float price = mkt2->GetPrice(type);
                         sp2->quantities[type] += qty;
                         float gross = price * qty;
-                        float tax   = gross * TRADE_TAX;
+                        float tax   = gross * effectiveTax;
                         earned   += gross - tax;
                         taxTotal += tax;
                     }
@@ -305,6 +308,7 @@ void SimThread::ProcessInput() {
                     std::snprintf(ledgBuf, sizeof(ledgBuf),
                         "Sold at %s +%.0fg", settl.name.c_str(), earned);
                     PushTradeRecord(ledgBuf, earned);
+                    m_playerReputation += 1;  // +1 rep per completed trade
                     if (log2) log2->Push(day2, hr2,
                         "Sold goods at " + settl.name
                         + " for " + std::to_string((int)earned) + "g (tax "
@@ -660,6 +664,7 @@ void SimThread::ProcessInput() {
                         ProductionFacility{ buildType5, BUILD_RATE, nearSettl5, {} });
                     const char* rname5 = (buildType5 == ResourceType::Food)  ? "farm"      :
                                          (buildType5 == ResourceType::Water) ? "well"      : "lumber mill";
+                    m_playerReputation += 5;  // +5 rep for funding a facility
                     char buf[140];
                     std::snprintf(buf, sizeof(buf),
                         "You built a %s for %s (%.0fg)",
@@ -838,6 +843,7 @@ void SimThread::ProcessInput() {
 
                     // Relocate the player to this settlement as their new home
                     hmf.settlement = newSettl;
+                    m_playerReputation += 20;  // +20 rep for founding a settlement
 
                     if (blogf) {
                         char buf[120];
@@ -892,6 +898,7 @@ void SimThread::ProcessInput() {
                 road6.banditTimer = 0.f;
                 road6.condition   = 1.f;   // full restoration on repair
                 mon6.balance     -= REPAIR_COST;
+                m_playerReputation += 2;  // +2 rep for road repair
                 if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay,
                     "You repaired the road (paid " + std::to_string((int)REPAIR_COST) + "g)");
             }
@@ -1237,7 +1244,7 @@ void SimThread::WriteSnapshot() {
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
-            food, water, wood, spop, snapSeason, specialty,
+            food, water, wood, spop, s.popCap, snapSeason, specialty,
             s.modifierName
         });
     });
@@ -1830,6 +1837,14 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
         m_snapshot.tradeHint               = std::move(tradeHint);
         m_snapshot.playerInPlagueZone      = playerInPlagueZone;
+        m_snapshot.playerReputation        = m_playerReputation;
+        // Reputation rank titles
+        m_snapshot.playerRank =
+            (m_playerReputation >= 200) ? "Legend" :
+            (m_playerReputation >= 100) ? "Magnate" :
+            (m_playerReputation >=  50) ? "Notable" :
+            (m_playerReputation >=  20) ? "Merchant" :
+            (m_playerReputation >=   5) ? "Traveler" : "Stranger";
         m_snapshot.tradeLedger             = m_tradeLedger;
         m_snapshot.logEntries    = std::move(logEntries);
         m_snapshot.econTotalGold     = econTotalGold;

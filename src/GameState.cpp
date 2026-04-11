@@ -243,6 +243,12 @@ void GameState::Draw() {
         if (s.pop > 0 && s.modifierName == "Plague")
             DrawCircleLinesV({ s.x, s.y }, s.radius + 4.f, Fade(Color{180,60,220,255}, 0.5f));
         DrawCircleLinesV({ s.x, s.y }, s.radius, ring);
+        // Pop cap warning: inner dashed ring (orange) when pop >= 90% of cap
+        if (s.pop > 0 && s.popCap > 0 && s.pop >= (int)(s.popCap * 0.9f)) {
+            float pulse = 0.5f + 0.4f * std::sin(GetTime() * 3.f);
+            DrawCircleLinesV({ s.x, s.y }, s.radius - 5.f,
+                             Fade(ORANGE, pulse * 0.65f));
+        }
         Color nameCol = (s.pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
         DrawText(s.name.c_str(),
                  (int)(s.x - MeasureText(s.name.c_str(), 14) / 2),

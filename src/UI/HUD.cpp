@@ -59,6 +59,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     float playerFarmSkill, playerWaterSkill, playerWoodSkill;
     float temperature;
     bool  playerInPlagueZone;
+    int   playerReputation;
+    std::string playerRank;
     std::map<ResourceType, int> playerInventory;
     int         playerInventoryCapacity = 15;
     std::string tradeHint;
@@ -95,6 +97,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         season               = snap.season;
         temperature          = snap.temperature;
         playerInPlagueZone   = snap.playerInPlagueZone;
+        playerReputation     = snap.playerReputation;
+        playerRank           = snap.playerRank;
     }
 
     // ---- Player need bars (top-left) ----
@@ -104,8 +108,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         int tradeLines   = tradeHint.empty() ? 0 : 1;
         int ledgerLines  = tradeLedger.empty() ? 0 : (1 + std::min((int)tradeLedger.size(), 4));
         int plagueLines  = playerInPlagueZone ? 1 : 0;
-        // +1 for cargo header row (always shown), invItemLines for item rows
-        DrawRectangle(4, 4, 320, BAR_GAP * (6 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4, Fade(BLACK, 0.55f));
+        // +1 for cargo header row (always shown), invItemLines for item rows, +1 for reputation
+        DrawRectangle(4, 4, 320, BAR_GAP * (7 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4, Fade(BLACK, 0.55f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
@@ -140,8 +144,19 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         DrawText("Gold:", BAR_X, goldY, 14, LIGHTGRAY);
         DrawText(goldBuf, BAR_X + 52, goldY, 14, YELLOW);
 
+        // Reputation + rank
+        int repY = goldY + BAR_GAP;
+        char repBuf[40];
+        std::snprintf(repBuf, sizeof(repBuf), "%d  [%s]",
+                      playerReputation, playerRank.c_str());
+        DrawText("Rep:", BAR_X, repY, 13, LIGHTGRAY);
+        Color repCol = (playerReputation >= 100) ? GOLD    :
+                       (playerReputation >=  50) ? GREEN   :
+                       (playerReputation >=  20) ? SKYBLUE : Fade(LIGHTGRAY, 0.7f);
+        DrawText(repBuf, BAR_X + 52, repY, 13, repCol);
+
         // Skills (shown only when player has skills component)
-        int skillsEndY = goldY + BAR_GAP;
+        int skillsEndY = repY + BAR_GAP;
         if (playerFarmSkill >= 0.f) {
             char skBuf[64];
             auto skCol = [](float s) -> Color {

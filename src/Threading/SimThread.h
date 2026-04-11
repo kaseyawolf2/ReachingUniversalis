@@ -102,6 +102,9 @@ private:
     // Population milestone tracker — fires log events at pop milestones per settlement
     std::map<entt::entity, int> m_popMilestone;  // last milestone logged per settlement
 
+    // Player reputation (persists through respawn via registry PlayerTag component)
+    int m_playerReputation = 0;
+
     // Population history for sparkline: maps settlement entity → ring buffer of daily pop samples
     // Sampled once per game-day (at the same interval as m_popPrev).
     // Maximum POPHISTORY_MAX entries (oldest overwritten).
