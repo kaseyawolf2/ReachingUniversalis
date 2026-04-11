@@ -9,10 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
-  enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
-  rate and gain skill at 2× the normal child passive rate. Implement in `ScheduleSystem` by adding
-  an apprentice work window when `age->days >= 12.f && age->days < 15.f`.
+_(none)_
 
 ---
 
@@ -188,6 +185,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "3 children of Ashford orphaned and scattered." This requires counting orphans before the
   loop (or using the already-counted `orphanCount` to format the string more expressively).
 
+- [ ] **Apprentice tooltip badge** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role/name
+  line, when an NPC has `ChildTag` AND `ageDays >= 12` (check `AgentEntry::ageDays`), append
+  " [Apprentice]" in dim yellow to the role label, or as a separate line below the "Child" label.
+  No new components or snapshot fields needed — `ageDays` is already in `AgentEntry`.
+
+- [ ] **Graduation announcement shows skill** — In `ScheduleSystem.cpp`'s graduation block,
+  after the "came of age" log is pushed, also append the new adult's highest skill and its value:
+  "Aldric Smith came of age at Ashford (raised by Brom Cooper) — best skill: Farming 38%".
+  Read the `Skills` component just before removing `ChildTag`; find the highest value and its
+  label. No new components needed.
+
+- [ ] **Elder subsistence drain** — In `ConsumptionSystem.cpp`, add a check after the wage block:
+  if an NPC has `Age::days > 60.f` AND no `ChildTag`, deduct a small subsistence cost
+  (0.05g/game-hour) from their own `Money::balance` (floor at 0). This represents elder NPCs
+  spending savings for food/shelter rather than drawing wages. No treasury credit needed — it
+  models personal consumption spending out of the economy.
+
 ---
 
 ## Done
@@ -207,6 +221,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Child HUD visibility** — `AgentRole::Child` added to enum. WriteSnapshot sets it for
   `ChildTag` entities. GameState skips ring draw for children (plain small dot). Stockpile panel
   header shows child count when > 0. HUD tooltip shows "Child" role label.
+
+- [x] **Child work apprenticeship** — ScheduleSystem: age 12–14 children get `isApprentice` flag;
+  they enter Working state during hours 10–12 only, still follow adults at leisure. Skill passive
+  growth is 2× when Working. ProductionSystem: apprentices contribute 0.2 worker-equivalents
+  (`workers` map changed from `int` to `float`). ConsumptionSystem wage guard unchanged.
 
 - [x] **Child abandonment on settlement collapse** — DeathSystem settlement-collapse block now
   iterates over ChildTag entities at the collapsed settlement, clears their HomeSettlement and
