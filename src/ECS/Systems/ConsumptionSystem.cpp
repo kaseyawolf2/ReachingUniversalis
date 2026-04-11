@@ -52,8 +52,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         auto* settl = registry.try_get<Settlement>(home.settlement);
         auto* money = registry.try_get<Money>(entity);
         {
-            const auto* astate = registry.try_get<AgentState>(entity);
-            if (settl && money && astate && astate->behavior == AgentBehavior::Working) {
+            const auto* astate  = registry.try_get<AgentState>(entity);
+            const auto* ageComp = registry.try_get<Age>(entity);
+            bool isChild = ageComp && ageComp->days < 15.f;
+            if (settl && money && astate && !isChild && astate->behavior == AgentBehavior::Working) {
                 // Scale wage by the NPC's best skill — specialised workers earn more.
                 // Determine which facility type the NPC is working at to pick the right skill.
                 float skillMult = 1.0f;

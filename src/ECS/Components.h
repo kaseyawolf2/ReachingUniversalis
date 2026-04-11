@@ -328,3 +328,4 @@ struct Skills {
 // ---- Tags ----
 
 struct PlayerTag {};   // marks the entity the HUD observes
+struct ChildTag  {};   // NPC under age 15; removed at graduation (age 15)

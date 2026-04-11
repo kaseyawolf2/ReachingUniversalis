@@ -181,6 +181,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             else if (aptIdx == 1) npcSkills.water_drawing = 0.15f;
             else                  npcSkills.woodcutting   = 0.15f;
             registry.emplace<Skills>(npc, npcSkills);
+            registry.emplace<ChildTag>(npc);
 
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
@@ -229,6 +230,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 else if (aptIdx == 1) twinSkills.water_drawing = 0.15f;
                 else                  twinSkills.woodcutting   = 0.15f;
                 registry.emplace<Skills>(npc2, twinSkills);
+                registry.emplace<ChildTag>(npc2);
 
                 if (log) {
                     const auto& s = settlView.get<Settlement>(settl);

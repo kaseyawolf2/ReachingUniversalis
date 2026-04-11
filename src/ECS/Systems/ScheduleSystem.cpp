@@ -53,6 +53,44 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
         float speed = view.get<MoveSpeed>(entity).value;
         auto& home  = view.get<HomeSettlement>(entity);
 
+        // ---- Age 15 graduation ----
+        // When a child (ChildTag) reaches working age, boost their aptitude skill
+        // toward the settlement's primary production and log the transition.
+        if (registry.all_of<ChildTag>(entity)) {
+            const auto* ageC = registry.try_get<Age>(entity);
+            if (ageC && ageC->days >= 15.f) {
+                // Find home settlement's primary production type
+                ResourceType primary = ResourceType::Food;
+                float bestRate = 0.f;
+                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                    registry.view<ProductionFacility>().each(
+                        [&](const ProductionFacility& fac) {
+                        if (fac.settlement == home.settlement && fac.baseRate > bestRate) {
+                            bestRate = fac.baseRate;
+                            primary  = fac.output;
+                        }
+                    });
+                }
+                if (auto* sk = registry.try_get<Skills>(entity))
+                    sk->Advance(primary, 0.15f);
+
+                registry.remove<ChildTag>(entity);
+
+                auto logv2 = registry.view<EventLog>();
+                if (!logv2.empty()) {
+                    std::string who = "An NPC";
+                    if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    std::string where = "?";
+                    if (home.settlement != entt::null && registry.valid(home.settlement))
+                        if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                            where = s->name;
+                    logv2.get<EventLog>(*logv2.begin()).Push(
+                        tm.day, (int)tm.hourOfDay,
+                        who + " came of age at " + where);
+                }
+            }
+        }
+
         // Seasonal day length adjustment:
         //   Winter: shorter days — sleep 2h earlier, wake 1h later, end work 2h earlier
         //   Summer: slightly longer productive hours — no adjustment needed (baseline)
@@ -215,22 +253,70 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
-        // ---- Leisure wandering: between work shift end and sleep ----
-        // Idle NPCs outside work hours pick a random spot near home and amble to it.
-        // Velocity is only changed when they arrive or have no target — they finish
-        // natural movement in between (AgentDecisionSystem may interrupt for needs).
+        // ---- Leisure wandering / child following ----
+        // Idle NPCs outside work hours either follow the nearest adult (children)
+        // or pick a random wander destination near home (adults).
         bool leisureTime = !sleepTime && !workTime;
         if (leisureTime && state.behavior == AgentBehavior::Idle &&
             home.settlement != entt::null && registry.valid(home.settlement)) {
 
             const auto& homePos = registry.get<Position>(home.settlement);
-            // If standing still, pick a new wander destination
-            if (std::abs(vel.vx) < 0.5f && std::abs(vel.vy) < 0.5f) {
-                float ang = s_angle(s_rng);
-                float rad = s_radius(s_rng);
-                float wx  = homePos.x + std::cos(ang) * rad;
-                float wy  = homePos.y + std::sin(ang) * rad;
-                MoveToward(vel, pos, wx, wy, speed * 0.4f);
+
+            if (!workEligible) {
+                // Children: follow the nearest adult at their home settlement.
+                // Cache the target in AgentState::target; re-evaluate when stale.
+                bool needTarget = (state.target == entt::null ||
+                                   !registry.valid(state.target));
+                if (!needTarget) {
+                    // Re-evaluate if cached adult is no longer at this settlement
+                    if (const auto* ths = registry.try_get<HomeSettlement>(state.target))
+                        needTarget = (ths->settlement != home.settlement);
+                    else
+                        needTarget = true;
+                }
+                if (needTarget) {
+                    float        bestD2   = std::numeric_limits<float>::max();
+                    entt::entity bestAdult = entt::null;
+                    registry.view<Position, Age, HomeSettlement>(
+                        entt::exclude<PlayerTag, Hauler>)
+                        .each([&](auto ae, const Position& apos, const Age& aage,
+                                  const HomeSettlement& ahs) {
+                        if (ae == entity) return;
+                        if (ahs.settlement != home.settlement) return;
+                        if (aage.days < 15.f) return;   // skip other children
+                        float dx = apos.x - pos.x, dy = apos.y - pos.y;
+                        float d = dx*dx + dy*dy;
+                        if (d < bestD2) { bestD2 = d; bestAdult = ae; }
+                    });
+                    state.target = bestAdult;
+                }
+                if (state.target != entt::null && registry.valid(state.target)) {
+                    const auto& apos = registry.get<Position>(state.target);
+                    float dx = apos.x - pos.x, dy = apos.y - pos.y;
+                    if (dx*dx + dy*dy > 20.f * 20.f)
+                        MoveToward(vel, pos, apos.x, apos.y, speed * 0.7f);
+                    else
+                        vel.vx = vel.vy = 0.f;
+                } else {
+                    // No adult found — wander near settlement centre (tighter radius)
+                    if (std::abs(vel.vx) < 0.5f && std::abs(vel.vy) < 0.5f) {
+                        float ang = s_angle(s_rng);
+                        float rad = s_radius(s_rng) * 0.5f;
+                        MoveToward(vel, pos,
+                            homePos.x + std::cos(ang) * rad,
+                            homePos.y + std::sin(ang) * rad,
+                            speed * 0.4f);
+                    }
+                }
+            } else {
+                // Adults: normal leisure wandering
+                if (std::abs(vel.vx) < 0.5f && std::abs(vel.vy) < 0.5f) {
+                    float ang = s_angle(s_rng);
+                    float rad = s_radius(s_rng);
+                    float wx  = homePos.x + std::cos(ang) * rad;
+                    float wy  = homePos.y + std::sin(ang) * rad;
+                    MoveToward(vel, pos, wx, wy, speed * 0.4f);
+                }
             }
         }
     }
