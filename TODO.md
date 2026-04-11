@@ -9,19 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
+- [ ] **Surname tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when an NPC's name contains a
+  space, show their surname in a subtle way: after the main name line, if two or more agents in
+  `agentCopy` share the same last name (check `npcName.rfind(' ')` to extract surname), append
+  "(Family: <surname>)" to `line1`. This makes family clusters visible just by hovering. Compute
+  a surname→count map from `agentCopy` once before the hit-test loop.
 
 ---
 
 ## Backlog
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Surname tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when an NPC's name contains a
-  space, show their surname in a subtle way: after the main name line, if two or more agents in
-  `agentCopy` share the same last name (check `npcName.rfind(' ')` to extract surname), append
-  "(Family: <surname>)" to `line1`. This makes family clusters visible just by hovering. Compute
-  a surname→count map from `agentCopy` once before the hit-test loop.
 
 - [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
   `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
