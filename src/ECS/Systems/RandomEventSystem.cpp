@@ -269,10 +269,16 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 5: {   // Migration wave — 3-5 NPCs arrive from outside
-        std::uniform_int_distribution<int> count_dist(3, 5);
-        int arrivals = count_dist(m_rng);
         const auto* tpos = registry.try_get<Position>(target);
         if (!tpos) break;
+        // Check pop cap — don't overfill the settlement
+        int curPop5 = 0;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs) { if (hs.settlement == target) ++curPop5; });
+        int slots = settl->popCap - curPop5;
+        if (slots <= 0) break;   // full — redirect event silently
+        std::uniform_int_distribution<int> count_dist(3, 5);
+        int arrivals = std::min(slots, count_dist(m_rng));
 
         static const float DRAIN_HUNGER = 0.00083f, DRAIN_THIRST = 0.00125f,
                            DRAIN_ENERGY = 0.00050f, DRAIN_HEAT = 0.00200f;
@@ -666,6 +672,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
 // ---- KillFraction -------------------------------------------------------
 // Kills `fraction` of the non-player NPCs homed at `settl`.
+// Applies inheritance (50% gold → settlement treasury) and cargo recovery
+// (hauler goods returned to home stockpile) matching DeathSystem logic.
 // Returns the count killed.
 int RandomEventSystem::KillFraction(entt::registry& registry,
                                      entt::entity settl, float fraction)
@@ -678,7 +686,30 @@ int RandomEventSystem::KillFraction(entt::registry& registry,
     if (victims.size() < 3) return 0;
     std::shuffle(victims.begin(), victims.end(), m_rng);
     int killCount = std::max(1, (int)(victims.size() * fraction));
-    for (int i = 0; i < killCount; ++i)
-        if (registry.valid(victims[i])) registry.destroy(victims[i]);
+
+    auto* sp    = registry.try_get<Stockpile>(settl);
+    auto* settlC = registry.try_get<Settlement>(settl);
+
+    for (int i = 0; i < killCount; ++i) {
+        if (!registry.valid(victims[i])) continue;
+
+        // Cargo recovery: hauler goods return to home stockpile
+        if (sp) {
+            if (const auto* inv = registry.try_get<Inventory>(victims[i]))
+                for (const auto& [type, qty] : inv->contents)
+                    sp->quantities[type] += qty;
+        }
+
+        // Inheritance: 50% of gold → settlement treasury
+        static constexpr float INHERIT_FRAC = 0.5f;
+        static constexpr float INHERIT_MIN  = 10.f;
+        if (settlC) {
+            if (const auto* money = registry.try_get<Money>(victims[i]))
+                if (money->balance >= INHERIT_MIN)
+                    settlC->treasury += money->balance * INHERIT_FRAC;
+        }
+
+        registry.destroy(victims[i]);
+    }
     return killCount;
 }
