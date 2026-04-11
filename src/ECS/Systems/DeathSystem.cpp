@@ -131,6 +131,22 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 m_collapsed.insert(settl);
                 log2.Push(tm2.day, (int)tm2.hourOfDay,
                     s.name + " has COLLAPSED — population zero");
+
+                // Scatter any children still homed at this settlement:
+                // clear their HomeSettlement and drop their follow target
+                // so they become wanderers.
+                int orphanCount = 0;
+                registry.view<ChildTag, HomeSettlement, AgentState>().each(
+                    [&](auto child, HomeSettlement& hs, AgentState& as) {
+                        if (hs.settlement != settl) return;
+                        hs.settlement = entt::null;
+                        as.target     = entt::null;
+                        ++orphanCount;
+                    });
+                if (orphanCount > 0) {
+                    log2.Push(tm2.day, (int)tm2.hourOfDay,
+                        "Orphaned children of " + s.name + " scattered.");
+                }
             } else if (pop > 0) {
                 m_collapsed.erase(settl);  // recovered
             }
