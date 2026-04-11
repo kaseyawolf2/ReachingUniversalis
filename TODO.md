@@ -9,20 +9,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-_(none)_
-
----
-
-## Backlog
-
-### NPC Lifecycle & Identity
-
 - [ ] **Graduation log improvement** — Currently `ScheduleSystem` logs "X came of age at Y"
   with no mention of family. After the `ChildTag` removal (graduation block in `ScheduleSystem.cpp`),
   if `followingName` is non-empty (the adult they followed), append it to the log message:
   "Aldric Smith came of age at Ashford (raised by Brom Smith)". This gives the event log a
   visible sense of family lineage without needing a formal family system yet. Retrieve the
   followed adult's name the same way WriteSnapshot does: `AgentState::target → Name`.
+
+---
+
+## Backlog
+
+### NPC Lifecycle & Identity
 
 - [ ] **Parent–child naming** — When the graduation event fires in `ScheduleSystem`, if the
   followed adult (cached in `AgentState::target`) has a last name, give the graduating NPC the
