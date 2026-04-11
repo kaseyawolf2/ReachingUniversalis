@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity warmth modifier** — After an NPC gives charity, grant them a small temporary
-  warmth/satisfaction buff: in `AgentDecisionSystem`'s charity block, after setting
-  `helperTmr->charityTimer`, also set the helper's `Heat` need to `min(1.0, heat + 0.15)` directly.
-  This models the "warm glow" of altruism: the helper feels better after giving. No new component —
-  just write to `needs.list[(int)NeedType::Heat].value` via `registry.try_get<Needs>`.
-
 ---
 
 ## Backlog
@@ -41,6 +35,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (alongside `recentlyHelped`), set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`,
   when `isGrateful`, show a small dim line "Grateful to neighbour" in LIME (below the "Fed by
   neighbour" line if also present). Mirrors the `showHelped` pattern already in place.
+
+- [ ] **Warmth glow shown in tooltip** — Mirrors the "Fed by neighbour" pattern. Add a
+  `bool recentWarmthGlow = false` to `AgentEntry` in `RenderSnapshot.h`. In
+  `SimThread::WriteSnapshot`, set it when `needs.list[(int)NeedType::Heat].value > 0.9f`
+  AND the NPC's `charityTimer > 0.f` (they recently gave charity and are warm). In
+  `HUD::DrawHoverTooltip`, show a faint `ORANGE`-coloured "Warm from giving" line (same
+  lineCount/pw pattern as `showHelped`). Makes the warmth buff legible to the player.
+
+- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
+  (Hunger > 0.8, Money > 20g, charityTimer == 0), draw a faint dim circle of radius 80 around
+  them in `GameState.cpp` (the render loop that draws agent dots). Check `AgentEntry::balance`
+  and `AgentEntry::hungerPct` to decide if `canHelp` applies. Draw using Raylib's
+  `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only draw when no other overlay is active (e.g.
+  no road or facility hovered). This gives the player spatial awareness of charity coverage.
 
 ### NPC Crime & Consequence
 
@@ -274,6 +282,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Charity warmth modifier** — In `AgentDecisionSystem`'s charity block, after setting the
+  helper's cooldown, reads `Needs` component and bumps `needs.list[(int)NeedType::Heat].value`
+  by `+0.15`, capped at 1.0. Single write, no new component or field.
 
 - [x] **Helped-NPC gratitude follow** — Added `gratitudeTarget` (entt::entity) and
   `gratitudeTimer` (float, real-seconds) to `DeprivationTimer`. Charity block sets random 30–60s
