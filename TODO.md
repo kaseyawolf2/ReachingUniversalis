@@ -9,12 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Graduation log improvement** — Currently `ScheduleSystem` logs "X came of age at Y"
-  with no mention of family. After the `ChildTag` removal (graduation block in `ScheduleSystem.cpp`),
-  if `followingName` is non-empty (the adult they followed), append it to the log message:
-  "Aldric Smith came of age at Ashford (raised by Brom Smith)". This gives the event log a
-  visible sense of family lineage without needing a formal family system yet. Retrieve the
-  followed adult's name the same way WriteSnapshot does: `AgentState::target → Name`.
+_(none)_
 
 ---
 
@@ -27,6 +22,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   same last name (family lineage). Update `Name::value` on the newly adult NPC. This creates
   visible family lines in the event log over time.
 
+- [ ] **Birth announcement names parent** — In `BirthSystem.cpp`, when a new NPC is born,
+  the log currently says "Born: Aldric Smith at Ashford". Find the adult with the highest
+  `Money.balance` at that settlement (as a proxy for "most established parent") and append
+  their name: "Born: Aldric Smith at Ashford (to Brom Cooper)". Use a simple loop over
+  `HomeSettlement, Money` filtered to the current settlement inside the birth block.
+
 - [ ] **Child count in world status bar** — `RenderSnapshot::SettlementStatus` (shown in
   `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
   to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status loop
@@ -38,11 +39,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   logged in `DeathSystem`), any remaining `ChildTag` entities with that `HomeSettlement` should
   have their `HomeSettlement` cleared and `AgentState::target` set to `entt::null` so they become
   wanderers. Add this cleanup to `DeathSystem.cpp` in the settlement-collapse check block (after
-  line 130). Log: "Orphaned children of Ashford scattered." — `RenderSnapshot::SettlementStatus` (shown in
-  `HUD::DrawWorldStatus`) currently shows only `pop` and `haulers`. Add `int childCount = 0`
-  to `SettlementStatus` in `RenderSnapshot.h`, populate it in SimThread's world-status section
-  (near line 1486 where `hCount` is computed), and display it in `DrawWorldStatus` as a small
-  italic "(Nc)" suffix after the pop number, greyed out.
+  line 130). Log: "Orphaned children of Ashford scattered."
 
 - [ ] **Child work apprenticeship** — At age 12–14 (not full adult but near), allow children to
   enter a light `Working` state for 2 hours per day (10:00–12:00). They produce at 20% of adult
@@ -152,6 +149,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Graduation log improvement** — ScheduleSystem graduation block now reads
+  `AgentState::target → Name` before removing ChildTag and appends "(raised by X)" when
+  a followed adult is found. Log now reads e.g. "Aldric Smith came of age at Ashford (raised by Brom Cooper)".
 
 - [x] **Child follow indicator in tooltip** — `followingName` added to `AgentEntry`. SimThread
   WriteSnapshot resolves `AgentState::target → Name` for Child entities. HUD tooltip shows
