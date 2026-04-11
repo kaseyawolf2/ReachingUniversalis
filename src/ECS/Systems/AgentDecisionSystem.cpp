@@ -627,6 +627,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (helperTmr) helperTmr->charityTimer = CHARITY_COOLDOWN;
             helper.canHelp = false;   // don't help a second NPC this frame
 
+            // Warmth "warm glow" buff: giving charity raises the helper's Heat need slightly.
+            if (auto* helperNeeds = registry.try_get<Needs>(helper.entity)) {
+                auto& heat = helperNeeds->list[(int)NeedType::Heat].value;
+                heat = std::min(1.f, heat + 0.15f);
+            }
+
             // Log
             if (charityLog) {
                 std::string who = "An NPC";
