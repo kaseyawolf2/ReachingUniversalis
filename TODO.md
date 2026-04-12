@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement import/export balance** — Track net goods flow per settlement. Add imports/exports
+  to SettlementEntry, display in settlement tooltip.
+
 ## Recently Done
 
 - [x] **Idle hauler dimming** — Idle empty haulers drawn at 50% opacity.
