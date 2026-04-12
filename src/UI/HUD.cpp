@@ -944,10 +944,9 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     float scale      = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
     float skillMult  = 0.5f + best->avgSkill;             // same formula as ProductionSystem
     float seasonMult = SeasonProductionModifier(curSeason);
-    float estOutput  = best->baseRate * scale * skillMult * seasonMult;
-
     // Morale production factor: same formula as ProductionSystem
     float moraleFactor = 1.0f + 0.3f * (best->morale - 0.5f);
+    float estOutput  = best->baseRate * scale * skillMult * seasonMult * moraleFactor;
     float moralePct    = (moraleFactor - 1.0f) * 100.f;
     bool showMorale    = (std::abs(moralePct) >= 0.5f);  // only show when non-trivial
 
