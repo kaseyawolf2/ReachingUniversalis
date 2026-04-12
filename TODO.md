@@ -9,13 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
-  already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
-  home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
-  the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
-  in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
-
 ---
+
+## Done
+
+- [x] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` steal
+  1 unit of their most-needed resource from their home `Stockpile`. Market price deducted from
+  `Settlement::treasury`. `stealCooldown = 48h`. Logs "Mira stole food from Ashford."
 
 ## Backlog
 
@@ -72,12 +72,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   no road or facility hovered). This gives the player spatial awareness of charity coverage.
 
 ### NPC Crime & Consequence
-
-- [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
-  already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
-  home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses" the
-  good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford."
-  Implement in `AgentDecisionSystem` after the emergency purchase check.
 
 - [ ] **Exile on repeat theft** — Track a `theftCount` int on `DeprivationTimer`. After 3 thefts,
   the NPC is "exiled": their `HomeSettlement` is cleared, they become a wanderer (no home, no wages,
@@ -435,3 +429,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 7. Append **2–3 new concrete NPC/living-world tasks** to Backlog (name the file/struct/system).
 8. Use `AskUserQuestion` only if genuinely blocked. Don't ask about minor design choices — make
    a reasonable call and note it in the commit message.
+
+- [ ] **Theft indicator in tooltip** — Surface recent theft in the NPC tooltip. Add `bool recentlyStole = false`
+  to `AgentEntry` in `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2 game-hours of a theft).
+  In `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In `HUD::DrawHoverTooltip`,
+  when `recentlyStole`, append a faint RED " (thief)" suffix to line1. Mirror the `familyName` pattern already there.
+
+- [ ] **Skills penalty on theft** — When a theft fires in `AgentDecisionSystem`, read the thief's `Skills`
+  component via `registry.try_get<Skills>`, and reduce all three skill floats (farming, water_drawing,
+  woodcutting) by 0.02 each, clamped at 0. This models social ostracism without new components.
+
+- [ ] **Thief flees home after stealing** — After a successful theft, set the NPC's velocity away from the
+  settlement centre for 3–5 real seconds (use a new `fleeTimer` float in `DeprivationTimer`, or reuse
+  `helpedTimer` as a flee flag). In `AgentDecisionSystem`, when `fleeTimer > 0`, move away from home pos
+  at full speed. This makes theft visible: a dot sprinting away from the settlement dot.

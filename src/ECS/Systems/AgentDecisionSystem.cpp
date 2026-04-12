@@ -375,6 +375,63 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // -- Theft from stockpile --
+        // NPCs with very little money and no steal cooldown can steal 1 unit of their
+        // most-needed resource from the home settlement stockpile.
+        static constexpr float STEAL_MONEY_THRESHOLD = 5.f;   // below this balance → can steal
+        static constexpr float STEAL_COOLDOWN_HOURS  = 48.f;  // game-hours between steals
+        const auto* moneyComp = registry.try_get<Money>(entity);
+        float currentBalance = moneyComp ? moneyComp->balance : 0.f;
+        if (currentBalance < STEAL_MONEY_THRESHOLD && timer.stealCooldown <= 0.f &&
+            home.settlement != entt::null && registry.valid(home.settlement))
+        {
+            // Find most-needed non-Heat resource (lowest need value)
+            int   stealIdx = -1;
+            float stealLow = std::numeric_limits<float>::max();
+            for (int i = 0; i < (int)needs.list.size(); ++i) {
+                const auto& n = needs.list[i];
+                if (n.type == NeedType::Heat) continue;
+                if (n.value < stealLow) { stealLow = n.value; stealIdx = i; }
+            }
+            if (stealIdx != -1) {
+                ResourceType stealRes = ResourceTypeForNeed(needs.list[stealIdx].type);
+                auto* sp  = registry.try_get<Stockpile>(home.settlement);
+                auto* mkt = registry.try_get<Market>(home.settlement);
+                auto* stl = registry.try_get<Settlement>(home.settlement);
+                if (sp && sp->quantities.count(stealRes) && sp->quantities[stealRes] >= 1.f) {
+                    sp->quantities[stealRes] -= 1.f;
+                    // Credit the stolen unit to the thief's inventory-equivalent: increase need value
+                    // (same as ConsumptionSystem does when food is consumed)
+                    needs.list[stealIdx].value = std::min(1.f, needs.list[stealIdx].value + 0.3f);
+                    // Deduct market value from settlement treasury (the settlement loses the good)
+                    if (stl && mkt) {
+                        float cost = mkt->GetPrice(stealRes);
+                        stl->treasury -= cost;
+                    }
+                    timer.stealCooldown = STEAL_COOLDOWN_HOURS;
+
+                    // Log the theft
+                    auto lv = registry.view<EventLog>();
+                    if (lv.begin() != lv.end()) {
+                        auto tv = registry.view<TimeManager>();
+                        if (tv.begin() != tv.end()) {
+                            const auto& tm2 = tv.get<TimeManager>(*tv.begin());
+                            std::string who = "NPC", where = "?";
+                            if (auto* n = registry.try_get<Name>(entity))   who   = n->value;
+                            if (stl)                                          where = stl->name;
+                            std::string resName =
+                                (stealRes == ResourceType::Food)    ? "food"    :
+                                (stealRes == ResourceType::Water)   ? "water"   :
+                                (stealRes == ResourceType::Wood)    ? "wood"    : "goods";
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm2.day, (int)tm2.hourOfDay,
+                                who + " stole " + resName + " from " + where + ".");
+                        }
+                    }
+                }
+            }
+        }
+
         // -- Find the most critical need --
         // Heat is handled passively by ConsumptionSystem (Wood stockpile → warmth),
         // so we skip it here — NPCs don't "seek" a heating facility.
