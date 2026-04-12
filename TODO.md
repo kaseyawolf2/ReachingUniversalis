@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Deathbed log with age** — In `DeathSystem.cpp`, the death log currently says "Died: Aldric
+  Smith (old age) at Ashford". Append the NPC's age: "Died: Aldric Smith at age 72 (old age) at
+  Ashford". Find where `maxDays` is checked, read `age->days` cast to int, and include it in the
+  `log->Push` call. Also apply to hunger/thirst/heat deaths: "Died: Mira Reed (hunger) age 31 at
+  Ashford".
+
 ---
 
 ## Done
@@ -97,12 +103,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Deathbed log with age** — In `DeathSystem.cpp`, the death log currently says "Died: Aldric
-  Smith (old age) at Ashford". Append the NPC's age: "Died: Aldric Smith at age 72 (old age) at
-  Ashford". Find where `maxDays` is checked, read `age->days` cast to int, and include it in the
-  `log->Push` call. Also apply to hunger/thirst/heat deaths: "Died: Mira Reed (hunger) age 31 at
-  Ashford".
 
 - [ ] **Richest NPC highlighted in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), the agent list already renders NPC names. After building the list, find the
