@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
+- [x] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
   scatter slightly from the settlement centre rather than all heading to the same facility at once.
   In `AgentDecisionSystem` (or `ScheduleSystem`), when transitioning from Sleeping to Idle at
   wake time, nudge the NPC's position by a small random offset (±30 units) so they don't
@@ -907,3 +907,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (one need drains 2× for 6 game-hours via a `illnessTimer` float on `DeprivationTimer`), good
   harvest (working NPC produces 1.5× for 4 hours via a `harvestBonus` float). Log the notable
   ones. Use `entt::to_integral(e) % period` for deterministic per-entity jitter.
+
+- [ ] **Sleep arrival indicator** — When an NPC is walking toward their settlement to sleep
+  (`state.behavior == AgentBehavior::Sleeping` and not yet at `SLEEP_ARRIVE` distance),
+  draw a faint dim ring around their world dot in `GameState::Draw`. After the main
+  `DrawCircleV`, add: if `a.behavior == AgentBehavior::Sleeping && !a.atHome`, call
+  `DrawCircleLinesV({a.x, a.y}, a.size + 2.f, Fade(BLUE, 0.35f))`. Add `bool atHome = false`
+  to `AgentEntry` (RenderSnapshot.h); set it in `SimThread::WriteSnapshot` when sleeping and
+  within `SLEEP_ARRIVE` of home. Makes it easy to spot NPCs still commuting at night.
+
+- [ ] **Evening gathering scatter** — Currently all Idle NPCs wander independently. In
+  `ScheduleSystem.cpp`'s leisure-wander block (lines ~378–385), when `hour >= 18 && hour < 22`,
+  bias the wander target toward the settlement centre rather than the full `LEISURE_RADIUS`.
+  Replace `s_radius(s_rng)` with `s_radius(s_rng) * 0.4f` during evening hours so NPCs
+  cluster near home in the evening — visible as a loose gathering on the world map.
+
+- [ ] **Facility crowding log** — When 4+ NPCs arrive at the same `ProductionFacility` in
+  the same tick, log a flavour event: `"Greenfield farm is crowded — 5 workers competing."`.
+  In `ProductionSystem.cpp`, count workers per facility (already iterated in
+  `registry.view<Position, AgentState, HomeSettlement>`). When the worker count for a facility
+  exceeds 3 for the first time this game-day, push the log. Track last-logged day with a
+  `static std::map<entt::entity, int> s_lastCrowdLog` keyed by facility entity.
