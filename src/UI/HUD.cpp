@@ -384,15 +384,34 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             std::snprintf(childSuffix[i], sizeof(childSuffix[i]), " (%dc)", childCounts[i]);
     }
 
-    // Pre-build morale label strings (e.g. " M:72%") for width measurement and drawing.
-    char moraleBuf[4][16] = {};
+    // Pre-build morale label strings (e.g. " M:72%+") for width measurement and drawing.
+    // Morale trend tracking: sample once per second, show +/- if delta > 0.03
+    static std::map<std::string, float> s_prevMorale;
+    static float s_moraleSampleTimer = 0.f;
+    s_moraleSampleTimer += GetFrameTime();
+    bool moraleSampleNow = (s_moraleSampleTimer >= 1.f);
+    if (moraleSampleNow) s_moraleSampleTimer = 0.f;
+
+    char moraleBuf[4][20] = {};
     float moraleVal[4] = {};
     {
         int mi = 0;
         for (const auto& s : ws) {
             if (mi >= 4) break;
             moraleVal[mi] = s.morale;
-            std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%", s.morale * 100.f);
+            char trend = ' ';
+            auto it = s_prevMorale.find(s.name);
+            if (it != s_prevMorale.end()) {
+                float delta = s.morale - it->second;
+                if (delta > 0.03f)  trend = '+';
+                if (delta < -0.03f) trend = '-';
+            }
+            if (trend != ' ')
+                std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%%c", s.morale * 100.f, trend);
+            else
+                std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%", s.morale * 100.f);
+            if (moraleSampleNow)
+                s_prevMorale[s.name] = s.morale;
             ++mi;
         }
     }
