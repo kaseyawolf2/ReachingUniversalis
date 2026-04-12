@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement specialty label in stockpile header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the existing header line, add a small `specialty` label if non-empty.
+  `StockpilePanel` doesn't currently carry specialty — add `std::string specialty` to it in
+  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot (same as `SettlementEntry`
+  specialty). Draw "Specialty: Farming" in dim colour under the header line. Occupies one extra
+  row (adjust `totalLines` accordingly).
+
 - [x] **Profession colour in residents list** — Fa=green, Wa=skyblue, Lu=brown, Me=gold in
   stockpile panel residents list.
 
