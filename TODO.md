@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC skill-up notification** — Extended existing milestone system in ScheduleSystem with "Apprentice" (0.25) and "Skilled" (0.75) thresholds.
+
 - [x] **Bandit flee visual indicator** — fleeTimer + fleeVx/fleeVy piped through AgentEntry. Red/orange trail drawn behind fleeing bandits in GameState::Draw.
 
 - [x] **Settlement morale boost on bandit cleared** — +0.05 morale to road.from/road.to settlements after confrontation. Logged to EventLog.
@@ -1285,7 +1287,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   draw a brief speed trail: a fading line from (x, y) in the opposite direction of velocity.
   Pipe `DeprivationTimer::fleeTimer` through `SimThread::WriteSnapshot` into the new field.
 
-- [ ] **NPC skill-up notification** — When an NPC's skill (farming/water/woodcutting) crosses a
+- [x] **NPC skill-up notification** — When an NPC's skill (farming/water/woodcutting) crosses a
   0.25 threshold (0.25, 0.50, 0.75), log "[Name] is becoming skilled at [type]" in EventLog. In
   `ProductionSystem`, after applying skill gain, check if the new value crossed a threshold while
   the old didn't. Brief faint GOLD text particle above the NPC would be a bonus but the log alone
@@ -1432,6 +1434,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   game-hour applied to their home `Settlement::morale`. Log: "[NPC] feels uneasy near bandits."
   with a cooldown (add `float intimidationCooldown = 0.f` to `DeprivationTimer`, 60 game-sec).
   Bandits' mere presence erodes settlement morale — incentivizes player to confront them.
+
+- [ ] **Skill milestone shown in NPC tooltip** — In `HUD.cpp`'s agent tooltip section, when the
+  NPC has any skill ≥ 0.5, show "Journeyman [Type]" in faint GOLD. At ≥ 0.9, show "Master [Type]".
+  Read from existing `farmSkill`, `waterSkill`, `woodSkill` in `RenderSnapshot::AgentEntry`. Find
+  the highest skill that exceeds 0.5 and display the appropriate title. No new data piping needed.
+
+- [ ] **NPC shares food with family first** — In `AgentDecisionSystem`'s charity block, before
+  checking generic nearby NPCs, prioritize family members (check `FamilyTag::name` match). If a
+  starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always
+  offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
 
 ---
 
