@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Settlement morale shown in NPC tooltip** — "Home morale: X%" faint line in NPC tooltip.
+
 - [x] **Strike duration shown in tooltip** — "On strike (Xh left)" with remaining hours.
 
 - [x] **NPC wage shown in tooltip** — "Wage: ~X.Xg/hr" for working NPCs based on skill.
@@ -1020,7 +1022,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   exposed as a new `float strikeHoursLeft` field in `AgentEntry`. Populate it in `SimThread::WriteSnapshot`
   alongside `onStrike`. Divide `strikeDuration` by 60 to convert sim-seconds to game-hours.
 
-- [ ] **Settlement morale shown in NPC tooltip** — Add the home settlement's morale as a faint
+- [x] **Settlement morale shown in NPC tooltip** — Add the home settlement's morale as a faint
   line at the bottom of the hover tooltip: `"Home morale: 72%"` (skip if NPC has no home).
   Expose it via a new `float homeMorale` field in `AgentEntry` (default -1 = no home).
   Set it in `SimThread::WriteSnapshot` via `registry.try_get<Settlement>(hs->settlement)->morale`.
@@ -2231,3 +2233,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Models the resolution of grievances. Use `registry.try_get<HomeSettlement>` to find the
   settlement, then `registry.try_get<Settlement>` to access `morale`. Rate-limit: only apply
   if settlement morale < 0.6 (prevents overshoot from mass strike endings).
+
+- [ ] **NPC morale-influenced migration** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`,
+  add `homeMorale` as a push factor: when home settlement morale < 0.3, add +0.5 to migration
+  score for all other settlements. Use `registry.try_get<Settlement>(homeSettlement)->morale`.
+  Makes NPCs flee unrest, creating a population drain that further depresses morale.
+
+- [ ] **Morale tooltip color ring on NPCs** — In `GameState.cpp`'s agent render loop, when an
+  NPC has `homeMorale >= 0` and `homeMorale < 0.3`, draw a faint red outer ring (radius +3,
+  `Fade(RED, 0.15f)`) around the NPC dot. Visual cue that the NPC lives in a low-morale
+  settlement. Skip for haulers and player. No new snapshot fields — `homeMorale` already in
+  `AgentEntry`.
