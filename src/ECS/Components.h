@@ -86,8 +86,9 @@ struct Settlement {
     std::string modifierName;              // e.g. "Drought", shown in HUD
     float       treasury = 200.f;          // gold; pays NPC wages; replenished by trade tax
     int         popCap   = 35;             // max population; can be expanded via housing
-    float       morale   = 0.5f;           // 0-1: NPC happiness/social trust; >0.7 = +10% prod; <0.3 = unrest
-    bool        unrest   = false;          // true while morale < 0.3 (logged once on crossing)
+    float       morale        = 0.5f;      // 0-1: NPC happiness/social trust; >0.7 = +10% prod; <0.3 = unrest
+    bool        unrest        = false;     // true while morale < 0.3 (logged once on crossing)
+    float       strikeCooldown = 0.f;     // game-hours until next work-stoppage can fire (0 = eligible)
 };
 
 struct Stockpile {
@@ -128,6 +129,7 @@ struct DeprivationTimer {
     entt::entity         gratitudeTarget = entt::null;  // entity to move toward while grateful
     float                gratitudeTimer  = 0.f;          // real-seconds remaining; > 0 → doing gratitude walk
     float                banditPovertyTimer = 0.f;       // game-hours as homeless exile with balance < 2g → bandit at 48h
+    float                strikeDuration     = 0.f;       // game-hours remaining on work stoppage (0 = can work normally)
     float                personalEventTimer = 0.f;       // game-hours until next personal event (randomised per NPC)
     float                illnessTimer       = 0.f;       // game-hours remaining for minor illness (2× drain on one need)
     int                  illnessNeedIdx     = 0;         // which need index (0=Hunger,1=Thirst,2=Energy) is ill

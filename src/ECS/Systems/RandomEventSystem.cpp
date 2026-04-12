@@ -56,6 +56,49 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             if (log) log->Push(tm.day, (int)tm.hourOfDay,
                 "Tensions ease in " + s.name + " — morale recovering");
         }
+
+        // Drain work-stoppage cooldown
+        if (s.strikeCooldown > 0.f)
+            s.strikeCooldown = std::max(0.f, s.strikeCooldown - gameHoursDt);
+
+        // Work stoppage: 5% chance per game-day when morale is critical
+        static constexpr float STRIKE_PROB_PER_DAY  = 0.05f;
+        static constexpr float STRIKE_DURATION_HOURS = 6.f;
+        static constexpr float STRIKE_COOLDOWN_HOURS = 24.f;  // min hours between stoppages
+        if (s.morale < 0.3f && s.strikeCooldown <= 0.f) {
+            // Probability per tick scales linearly with elapsed game-time
+            std::uniform_real_distribution<float> strikeChance(0.f, 1.f);
+            float probThisTick = STRIKE_PROB_PER_DAY * gameHoursDt / 24.f;
+            if (strikeChance(m_rng) < probThisTick) {
+                s.strikeCooldown = STRIKE_COOLDOWN_HOURS;
+
+                // Force all schedule-following NPCs at this settlement onto strike
+                int strikerCount = 0;
+                registry.view<Schedule, AgentState, HomeSettlement>(
+                    entt::exclude<Hauler, PlayerTag>)
+                    .each([&](auto npc, const Schedule&, AgentState& as,
+                              const HomeSettlement& hs) {
+                        if (hs.settlement != e) return;
+                        // Only stop workers (don't interrupt sleep/migration/satisfying needs)
+                        if (as.behavior == AgentBehavior::Working ||
+                            as.behavior == AgentBehavior::Idle) {
+                            as.behavior = AgentBehavior::Idle;
+                        }
+                        if (auto* dt = registry.try_get<DeprivationTimer>(npc)) {
+                            dt->strikeDuration = STRIKE_DURATION_HOURS;
+                        }
+                        ++strikerCount;
+                    });
+
+                if (log && strikerCount > 0) {
+                    char buf[100];
+                    std::snprintf(buf, sizeof(buf),
+                        "WORK STOPPAGE at %s — %d workers downed tools (%dh)",
+                        s.name.c_str(), strikerCount, (int)STRIKE_DURATION_HOURS);
+                    log->Push(tm.day, (int)tm.hourOfDay, buf);
+                }
+            }
+        }
     });
 
     // Tick down bandit timers (auto-clear road)

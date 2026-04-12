@@ -177,8 +177,19 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             vel.vx = vel.vy = 0.f;
         }
 
+        // ---- Drain work-stoppage strike timer ----
+        bool onStrike = false;
+        if (auto* dt = registry.try_get<DeprivationTimer>(entity)) {
+            if (dt->strikeDuration > 0.f) {
+                float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+                dt->strikeDuration = std::max(0.f, dt->strikeDuration - gameHoursDt);
+                onStrike = true;
+            }
+        }
+
         // ---- Set Working during work hours (only when Idle — needs override this) ----
-        if (workTime && state.behavior == AgentBehavior::Idle) {
+        // Strike NPCs refuse to work until their strikeDuration expires.
+        if (workTime && state.behavior == AgentBehavior::Idle && !onStrike) {
             state.behavior = AgentBehavior::Working;
         }
 
