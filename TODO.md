@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
+- [x] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
   `relations`, log when a relation crosses a threshold for the first time: when score drops
   below -0.5f add "Rivalry declared: Ashford vs Thornvale" to the event log, when it rises
   above 0.5f add "Alliance formed: Ashford & Thornvale". Guard with a per-pair cooldown using
@@ -681,6 +681,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   applies `Fade(GOLD, 0.85f)` for Celebrating; add an `else if (a.recentlyStole)` branch before
   the default color assignment. Use `AgentEntry::recentlyStole` (already in the snapshot). Makes
   thieves visible on the map for ~2 game-hours after stealing.
+
+- [ ] **Relation score shown in road tooltip** — The road hover tooltip (`HUD::DrawRoadTooltip` in
+  HUD.cpp) already shows connected settlement names. Extend it to also show the current relation
+  score between those two settlements: `"Relations: -0.62 (Rivals)"` / `"Relations: +0.71 (Allies)"`.
+  Read from `SettlementEntry::relations` (expose as `std::map<std::string,float>` keyed by
+  settlement name) populated in `SimThread::WriteSnapshot`'s settlement loop from `s.relations`.
+
+- [ ] **Alliance trade bonus log** — When a hauler completes a delivery between allied settlements
+  (relation score > 0.5), log it to `EventLog` as `"Ally trade: Greenfield → Wellsworth (+5g bonus)"`.
+  In `TransportSystem.cpp`, after the existing ally tax reduction block, check the relation score
+  and push a log entry using the hauler's carry quantity and the bonus gold saved. This makes the
+  alliance benefit tangible and visible.
+
+- [ ] **Rival settlement tax UI indicator** — In `HUD::DrawRoadTooltip` (HUD.cpp), when the road
+  connects rival settlements (relation < -0.5), append a red `"(+30% rival surcharge)"` note to
+  the road condition line. Read from the same `SettlementEntry` relation data. Helps player
+  understand why haulers on that route are less profitable.
 
 - [ ] **Settlement theft count in stockpile panel** — Track how many times NPCs have stolen from a
   settlement. Add `int theftCount = 0` to `Settlement` component in `Components.h`; increment it
