@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
+- [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
   (capped at 1.0). Affinity above 0.5 means "friend": friends share food charity (threshold reduced
@@ -971,3 +971,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   0.8. Log `"Elder [Name] passed their knowledge to [Name2] at [settlement]."` Guard with a
   `wisdomFired` bool on `DeprivationTimer` (reuse `illnessNeedIdx` as a flag or add a dedicated
   bool) to prevent repeated firings.
+
+- [ ] **Friendship shown in NPC tooltip** — Surface the strongest friendship in the hover tooltip.
+  Add `std::string bestFriendName` and `float bestFriendAffinity` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, iterate the NPC's `Relations::affinity` map,
+  find the highest-affinity valid entity, and set both fields. In `HUD::DrawHoverTooltip`, when
+  `bestFriendAffinity >= 0.5`, show `"Friend: Aldric (82%)"` in `Fade(LIME, 0.75f)`. Same
+  `lineCount`/`pw` pattern as existing flag lines.
+
+- [ ] **Friend grief on death** — In `DeathSystem.cpp`'s inheritance loop, after the family
+  dissolution check, scan all NPCs who have the dead entity in their `Relations::affinity` map
+  with affinity ≥ 0.5. For each friend, lower their home settlement's morale by -0.03 and
+  set their `DeprivationTimer::helpedTimer = 0.f` (clears "recently helped" so the grief resets
+  social warmth). Log `"[Name] mourns the loss of [dead Name] at [settlement]."` Only log
+  for the 2 closest friends (highest affinity) to avoid log spam.
+
+- [ ] **Friendship bonus on birth** — In `BirthSystem.cpp`, when a birth occurs, check if the
+  parent NPC has any friends (Relations::affinity ≥ 0.5) at the same settlement. If so, give
+  those friends a small morale boost: `settl->morale = std::min(1.f, settl->morale + 0.01f)`
+  per friend (capped at 2 boosts). Log `"[FriendName] celebrates [Name]'s new child."` This
+  makes social bonds visible in the community's response to new births.
