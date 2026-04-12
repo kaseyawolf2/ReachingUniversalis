@@ -11,6 +11,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Worker fatigue accumulation** — Fatigued workers (energy < 0.2) produce at 80%.
+
+- [x] **Abundant-supply notification** — Already implemented via s_loggedAbundance in RandomEventSystem.
+
 - [x] **NPC reputation score** — Reputation component: +0.1 charity, -0.2 theft, +0.05 delivery.
 
 - [x] **Settlement morale shown in NPC tooltip** — "Home morale: X%" faint line in NPC tooltip.
@@ -1037,13 +1041,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the score as a `float reputation` field in `AgentEntry` and display `"Rep: +3.2"` (or negative
   in RED) when non-zero. This creates visible social hierarchy without requiring new UI panels.
 
-- [ ] **Abundant-supply notification** — When the morale surplus bonus first activates for a
+- [x] **Abundant-supply notification** — When the morale surplus bonus first activates for a
   settlement (i.e., was NOT abundant last tick, now IS abundant), log a one-time message to
   `EventLog`: `"Greenfield: plentiful supplies boost morale"`. Track this with a
   `bool abundantLastTick` field on `Settlement` (Components.h). Prevents silent changes and
   gives the player feedback that their supply investment is paying off.
+  NOTE: Already implemented via `s_loggedAbundance` static set in RandomEventSystem.cpp.
 
-- [ ] **Worker fatigue accumulation** — In `NeedDrainSystem.cpp`, when an NPC with `Schedule` is
+- [x] **Worker fatigue accumulation** — In `NeedDrainSystem.cpp`, when an NPC with `Schedule` is
   in `Working` state and energy need falls below 0.2, apply a 20% production penalty via a new
   `bool fatigued` bool on the `Schedule` component. In `ProductionSystem.cpp`, multiply yield by
   `0.8f` if `sched->fatigued`. `fatigued` is cleared when energy recovers above 0.5 (also in
@@ -2258,3 +2263,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   residents loop of `SimThread::WriteSnapshot`. In `RenderSystem::DrawStockpilePanel`, append
   a small "(+X.X)" or "(-X.X)" after each resident's name, colored green/red. No new ECS
   components — reuses existing `Reputation`.
+
+- [ ] **Fatigue indicator in NPC tooltip** — In `HUD::DrawHoverTooltip`, when the NPC has
+  `Schedule::fatigued == true`, append "(fatigued)" to the behavior line in orange. Expose
+  as `bool fatigued = false` in `AgentEntry` in `RenderSnapshot.h`, populated from
+  `registry.try_get<Schedule>(e)->fatigued` in `SimThread::WriteSnapshot`. Gives visual
+  feedback that sleep deprivation is affecting this worker.
+
+- [ ] **Fatigue count in settlement tooltip** — In `HUD::DrawSettlementTooltip`, show
+  "Fatigued workers: N" when any workers at the settlement are fatigued. Add
+  `int fatiguedWorkers = 0` to `SettlementStatus` in `RenderSnapshot.h`, counted in
+  `SimThread::WriteSnapshot`'s settlement status loop by checking `Schedule::fatigued` for
+  working NPCs homed at each settlement. Color orange when > 0.
