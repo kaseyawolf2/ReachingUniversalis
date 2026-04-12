@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession distribution in stockpile panel** — Below the residents list header in
+  `DrawStockpilePanel` (RenderSystem.cpp), add a single compact line showing profession counts,
+  e.g. "Fa:4 Wa:3 Lu:2". Build the counts by iterating `panel.residents` (already populated).
+  Render in dim LIGHTGRAY after the header line. Replaces no existing line — just one extra row.
+  No new snapshot fields needed.
+
 - [x] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
   in the stockpile panel (detect mouse Y within the section), show a small 2-line tooltip with
   the richest NPC's name and balance, and the poorest's. Use `panel.residents.front()` and
