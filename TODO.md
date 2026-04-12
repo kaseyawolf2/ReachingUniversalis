@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement trade volume counter** — Track deliveries per settlement, show in tooltip.
+
 ## Recently Done
 
 - [x] **Hauler route efficiency tooltip** — Show "Route: Xkm" in tooltip for haulers en route.
