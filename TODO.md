@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
-  loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
-  above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
-  supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
-  the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -219,6 +213,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Morale impact from hauler trade success** — In `TransportSystem.cpp`'s GoingToDeposit
   arrival block, after the sale completes and before return-trip opportunism, bumps
   `destSettl->morale` by +0.01 (capped at 1.0). Active trade routes gradually lift morale.
+
+- [x] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
+  loop, when all three stockpiles (food, water, wood) exceed 80 units, applies +0.002 morale per
+  game-hour. Changed from population-relative threshold to fixed 80-unit minimum per the spec.
 
 - [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
   to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
@@ -535,6 +533,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the hauler's home settlement. A merchant going bankrupt is demoralising for the community. Use
   `registry.try_get<Settlement>(home.settlement)->morale -= 0.03f` with a `std::max(0.f, ...)`
   clamp. No new components needed.
+
+- [ ] **Stockpile abundance log event** — In `RandomEventSystem::Update`'s per-settlement loop,
+  when the abundance condition fires (all three stockpiles ≥ 80) for the first time, log
+  "Prosperity: [settlement] has abundant stores — morale rising." Use a `static
+  std::set<entt::entity> s_loggedAbundance`; insert on first trigger, erase when any stockpile
+  drops below 40. One-shot per settlement per abundance period to avoid log spam.
+
+- [ ] **Scarcity morale penalty** — In `RandomEventSystem::Update`'s per-settlement loop, after
+  the abundance check, add a scarcity check: if any stockpile (food, water, wood) is below 10
+  units, apply -0.003 morale per game-hour. This makes shortages actively harmful to morale
+  rather than just neutral. Use the same `registry.try_get<Stockpile>(e)` already accessed.
+  No new components needed.
 
 ---
 
