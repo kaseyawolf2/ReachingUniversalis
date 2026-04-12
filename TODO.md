@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale factor shown in production tooltip** — Add morale % to facility tooltip in HUD.cpp.
+  Add `float morale` to `FacilityEntry`, populate from Settlement in SimThread.
+
 ## Recently Done
 
 - [x] **NPC desperation purchase log** — Logs "X desperate — bought food at Y market for Zg."
