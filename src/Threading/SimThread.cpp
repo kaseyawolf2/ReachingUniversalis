@@ -918,10 +918,10 @@ void SimThread::ProcessInput() {
                     m_playerReputation += 20;  // +20 rep for founding a settlement
 
                     if (blogf) {
-                        char buf[120];
+                        char buf[160];
                         std::snprintf(buf, sizeof(buf),
-                            "You founded %s (%.0fg) — 4 settlers + 1 hauler arrived!",
-                            newName, FOUND_COST);
+                            "Player founded %s at (%.0f, %.0f) — %.0fg, 4 settlers + 1 hauler",
+                            newName, ppf.x, ppf.y, FOUND_COST);
                         blogf->Push(tm.day, (int)tm.hourOfDay, buf);
                     }
                 }
