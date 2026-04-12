@@ -9,15 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Inter-settlement rivalry** — Track a `rivalry` map in each `Settlement`:
-  `std::map<entt::entity, float>` where negative = rival, positive = ally. Rivals form when one
-  settlement's haulers consistently undercut another's prices (detected in `PriceSystem`). Rival
-  settlements have a 10% trade tax surcharge between them. Allied settlements (formed by prolonged
-  fair trade) get a 5% discount. Show rivalry/alliance in the settlement tooltip.
-
 ---
 
 ## Done
+
+- [x] **Inter-settlement rivalry** — `Settlement::relations` (std::map<entt::entity,float>)
+  updated per hauler delivery in TransportSystem: exporter +0.04, importer -0.04. Drifts toward
+  0 at 0.3%/game-hour (RandomEventSystem settlement loop). Trade effects: rival (score < -0.5) →
+  30% tax; ally (score > +0.5) → 15% tax. `Hauler::cargoSource` tracks cargo origin for return
+  trips. Road tooltip shows colour-coded Relations line (RED=rivals, GREEN=allied, GRAY=scores).
 
 - [x] **Work stoppage event** — `Settlement::strikeCooldown` (24h recharge) + `DeprivationTimer::strikeDuration`
   (6h per strike). In `RandomEventSystem::Update`'s settlement loop: 5% per game-day chance when
@@ -301,6 +301,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   add an age line: "Age: 23" (integer days). Read `AgentEntry::ageDays` cast to int. For children
   (`ageDays < 15`), show "Age: 8 (child)". For elders (`ageDays > 60`), show "Age: 63 (elder)".
   No new snapshot fields needed — `ageDays` is already in `AgentEntry`.
+
+- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
+  drift already runs), add threshold-crossing logs. When `A.relations[B]` crosses below -0.5 for
+  the first time, log "RIVALRY: X and Y relations deteriorate — tariffs imposed (+10%)". When it
+  rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
+  crossing approach as `Settlement::unrest`. This makes rivalry formation a visible story beat.
+
+- [ ] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
+  road's arbitrage rate in `PriceSystem.cpp`. In the per-road arbitrage loop, check
+  `sA->relations.find(road.to)` and `sB->relations.find(road.from)`; if both scores > 0.5, multiply
+  `convergeFrac` by 1.5 (prices converge 50% faster on allied trade routes). Add a tooltip note
+  "Allied: faster price convergence" in `HUD.cpp DrawRoadTooltip` when the alliance line is shown.
+
+- [ ] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
+  settlement B (where B.relations[A] < -0.5), add a random 20% chance the delivery is "taxed at
+  the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
+  `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
+  in Y (rivalry tariff)." at low probability to avoid log spam (1 in 5 deliveries).
 
 ---
 
