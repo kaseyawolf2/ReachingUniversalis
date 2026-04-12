@@ -9,14 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement name in event log** — In `RandomEventSystem.cpp`, random events like "Drought at
-  Ashford" currently emit to the global EventLog with just the settlement name in the string. Add
-  the settlement's current population in brackets: "Drought at Ashford [pop 12]". Read from
-  `Settlement::` component and `popCount` computed locally. Helps the player gauge event severity.
-
 ---
 
 ## Done
+
+- [x] **Settlement name in event log** — `TriggerEvent` in `RandomEventSystem.cpp`: computes
+  `popCount` once (HomeSettlement view, excluding player/haulers) after picking the target
+  settlement. Added `[pop N]` to all 13 settlement-specific cases (Drought, Blight, Plague,
+  Trade Boom, Migration, Spring Flood, Harvest Bounty, Convoy, Festival, Fire, Heat Wave,
+  Lumber Windfall, Skilled Immigrant, Market Crisis, Earthquake). Migration shows post-arrival
+  pop; Skilled Immigrant shows post-arrival pop too.
 
 - [x] **NPC mood colour on world dot** — `GameState.cpp` agent draw loop: added contentment-based
   `drawColor` for `AgentRole::NPC`. Green (≥ 0.7), yellow (≥ 0.4), red (< 0.4). Celebrating
@@ -405,6 +407,25 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
   snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
   only if the NPC has a Name and HomeSettlement, and rate-limit per entity.
+
+- [ ] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
+  also look up the settlement's `popTrend` from `RenderSnapshot::SettlementStatus` — but that's
+  render-side. Instead compute it locally: count NPCs at target (already in `popCount`), then
+  compare to a rolling previous count stored in a `std::map<entt::entity, int> m_prevPop` member
+  on `RandomEventSystem`. Append "(↑)" or "(↓)" to `[pop N]` when trend changes by ≥ 2 between
+  samples taken every 24 game-hours. Update sample in `Update()` via a `m_popSampleTimer`.
+
+- [ ] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
+  copies plague from one settlement to a neighbour via roads), the current log message is
+  "PLAGUE spreads from X to Y — N died". Add `[pop N]` to the destination settlement using
+  `popCount` computed the same way as in `TriggerEvent` — quick local count on the destination
+  entity before the log push. Keeps spread events as informative as the initial eruption.
+
+- [ ] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
+  currently reads "UNREST in Ashford — morale critical, production suffering". Extend it to
+  include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
+  production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
+  Same for "Tensions ease" recovery log.
 
 ---
 
