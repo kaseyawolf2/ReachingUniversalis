@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Theft indicator in tooltip** — After the Theft task above lands, surface the fact that an
-  NPC recently stole something. Add `bool recentlyStole = false` to `AgentEntry` in
-  `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2h of a theft). In
-  `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In
-  `HUD::DrawHoverTooltip`, show a faint RED "(thief)" suffix appended to line1 — same snprintf
-  pattern as the family indicator.
-
 ---
 
 ## Done
+
+- [x] **Theft indicator in tooltip** — `recentlyStole` field in `AgentEntry`; set when `stealCooldown > 46f`. Faint red `(thief)` suffix on tooltip line1 in `HUD::DrawHoverTooltip`.
 
 - [x] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` steal
   1 unit of their most-needed resource from their home `Stockpile`. Market price deducted from
@@ -443,3 +438,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement centre for 3–5 real seconds (use a new `fleeTimer` float in `DeprivationTimer`, or reuse
   `helpedTimer` as a flee flag). In `AgentDecisionSystem`, when `fleeTimer > 0`, move away from home pos
   at full speed. This makes theft visible: a dot sprinting away from the settlement dot.
+
+- [ ] **Thief dot colour on world map** — When `recentlyStole` is true, tint the NPC's world-map
+  dot with a dark red: `Fade(MAROON, 0.9f)`. In `GameState.cpp`, the agent draw loop already
+  applies `Fade(GOLD, 0.85f)` for Celebrating; add an `else if (a.recentlyStole)` branch before
+  the default color assignment. Use `AgentEntry::recentlyStole` (already in the snapshot). Makes
+  thieves visible on the map for ~2 game-hours after stealing.
+
+- [ ] **Settlement theft count in stockpile panel** — Track how many times NPCs have stolen from a
+  settlement. Add `int theftCount = 0` to `Settlement` component in `Components.h`; increment it
+  in `AgentDecisionSystem`'s theft block each time a theft succeeds. In `SimThread::WriteSnapshot`,
+  populate a new `int theftCount = 0` in `StockpilePanel`. In `RenderSystem::DrawStockpilePanel`,
+  show "Thefts: N" below the treasury line in faint RED when `theftCount > 0`.
+
+- [ ] **NPC grudge after being stolen from** — When an NPC's charity gift or help is followed by a
+  theft from the same entity (helper's `helpedTimer > 0` and the helped entity steals), log a
+  social event: "Aldric saw through Mira's gratitude." Implement in `AgentDecisionSystem`'s theft
+  block: after confirming a theft, check all nearby NPCs (within 80 units) who have
+  `gratitudeTarget == thief entity`; clear their `gratitudeTimer` and log the message. Purely
+  social flavour — no new components.
