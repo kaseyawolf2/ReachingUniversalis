@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Celebrating NPC glow ring** — Pulsating gold ring on celebrating NPCs in GameState.cpp.
+(none)
 
 ## Recently Done
+
+- [x] **Celebrating NPC glow ring** — Pulsating gold ring (radius 12) on celebrating NPCs.
 
 - [x] **Harvest bonus shown in tooltip** — "Good harvest bonus" in faint gold in NPC tooltip.
 
@@ -565,11 +567,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Harvest bonus shown in tooltip** — "Good harvest bonus" line in faint gold.
 
-- [ ] **Celebrating NPC glow ring** — In `GameState.cpp`'s agent render loop, when
-  `a.behavior == AgentBehavior::Celebrating`, draw a pulsating `Fade(GOLD, alpha)` ring
-  (radius 12) where `alpha` oscillates between 0.2 and 0.6 using `sinf(GetTime() * 3.f)`.
-  This adds visual life to festivals and personal celebrations beyond just the dot colour
-  change. No new fields needed — `behavior` is already in `AgentEntry`.
+- [x] **Celebrating NPC glow ring** — Pulsating gold ring on celebrating NPCs.
 
 - [ ] **Morale colour on settlement ring** — In `GameState.cpp`'s settlement render loop,
   when no event modifier is active, tint the settlement ring outline by morale: add `float morale`
@@ -1653,3 +1651,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   all NPCs within 50 world units who share the same `HomeSettlement`. This simulates shared
   joy strengthening community bonds. Use `registry.view<Relations, Position, HomeSettlement>`
   to find nearby same-settlement NPCs.
+
+- [ ] **Celebration log with goal details** — In the goal completion block of
+  `AgentDecisionSystem.cpp` (where `AgentBehavior::Celebrating` is set), extend the existing
+  celebration log to include the completed goal type: "X is celebrating (saved 100g)!" or
+  "X is celebrating (reached age 50)!". Read the `Goal` component's `type` and `target` fields
+  to format the message. No new components needed.
+
+- [ ] **Nearby NPCs join celebrations** — In `AgentDecisionSystem.cpp`, when an NPC begins
+  celebrating (behavior transitions to Celebrating), check for other NPCs within 40 world
+  units at the same `HomeSettlement`. With 30% probability each, set their behavior to
+  `Celebrating` for a shorter duration (half the normal celebration time). Log "X joined Y's
+  celebration at Z." This creates spontaneous community festivities from individual achievements.
