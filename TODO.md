@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, add a faint indication in the
+  tooltip. In `SimThread::WriteSnapshot`, add a `bool isGrateful = false` field to `AgentEntry`
+  (alongside `recentlyHelped`), set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`,
+  when `isGrateful`, show a small dim line "Grateful to neighbour" in LIME (below the "Fed by
+  neighbour" line if also present). Mirrors the `showHelped` pattern already in place.
+
 ---
 
 ## Done
@@ -30,12 +36,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, add a faint indication in the
-  tooltip. In `SimThread::WriteSnapshot`, add a `bool isGrateful = false` field to `AgentEntry`
-  (alongside `recentlyHelped`), set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`,
-  when `isGrateful`, show a small dim line "Grateful to neighbour" in LIME (below the "Fed by
-  neighbour" line if also present). Mirrors the `showHelped` pattern already in place.
 
 - [ ] **Warmth glow shown in tooltip** — Mirrors the "Fed by neighbour" pattern. Add a
   `bool recentWarmthGlow = false` to `AgentEntry` in `RenderSnapshot.h`. In
