@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Idle hauler dimming** — Draw idle haulers with empty cargo at 50% opacity.
-
 ## Recently Done
+
+- [x] **Idle hauler dimming** — Idle empty haulers drawn at 50% opacity.
 
 - [x] **Bankruptcy log includes gold balance** — Shows "(Xg left)" in bankruptcy log.
 
@@ -831,7 +831,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   log, append the hauler's remaining balance: "X went bankrupt (2g left) — returned to labor
   at Y". Mirrors the graduation log's gold display. Use `money.balance` already in scope.
 
-- [ ] **Idle hauler dimming** — In `GameState.cpp`'s agent render loop, when a hauler has
+- [x] **Idle hauler dimming** — In `GameState.cpp`'s agent render loop, when a hauler has
   `behavior == Idle` and `haulerCargoQty == 0`, draw them at 50% opacity (`Fade(drawColor, 0.5f)`)
   to visually distinguish active traders from idle ones. No new snapshot fields — `behavior`
   and `haulerCargoQty` already in `AgentEntry`.
@@ -2125,3 +2125,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   s_loggedFirstWork`), log "X begins working at Y." Uses existing `AgentState`, `Name`, and
   `HomeSettlement` components. Gives a narrative moment when new NPCs or immigrants start
   contributing to the economy.
+
+- [ ] **Settlement night-time lantern glow** — In `GameState.cpp`'s settlement render loop,
+  between hours 20–5 (nighttime, check `snap.hourOfDay`), draw a faint warm circle
+  `DrawCircleV(center, radius*0.6, Fade(ORANGE, 0.08f))` behind each settlement with pop > 0.
+  Simulates lantern light from inhabited settlements at night. Uses existing `hourOfDay` and
+  settlement position. No new snapshot fields.
+
+- [ ] **NPC wealth class label in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the
+  gold line, show a wealth class label: "Destitute" (< 5g), "Poor" (< 20g), "Comfortable"
+  (< 60g), "Wealthy" (< 120g), "Rich" (>= 120g). Color-coded from red to gold. Uses existing
+  `balance` in `AgentEntry`. No new snapshot fields.
