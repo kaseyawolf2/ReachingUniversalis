@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler convoy formation** — 2+ haulers on same road within 60u get 25% speed bonus + tooltip indicator.
-
 ## Recently Done
+
+- [x] **Hauler convoy formation** — Hauler::inConvoy set when GoingToDeposit within 60u of another hauler to same destination. 25% speed bonus, "[Convoy]" in green tooltip.
+
 
 - [x] **Bandit scatter on confrontation** — Gang members with matching gangName get fleeTimer=3s + velocity away from player at 1.5x speed. Flee check added to bandit section of AgentDecisionSystem.
 
@@ -1175,7 +1176,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   with matching gangName; set their `fleeTimer = 3.f` and velocity away from the player. Makes
   confrontation feel more dynamic.
 
-- [ ] **Hauler convoy formation** — When 2+ haulers travel the same road in the same direction
+- [x] **Hauler convoy formation** — When 2+ haulers travel the same road in the same direction
   within 60 units of each other, they form an informal convoy. Add `bool inConvoy = false` to the
   `Hauler` component. In `TransportSystem`'s `GoingToDeposit` state, check for other GoingToDeposit
   haulers heading to the same destination within 60u; if found, set `inConvoy = true`. Convoys get
@@ -1240,6 +1241,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after the scatter, find non-bandit NPCs within 120 units. For each witness, add +0.1 to their
   `Reputation::score` (they saw justice done) and log: "[NPC] witnessed [player] confront [bandit]."
   Uses existing `Reputation` component; creates social memory of player's actions.
+
+- [ ] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has
+  `inConvoy == true`, draw a faint connecting line between convoy members. Iterate agents to find
+  pairs with `inConvoy && haulerState == 1` within 60u; draw `DrawLineEx` in `Fade(GREEN, 0.25f)`
+  between their positions. Makes convoys visible at a glance.
+
+- [ ] **Convoy log announcement** — In `TransportSystem`'s GoingToDeposit convoy check, when
+  `inConvoy` transitions from false to true, log: "[Hauler A] formed convoy with [Hauler B] on
+  the way to [settlement]." Add a `bool wasInConvoy` local to compare before/after. Use the same
+  EventLog pattern as the nervous-travel log. Only log once per formation (check old state).
+
+- [ ] **Convoy bandit deterrence** — In `AgentDecisionSystem`'s bandit intercept block, skip
+  haulers with `Hauler::inConvoy == true`. Bandits won't attack a convoy — too risky. This gives
+  convoys a gameplay purpose beyond speed: safety. Already have the `inConvoy` field on the Hauler
+  component; just add an `if (h.inConvoy) return;` check in the intercept lambda.
 
 ---
 
