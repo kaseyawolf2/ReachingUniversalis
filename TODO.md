@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gang log announcement** — Log when a bandit first gets a gangName in AgentDecisionSystem.
-
 ## Recently Done
+
+- [x] **Gang log announcement** — Logs "[Name] joined [gang] on the A-B road." when gangName transitions from empty to non-empty.
+
 
 - [x] **Bandit bounty board** — Settlement::bountyPool accumulates 0.5g/hr per adjacent bandit (from treasury). Paid to player on confrontation with log.
 
@@ -1158,7 +1159,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   confronts a bandit on a road adjacent to a settlement with bountyPool > 0, they receive the pool
   as bonus gold (credited from treasury). Log: "Collected Ng bounty from [settlement]."
 
-- [ ] **Gang log announcement** — When a new gang forms (a bandit gets a gangName that was empty
+- [x] **Gang log announcement** — When a new gang forms (a bandit gets a gangName that was empty
   before), log it: "[NPC name] joined [gang name] on the [A]-[B] road." In `AgentDecisionSystem`'s
   bandit lurk block, compare old gangName with new before overwriting. If old was empty and new is
   not, push an EventLog entry.
@@ -1214,6 +1215,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (or migration trigger block), penalize settlements connected by bandit-heavy roads. For each
   candidate settlement, sum `banditCount` on its connecting roads; apply a -5% migration score
   penalty per bandit. NPCs prefer safer destinations. Affects the `MigrationMemory`-based scoring.
+
+- [ ] **Gang disbands on last member removed** — In `SimThread::ProcessInput`'s bandit confrontation
+  block, after removing the BanditTag, check if any other bandit still has the same gangName. If not,
+  log "[gang name] has been disbanded." in EventLog. Gives satisfying closure when the player clears
+  a gang. Check via `registry.view<BanditTag, DeprivationTimer>` filtering by gangName match.
+
+- [ ] **Settlement morale boost on bandit cleared** — In `SimThread::ProcessInput`'s confrontation
+  block, after removing a bandit, find road-adjacent settlements (road.from / road.to) and add
+  +0.05 morale to each `Settlement::morale` (clamped to 1.0). Log: "[Settlement] morale improved
+  (+5%) after bandit threat reduced." Connects player action to settlement wellbeing.
 
 ---
 
