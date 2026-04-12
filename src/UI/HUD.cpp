@@ -1733,17 +1733,23 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
         }
     }
 
+    // Bandit warning line
+    char line8[48] = {};
+    if (best->banditCount > 0)
+        std::snprintf(line8, sizeof(line8), "Bandits: %d", best->banditCount);
+
     // Position tooltip at midpoint of road
     float midWX = (best->x1 + best->x2) * 0.5f;
     float midWY = (best->y1 + best->y2) * 0.5f;
     Vector2 screen = GetWorldToScreen2D({ midWX, midWY }, cam);
 
-    int extraLine = (line7[0] != '\0') ? 1 : 0;
+    int extraLines = ((line7[0] != '\0') ? 1 : 0) + ((line8[0] != '\0') ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11), MeasureText(line4, 11),
                        MeasureText(line5, 11), MeasureText(line6, 10),
-                       extraLine ? MeasureText(line7, 11) : 0 }) + 12;
-    int h = (6 + extraLine) * 16 + 4;
+                       (line7[0] != '\0') ? MeasureText(line7, 11) : 0,
+                       (line8[0] != '\0') ? MeasureText(line8, 11) : 0 }) + 12;
+    int h = (6 + extraLines) * 16 + 4;
     int tx = (int)screen.x - w / 2, ty = (int)screen.y - h - 8;
     if (tx < 4) tx = 4;
     if (tx + w > SCREEN_W - 4) tx = SCREEN_W - 4 - w;
@@ -1762,8 +1768,9 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     DrawText(line4, tx, ty + 48,  11, BROWN);
     DrawText(line5, tx, ty + 64,  11, condCol);
     DrawText(line6, tx, ty + 80,  10, Fade(LIGHTGRAY, 0.5f));
-    if (line7[0] != '\0')
-        DrawText(line7, tx, ty + 96, 11, relColor);
+    int ly = ty + 96;
+    if (line7[0] != '\0') { DrawText(line7, tx, ly, 11, relColor); ly += 16; }
+    if (line8[0] != '\0') DrawText(line8, tx, ly, 11, Fade(RED, 0.7f));
 }
 
 // ---- DrawNeedBar ----

@@ -137,6 +137,8 @@ struct RenderSnapshot {
         float foodB  = 0.f, waterB = 0.f, woodB = 0.f;
         // Inter-settlement relations: A's view of B and B's view of A (-1=rival, 0=neutral, +1=ally)
         float relAtoB = 0.f, relBtoA = 0.f;
+        // Number of bandits lurking near this road's midpoint
+        int banditCount = 0;
     };
 
     struct FacilityEntry {

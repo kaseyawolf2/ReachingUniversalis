@@ -1473,7 +1473,29 @@ void SimThread::WriteSnapshot() {
     });
 
     // ---- Roads ----
-    m_registry.view<Road>().each([&](const Road& road) {
+    // Pre-count bandits per road entity (nearest midpoint)
+    std::map<entt::entity, int> roadBanditCount;
+    {
+        auto roadView = m_registry.view<Road>();
+        m_registry.view<Position, BanditTag>(entt::exclude<Hauler, PlayerTag>).each(
+            [&](auto /*be*/, const Position& bpos) {
+                entt::entity nearest = entt::null;
+                float bestD2 = std::numeric_limits<float>::max();
+                roadView.each([&](auto re, const Road& road) {
+                    if (road.blocked) return;
+                    const auto* pa = m_registry.try_get<Position>(road.from);
+                    const auto* pb = m_registry.try_get<Position>(road.to);
+                    if (!pa || !pb) return;
+                    float mx = (pa->x + pb->x) * 0.5f;
+                    float my = (pa->y + pb->y) * 0.5f;
+                    float dx = mx - bpos.x, dy = my - bpos.y;
+                    float d2 = dx*dx + dy*dy;
+                    if (d2 < bestD2) { bestD2 = d2; nearest = re; }
+                });
+                if (nearest != entt::null) roadBanditCount[nearest]++;
+            });
+    }
+    m_registry.view<Road>().each([&](auto roadEntity, const Road& road) {
         if (road.from == entt::null || road.to == entt::null) return;
         if (!m_registry.valid(road.from) || !m_registry.valid(road.to)) return;
         const auto& fp = m_registry.get<Position>(road.from);
@@ -1502,8 +1524,10 @@ void SimThread::WriteSnapshot() {
             if (sA) { auto it = sA->relations.find(road.to);   if (it != sA->relations.end()) relAB = it->second; }
             if (sB) { auto it = sB->relations.find(road.from); if (it != sB->relations.end()) relBA = it->second; }
         }
+        int bCount = 0;
+        { auto it = roadBanditCount.find(roadEntity); if (it != roadBanditCount.end()) bCount = it->second; }
         roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked, road.condition,
-                          nA, nB, fA, wA, dA, fB, wB, dB, relAB, relBA });
+                          nA, nB, fA, wA, dA, fB, wB, dB, relAB, relBA, bCount });
     });
 
     // ---- Facilities ----
