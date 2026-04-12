@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mood score shown in settlement tooltip** — Show "Mood: X%" in HUD settlement tooltip, color-coded by value.
+
 
 ## Recently Done
+
+- [x] **Mood score shown in settlement tooltip** — "Mood: X%" line in settlement tooltip, color-coded GREEN/YELLOW/RED. Uses SettlementEntry::moodScore.
+
 
 - [x] **NPC age affects move speed** — Children (< 15 days) 80%, elders (> 55 days) 70%, prime adults 100%. Applied in MovementSystem as velocity multiplier, excludes haulers/player.
 
@@ -1465,7 +1468,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Age::days` from the entity, compute bracket, multiply `MoveSpeed::value` by the factor. Exclude
   haulers and player (already have separate speed logic). Adds visible age-based behaviour.
 
-- [ ] **Mood score shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`, show
+- [x] **Mood score shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`, show
   "Mood: X%" from `SettlementEntry::moodScore`. Add the line after the morale line with matching
   colour coding (GREEN ≥0.7, YELLOW ≥0.4, RED below). Uses data already piped through
   `RenderSnapshot::SettlementEntry::moodScore` — only needs tooltip rendering.
@@ -2950,3 +2953,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `FamilyTag::name` at the same settlement. If within 80u, move toward parent at 0.5x speed
   (same `MoveToward` pattern). If parent is absent (different settlement), child stays near home
   settlement centre. Log nothing — purely visual behaviour. Adds visible family structure.
+
+- [ ] **Settlement mood ring colour** — In `GameState::Draw`, when rendering settlement circles,
+  tint the outer ring by `SettlementEntry::moodScore`: GREEN (≥0.7), YELLOW (≥0.4), RED (<0.4).
+  Currently the ring uses food/water/season logic. Add mood as a secondary thin ring (2px) just
+  outside the existing one, using `DrawCircleLinesV` with radius `s.radius + 3`. Pure visual.
+
+- [ ] **Low-mood NPC wanders aimlessly** — In `AgentDecisionSystem`'s idle block, when an NPC's
+  average need satisfaction (mean of `needs.list[0..3].value`) is below 0.3, instead of normal idle
+  drift, set velocity to a random direction at 0.3x speed for 2 game-seconds (add `float wanderTimer`
+  to `DeprivationTimer`). Log nothing. Creates visible restlessness when NPCs are struggling —
+  they pace instead of standing still. Reset wander on need recovery above 0.4.
