@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bankrupt hauler flash before demotion** — Red pulsating ring on haulers near bankruptcy
-  (timer > 75% of BANKRUPTCY_HOURS). Add `nearBankrupt` bool to AgentEntry.
-
 ## Recently Done
+
+- [x] **Bankrupt hauler flash before demotion** — Red pulsating ring on haulers near bankruptcy
+  (timer > 75% of BANKRUPTCY_HOURS). Add `nearBankrupt` bool to AgentEntry.
 
 - [x] **Hauler profit margin in tooltip** — Show "Profit: ~Ng" for haulers with cargo. Add
   `haulerBuyPrice` and `haulerCargoQty` to `AgentEntry`. Green if positive, red if negative.
@@ -618,7 +618,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentEntry` fields (add `float haulerBuyPrice` and `int haulerCargoQty` to `AgentEntry` in
   `RenderSnapshot.h`, populate in SimThread). Display in green if positive, red if negative.
 
-- [ ] **Bankrupt hauler flash before demotion** — In `EconomicMobilitySystem.cpp`, when a
+- [x] **Bankrupt hauler flash before demotion** — In `EconomicMobilitySystem.cpp`, when a
   hauler's `s_bankruptTimer` exceeds `BANKRUPTCY_HOURS * 0.75` (18h), set a `bool nearBankrupt`
   flag on a new `AgentEntry` field. In `GameState.cpp`'s agent render loop, draw a faint red
   pulsating ring (like celebrating but red) around near-bankrupt haulers. Gives visual warning
@@ -655,6 +655,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   std::map<entt::entity, int> s_tradeVolume` per destination. In SimThread's settlement
   snapshot, read and write it to the entry. Display in settlement tooltip as "Trades: N"
   showing total deliveries received. Reset counter every 24 game-hours.
+
+- [ ] **Hauler route line on world map** — In `GameState.cpp`'s agent render loop, when a
+  hauler has `hasRouteDest` true, draw a thin dashed line from the hauler's position to
+  `(destX, destY)` using `DrawLineV` with `Fade(SKYBLUE, 0.3f)`. This makes active trade
+  routes visible on the world map without needing to hover the hauler. No new snapshot fields.
+
+- [ ] **Near-bankrupt tooltip warning** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
+  `best->nearBankrupt` is true, show a "!! Near bankruptcy !!" line in `Fade(RED, 0.9f)`.
+  Add to lineCount and width calc. Complements the red ring with textual detail.
 
 ---
 
