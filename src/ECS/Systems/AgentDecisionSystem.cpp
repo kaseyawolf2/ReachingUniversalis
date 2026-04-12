@@ -216,6 +216,24 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
             }
         }
 
+        // Bandit danger penalty: -5% per bandit lurking near this road
+        {
+            const auto* pa = registry.try_get<Position>(road.from);
+            const auto* pb = registry.try_get<Position>(road.to);
+            if (pa && pb) {
+                float mx = (pa->x + pb->x) * 0.5f;
+                float my = (pa->y + pb->y) * 0.5f;
+                int banditCount = 0;
+                registry.view<Position, BanditTag>().each(
+                    [&](const Position& bp) {
+                        float bdx = bp.x - mx, bdy = bp.y - my;
+                        if (bdx*bdx + bdy*bdy < 100.f * 100.f) ++banditCount;
+                    });
+                if (banditCount > 0)
+                    total *= std::max(0.2f, 1.f - 0.05f * banditCount);
+            }
+        }
+
         // Scarcity at home makes all destinations more attractive
         total += scarcityNudge;
 
