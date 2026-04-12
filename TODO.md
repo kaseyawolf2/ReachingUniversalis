@@ -9,12 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
-  check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
-  is still alive. If not (both partners gone), remove `FamilyTag` from all surviving children
-  (age < 15 `ChildTag` entities with the same family name at that settlement) so they can form
-  new families later. Log "The [name] family line has ended at [settlement]." when the last adult
-  member dies. Implement in the existing death-cleanup block.
+- [ ] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
+  count how many other agents at that settlement share the same `familyName` and append " ×N" in
+  dim color (DARKGRAY) when N ≥ 2. E.g. "Aldric Smith ×3" shows there are 3 members of the Smith
+  family. Requires adding `familyName` to `StockpilePanel::AgentInfo` — check the existing struct
+  and populate it in SimThread's WriteSnapshot near the StockpilePanel block.
 
 ---
 
@@ -178,13 +178,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
-  count how many other agents at that settlement share the same `familyName` and append " ×N" in
-  dim color (DARKGRAY) when N ≥ 2. E.g. "Aldric Smith ×3" shows there are 3 members of the Smith
-  family. Requires adding `familyName` to `StockpilePanel::AgentInfo` — check the existing struct
-  and populate it in SimThread's WriteSnapshot near the StockpilePanel block.
 
 - [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
   an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
