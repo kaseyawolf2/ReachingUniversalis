@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale-dependent work speed** — Multiply worker output by morale factor in ProductionSystem.
+
 ## Recently Done
 
 - [x] **Scarcity log event** — Log "Shortage: X running low on food, water" once per scarcity
