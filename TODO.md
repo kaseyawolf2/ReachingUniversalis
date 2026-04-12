@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Morale colour on settlement ring** — Add `float morale` to `SettlementEntry`, populate
+  in SimThread, tint ring by morale when no event modifier is active.
 
 ## Recently Done
 
