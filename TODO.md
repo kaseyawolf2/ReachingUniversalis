@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Trade delivery log with morale** — Log hauler delivery with cargo summary and morale
+  bump in TransportSystem.cpp's GoingToDeposit arrival block.
 
 ## Recently Done
 
