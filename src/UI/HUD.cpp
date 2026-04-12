@@ -940,11 +940,27 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showElders)
         std::snprintf(line5, sizeof(line5), "Elders: %d (+%.0f%% prod)", elderCount, elderBonus * 100.f);
 
-    int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0);
+    // Line 6 (optional): specialty
+    char line6[48] = {};
+    bool showSpecialty = !best->specialty.empty();
+    if (showSpecialty)
+        std::snprintf(line6, sizeof(line6), "Specialty: %s", best->specialty.c_str());
+
+    // Line 7: morale (always shown when status available)
+    char line7[32] = {};
+    float morale = status ? status->morale : 0.5f;
+    bool showMorale = (status != nullptr);
+    if (showMorale)
+        std::snprintf(line7, sizeof(line7), "Morale: %d%%", (int)(morale * 100));
+
+    int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
+                      + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11),
-                       showChildren ? MeasureText(line4, 11) : 0,
-                       showElders   ? MeasureText(line5, 11) : 0 }) + 12;
+                       showChildren  ? MeasureText(line4, 11) : 0,
+                       showElders    ? MeasureText(line5, 11) : 0,
+                       showSpecialty ? MeasureText(line6, 11) : 0,
+                       showMorale   ? MeasureText(line7, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
@@ -962,8 +978,16 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showChildren) {
         DrawText(line4, tx, ty,  11, Fade(LIGHTGRAY, 0.7f)); ty += 16;
     }
-    if (showElders)
-        DrawText(line5, tx, ty,  11, Fade(ORANGE, 0.75f));
+    if (showElders) {
+        DrawText(line5, tx, ty,  11, Fade(ORANGE, 0.75f)); ty += 16;
+    }
+    if (showSpecialty) {
+        DrawText(line6, tx, ty,  11, WHITE);                ty += 16;
+    }
+    if (showMorale) {
+        Color moraleCol = (morale >= 0.7f) ? GREEN : (morale >= 0.4f) ? YELLOW : RED;
+        DrawText(line7, tx, ty,  11, moraleCol);
+    }
 }
 
 // ---- Market overlay (M key) ----
