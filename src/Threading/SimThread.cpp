@@ -1705,6 +1705,21 @@ void SimThread::WriteSnapshot() {
             panel.workers          = workers;
             panel.modifierName     = s.modifierName;
             panel.modifierHoursLeft = s.modifierDuration;
+            // Infer specialty from primary facility (same logic as SettlementEntry)
+            {
+                ResourceType primary = ResourceType::Food;
+                float maxRate = 0.f;
+                m_registry.view<ProductionFacility>().each(
+                    [&](const ProductionFacility& pf) {
+                    if (pf.settlement == e && pf.baseRate > maxRate) {
+                        maxRate = pf.baseRate;
+                        primary = pf.output;
+                    }
+                });
+                if (maxRate > 0.f)
+                    panel.specialty = (primary == ResourceType::Food)  ? "Farming" :
+                                     (primary == ResourceType::Water) ? "Water"   : "Lumber";
+            }
             panel.recentEvents    = std::move(filteredEvents);
             if (const auto* mkt = m_registry.try_get<Market>(e))
                 panel.prices = mkt->price;

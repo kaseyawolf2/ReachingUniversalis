@@ -15,7 +15,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         if (type != ResourceType::Shelter) resLines += 2;
     int eventLines  = (int)panel.recentEvents.size();
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
-    int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
+    bool hasSpecialty = !panel.specialty.empty();
+    int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0)
+                      + (hasSpecialty ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int ph          = totalLines * LINE_H + 14 + sparklineH + residentH;
@@ -53,6 +55,14 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     DrawText(morBuf, stbX + 2, stbY, 11, WHITE);
 
     int y = PY + 6 + LINE_H;
+
+    // Specialty label (if present)
+    if (hasSpecialty) {
+        char specBuf[48];
+        std::snprintf(specBuf, sizeof(specBuf), "Specialty: %s", panel.specialty.c_str());
+        DrawText(specBuf, PX + 8, y, 11, Fade(LIGHTGRAY, 0.6f));
+        y += LINE_H;
+    }
 
     // Treasury + workers line
     char tresBuf[64];
