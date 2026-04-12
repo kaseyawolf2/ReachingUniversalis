@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reputation shown in NPC tooltip** — Show reputation score in tooltip, GREEN/RED, omit when 0.
+- [ ] **Reputation affects charity willingness** — Skip NPCs with Reputation < -0.5 when giving charity.
 
 ## Recently Done
+
+- [x] **Reputation shown in NPC tooltip** — Already implemented: "Rep: +X.X" in GREEN/RED, threshold 0.05, in HUD.cpp.
+
 
 - [x] **Hauler profit summary in tooltip** — estimatedProfit computed from dest market price in WriteSnapshot. Shows "Est. profit: +Ng" in GREEN/RED during delivery.
 
@@ -1192,9 +1195,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   compute `(destPrice - buyPrice) * cargoQty * 0.8` (after 20% tax). Show as "Est. profit: +Ng"
   in faint GREEN below the cargo line. Helps the player understand hauler economics at a glance.
 
-- [ ] **Reputation shown in NPC tooltip** — Add the NPC's reputation score to the tooltip.
-  Show "Reputation: +X.X" in GREEN for positive, "-X.X" in RED for negative, omit when score == 0.
-  Already in `RenderSnapshot::AgentEntry::reputation`; just add the tooltip line in `HUD.cpp`.
+- [x] **Reputation shown in NPC tooltip** — (already implemented) "Rep: +X.X" in GREEN/RED tooltip line.
 
 - [ ] **Reputation affects charity willingness** — NPCs with negative reputation should be less
   likely to receive charity. In `AgentDecisionSystem`'s charity block, when checking if a neighbour
