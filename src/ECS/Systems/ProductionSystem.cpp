@@ -60,10 +60,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         .each([&](auto e, const AgentState& as, const HomeSettlement& hs) {
             if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
             const auto* ageComp = registry.try_get<Age>(e);
+            bool isElder = (ageComp && ageComp->days > 60.f);
             // Elder bonus: count elders present at home settlement (regardless of working).
-            if (ageComp && ageComp->days > 60.f) {
+            if (isElder) {
                 elderCount[hs.settlement]++;
-                return;  // elders don't contribute as workers
+                if (as.behavior != AgentBehavior::Working) return;
             }
             if (as.behavior != AgentBehavior::Working) return;
             // Apprentice children contribute at 20% of adult rate.
@@ -81,6 +82,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 if (const auto* dt = registry.try_get<DeprivationTimer>(e))
                     if (dt->harvestBonusTimer > 0.f)
                         workerContrib = 1.5f;
+            }
+            // Elder knowledge bonus: working elders provide tacit knowledge (+0.05)
+            if (isElder) {
+                workerContrib += 0.05f;
+                workerContrib = std::min(2.0f, workerContrib);  // cap per-elder contribution
             }
             workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
