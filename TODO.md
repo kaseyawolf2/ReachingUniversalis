@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale factor shown in production tooltip** — Add morale % to facility tooltip in HUD.cpp.
-  Add `float morale` to `FacilityEntry`, populate from Settlement in SimThread.
-
 ## Recently Done
+
+- [x] **Morale factor shown in production tooltip** — Morale +/-% shown in facility tooltip.
 
 - [x] **NPC desperation purchase log** — Logs "X desperate — bought food at Y market for Zg."
 
@@ -725,7 +724,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `static std::map<entt::entity, float> s_desperateCooldown` drained by gameHoursDt. Shows
   when NPCs are forced into expensive emergency purchases.
 
-- [ ] **Morale factor shown in production tooltip** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
+- [x] **Morale factor shown in production tooltip** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
   append "Morale: +X%" or "Morale: -X%" to the facility tooltip when morale factor differs
   from 1.0. Add `float morale = 0.5f` to `FacilityEntry` in `RenderSnapshot.h`, populate from
   `Settlement::morale` via facility's `settlement` field in SimThread. Green when positive,
@@ -838,6 +837,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Yg (+Z%)." once per resource per settlement per 12 game-hours. Use a `static
   std::map<std::pair<entt::entity,int>, float> s_priceSpikeCooldown` (entity + resource type
   as key). Surfaces sudden price changes that might trigger migration or trade shifts.
+
+- [ ] **Facility morale included in est. output** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
+  multiply `estOutput` by the morale factor `1.0 + 0.3*(morale - 0.5)` so the estimated
+  output reflects the actual production speed. Currently the estimate ignores morale.
+  No new snapshot fields — `best->morale` already available.
+
+- [ ] **NPC wage shown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for working NPCs
+  (non-hauler, non-player, behavior == Working), show "Wage: ~X.Xg/hr" calculated as
+  `WAGE_RATE * (0.5 + skill)` using the NPC's primary skill. Add `float wage = 0.f` to
+  `AgentEntry` in `RenderSnapshot.h`, computed in SimThread from the worker's skill and
+  `WAGE_RATE` (0.3). Display in `Fade(GOLD, 0.7f)`.
 
 ---
 
