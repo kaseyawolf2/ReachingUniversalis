@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC family visit behaviour** — Idle NPCs with family at other settlements occasionally visit. visitTimer on DeprivationTimer.
+
 
 ## Recently Done
+
+- [x] **NPC family visit behaviour** — Idle NPCs with FamilyTag visit family at other settlements. 5% chance/game-hour, 30 game-min visit, logged to EventLog. visitTimer+visitTarget on DeprivationTimer.
+
 
 - [x] **Bandit threat radius visual** — DrawCircleLinesV at 80u in Fade(RED, 0.2f) when hovering a bandit in GameState::Draw.
 
@@ -1414,7 +1417,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loop (where charity radius is drawn for helpers), add a parallel check: if hovered agent is
   `isBandit`, draw `DrawCircleLinesV` at 80u radius in `Fade(RED, 0.2f)`. Helps player gauge danger.
 
-- [ ] **NPC family visit behaviour** — NPCs with a `FamilyTag` occasionally visit family members
+- [x] **NPC family visit behaviour** — NPCs with a `FamilyTag` occasionally visit family members
   at other settlements. In `AgentDecisionSystem`, when an NPC is idle and has family elsewhere
   (check FamilyTag::name matches across settlements), 5% chance per game-hour to set movement
   toward the family member's settlement. Log "[Name] is visiting family in [Settlement]." Return
@@ -2850,3 +2853,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `a.gangName` is non-empty, show "Gang: [gangName]" as a tooltip line in `Fade(MAROON, 0.8f)`.
   Add after the bandit line. Uses existing `AgentEntry::gangName` field already piped through
   the snapshot. Adds identity to bandit groups and makes them feel like named threats.
+
+- [ ] **Family visit gift exchange** — When a visiting NPC arrives within 30u of the target
+  settlement (in the visit handler in `AgentDecisionSystem`), if the visitor has `money.balance > 50`,
+  transfer 5–15g to a random family member at that settlement. Log "[Name] gave a gift to [Family]
+  in [Settlement]." Credits the recipient's `Money` balance directly (no treasury involvement — it's
+  a personal gift). Strengthens the feeling that family bonds have economic meaning.
+
+- [ ] **NPC homesickness when visiting** — While an NPC is on a family visit (`visitTimer > 0`),
+  drain `needs.list[0]` (hunger) and `needs.list[1]` (thirst) 20% faster (multiply drain by 1.2
+  in `NeedDrainSystem` when `timer.visitTimer > 0`). This soft penalty makes visits a trade-off:
+  the NPC misses meals at home. Also add a "Visiting family" mood state to the tooltip — in
+  `HUD::DrawHoverTooltip`, if `visitTimer > 0` (pipe through `AgentEntry`), show "Visiting family"
+  in `Fade(SKYBLUE, 0.9f)` before the mood line.
+
+- [ ] **Family reunion celebration** — When a visiting NPC returns home (visitTimer transitions
+  from >0 to 0 in `AgentDecisionSystem`), set `goal.celebrateTimer = 3.f` and log "[Name] returned
+  home from visiting family." Other family members at the home settlement with matching `FamilyTag::name`
+  also get `celebrateTimer = 2.f`. Creates a visible burst of celebration when a traveller comes home.
