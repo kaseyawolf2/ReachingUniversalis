@@ -33,4 +33,8 @@ private:
     // Kill killFraction of the settlement's population (excluding player).
     // Returns number of NPCs killed. Used by both initial outbreak and spread.
     int KillFraction(entt::registry& registry, entt::entity settl, float fraction);
+
+    // Population trend tracking — sampled every 24 game-hours
+    std::map<entt::entity, int> m_prevPop;
+    float m_popSampleTimer = 0.f;   // game-hours until next sample
 };

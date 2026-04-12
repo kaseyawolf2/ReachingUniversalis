@@ -243,6 +243,19 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // Sample settlement populations every 24 game-hours for trend tracking
+    m_popSampleTimer -= gameHoursDt;
+    if (m_popSampleTimer <= 0.f) {
+        m_popSampleTimer = 24.f;
+        m_prevPop.clear();
+        registry.view<Settlement>().each([&](auto e, const Settlement&) {
+            int count = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                [&](const HomeSettlement& hs) { if (hs.settlement == e) ++count; });
+            m_prevPop[e] = count;
+        });
+    }
+
     // Count down to next event
     m_nextEvent -= gameHoursDt;
     if (m_nextEvent <= 0.f) {
@@ -415,6 +428,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
         [&](const HomeSettlement& hs) { if (hs.settlement == target) ++popCount; });
 
+    // Build a pop tag string with optional trend indicator
+    // Trend is (↑) when pop grew by ≥2, (↓) when pop fell by ≥2 since last sample
+    std::string popTag = "[pop " + std::to_string(popCount);
+    {
+        auto prev = m_prevPop.find(target);
+        if (prev != m_prevPop.end()) {
+            int delta = popCount - prev->second;
+            if (delta >= 2)       popTag += " \xe2\x86\x91";   // ↑
+            else if (delta <= -2) popTag += " \xe2\x86\x93";   // ↓
+        }
+        popTag += "]";
+    }
+
     switch (pickType(m_rng)) {
 
     case 0: {   // Drought — cripple production
@@ -425,8 +451,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->morale = std::max(0.f, settl->morale - 0.10f);  // drought demoralises
         if (log) log->Push(day, hour,
             "DROUGHT strikes " + settl->name + " ("
-            + std::to_string((int)DROUGHT_DURATION) + "h) [pop "
-            + std::to_string(popCount) + "]");
+            + std::to_string((int)DROUGHT_DURATION) + "h) " + popTag);
         // Seed rumour into up to 2 NPCs at this settlement
         {
             std::vector<entt::entity> residents;
@@ -452,7 +477,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         it->second -= lost;
         settl->morale = std::max(0.f, settl->morale - 0.12f);  // food loss is demoralising
         if (log) log->Push(day, hour,
-            "BLIGHT hits " + settl->name + " [pop " + std::to_string(popCount) + "] — "
+            "BLIGHT hits " + settl->name + " " + popTag + " — "
             + std::to_string((int)lost) + " food destroyed");
         break;
     }
@@ -490,8 +515,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[120];
             std::snprintf(buf, sizeof(buf),
-                "PLAGUE erupts at %s [pop %d] — %d died, disease spreading via roads!",
-                settl->name.c_str(), popCount, killCount);
+                "PLAGUE erupts at %s %s — %d died, disease spreading via roads!",
+                settl->name.c_str(), popTag.c_str(), killCount);
             log->Push(day, hour, buf);
         }
         // Seed rumour into up to 2 NPCs at this settlement
@@ -514,7 +539,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         static constexpr float BOOM_GOLD = 150.f;
         settl->treasury += BOOM_GOLD;
         if (log) log->Push(day, hour,
-            "TRADE BOOM at " + settl->name + " [pop " + std::to_string(popCount) + "]"
+            "TRADE BOOM at " + settl->name + " " + popTag
             + " — treasury +" + std::to_string((int)BOOM_GOLD) + "g");
         break;
     }
@@ -546,7 +571,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         float lost = it->second * 0.40f;
         it->second -= lost;
         if (log) log->Push(day, hour,
-            "SPRING FLOOD at " + settl->name + " [pop " + std::to_string(popCount) + "] — "
+            "SPRING FLOOD at " + settl->name + " " + popTag + " — "
             + std::to_string((int)lost) + " food washed away");
         break;
     }
@@ -560,7 +585,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->modifierDuration   = BOUNTY_DURATION;
         settl->modifierName       = "Harvest Bounty";
         if (log) log->Push(day, hour,
-            "HARVEST BOUNTY at " + settl->name + " [pop " + std::to_string(popCount) + "]"
+            "HARVEST BOUNTY at " + settl->name + " " + popTag
             + " (+50% production, " + std::to_string((int)BOUNTY_DURATION) + "h)");
         break;
     }
@@ -630,7 +655,15 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         }
         if (log) log->Push(day, hour,
             "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name
-            + " [pop " + std::to_string(popCount + arrivals) + "]");
+            + " [pop " + std::to_string(popCount + arrivals) + ([&]{
+                auto prev = m_prevPop.find(target);
+                if (prev != m_prevPop.end()) {
+                    int d = (popCount + arrivals) - prev->second;
+                    if (d >= 2) return " \xe2\x86\x91]";
+                    if (d <= -2) return " \xe2\x86\x93]";
+                }
+                return "]";
+            }()));
         break;
     }
 
@@ -692,7 +725,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         const char* resName = (scarcest == ResourceType::Food)  ? "food"  :
                               (scarcest == ResourceType::Water) ? "water" : "wood";
         if (log) log->Push(day, hour,
-            "OFF-MAP CONVOY at " + settl->name + " [pop " + std::to_string(popCount) + "] +"
+            "OFF-MAP CONVOY at " + settl->name + " " + popTag + " +"
             + std::to_string((int)CONVOY_AMOUNT)
             + " " + resName + " (paid " + std::to_string((int)cost) + "g)");
         break;
@@ -734,8 +767,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "FESTIVAL at %s [pop %d] — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
-                settl->name.c_str(), popCount, celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
+                "FESTIVAL at %s %s — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
+                settl->name.c_str(), popTag.c_str(), celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
             log->Push(day, hour, buf);
         }
         break;
@@ -765,8 +798,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[180];
             std::snprintf(buf, sizeof(buf),
-                "FIRE at %s [pop %d] — %.0f food, %.0f wood destroyed, %d died",
-                settl->name.c_str(), popCount, foodLost, woodLost, killed);
+                "FIRE at %s %s — %.0f food, %.0f wood destroyed, %d died",
+                settl->name.c_str(), popTag.c_str(), foodLost, woodLost, killed);
             log->Push(day, hour, buf);
         }
         break;
@@ -797,8 +830,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "HEAT WAVE strikes %s [pop %d] — production -25%%, water reserves drained (%dh)",
-                settl->name.c_str(), popCount, (int)HEATWAVE_DURATION);
+                "HEAT WAVE strikes %s %s — production -25%%, water reserves drained (%dh)",
+                settl->name.c_str(), popTag.c_str(), (int)HEATWAVE_DURATION);
             log->Push(day, hour, buf);
         }
         break;
@@ -816,8 +849,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "LUMBER WINDFALL at %s [pop %d] — storm felled trees, +%.0f wood",
-                settl->name.c_str(), popCount, windfall);
+                "LUMBER WINDFALL at %s %s — storm felled trees, +%.0f wood",
+                settl->name.c_str(), popTag.c_str(), windfall);
             log->Push(day, hour, buf);
         }
         break;
@@ -892,8 +925,18 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "SKILLED IMMIGRANT: %s (%s) arrives at %s [pop %d] — skill %.0f%%",
-                immName.c_str(), specialty16, settl->name.c_str(), popCount + 1, highSkill * 100.f);
+                "SKILLED IMMIGRANT: %s (%s) arrives at %s [pop %d%s] — skill %.0f%%",
+                immName.c_str(), specialty16, settl->name.c_str(), popCount + 1,
+                [&]{
+                    auto prev = m_prevPop.find(target);
+                    if (prev != m_prevPop.end()) {
+                        int d = (popCount + 1) - prev->second;
+                        if (d >= 2) return " \xe2\x86\x91";
+                        if (d <= -2) return " \xe2\x86\x93";
+                    }
+                    return "";
+                }(),
+                highSkill * 100.f);
             log->Push(day, hour, buf);
         }
         break;
@@ -919,8 +962,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "MARKET CRISIS at %s [pop %d] — panic buying, all prices spike %.1fx!",
-                settl->name.c_str(), popCount, spikeBase);
+                "MARKET CRISIS at %s %s — panic buying, all prices spike %.1fx!",
+                settl->name.c_str(), popTag.c_str(), spikeBase);
             log->Push(day, hour, buf);
         }
         break;
@@ -971,8 +1014,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "EARTHQUAKE at %s [pop %d] — %d facilit%s destroyed, all roads blocked (%dh)",
-                settl->name.c_str(), popCount, destroyed,
+                "EARTHQUAKE at %s %s — %d facilit%s destroyed, all roads blocked (%dh)",
+                settl->name.c_str(), popTag.c_str(), destroyed,
                 destroyed == 1 ? "y" : "ies", (int)QUAKE_ROAD_BLOCK_DURATION);
             log->Push(day, hour, buf);
         }
