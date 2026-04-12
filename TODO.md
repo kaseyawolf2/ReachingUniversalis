@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Graduation log includes gold saved** — Append NPC balance to hauler graduation log.
-
 ## Recently Done
+
+- [x] **Graduation log includes gold saved** — Shows "(125g)" in hauler graduation log.
 
 - [x] **Morale bar in stockpile panel** — Horizontal bar below treasury, green/yellow/red by threshold.
 
@@ -695,7 +695,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   proportional to `panel.morale` (already in `StockpilePanel`). Colour: green ≥0.7, yellow
   ≥0.3, red <0.3. Label "Morale" to the left. Visual complement to the M:XX% in status bar.
 
-- [ ] **Graduation log includes gold saved** — In `EconomicMobilitySystem.cpp`'s hauler
+- [x] **Graduation log includes gold saved** — In `EconomicMobilitySystem.cpp`'s hauler
   graduation log, append the NPC's balance: "X saved enough (125g) to become a hauler at Y".
   Gives the player a sense of how much wealth is involved in the career transition.
 
@@ -784,6 +784,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   on the resident's contentment stored in `StockpilePanel::AgentInfo`. Add `float contentment`
   to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`, populate in SimThread. Show a green
   dot (>0.7), yellow dot (>0.4), or red dot (<0.4) after each resident's name line.
+
+- [ ] **Hauler graduation gold threshold shown in tooltip** — In `HUD::DrawHoverTooltip`
+  (HUD.cpp), for non-hauler NPCs with balance > 50, show "Hauler at: 100g" (the graduation
+  threshold) with a tiny progress bar. Read `GRADUATION_THRESHOLD` value (100g) as a constant.
+  Shows NPC's progress toward becoming a hauler. No new snapshot fields — `balance` already
+  available.
+
+- [ ] **Bankruptcy log includes gold balance** — In `EconomicMobilitySystem.cpp`'s bankruptcy
+  log, append the hauler's remaining balance: "X went bankrupt (2g left) — returned to labor
+  at Y". Mirrors the graduation log's gold display. Use `money.balance` already in scope.
 
 ---
 
