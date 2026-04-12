@@ -115,6 +115,21 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         }
     }
 
+    // Scarcity nudge: if home settlement has any stockpile below 10, all
+    // destinations become more attractive (+0.3 per scarce resource).
+    float scarcityNudge = 0.f;
+    {
+        static constexpr float SCARCITY_THRESHOLD = 10.f;
+        const auto* homeSp = registry.try_get<Stockpile>(homeSettlement);
+        if (homeSp) {
+            for (auto rt : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                auto it = homeSp->quantities.find(rt);
+                if (it == homeSp->quantities.end() || it->second < SCARCITY_THRESHOLD)
+                    scarcityNudge += 0.3f;
+            }
+        }
+    }
+
     entt::entity best      = entt::null;
     float        bestScore = -1.f;
 
@@ -200,6 +215,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                 }
             }
         }
+
+        // Scarcity at home makes all destinations more attractive
+        total += scarcityNudge;
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
