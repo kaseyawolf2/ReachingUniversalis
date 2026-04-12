@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Scarcity morale penalty** — If any stockpile < 10 units, apply -0.003 morale/game-hour.
+
 ## Recently Done
 
 - [x] **Stockpile abundance log event** — Log "Prosperity: [settlement] has abundant stores —
