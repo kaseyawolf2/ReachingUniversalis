@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession distribution in stockpile panel** — Below the residents list header in
+- [x] **Profession distribution in stockpile panel** — Below the residents list header in
   `DrawStockpilePanel` (RenderSystem.cpp), add a single compact line showing profession counts,
   e.g. "Fa:4 Wa:3 Lu:2". Build the counts by iterating `panel.residents` (already populated).
   Render in dim LIGHTGRAY after the header line. Replaces no existing line — just one extra row.
@@ -308,7 +308,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `panel.residents.back()` already in the snapshot. Draw it in `RenderSystem::DrawStockpilePanel`
   using `GetMousePosition()` comparison against the section Y range. No new fields needed.
 
-- [ ] **Profession distribution in stockpile panel** — Below the residents list header in
+- [x] **Profession distribution in stockpile panel** — Below the residents list header in
   `DrawStockpilePanel` (RenderSystem.cpp), add a single compact line showing profession counts,
   e.g. "Fa:4 Wa:3 Lu:2". Build the counts by iterating `panel.residents` (already populated).
   Render in dim LIGHTGRAY after the header line. Replaces no existing line — just one extra row.
@@ -1219,3 +1219,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   found. Iterate the `HomeSettlement` view, track the NPC with lowest `Money::balance` that meets
   the need threshold, and give to them instead. This makes charity targeted rather than random,
   creating more meaningful wealth redistribution among NPCs.
+
+- [ ] **Profession change on skill discovery** — In `RandomEventSystem.cpp`'s skill discovery
+  personal event block, after boosting a random skill by +0.08–0.12, check if the boosted skill
+  now exceeds the NPC's current profession skill by > 0.15. If so, change `Profession::type` to
+  match the new dominant skill (e.g., farming skill > water_drawing → become Farmer). Log
+  "X discovers talent for farming, changes profession at Y." This makes skill discovery a career
+  turning point rather than just a stat bump.
+
+- [ ] **Profession count in world status bar** — In `HUD::DrawWorldStatus` (HUD.cpp), after the
+  morale label for each settlement, add a compact "F/W/L" count showing farmers/water carriers/
+  lumberjacks. Read from a new `int farmers, waterCarriers, lumberjacks` triple in `SettlementStatus`
+  (RenderSnapshot.h), populated in SimThread's world-status loop by counting `Profession::type`
+  for NPCs homed at each settlement. Gives at-a-glance workforce composition per settlement.
