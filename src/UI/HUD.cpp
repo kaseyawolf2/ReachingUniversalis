@@ -285,6 +285,17 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     DrawSettlementTooltip(snap, camera);
     DrawRoadTooltip(snap, camera);
     if (debugOverlay)  DrawDebugOverlay(snap);
+    if (debugOverlay) {
+        // Mood colour legend — bottom-right corner
+        static const int LX = SCREEN_W - 170, LY = SCREEN_H - 70;
+        DrawRectangle(LX - 4, LY - 4, 168, 64, Fade(BLACK, 0.7f));
+        DrawCircleV({ (float)LX + 5, (float)LY + 7 },  5.f, GREEN);
+        DrawText("Thriving (>70%)",  LX + 14, LY,      11, Fade(GREEN, 0.9f));
+        DrawCircleV({ (float)LX + 5, (float)LY + 25 }, 5.f, YELLOW);
+        DrawText("Stressed (40-70%)", LX + 14, LY + 18, 11, Fade(YELLOW, 0.9f));
+        DrawCircleV({ (float)LX + 5, (float)LY + 43 }, 5.f, RED);
+        DrawText("Suffering (<40%)", LX + 14, LY + 36, 11, Fade(RED, 0.9f));
+    }
     if (marketOverlay) DrawMarketOverlay(snap);
     DrawMinimap(snap);
     DrawNotifications();
