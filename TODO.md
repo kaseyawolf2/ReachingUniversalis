@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
-  (Hunger > 0.8, Money > 20g, charityTimer == 0), draw a faint dim circle of radius 80 around
-  them in `GameState.cpp` (the render loop that draws agent dots). Check `AgentEntry::balance`
-  and `AgentEntry::hungerPct` to decide if `canHelp` applies. Draw using Raylib's
-  `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only draw when no other overlay is active (e.g.
-  no road or facility hovered). This gives the player spatial awareness of charity coverage.
-
 ---
 
 ## Done
+
+- [x] **Charity radius shown on hover** — `charityReady` field in `AgentEntry`; faint `Fade(LIME, 0.2f)` circle (radius 80) drawn in `GameState::Draw` when hovering NPC with `hungerPct > 0.8`, `balance > 20g`, `charityReady`.
 
 - [x] **Warmth glow shown in tooltip** — `recentWarmthGlow` in `AgentEntry`; set when `htp > 0.9 && charityTimer > 0`. "Warm from giving" in `Fade(ORANGE, 0.75f)` below gratitude line.
 
@@ -525,3 +520,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   contentment tint replaces the need-distress color that SimThread already computes, so verify
   the two don't conflict — SimThread sets drawColor based on worst need; the render loop in
   GameState can layer a contentment tint on top via `ColorAlphaBlend` or just gate on `a.contentment`.
+
+- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, after
+  identifying `starving.entity`, expand the log from "X helped a starving neighbour." to
+  "X helped [Name] at [Settlement]." Read `registry.try_get<Name>(starving.entity)` for the
+  recipient name and `registry.try_get<Settlement>` on `starving.homeSettl` for the settlement.
+  No new components. The charity block is in the large NPC loop near the bottom of
+  `AgentDecisionSystem::Update`.
+
+- [ ] **Gratitude shown in world dot** — While `isGrateful` is true, draw a faint LIME ring
+  around the NPC's world dot in `GameState::Draw`. After the `DrawCircleV` for the agent dot,
+  add: if `a.isGrateful && a.role == RenderSnapshot::AgentRole::NPC`, call
+  `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(LIME, 0.45f))`. `isGrateful` is already in
+  `AgentEntry`. Keeps the visual footprint small (just one extra ring draw per grateful NPC).
+
+- [ ] **Exile on repeat theft** — Add `int theftCount = 0` to `DeprivationTimer` in
+  `Components.h`. Increment it in `AgentDecisionSystem`'s theft block after setting
+  `stealCooldown`. When `theftCount >= 3`, clear `HomeSettlement::settlement = entt::null` to
+  make the NPC a wanderer (no wages, no schedule). Log "X exiled from Y for repeated theft."
+  No re-settlement logic needed in this first pass — just the exile trigger.
