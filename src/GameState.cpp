@@ -375,6 +375,9 @@ void GameState::Draw() {
             float alpha = 0.3f + 0.3f * sinf((float)GetTime() * 4.f);
             DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(RED, alpha));
         }
+        // Hauler route line: faint line from hauler to destination
+        if (a.hasRouteDest)
+            DrawLineV({ a.x, a.y }, { a.destX, a.destY }, Fade(SKYBLUE, 0.3f));
     }
 
     EndMode2D();
