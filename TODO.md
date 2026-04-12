@@ -9,11 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession colour in residents list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), colour the profession abbreviation by type instead of uniform grey:
-  Fa = `Fade(GREEN, 0.6f)` (farming), Wa = `Fade(SKYBLUE, 0.6f)` (water), Lu = `Fade(BROWN, 0.7f)`
-  (wood), Me = `Fade(GOLD, 0.5f)` (merchant). Change the single `Fade(GRAY, 0.75f)` colour to
-  a per-abbreviation lookup. No new fields or components needed.
+- [x] **Profession colour in residents list** — Fa=green, Wa=skyblue, Lu=brown, Me=gold in
+  stockpile panel residents list.
 
 - [x] **Migrant welcome log at destination** — Added "Ashford welcomes X (Farmer) — pop now N"
   log after arrival, counting current HomeSettlement population.
@@ -506,11 +503,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Migrant welcome log at destination** — Added welcome log with pop count on arrival.
 
-- [ ] **Profession colour in residents list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), colour the profession abbreviation by type instead of uniform grey:
-  Fa = `Fade(GREEN, 0.6f)` (farming), Wa = `Fade(SKYBLUE, 0.6f)` (water), Lu = `Fade(BROWN, 0.7f)`
-  (wood), Me = `Fade(GOLD, 0.5f)` (merchant). Change the single `Fade(GRAY, 0.75f)` colour to
-  a per-abbreviation lookup. No new fields or components needed.
+- [x] **Profession colour in residents list** — Fa=green, Wa=skyblue, Lu=brown, Me=gold.
 
 - [ ] **Settlement specialty label in stockpile header** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), after the existing header line, add a small `specialty` label if non-empty.
@@ -1517,3 +1510,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   a new field in `DeprivationTimer` in `Components.h`) differs from current home, apply a
   +0.15 bonus to the birthplace score. Set `birthSettlement` in `BirthSystem.cpp` at NPC
   creation to `settl` (the settlement entity). Creates pull toward hometown after migrating away.
+
+- [ ] **Profession distribution colour in stockpile header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the compact "Fa:4 Wa:3 Lu:2" profession distribution line (around line 188)
+  is drawn in uniform `Fade(LIGHTGRAY, 0.7f)`. Split it into per-segment draws: render "Fa:4"
+  in `Fade(GREEN, 0.6f)`, "Wa:3" in `Fade(SKYBLUE, 0.6f)`, "Lu:2" in `Fade(BROWN, 0.7f)`.
+  Use individual `DrawText` + `MeasureText` calls instead of a single buffer. Matches the new
+  per-resident profession colours.
+
+- [ ] **NPC age-based work speed** — In `ProductionSystem.cpp`'s worker contribution calculation,
+  scale `workerContrib` by age bracket: youth (age < 20) get 0.7x, prime (20-50) get 1.0x,
+  mature (50-60) get 0.9x, elder (> 60) already has special handling. Read `Age::days` via
+  `try_get<Age>` on the worker entity. Models physical capability varying with life stage.
