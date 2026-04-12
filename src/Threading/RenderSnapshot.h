@@ -41,6 +41,9 @@ struct RenderSnapshot {
         std::string profession;
         // Settlement name the agent calls home (empty if player or no home)
         std::string homeSettlementName;
+        // Home settlement world position (for return-trip line rendering)
+        float homeX = 0.f, homeY = 0.f;
+        bool  hasHome = false;
         // Skill levels (0-1); -1 if entity has no Skills component
         float farmingSkill     = -1.f;
         float waterSkill       = -1.f;

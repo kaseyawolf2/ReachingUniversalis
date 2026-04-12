@@ -1236,13 +1236,18 @@ void SimThread::WriteSnapshot() {
             }
         }
 
-        // Home settlement name for tooltip
+        // Home settlement name and position for tooltip / return-trip line
         std::string homeSettlName;
+        float homeX = 0.f, homeY = 0.f;
+        bool  hasHome = false;
         if (!isPlayer) {
             if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
                 if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
                     if (const auto* sts = m_registry.try_get<Settlement>(hs->settlement))
                         homeSettlName = sts->name;
+                    if (const auto* hp = m_registry.try_get<Position>(hs->settlement)) {
+                        homeX = hp->x; homeY = hp->y; hasHome = true;
+                    }
                 }
             }
         }
@@ -1337,6 +1342,7 @@ void SimThread::WriteSnapshot() {
                            hasRouteDest, routeDestX, routeDestY,
                            std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
+                           homeX, homeY, hasHome,
                            farmSkill, waterSkill, woodSkill,
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,

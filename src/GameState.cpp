@@ -380,6 +380,10 @@ void GameState::Draw() {
             Color routeCol = a.hasCargoDot ? Fade(a.cargoDotColor, 0.3f) : Fade(SKYBLUE, 0.3f);
             DrawLineV({ a.x, a.y }, { a.destX, a.destY }, routeCol);
         }
+        // Return trip line: faint gray line back toward home when hauler has no route dest
+        else if (a.role == RenderSnapshot::AgentRole::Hauler && a.hasHome && !a.hasRouteDest) {
+            DrawLineV({ a.x, a.y }, { a.homeX, a.homeY }, Fade(GRAY, 0.15f));
+        }
     }
 
     EndMode2D();
