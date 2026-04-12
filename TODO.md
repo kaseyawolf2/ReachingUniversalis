@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Graduation log includes gold saved** — Append NPC balance to hauler graduation log.
+
 ## Recently Done
 
 - [x] **Morale bar in stockpile panel** — Horizontal bar below treasury, green/yellow/red by threshold.
