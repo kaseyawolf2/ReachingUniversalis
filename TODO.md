@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC birth log** — In `BirthSystem.cpp`, the birth event currently only logs if there's an
+  `EventLog`. Extend the log message from "Born: Aldric Smith at Ashford" to also include the
+  parent's name if the `ChildTag` has a `followTarget` (the entity following at birth). Use
+  `registry.try_get<Name>(childTag.followTarget)` to get the parent's name and append
+  "raised by Brom Cooper". Requires no new components.
+
 - [x] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
   show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
   (2) "Morale: XX%" from `StockpilePanel::morale` — but that's only available when the settlement
