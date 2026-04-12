@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler profit summary in tooltip** — Show estimated trip profit in faint GREEN below cargo line.
+
 ## Recently Done
 
 - [x] **Hauler convoy formation** — Hauler::inConvoy set when GoingToDeposit within 60u of another hauler to same destination. 25% speed bonus, "[Convoy]" in green tooltip.
