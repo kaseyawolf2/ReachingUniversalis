@@ -382,6 +382,27 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 if (destSettl)
                     destSettl->morale = std::min(1.f, destSettl->morale + 0.01f);
 
+                // Log the delivery (cargo summary + morale bump)
+                if (destSettl && !inv.contents.empty()) {
+                    auto logV = registry.view<EventLog>();
+                    auto tmV  = registry.view<TimeManager>();
+                    if (!logV.empty() && !tmV.empty()) {
+                        const auto& tm2 = tmV.get<TimeManager>(*tmV.begin());
+                        std::string cargo;
+                        for (const auto& [type, qty] : inv.contents) {
+                            if (!cargo.empty()) cargo += "+";
+                            const char* rn = (type == ResourceType::Food)  ? "food"  :
+                                             (type == ResourceType::Water) ? "water" : "wood";
+                            cargo += std::to_string(qty) + " " + rn;
+                        }
+                        char buf[160];
+                        std::snprintf(buf, sizeof(buf),
+                            "Hauler delivered %s to %s (morale +1%%)",
+                            cargo.c_str(), destSettl->name.c_str());
+                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                    }
+                }
+
                 inv.contents.clear();
 
                 // Return-trip opportunism: check if destination has profitable goods to
