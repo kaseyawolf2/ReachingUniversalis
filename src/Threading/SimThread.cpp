@@ -478,10 +478,38 @@ void SimThread::ProcessInput() {
                         std::string bandName = "a bandit";
                         if (const auto* n = m_registry.try_get<Name>(nearBandit))
                             bandName = n->value;
-                        char buf[100];
+                        // Find nearest road to bandit for log detail
+                        const auto* bpos = m_registry.try_get<Position>(nearBandit);
+                        std::string roadLabel;
+                        if (bpos) {
+                            float bestD2 = std::numeric_limits<float>::max();
+                            m_registry.view<Road>().each([&](const Road& road) {
+                                if (road.blocked) return;
+                                const auto* pa = m_registry.try_get<Position>(road.from);
+                                const auto* pb = m_registry.try_get<Position>(road.to);
+                                if (!pa || !pb) return;
+                                float mx = (pa->x + pb->x) * 0.5f;
+                                float my = (pa->y + pb->y) * 0.5f;
+                                float dx2 = mx - bpos->x, dy2 = my - bpos->y;
+                                float d2 = dx2*dx2 + dy2*dy2;
+                                if (d2 < bestD2) {
+                                    bestD2 = d2;
+                                    std::string nA, nB;
+                                    if (const auto* sa = m_registry.try_get<Settlement>(road.from))
+                                        nA = sa->name;
+                                    if (const auto* sb = m_registry.try_get<Settlement>(road.to))
+                                        nB = sb->name;
+                                    if (!nA.empty() && !nB.empty())
+                                        roadLabel = " on the " + nA + "-" + nB + " road";
+                                    else
+                                        roadLabel.clear();
+                                }
+                            });
+                        }
+                        char buf[256];
                         std::snprintf(buf, sizeof(buf),
-                            "You confronted %s and recovered %.1fg (+10 rep)",
-                            bandName.c_str(), recover);
+                            "Player confronted %s%s, recovered %.1fg (+10 rep)",
+                            bandName.c_str(), roadLabel.c_str(), recover);
                         plog->Push(tm.day, (int)tm.hourOfDay, buf);
                     }
                 }
