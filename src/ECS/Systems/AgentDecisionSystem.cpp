@@ -1486,6 +1486,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (lurkRoad != entt::null) {
                 banditsPerRoad[lurkRoad]++;
                 // Assign gang name when 2+ bandits share a road
+                std::string oldGangName = timer.gangName;
                 if (banditsPerRoad[lurkRoad] >= 2) {
                     // Try to copy an existing gang name from another bandit at this road
                     std::string existingGang;
@@ -1522,6 +1523,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             timer.gangName = "The " + nA + "-" + nB + " Wolves";
                         else
                             timer.gangName = "Road Wolves";
+                    }
+                    // Log when a bandit first joins a gang
+                    if (oldGangName.empty() && !timer.gangName.empty() && banditLog) {
+                        std::string who = "A bandit";
+                        if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                        std::string roadNames;
+                        if (const auto* rd = registry.try_get<Road>(lurkRoad)) {
+                            std::string nA2, nB2;
+                            if (const auto* sa = registry.try_get<Settlement>(rd->from)) nA2 = sa->name;
+                            if (const auto* sb = registry.try_get<Settlement>(rd->to))   nB2 = sb->name;
+                            if (!nA2.empty() && !nB2.empty())
+                                roadNames = " on the " + nA2 + "-" + nB2 + " road";
+                        }
+                        banditLog->Push(charityDay, charityHour,
+                            who + " joined " + timer.gangName + roadNames + ".");
                     }
                 } else {
                     timer.gangName.clear();
