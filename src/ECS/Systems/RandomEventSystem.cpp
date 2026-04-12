@@ -67,13 +67,11 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                     log->Push(tm.day, (int)tm.hourOfDay,
                         "Prosperity: " + where + " has abundant stores — morale rising.");
                 }
-            } else {
-                // Reset when any stockpile drops below 40 so it can fire again next time
-                bool belowReset = (foodIt  == sp->quantities.end() || foodIt->second  < SCARCITY_RESET) ||
-                                  (waterIt == sp->quantities.end() || waterIt->second < SCARCITY_RESET) ||
-                                  (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_RESET);
-                if (belowReset)
-                    s_loggedAbundance.erase(e);
+            } else if (s_loggedAbundance.erase(e)) {
+                // Log once when a settlement first drops out of abundance
+                if (log)
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        "Abundance fading at " + s.name + " — stores declining.");
             }
             // Scarcity: any stockpile below 10 drains morale
             static constexpr float SCARCITY_THRESHOLD = 10.f;
