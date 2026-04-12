@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
+  are both `Idle` and within 30 units during off-work hours (20–22h), briefly nudge their
+  velocity ±5 units toward each other (`vel.x += dx * 0.1f / dist`) for 2–3 game-seconds so
+  they visually gravitate together. Track with a `gossipTimer` float on `DeprivationTimer`
+  (already exists); set 3.f when gossip fires, skip new gossip while > 0. No new components.
+
 - [x] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
   after the "Residents (N):" header, count how many distinct `familyName` values appear in
   `panel.residents` and how many surnames appear ≥ 2 times. Add a compact line below the header:
