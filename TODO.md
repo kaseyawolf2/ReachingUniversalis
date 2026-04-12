@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Bounty pool shown in settlement tooltip** — "Bounty: Xg" in faint GOLD in settlement hover tooltip when bountyPool > 0.5. Added to SettlementStatus, piped from Settlement.
+
 - [x] **Bounty pool shown in stockpile panel** — "Bounty: Xg" in faint GOLD below treasury line when bountyPool > 0. Added to StockpilePanel, piped from Settlement in WriteSnapshot.
 
 - [x] **Settlement danger indicator** — Pulsing red "!" next to settlement name when connected roads have 3+ total bandits. Sums banditCount from RoadEntry by nameA/nameB match.
@@ -1226,7 +1228,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   faint GOLD below the treasury line when bountyPool > 0. Lets players know which settlements
   are worth patrolling for bounty payouts.
 
-- [ ] **Bounty pool shown in settlement tooltip** — Add `float bountyPool = 0.f` to
+- [x] **Bounty pool shown in settlement tooltip** — Add `float bountyPool = 0.f` to
   `RenderSnapshot::SettlementStatus`. In `SimThread::WriteSnapshot`'s worldStatus block, copy
   `Settlement::bountyPool`. In `HUD::DrawWorldStatus` settlement tooltip, show "Bounty: Xg" in
   faint GOLD when bountyPool > 0.5. Quick glance at which towns are offering bounties.
@@ -1329,6 +1331,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   from stockpiles), subtract 0.5 from the thief's `Reputation::score`. If the Reputation component
   doesn't exist, emplace it with score = -0.5. Connects the existing theft mechanic to the
   reputation system so thieves gradually become social pariahs.
+
+- [ ] **NPC flee from bandits** — Non-bandit NPCs within 60 units of a bandit who just stole
+  from a hauler should briefly flee. In `AgentDecisionSystem`'s theft aftermath (after bandit takes
+  cargo), find nearby non-bandit NPCs and set their velocity away from the bandit for 2 seconds.
+  Add `float panicTimer = 0.f` to `DeprivationTimer`. NPCs with panicTimer > 0 skip normal
+  decision-making. Creates a visceral sense of danger around bandit activity.
+
+- [ ] **Settlement population graph in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  when `panel.popHistory` has 2+ entries, draw a simple line graph (60px tall, spanning panel
+  width) showing population over time. Use GREEN for growth segments, RED for decline. Already
+  have `popHistory` in StockpilePanel — just need the rendering code. Draw below the resident list.
 
 ---
 
