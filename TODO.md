@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Harvest bonus shown in tooltip** — Draw "(good harvest)" line in HUD tooltip when
+  `AgentEntry::harvestBonus` is true. No new snapshot fields needed.
 
 ## Recently Done
 
