@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC remembers last meal source** — Add `std::string lastMealSource = ""` to `DeprivationTimer`. When an NPC eats (in `ConsumptionSystem`), record the settlement name. When hunger drops below 0.2 and lastMealSource is set, log "[NPC] is grateful to [Settlement] for food." Clear on next meal.
+
 ## Recently Done
 
 - [x] **Settlement trade volume in tooltip** — Show "Trade volume: Xg/day" in settlement tooltip.
