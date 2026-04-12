@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler loyalty bonus** — 5% delivery bonus when hauler delivers to home settlement.
-
 ## Recently Done
+
+- [x] **Hauler loyalty bonus** — 5% extra earned on home settlement deliveries.
 
 - [x] **Trade hub badge in settlement tooltip** — "[Trade Hub]" badge shown for settlements with ≥5 trades/day.
 
@@ -763,7 +763,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   on line 1. Recognises settlements with high trade throughput. No new snapshot fields — read
   directly from `best->tradeVolume` already in `SettlementEntry`.
 
-- [ ] **Hauler loyalty bonus** — In `TransportSystem.cpp`'s delivery block, if the hauler's
+- [x] **Hauler loyalty bonus** — In `TransportSystem.cpp`'s delivery block, if the hauler's
   `HomeSettlement` matches the destination settlement, add a 5% bonus to `earned` (loyalty
   discount from the local merchant). Log "X received local loyalty bonus at Y." once per
   delivery. Credits the hauler's balance. No new components — use existing `HomeSettlement`
@@ -2000,3 +2000,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   offset by the agent's x position (so they don't all pulse in sync). Add `float contentment`
   to `AgentEntry` in `RenderSnapshot.h` (already exists). Purely visual — makes prosperous
   settlements visibly sparkle compared to struggling ones.
+
+- [ ] **NPC generosity reputation** — NPCs who give charity frequently gain a "Generous"
+  tag visible in their tooltip. Add `int charityGiven = 0` to `DeprivationTimer` in
+  `Components.h`. Increment in the charity-giving block of `AgentDecisionSystem.cpp`.
+  When `charityGiven >= 5`, show "Generous" badge in `HUD::DrawHoverTooltip`. Add
+  `bool isGenerous = false` to `AgentEntry` in `RenderSnapshot.h`, set in SimThread
+  when `charityGiven >= 5`. Generous NPCs get +0.01 morale per game-hour (self-reward).
+
+- [ ] **Settlement population milestone log** — Log events when a settlement reaches
+  population milestones (10, 20, 30). In `BirthSystem.cpp`, after a successful birth,
+  check if pop just crossed a milestone. Use `static std::map<entt::entity, int>
+  s_lastMilestone` to track. Log "Population at X reached Y!" Adds celebratory
+  narrative markers to growing settlements.
