@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Route line colour by cargo type** — Colour hauler route lines by cargo type instead
-  of always SKYBLUE. Uses existing `cargoDotColor` and `hasCargoDot` from AgentEntry.
-
 ## Recently Done
+
+- [x] **Route line colour by cargo type** — Route lines now coloured by cargo (green/blue/brown).
 
 - [x] **Hauler loyalty bonus** — 5% extra earned on home settlement deliveries.
 
@@ -772,7 +771,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   delivery. Credits the hauler's balance. No new components — use existing `HomeSettlement`
   and `Money` checks.
 
-- [ ] **Route line colour by cargo type** — In `GameState.cpp`'s hauler route line, colour
+- [x] **Route line colour by cargo type** — In `GameState.cpp`'s hauler route line, colour
   the line based on `a.cargoDotColor` instead of always SKYBLUE: green for food, blue for
   water, brown for wood, skyblue when empty. Makes trade flow resource types visible.
   No new snapshot fields — `cargoDotColor` and `hasCargoDot` already available.
@@ -2016,3 +2015,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   check if pop just crossed a milestone. Use `static std::map<entt::entity, int>
   s_lastMilestone` to track. Log "Population at X reached Y!" Adds celebratory
   narrative markers to growing settlements.
+
+- [ ] **NPC night-time rest glow** — In `GameState.cpp`'s agent render loop, when an NPC's
+  behavior is `AgentBehavior::Sleeping`, draw a tiny dim yellow dot (radius 2, alpha 0.2)
+  behind them to suggest lantern/campfire light. Uses existing `behavior` field in `AgentEntry`.
+  Purely visual — makes settlements look alive at night with scattered warm glows.
+
+- [ ] **Hauler convoy detection log** — In `TransportSystem.cpp`, when two haulers are within
+  30px of each other and both in `GoingToDeposit` state heading to the same destination,
+  log "X and Y travel together toward Z" once per pair per trip. Use `static std::set<
+  std::pair<entt::entity, entt::entity>> s_loggedConvoy` cleared when either hauler changes
+  state. Adds emergent social narrative to hauler behaviour without gameplay changes.
