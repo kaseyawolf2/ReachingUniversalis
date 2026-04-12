@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement import/export balance** — Track net goods flow per settlement. Add imports/exports
-  to SettlementEntry, display in settlement tooltip.
-
 ## Recently Done
+
+- [x] **Settlement import/export balance** — Import/export counts displayed in settlement tooltip.
 
 - [x] **Idle hauler dimming** — Idle empty haulers drawn at 50% opacity.
 
@@ -839,7 +838,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to visually distinguish active traders from idle ones. No new snapshot fields — `behavior`
   and `haulerCargoQty` already in `AgentEntry`.
 
-- [ ] **Settlement import/export balance** — In `TransportSystem.cpp`'s delivery block, track
+- [x] **Settlement import/export balance** — In `TransportSystem.cpp`'s delivery block, track
   net goods flow per settlement: `static std::map<entt::entity, int> s_exportCount` incremented
   at source on pickup, `s_importCount` incremented at destination on delivery. Add
   `int imports = 0, exports = 0` to `SettlementEntry` in `RenderSnapshot.h`. Display in
@@ -2139,3 +2138,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   gold line, show a wealth class label: "Destitute" (< 5g), "Poor" (< 20g), "Comfortable"
   (< 60g), "Wealthy" (< 120g), "Rich" (>= 120g). Color-coded from red to gold. Uses existing
   `balance` in `AgentEntry`. No new snapshot fields.
+
+- [ ] **Trade deficit warning log** — In `RandomEventSystem.cpp`, when resetting tradeVolume
+  every 24h, if a settlement's `importCount > exportCount * 3` (importing far more than
+  exporting), log "Trade deficit at X — heavily dependent on imports." Rate-limit to once per
+  3 resets via a `int deficitLogSkip = 0` field on `Settlement` in `Components.h`. Helps the
+  player identify economically vulnerable settlements.
+
+- [ ] **NPC satisfaction survey in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  below the residents list, show a one-line summary: "Avg mood: X%" where X is the mean
+  contentment of all residents. Color green (> 70%), yellow (> 40%), red (< 40%). Uses
+  existing `AgentInfo::contentment` already populated. No new snapshot fields needed.
