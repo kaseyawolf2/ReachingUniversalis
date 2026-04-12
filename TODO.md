@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC flee from bandits** — Nearby non-bandit NPCs panic-flee when a bandit steals from a hauler. Add panicTimer to DeprivationTimer.
-
 ## Recently Done
+
+- [x] **NPC flee from bandits** — panicTimer on DeprivationTimer. NPCs within 60u scatter at 1.5x speed for 2s after bandit intercept. Skip decisions during panic.
+
 
 - [x] **Reputation loss from theft** — -0.5 via get_or_emplace<Reputation> in both food and water theft blocks of ConsumptionSystem.
 
@@ -1381,7 +1382,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   doesn't exist, emplace it with score = -0.5. Connects the existing theft mechanic to the
   reputation system so thieves gradually become social pariahs.
 
-- [ ] **NPC flee from bandits** — Non-bandit NPCs within 60 units of a bandit who just stole
+- [x] **NPC flee from bandits** — Non-bandit NPCs within 60 units of a bandit who just stole
   from a hauler should briefly flee. In `AgentDecisionSystem`'s theft aftermath (after bandit takes
   cargo), find nearby non-bandit NPCs and set their velocity away from the bandit for 2 seconds.
   Add `float panicTimer = 0.f` to `DeprivationTimer`. NPCs with panicTimer > 0 skip normal
@@ -2789,3 +2790,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Use `registry.view<Reputation>` and multiply by `gameHoursDt`. Positive scores decrease,
   negative scores increase — reputation fades over time unless maintained by actions. Prevents
   permanent stigma and encourages ongoing prosocial behaviour.
+
+- [ ] **Panic visual indicator** — In `GameState::Draw`'s agent loop, when an NPC has
+  `panicTimer > 0` (need to pipe through `RenderSnapshot::AgentEntry` as `bool isPanicking`),
+  draw a small yellow '!' above the NPC's head using `DrawText("!", a.x - 2, a.y - a.size - 12,
+  10, Fade(YELLOW, 0.8f))`. In `SimThread::WriteSnapshot`, set `isPanicking = (dt.panicTimer > 0)`
+  where `dt` is the `DeprivationTimer`. Makes panic visible to the player.
+
+- [ ] **NPC reports bandit sighting** — In `AgentDecisionSystem`, after the panic scatter block,
+  for each panicking NPC that has a `HomeSettlement`, log: "[NPC] reports seeing a bandit near
+  [road/settlement]!" Rate-limit with `greetCooldown` (reuse existing cooldown on DeprivationTimer).
+  Uses existing `Name` and `HomeSettlement` components. Creates information propagation where NPC
+  fear translates into visible community awareness of bandit threats.
