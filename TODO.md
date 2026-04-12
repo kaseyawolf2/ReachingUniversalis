@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
+- [x] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
   an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
   (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
   (elders retain some tacit knowledge). No new component needed — `Skills` and `Age` already
@@ -958,3 +958,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `age.days > 65`, multiply the decay rate by 2 so elders lose skills twice as fast.
   This creates a visible lifecycle — peak working years mid-life, gradual decline as elders.
   No new components; uses the existing `SKILL_DECAY_PER_HOUR` constant and `age2->days` check.
+
+- [ ] **Elder mentor bonus** — In `ScheduleSystem.cpp`'s skill-at-worksite block (where
+  `SKILL_GAIN_PER_GAME_HOUR` is applied), if there is an elder NPC (age > 60) currently `Working`
+  at the same `ProductionFacility`, give all other younger workers at that facility a +20% skill
+  gain multiplier (`gainMult *= 1.2f`). Check for nearby elders via a small inner loop over the
+  same facility view, capped to avoid O(n²) blow-up by breaking after finding one elder. Log
+  `"[Name] mentored workers at [settlement]."` once per game-day per facility.
+
+- [ ] **Peak-age production bonus** — In `ProductionSystem.cpp`, when a worker NPC's age is
+  between 25 and 55 (prime working years), apply a small +10% production bonus to their
+  contribution (`workerContrib *= 1.1f`). Read via `registry.try_get<Age>(workerEntity)`.
+  This completes the lifecycle arc: gradual skill growth in youth, peak output in prime years,
+  decline in old age — all without new components.
+
+- [ ] **Elder wisdom event** — In `RandomEventSystem`'s per-NPC event tier (personal event
+  system), add a new case: when a NPC's age > 70 and has a skill ≥ 0.6, fire a rare one-time
+  "wisdom transfer" event — boost one random co-settled younger NPC's skill by 0.1, capped at
+  0.8. Log `"Elder [Name] passed their knowledge to [Name2] at [settlement]."` Guard with a
+  `wisdomFired` bool on `DeprivationTimer` (reuse `illnessNeedIdx` as a flag or add a dedicated
+  bool) to prevent repeated firings.
