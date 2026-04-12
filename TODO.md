@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Bandit gang name** — 2+ bandits at same road form named gang (e.g. "The X-Y Wolves"). Stored in DeprivationTimer::gangName, shown in tooltip.
+
+
 - [x] **Bandit territory warning in road tooltip** — "Bandits: N" in faint RED in road tooltip. Pre-count map in WriteSnapshot, `banditCount` field on `RoadEntry`.
 
 
@@ -1114,7 +1117,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `int banditCount = 0` to `RenderSnapshot::RoadEntry`. In `SimThread::WriteSnapshot`, build the
   same nearest-road map used in `AgentDecisionSystem` and write the count per road entry.
 
-- [ ] **Bandit gang name** — When 2+ bandits lurk at the same road, assign them a shared gang name
+- [x] **Bandit gang name** — When 2+ bandits lurk at the same road, assign them a shared gang name
   (e.g. "The [Road-A]-[Road-B] Wolves"). Add `std::string gangName` to `DeprivationTimer`. In
   `AgentDecisionSystem`'s bandit lurk block, after selecting a road, if the road already has 1+
   bandits, copy the existing gang name; otherwise generate one from the road's endpoint settlement
@@ -1140,6 +1143,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Each game-hour, each settlement adds 0.5g per adjacent-road bandit to the pool. When the player
   confronts a bandit on a road adjacent to a settlement with bountyPool > 0, they receive the pool
   as bonus gold (credited from treasury). Log: "Collected Ng bounty from [settlement]."
+
+- [ ] **Gang log announcement** — When a new gang forms (a bandit gets a gangName that was empty
+  before), log it: "[NPC name] joined [gang name] on the [A]-[B] road." In `AgentDecisionSystem`'s
+  bandit lurk block, compare old gangName with new before overwriting. If old was empty and new is
+  not, push an EventLog entry.
+
+- [ ] **Bandit scatter on confrontation** — When the player confronts a bandit, other bandits in
+  the same gang (same gangName) should flee briefly. In `SimThread::ProcessInput`'s confrontation
+  block, after removing BanditTag from the confronted bandit, iterate nearby BanditTag entities
+  with matching gangName; set their `fleeTimer = 3.f` and velocity away from the player. Makes
+  confrontation feel more dynamic.
 
 ---
 
