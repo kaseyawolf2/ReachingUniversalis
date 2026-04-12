@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler trip history summary** — Add lifetimeTrips/lifetimeProfit to Hauler, pipe through AgentEntry, show in tooltip.
-
 ## Recently Done
+
+- [x] **Hauler trip history summary** — lifetimeTrips/lifetimeProfit on Hauler, piped through AgentEntry, shown as "Trips: N (total +Xg)" in tooltip.
+
 
 - [x] **Convoy bandit deterrence** — `if (h.inConvoy) return;` in AgentDecisionSystem bandit intercept lambda. Bandits skip convoy haulers.
 
@@ -1349,7 +1350,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   convoys a gameplay purpose beyond speed: safety. Already have the `inConvoy` field on the Hauler
   component; just add an `if (h.inConvoy) return;` check in the intercept lambda.
 
-- [ ] **Hauler trip history summary** — Add `int lifetimeTrips = 0; float lifetimeProfit = 0.f`
+- [x] **Hauler trip history summary** — Add `int lifetimeTrips = 0; float lifetimeProfit = 0.f`
   to `Hauler` component. In `TransportSystem`'s GoingToDeposit arrival block (where cargo is sold),
   increment `lifetimeTrips` and add actual profit to `lifetimeProfit`. Pipe both through
   `RenderSnapshot::AgentEntry` and show "Trips: N (total +Xg)" in faint LIGHTGRAY in tooltip.
@@ -2730,3 +2731,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   value (sum of `qty * 3.f` for each resource). Instead of taking the first in range, track the
   best target and intercept only the richest solo hauler. Replace the `intercepted` early-return
   with a `bestTarget` entity + `bestValue` float. Makes bandits smarter predators.
+
+- [ ] **Hauler retirement at old age** — In `EconomicMobilitySystem`'s hauler bankruptcy loop,
+  also check `Age::days > 65` for each hauler. If over 65, convert back to regular NPC (same
+  as bankruptcy demotion logic: return cargo, remove Hauler, restore energy drain, add Schedule).
+  Log: "[Hauler] retired from trading after N trips (total +Xg)." using `lifetimeTrips` and
+  `lifetimeProfit`. Gives haulers a natural lifecycle endpoint with a satisfying summary.
+
+- [ ] **Hauler efficiency rating in tooltip** — In `HUD::DrawHoverTooltip`, below the trip
+  history line, compute and show "Avg profit: +X.Xg/trip" when `lifetimeTrips >= 3` (avoid noisy
+  early data). Use `best->lifetimeProfit / best->lifetimeTrips`. Color: GREEN if > 5g, YELLOW
+  if > 0g, RED if negative. No new snapshot fields needed — computed from existing data.
