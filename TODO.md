@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
+- [x] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
   are both `Idle` and within 30 units during off-work hours (20–22h), briefly nudge their
   velocity ±5 units toward each other (`vel.x += dx * 0.1f / dist`) for 2–3 game-seconds so
   they visually gravitate together. Track with a `gossipTimer` float on `DeprivationTimer`
@@ -338,7 +338,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "Families: 3 dynasties" or "No established families" if all residents have unique surnames.
   Build counts by iterating `panel.residents` — no new snapshot fields needed.
 
-- [ ] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
+- [x] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
   are both `Idle` and within 30 units during off-work hours (20–22h), briefly nudge their
   velocity ±5 units toward each other (`vel.x += dx * 0.1f / dist`) for 2–3 game-seconds so
   they visually gravitate together. Track with a `gossipTimer` float on `DeprivationTimer`
@@ -1256,3 +1256,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "[Family] dynasty established at [Settlement] — 2 members." Use a static
   `std::set<std::string>` to fire once per family name. This makes family growth a visible
   narrative event, connecting births to the dynasty mechanic.
+
+- [ ] **Gossip visual indicator** — In `GameState.cpp`'s agent render loop, when an NPC's
+  `gossipNudgeTimer > 0` (currently drifting toward another NPC), draw a faint speech-bubble
+  indicator: a small `DrawCircle` at (a.x + 6, a.y - 8, 3, Fade(WHITE, 0.3f))`. Add
+  `bool gossiping = false` to `AgentEntry` in `RenderSnapshot.h`, set from
+  `dt->gossipNudgeTimer > 0.f` in SimThread's agent snapshot block. This makes the gossip
+  mechanic visible without being intrusive.
+
+- [ ] **Gossip affinity boost** — In `AgentDecisionSystem.cpp`'s gossip nudge block, after
+  setting `gossipNudgeTimer = 3.f`, also increment `Relations::affinity` between the two NPCs
+  by +0.005 (much smaller than the chat boost of +0.02, since gossip drift is more casual).
+  Use `registry.try_get<Relations>` on both entities. This makes the visual gossip drift
+  also functionally meaningful — frequent proximity builds weak bonds over time.
