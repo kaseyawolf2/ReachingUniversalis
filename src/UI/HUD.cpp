@@ -664,7 +664,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showCargo)    lineCount++;
 
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
-    int wa  = hasName ? MeasureText(lineAge, 11) : 0;
+    bool showApprentice = (best->role == RenderSnapshot::AgentRole::Child && best->ageDays >= 12.f);
+    int wa  = hasName ? MeasureText(lineAge, 11) + (showApprentice ? MeasureText(" [Apprentice]", 11) : 0) : 0;
     int w2  = MeasureText(line2, 11);
     int w3  = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
     int w5  = showGold   ? MeasureText(line5,                 11) : 0;
@@ -692,7 +693,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (hasName) {
         Color ageLineCol = (best->ageDays < 15.f) ? Fade(SKYBLUE, 0.85f) :
                            (best->ageDays > 60.f) ? Fade(ORANGE, 0.80f)  : Fade(LIGHTGRAY, 0.85f);
-        DrawText(lineAge, tx, ly, 11, ageLineCol); ly += 16;
+        DrawText(lineAge, tx, ly, 11, ageLineCol);
+        // Apprentice badge: children aged 12+ are old enough to assist in production
+        if (showApprentice) {
+            int agW = MeasureText(lineAge, 11);
+            DrawText(" [Apprentice]", tx + agW, ly, 11, Fade(YELLOW, 0.6f));
+        }
+        ly += 16;
     }
     DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
     DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
