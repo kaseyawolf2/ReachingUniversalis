@@ -757,12 +757,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 heat = std::min(1.f, heat + 0.15f);
             }
 
-            // Log
+            // Log — name both helper and recipient, and the settlement
             if (charityLog) {
-                std::string who = "An NPC";
-                if (const auto* n = registry.try_get<Name>(helper.entity)) who = n->value;
+                std::string who      = "An NPC";
+                std::string whom     = "a neighbour";
+                std::string at       = "";
+                if (const auto* n = registry.try_get<Name>(helper.entity))  who  = n->value;
+                if (const auto* n = registry.try_get<Name>(starving.entity)) whom = n->value;
+                if (sett) at = " at " + sett->name;
                 charityLog->Push(charityDay, charityHour,
-                    who + " helped a starving neighbour.");
+                    who + " helped " + whom + at + ".");
             }
             break;   // helper gives to at most one starving NPC per cooldown window
         }
