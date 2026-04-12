@@ -270,6 +270,19 @@ void GameState::Draw() {
         DrawText(s.name.c_str(),
                  (int)(s.x - MeasureText(s.name.c_str(), 14) / 2),
                  (int)(s.y - s.radius - 18), 14, nameCol);
+        // Danger indicator: faint red "!" when adjacent roads have 3+ bandits total
+        if (s.pop > 0) {
+            int totalBandits = 0;
+            for (const auto& rd : roads)
+                if (rd.nameA == s.name || rd.nameB == s.name)
+                    totalBandits += rd.banditCount;
+            if (totalBandits >= 3) {
+                float pulse = 0.5f + 0.3f * sinf((float)GetTime() * 2.5f);
+                int nameW = MeasureText(s.name.c_str(), 14);
+                DrawText("!", (int)(s.x + nameW / 2 + 3),
+                         (int)(s.y - s.radius - 18), 14, Fade(RED, pulse));
+            }
+        }
         // Specialty label below name
         if (!s.specialty.empty() && s.pop > 0) {
             Color specCol = (s.specialty == "Farming") ? Fade(GREEN, 0.75f) :
