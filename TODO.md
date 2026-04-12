@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Illness source context in log** — Add "at Greenfield" to illness log in RandomEventSystem case 2.
+(none)
 
 ## Recently Done
+
+- [x] **Illness source context in log** — Added "at Greenfield" to illness log messages.
 
 - [x] **Skill discovery location in log** — Added "at Greenfield" to skill insight log messages.
 
@@ -557,10 +559,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Skill discovery location in log** — Added settlement name to skill insight log.
 
-- [ ] **Illness source context in log** — In `RandomEventSystem`'s per-NPC event loop (case 2:
-  minor illness), extend the log from "X fell ill (hunger)" to "X fell ill (hunger) at Greenfield"
-  using `try_get<HomeSettlement>` → `try_get<Settlement>`. Same pattern as the windfall log fix.
-  No new components needed.
+- [x] **Illness source context in log** — Added settlement name to illness log.
 
 - [ ] **Harvest bonus shown in tooltip** — When `AgentEntry::harvestBonus` is true (already
   wired), draw a faint gold "(good harvest)" line in `HUD::DrawHoverTooltip` (HUD.cpp) below
@@ -1634,3 +1633,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   components, boost the recipient's affinity toward the helper by +0.15 (capped at 1.0).
   Use `registry.get_or_emplace<Relations>(recipient)` to ensure the component exists. This
   makes charity create lasting social bonds that influence future migration and gossip.
+
+- [ ] **Harvest bonus location in log** — In `RandomEventSystem.cpp`'s per-NPC event loop
+  (case 3: good harvest bonus), extend "X has a good harvest bonus" log to include "at
+  Greenfield" using the same `try_get<HomeSettlement>` → `try_get<Settlement>` pattern.
+
+- [ ] **NPC social memory of illness source** — In `AgentDecisionSystem.cpp`'s illness
+  contagion block (the `trySpread` lambda), when an NPC catches illness from another, record the
+  source entity in a new `IllnessSource` component (`entt::entity source; std::string sourceName;`)
+  in `Components.h`. Display "Caught from: X" in the illness tooltip line in `HUD.cpp` by adding
+  `std::string illnessSource` to `AgentEntry` in `RenderSnapshot.h` and populating it in SimThread.
