@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Greeting builds affinity** — After logging a greeting in AgentDecisionSystem, gain +0.01 mutual affinity between the two NPCs. Uses existing Relations component.
 
 ## Recently Done
 
