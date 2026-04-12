@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Warmth glow shown in tooltip** — Mirrors the "Fed by neighbour" pattern. Add a
-  `bool recentWarmthGlow = false` to `AgentEntry` in `RenderSnapshot.h`. In
-  `SimThread::WriteSnapshot`, set it when `needs.list[(int)NeedType::Heat].value > 0.9f`
-  AND the NPC's `charityTimer > 0.f` (they recently gave charity and are warm). In
-  `HUD::DrawHoverTooltip`, show a faint `ORANGE`-coloured "Warm from giving" line (same
-  lineCount/pw pattern as `showHelped`). Makes the warmth buff legible to the player.
-
 ---
 
 ## Done
+
+- [x] **Warmth glow shown in tooltip** — `recentWarmthGlow` in `AgentEntry`; set when `htp > 0.9 && charityTimer > 0`. "Warm from giving" in `Fade(ORANGE, 0.75f)` below gratitude line.
 
 - [x] **Gratitude shown in tooltip** — `isGrateful` bool in `AgentEntry`; set from `gratitudeTimer > 0` in SimThread. "Grateful to neighbour" line in `Fade(LIME, 0.55f)` in tooltip, below "Fed by neighbour".
 
@@ -511,3 +506,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   After finding the starving NPC, call `registry.try_get<Name>` on `starving.entity` for their
   name and `registry.try_get<Settlement>` on the starving NPC's `HomeSettlement::settlement`
   for the settlement name. No new components — just expand the `charityLog->Push` format string.
+
+- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
+  (hungerPct > 0.8, balance > 20g, charityTimer == 0 i.e. `recentWarmthGlow` is false and
+  `recentlyHelped` is false as a proxy), draw a faint dim circle of radius 80 around them
+  in `GameState.cpp`'s agent draw loop. Use `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only
+  draw for the hovered NPC (compare world-mouse position to agent position within `a.size + 8`).
+
+- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, after finding
+  the starving NPC, extend the log: change "X helped a starving neighbour." to "X helped [Name]
+  at [Settlement]." Read `registry.try_get<Name>` on `starving.entity` and
+  `registry.try_get<Settlement>` on `starving.homeSettl`. No new components needed.
+
+- [ ] **NPC mood colour on world dot** — In `GameState.cpp`'s agent draw loop, tint NPC dots by
+  contentment: `contentment >= 0.7` → `WHITE` (current), `>= 0.4` → `YELLOW`, `< 0.4` → `RED`.
+  Use `AgentEntry::contentment` (already in snapshot). Only apply when role is NPC and the dot
+  isn't already overridden by Celebrating (GOLD) or distress color logic in SimThread. The
+  contentment tint replaces the need-distress color that SimThread already computes, so verify
+  the two don't conflict — SimThread sets drawColor based on worst need; the render loop in
+  GameState can layer a contentment tint on top via `ColorAlphaBlend` or just gate on `a.contentment`.
