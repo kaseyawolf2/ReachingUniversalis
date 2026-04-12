@@ -748,6 +748,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     static constexpr float GOSSIP_COOLDOWN  = 6.f;     // game-hours between gossip events
     float gameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
 
+    // ---- Stale rumour removal ----
+    // Remove Rumour components whose hops have reached 0 (fully propagated).
+    // Also prune s_rumourDelivered entries whose origin or destination no longer exists.
+    static std::map<std::tuple<entt::entity, RumourType, entt::entity>, bool> s_rumourDelivered;
+    {
+        std::vector<entt::entity> staleRumours;
+        registry.view<Rumour>().each([&](auto e, const Rumour& r) {
+            if (r.hops <= 0) staleRumours.push_back(e);
+        });
+        for (auto e : staleRumours) registry.remove<Rumour>(e);
+
+        for (auto it = s_rumourDelivered.begin(); it != s_rumourDelivered.end(); ) {
+            if (!registry.valid(std::get<0>(it->first)) ||
+                !registry.valid(std::get<2>(it->first)))
+                it = s_rumourDelivered.erase(it);
+            else ++it;
+        }
+    }
+
     // ---- Affinity decay ----
     // Relations not reinforced by chat drift back toward 0 at 0.001/game-hour.
     // Also prune entries for destroyed entities to prevent map bloat.
@@ -804,6 +823,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             auto* mktB = registry.try_get<Market>(B.homeSettl);
             if (!mktB) continue;
 
+            bool bWasReady = (tmrB && tmrB->gossipCooldown <= 0.f);
+
             // Nudge A's home prices toward B's, and B's home prices toward A's.
             for (auto& [res, priceA] : mktA->price) {
                 float priceB = mktB->GetPrice(res);
@@ -817,7 +838,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         mktB->GetPrice(ResourceType::Water),
                         mktB->GetPrice(ResourceType::Wood));
             }
-            if (tmrB && tmrB->gossipCooldown <= 0.f) {
+            if (bWasReady) {
                 for (auto& [res, priceB] : mktB->price) {
                     float priceA = mktA->GetPrice(res);
                     priceB += (priceA - priceB) * GOSSIP_NUDGE;
@@ -833,6 +854,54 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 tmrB->gossipCooldown = GOSSIP_COOLDOWN;
             }
             tmrA->gossipCooldown = GOSSIP_COOLDOWN;
+
+            // ---- Rumour spreading ----
+            // If one NPC carries a rumour and the other doesn't, pass it along (hops-1).
+            // When the rumour first arrives at a new settlement, apply a market fear effect.
+            auto spreadRumour = [&](entt::entity carrier, entt::entity recipient,
+                                    entt::entity recipientSettl) {
+                auto* rum = registry.try_get<Rumour>(carrier);
+                if (!rum || rum->hops <= 0) return;
+                if (registry.any_of<Rumour>(recipient)) return;  // already has a rumour
+
+                int newHops = rum->hops - 1;
+                registry.emplace<Rumour>(recipient, Rumour{rum->type, rum->origin, newHops});
+
+                // Apply market effect only the first time this rumour reaches this settlement.
+                if (recipientSettl == rum->origin) return;  // same settlement — no fear effect
+                auto key = std::make_tuple(rum->origin, rum->type, recipientSettl);
+                if (s_rumourDelivered.count(key)) return;
+                s_rumourDelivered[key] = true;
+
+                auto* mkt = registry.try_get<Market>(recipientSettl);
+                auto* stt = registry.try_get<Settlement>(recipientSettl);
+                if (!mkt || !stt) return;
+
+                const char* rumourLabel = nullptr;
+                if (rum->type == RumourType::PlagueNearby) {
+                    mkt->price[ResourceType::Food] =
+                        std::min(mkt->price[ResourceType::Food] * 1.10f, 20.f);
+                    rumourLabel = "plague";
+                } else if (rum->type == RumourType::DroughtNearby) {
+                    mkt->price[ResourceType::Water] =
+                        std::min(mkt->price[ResourceType::Water] * 1.15f, 20.f);
+                    rumourLabel = "drought";
+                } else if (rum->type == RumourType::BanditRoads) {
+                    rumourLabel = "bandits";
+                }
+                if (rumourLabel) {
+                    auto lv = registry.view<EventLog>();
+                    if (lv.begin() != lv.end())
+                        lv.get<EventLog>(*lv.begin()).Push(
+                            tm.day, (int)tm.hourOfDay,
+                            std::string("Rumour of ") + rumourLabel + " reached " + stt->name + ".");
+                }
+            };
+
+            spreadRumour(A.entity, B.entity, B.homeSettl);
+            if (bWasReady)
+                spreadRumour(B.entity, A.entity, A.homeSettl);
+
             break;  // A gossips with at most one NPC per cooldown window
         }
     }

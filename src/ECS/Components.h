@@ -432,6 +432,18 @@ struct Relations {
     std::map<entt::entity, float> affinity;   // entity → score [0, 1]
 };
 
+// ---- NPC rumour propagation ----
+// Attached to an NPC who has heard a rumour about a distant settlement event.
+// Spreads via gossip exchanges; hops decrements on each transfer.
+// When a rumour reaches a new settlement, its Market price is nudged (fear/hope).
+enum class RumourType { PlagueNearby, DroughtNearby, BanditRoads };
+
+struct Rumour {
+    RumourType   type;
+    entt::entity origin = entt::null;  // settlement entity where the rumour originated
+    int          hops   = 3;           // remaining propagation hops; 0 = stale, no longer spreads
+};
+
 // ---- Personal goals ----
 // Each NPC holds one active goal. When met, a celebration fires and a new
 // goal is assigned. Goals influence behaviour (SaveGold → hoard; BecomeHauler

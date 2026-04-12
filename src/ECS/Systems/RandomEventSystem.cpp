@@ -375,6 +375,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             "DROUGHT strikes " + settl->name + " ("
             + std::to_string((int)DROUGHT_DURATION) + "h) [pop "
             + std::to_string(popCount) + "]");
+        // Seed rumour into up to 2 NPCs at this settlement
+        {
+            std::vector<entt::entity> residents;
+            registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+                [&](auto e, const HomeSettlement& hs) {
+                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
+                        residents.push_back(e);
+                });
+            std::shuffle(residents.begin(), residents.end(), m_rng);
+            int seedCount = std::min((int)residents.size(), 2);
+            for (int k = 0; k < seedCount; ++k)
+                registry.emplace<Rumour>(residents[k], Rumour{RumourType::DroughtNearby, target, 3});
+        }
         break;
     }
 
@@ -428,6 +441,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 "PLAGUE erupts at %s [pop %d] — %d died, disease spreading via roads!",
                 settl->name.c_str(), popCount, killCount);
             log->Push(day, hour, buf);
+        }
+        // Seed rumour into up to 2 NPCs at this settlement
+        {
+            std::vector<entt::entity> residents;
+            registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+                [&](auto e, const HomeSettlement& hs) {
+                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
+                        residents.push_back(e);
+                });
+            std::shuffle(residents.begin(), residents.end(), m_rng);
+            int seedCount = std::min((int)residents.size(), 2);
+            for (int k = 0; k < seedCount; ++k)
+                registry.emplace<Rumour>(residents[k], Rumour{RumourType::PlagueNearby, target, 3});
         }
         break;
     }
