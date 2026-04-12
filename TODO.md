@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Trade delivery log with morale** — Log hauler delivery with cargo summary and morale
-  bump in TransportSystem.cpp's GoingToDeposit arrival block.
+(none)
 
 ## Recently Done
+
+- [x] **Trade delivery log with morale** — Logs "Hauler delivered N food to X (morale +1%)".
 
 - [x] **Morale trend arrow in world status bar** — Shows +/- after M:XX% based on 1s sampled morale delta.
 
@@ -578,12 +579,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Morale trend arrow in world status bar** — +/- appended to M:XX% label.
 
-- [ ] **Trade delivery log with morale** — In `TransportSystem.cpp`'s GoingToDeposit arrival
-  block, after the existing delivery logic (sale + morale bump), push an EventLog entry:
-  "Hauler delivered [qty] [resource] to [settlement] (morale +1%)". Use the existing `destSettl`
-  name, `inv.contents` (before clear), and `registry.view<EventLog>()`. Rate-limit to once per
-  hauler per 6 game-hours using `hauler.waitTimer` (already reset on arrival) to avoid log spam.
-  No new components needed.
+- [x] **Trade delivery log with morale** — Logs delivery with cargo summary and morale bump.
 
 - [ ] **Hauler home morale penalty on bankruptcy** — In `EconomicMobilitySystem.cpp`'s hauler
   bankruptcy block (where `BanditTag` or demotion happens), apply a morale penalty of -0.03 to
@@ -1681,3 +1677,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   crossed below 0.25 morale. When a settlement's morale drops below 0.25 for the first time,
   log "Morale crisis at X — settlers may leave!" via `EventLog`. Clear the entry when morale
   recovers above 0.4. Mirrors the existing unrest/recovery log pattern.
+
+- [ ] **Return trip delivery log** — In `TransportSystem.cpp`'s return-trip section (around
+  line 420, where the hauler picks up goods at the destination for a return trip), add a similar
+  delivery log when the hauler arrives back home with return-trip cargo. Format: "Hauler returned
+  with N food to Settlement (return trip)". Uses the same EventLog pattern as the forward delivery.
+
+- [ ] **Hauler profit summary in tooltip** — Add `float lastProfit = 0.f` to `AgentEntry` in
+  `RenderSnapshot.h`. In SimThread's agent snapshot loop, for haulers, populate from
+  `Money::balance` delta since last delivery (requires adding `float prevBalance = 0.f` to the
+  `Hauler` component in `Components.h`, updated on each delivery in `TransportSystem.cpp`).
+  Show "Last trip: +N.Ng" in `HUD::DrawHoverTooltip` for hauler tooltips.
