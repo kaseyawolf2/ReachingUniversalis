@@ -155,6 +155,7 @@ struct RenderSnapshot {
         float                         stability = 0.f;   // 0-1 composite settlement health (internal)
         float                         morale    = 0.5f;  // 0-1 settlement morale (from Settlement component)
         int                           workers   = 0;     // current number of Working NPCs
+        int                           idle      = 0;     // homed NPCs with AgentBehavior::Idle
         std::string                   specialty;          // settlement primary output (e.g. "Farming")
         std::string                   modifierName;      // active event ("Plague", "Drought", etc.)
         float                         modifierHoursLeft = 0.f;

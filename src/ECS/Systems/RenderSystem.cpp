@@ -65,9 +65,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     }
 
     // Treasury + workers line
-    char tresBuf[64];
-    std::snprintf(tresBuf, sizeof(tresBuf), "Treasury: %.0fg   Workers: %d",
-                  panel.treasury, panel.workers);
+    char tresBuf[80];
+    std::snprintf(tresBuf, sizeof(tresBuf), "Treasury: %.0fg   Working: %d / Idle: %d",
+                  panel.treasury, panel.workers, panel.idle);
     Color tresCol = (panel.treasury < 50.f) ? RED : (panel.treasury < 150.f) ? ORANGE : GOLD;
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;

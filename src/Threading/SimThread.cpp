@@ -1502,11 +1502,12 @@ void SimThread::WriteSnapshot() {
         ++haulerCount2[hs.settlement];
     });
 
-    // Current per-settlement worker counts (needed for net rate estimate)
-    std::map<entt::entity, int> workerCount;
+    // Current per-settlement worker and idle counts
+    std::map<entt::entity, int> workerCount, idleCount;
     m_registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
         [&](auto, const AgentState& as, const HomeSettlement& hs) {
         if (as.behavior == AgentBehavior::Working) ++workerCount[hs.settlement];
+        else if (as.behavior == AgentBehavior::Idle) ++idleCount[hs.settlement];
     });
 
     // Season modifier for production rate estimate
@@ -1703,6 +1704,7 @@ void SimThread::WriteSnapshot() {
             panel.stability        = stability;
             panel.morale           = s.morale;
             panel.workers          = workers;
+            panel.idle             = idleCount.count(e) ? idleCount.at(e) : 0;
             panel.modifierName     = s.modifierName;
             panel.modifierHoursLeft = s.modifierDuration;
             // Infer specialty from primary facility (same logic as SettlementEntry)
