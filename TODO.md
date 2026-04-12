@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler profit margin in tooltip** — Show "Profit: ~Ng" for haulers with cargo. Add
+  `haulerBuyPrice` and `haulerCargoQty` to `AgentEntry`. Green if positive, red if negative.
+
 ## Recently Done
 
 - [x] **Scarcity morale penalty** — If any stockpile < 10 units, apply -0.003 morale/game-hour.
