@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC witness bandit confrontation** — Non-bandit NPCs within 120u gain +0.1 reputation. Logged per witness.
+
 - [x] **Hauler bankruptcy warning log** — bankruptWarned flag on Hauler, log at 50% BANKRUPTCY_HOURS. Resets on recovery.
 
 - [x] **NPC skill-up notification** — Extended existing milestone system in ScheduleSystem with "Apprentice" (0.25) and "Skilled" (0.75) thresholds.
@@ -1300,7 +1302,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `Hauler`. In `EconomicMobilitySystem`, when bankruptProgress >= 0.5 and !bankruptWarned, log
   and set flag. Gives players advance notice before a hauler actually goes bankrupt.
 
-- [ ] **NPC witness bandit confrontation** — In `SimThread::ProcessInput`'s confrontation block,
+- [x] **NPC witness bandit confrontation** — In `SimThread::ProcessInput`'s confrontation block,
   after the scatter, find non-bandit NPCs within 120 units. For each witness, add +0.1 to their
   `Reputation::score` (they saw justice done) and log: "[NPC] witnessed [player] confront [bandit]."
   Uses existing `Reputation` component; creates social memory of player's actions.
@@ -1458,6 +1460,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `AgentBehavior::Celebrating` for 30 game-seconds (add `float celebrateTimer = 0.f` to
   `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
   Creates a visible moment when NPCs achieve something meaningful.
+
+- [ ] **Witness count shown in confrontation log** — In `SimThread::ProcessInput`'s confrontation
+  block, after the witness loop, append the count to the main confrontation log: "Player confronted
+  [bandit] (N witnesses)." Replace the existing log call or add a follow-up entry. Makes the social
+  impact of confrontation visible in the event log without needing a separate line per witness.
+
+- [ ] **NPC thanks player after witnessing** — In `AgentDecisionSystem`, idle NPCs with
+  `Reputation::score > 0.3` who are within 40 units of the player occasionally log "[NPC] nods
+  respectfully at you." Add `float thankCooldown = 0.f` to `DeprivationTimer` (60 game-sec
+  cooldown). Only fires if the NPC has the Reputation component. Creates ambient feedback for
+  the player's positive actions without adding gameplay mechanics.
 
 ---
 
