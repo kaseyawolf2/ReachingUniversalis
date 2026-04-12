@@ -320,6 +320,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                     mkt->GetPrice(ResourceType::Wood));
                     }
                 }
+
+                // Adopt the profession of the destination settlement's primary facility.
+                // Primary = highest baseRate among facilities belonging to this settlement.
+                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                    entt::entity bestFac = entt::null;
+                    float bestRate = 0.f;
+                    registry.view<ProductionFacility>().each(
+                        [&](auto fe, const ProductionFacility& pf) {
+                        if (pf.settlement == home.settlement && pf.baseRate > bestRate) {
+                            bestRate = pf.baseRate;
+                            bestFac  = fe;
+                        }
+                    });
+                    if (bestFac != entt::null) {
+                        const auto& pf = registry.get<ProductionFacility>(bestFac);
+                        if (auto* prof = registry.try_get<Profession>(entity))
+                            prof->type = ProfessionForResource(pf.output);
+                    }
+                }
             } else {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             }
