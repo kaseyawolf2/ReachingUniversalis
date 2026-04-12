@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Stockpile bar chart in panel** — Draw 3 horizontal bars (food/water/wood) in the
+  stockpile panel, width proportional to qty/200 capped at 100px.
+
 ## Recently Done
 
 - [x] **Wealthy NPC golden ring** — Faint gold ring on NPCs with balance > 80g.
