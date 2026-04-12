@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
+- [x] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
   loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
   to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
   with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
@@ -349,7 +349,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   they visually gravitate together. Track with a `gossipTimer` float on `DeprivationTimer`
   (already exists); set 3.f when gossip fires, skip new gossip while > 0. No new components.
 
-- [ ] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
+- [x] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
   loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
   to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
   with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
@@ -1274,3 +1274,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   by +0.005 (much smaller than the chat boost of +0.02, since gossip drift is more casual).
   Use `registry.try_get<Relations>` on both entities. This makes the visual gossip drift
   also functionally meaningful — frequent proximity builds weak bonds over time.
+
+- [ ] **Elder death succession log** — In `DeathSystem.cpp`, when the eldest NPC at a settlement
+  dies (old-age death, `Age::days` is highest among NPCs homed there), log "[Name] the elder of
+  [Settlement] passes. [NextEldest] is now the eldest." Find the next-eldest by iterating the
+  `HomeSettlement` + `Age` view for the same settlement. This makes elder succession a narrative
+  beat, connecting the [Elder] badge to the death system.
+
+- [ ] **Elder wisdom tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for NPCs with
+  `ageDays > 60` who are the eldest at their settlement (add `bool isSettlementEldest = false`
+  to `AgentEntry` in RenderSnapshot.h, set in SimThread by comparing against the eldest tracked
+  per settlement), show "Settlement elder — respected" in `Fade(ORANGE, 0.7f)` below the age
+  line. Surfaces the eldest mechanic to the hover tooltip without cluttering the panel.
