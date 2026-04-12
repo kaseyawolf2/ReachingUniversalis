@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler trip history summary** — Add lifetimeTrips/lifetimeProfit to Hauler, pipe through AgentEntry, show in tooltip.
+
 ## Recently Done
 
 - [x] **Convoy bandit deterrence** — `if (h.inConvoy) return;` in AgentDecisionSystem bandit intercept lambda. Bandits skip convoy haulers.
