@@ -9,11 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession shown in migration log** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, after setting the new profession, append it to the existing migration log message.
-  Currently the log reads "Mira moved to Thornvale". Change it to "Mira (Farmer) moved to
-  Thornvale" by reading `ProfessionLabel(prof->type)` after updating `prof->type`. If the NPC
-  has no Profession component, omit the suffix. No new fields or components needed.
+- [x] **Profession shown in migration log** — Added arrival log "X (Farmer) moved to Y" in
+  MIGRATING arrival block. Omits profession suffix when Idle or no Profession component.
 
 - [x] **Estate size shown in settlement tooltip** — Added `pendingEstates` to SettlementStatus,
   populated in SimThread, displayed as "Estates: ~Ng" in Fade(GOLD, 0.5f) in settlement tooltip.
@@ -490,11 +487,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Estate size shown in settlement tooltip** — Added `pendingEstates` to SettlementStatus,
   populated in SimThread, displayed as "Estates: ~Ng" in settlement tooltip.
 
-- [ ] **Profession shown in migration log** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, after setting the new profession, append it to the existing migration log message.
-  Currently the log reads "Mira moved to Thornvale". Change it to "Mira (Farmer) moved to
-  Thornvale" by reading `ProfessionLabel(prof->type)` after updating `prof->type`. If the NPC
-  has no Profession component, omit the suffix. No new fields or components needed.
+- [x] **Profession shown in migration log** — Added arrival log with profession in MIGRATING block.
 
 - [ ] **Skill reset on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
   block, when a profession change occurs (new type differs from old), halve the old primary
@@ -1487,3 +1480,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (game-hours). In `AgentDecisionSystem.cpp`'s migration scoring, while `gratitudeTimer > 0`,
   apply a +0.3 bonus to the helper's home settlement score. Tick down in `NeedDrainSystem`.
   Creates emergent loyalty — helped NPCs prefer to stay near their benefactors.
+
+- [ ] **Migration departure log with origin** — In `AgentDecisionSystem.cpp`'s migration decision
+  block (where `state.behavior = AgentBehavior::Migrating` is set), the existing log says
+  "X migrating A → B". Extend to include reason: append "— low food" / "— low water" /
+  "— seeking work" based on which need or stockpile condition triggered migration. Check
+  `timer.stockpileEmpty > 0` and `needs.list[i].value` to determine the primary driver.
+
+- [ ] **Friend-follows-friend migration log** — In `AgentDecisionSystem.cpp`'s friend-follow
+  block (where friends copy the migration target), log "Y follows X to Z" when a friend decides
+  to migrate along. Use `registry.try_get<Name>` on both the original migrant and the follower,
+  and `registry.try_get<Settlement>(dest)` for the destination name. Currently friend-following
+  is silent — this surfaces a key social mechanic.
