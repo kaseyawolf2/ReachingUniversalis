@@ -9,12 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
-  an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
-  (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
-  (elders retain some tacit knowledge). No new component needed — `Skills` and `Age` already
-  exist. This creates an economic lifecycle: NPCs peak in middle age, then their output contribution
-  falls as the elder bonus fades and their skill degrades.
+- [ ] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
+  std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
+  NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
+  (capped at 1.0). Affinity above 0.5 means "friend": friends share food charity (threshold reduced
+  from 5g to 1g for the helping-neighbour check), and when one migrates, the other has a 30% chance
+  to follow. Log "Aldric and Mira left Ashford together." Decay affinity by 0.001/game-hour when
+  apart. No UI needed yet — the effects on migration and charity are the observable outcome.
 
 ---
 
@@ -178,14 +179,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
-  std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
-  NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
-  (capped at 1.0). Affinity above 0.5 means "friend": friends share food charity (threshold reduced
-  from 5g to 1g for the helping-neighbour check), and when one migrates, the other has a 30% chance
-  to follow. Log "Aldric and Mira left Ashford together." Decay affinity by 0.001/game-hour when
-  apart. No UI needed yet — the effects on migration and charity are the observable outcome.
 
 - [ ] **NPC rumour propagation via gossip** — Extend the existing gossip system
   (`AgentDecisionSystem.cpp`). Add a `Rumour` component: `enum RumourType { PlagueNearby,
