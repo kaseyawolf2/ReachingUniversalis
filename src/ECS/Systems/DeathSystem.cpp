@@ -178,8 +178,10 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                         ++orphanCount;
                     });
                 if (orphanCount > 0) {
-                    log2.Push(tm2.day, (int)tm2.hourOfDay,
-                        "Orphaned children of " + s.name + " scattered.");
+                    char obuf[128];
+                    std::snprintf(obuf, sizeof(obuf), "%d children of %s orphaned and scattered.",
+                                  orphanCount, s.name.c_str());
+                    log2.Push(tm2.day, (int)tm2.hourOfDay, obuf);
                 }
             } else if (pop > 0) {
                 m_collapsed.erase(settl);  // recovered
