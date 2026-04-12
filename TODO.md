@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Stockpile bar chart in panel** — Draw 3 horizontal bars (food/water/wood) in the
-  stockpile panel, width proportional to qty/200 capped at 100px.
-
 ## Recently Done
+
+- [x] **Stockpile bar chart in panel** — 3 horizontal bars showing food/water/wood levels.
 
 - [x] **Wealthy NPC golden ring** — Faint gold ring on NPCs with balance > 80g.
 
@@ -803,7 +802,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (radius 8). Makes wealthy NPCs visually distinct and highlights economic stratification.
   No new snapshot fields — `balance` is already in `AgentEntry`.
 
-- [ ] **Stockpile bar chart in panel** — In `RenderSystem::DrawStockpilePanel`, below the
+- [x] **Stockpile bar chart in panel** — In `RenderSystem::DrawStockpilePanel`, below the
   per-resource text lines, draw 3 small horizontal bars (food=green, water=blue, wood=brown)
   whose width is proportional to `qty / 200.f` (capped at 100px). Background in dark gray.
   Gives a visual at-a-glance read of relative stockpile levels. No new snapshot fields.
@@ -2069,3 +2068,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   0.85 (Master rank), log "X has mastered farming/water/woodcutting at Y" once. Use `static
   std::set<entt::entity> s_loggedMastery` to ensure one-time logging. Add skill check after
   the existing skill increment block. Gives a narrative moment to skill progression.
+
+- [ ] **NPC jealousy of wealthy neighbours** — In `AgentDecisionSystem.cpp`'s gossip block,
+  when NPC A has balance < 10 and NPC B has balance > 60, 15% chance to log "X envies Y's
+  wealth." NPC A gets -0.01 contentment. Rate-limit per NPC pair to once per 24 game-hours
+  via `static std::map<std::pair<entt::entity,entt::entity>, float> s_envyCooldown`. Creates
+  class tension narrative in economically stratified settlements.
+
+- [ ] **Stockpile trend arrows in panel** — In `RenderSystem::DrawStockpilePanel`, after each
+  resource's bar chart bar, draw a tiny arrow (▲/▼/—) based on `netRatePerHour`: green ▲ if
+  net > 0.5, red ▼ if net < -0.5, gray — otherwise. Position at `barX + BAR_MAX_W + 4`.
+  Uses existing `netRatePerHour` from `StockpilePanel`. No new snapshot fields.
