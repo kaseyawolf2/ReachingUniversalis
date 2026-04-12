@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Skill discovery location in log** — Extend skill insight log to include settlement name.
 
 ## Recently Done
 
