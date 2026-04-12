@@ -195,6 +195,7 @@ struct RenderSnapshot {
         float       woodRate  = 0.f;
         int         fatiguedWorkers = 0;  // workers with Schedule::fatigued at this settlement
         int         recentGivers   = 0;  // NPCs with charityTimer > 0 (gave charity recently)
+        int         tradeVolume    = 0;  // deliveries received in current 24h period
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----

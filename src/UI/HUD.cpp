@@ -1593,9 +1593,9 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
 
             // Line 2: F/W/D stocks with color coding
             std::snprintf(line2, sizeof(line2),
-                          "  F:%.0f W:%.0f D:%.0f  @%.1f/%.1f/%.1f",
+                          "  F:%.0f W:%.0f D:%.0f  @%.1f/%.1f/%.1f T:%d",
                           s.food, s.water, s.wood,
-                          s.foodPrice, s.waterPrice, s.woodPrice);
+                          s.foodPrice, s.waterPrice, s.woodPrice, s.tradeVolume);
             Color l2col = Fade(LIGHTGRAY, 0.65f);
             // Color by worst resource
             if (s.food < 10.f || s.water < 10.f || s.wood < 10.f)

@@ -1948,7 +1948,7 @@ void SimThread::WriteSnapshot() {
                                  hungerCrisis, elderPop, elderBonus, s.morale,
                                  avgContentment, pendingEstates,
                                  foodRate2, waterRate2, woodRate2, fatiguedWorkers,
-                                 recentGivers });
+                                 recentGivers, s.tradeVolume });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
