@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Illness NPC dot tint** — Blend ill NPC drawColor toward purple in GameState.cpp agent
+  render loop. Only for NPC and Child roles.
 
 ## Recently Done
 
