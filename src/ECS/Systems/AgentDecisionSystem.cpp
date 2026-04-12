@@ -351,6 +351,32 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             prof->type = ProfessionForResource(pf.output);
                     }
                 }
+
+                // Log arrival with profession
+                {
+                    auto lv = registry.view<EventLog>();
+                    if (!lv.empty()) {
+                        auto tmv2 = registry.view<TimeManager>();
+                        if (!tmv2.empty()) {
+                            auto& tm2 = tmv2.get<TimeManager>(*tmv2.begin());
+                            std::string who = "Someone";
+                            if (const auto* n = registry.try_get<Name>(entity))
+                                who = n->value;
+                            const auto* prof = registry.try_get<Profession>(entity);
+                            if (prof && prof->type != ProfessionType::Idle) {
+                                who += " (";
+                                who += ProfessionLabel(prof->type);
+                                who += ")";
+                            }
+                            std::string dest = "unknown";
+                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                dest = s->name;
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm2.day, (int)tm2.hourOfDay,
+                                who + " moved to " + dest);
+                        }
+                    }
+                }
             } else {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             }
