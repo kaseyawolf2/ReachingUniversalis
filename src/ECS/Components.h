@@ -180,6 +180,7 @@ struct Hauler {
     entt::entity cargoSource      = entt::null;  // settlement where current cargo was loaded (for rivalry tracking)
     bool         nearBankrupt    = false;       // true when bankruptcy timer > 75% threshold
     float        bankruptProgress = 0.f;      // game-hours toward bankruptcy (0–24)
+    bool         inConvoy       = false;       // true when travelling near another hauler headed same way
 };
 
 // ---- Economy ----

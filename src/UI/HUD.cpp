@@ -797,7 +797,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showHaulerState = false;
     char haulerStateLine[48] = {};
     if (isHauler) {
-        const char* stLabel = (best->haulerState == 1) ? "Delivering"  :
+        const char* stLabel = (best->haulerState == 1) ?
+                                  (best->inConvoy ? "Delivering [Convoy]" : "Delivering") :
                               (best->haulerState == 2) ? "Returning home" :
                                                          "Idle — seeking route";
         std::snprintf(haulerStateLine, sizeof(haulerStateLine), "Status: %s", stLabel);
@@ -963,7 +964,10 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         DrawText(repLine, tx, ly, 11, repCol); ly += 16;
     }
     if (showCargo)       { DrawText(cargoLine,        tx, ly, 11, Fade(SKYBLUE, 0.9f));    ly += 16; }
-    if (showHaulerState) { DrawText(haulerStateLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
+    if (showHaulerState) {
+        Color hsCol = (isHauler && best->inConvoy) ? Fade(GREEN, 0.7f) : Fade(LIGHTGRAY, 0.7f);
+        DrawText(haulerStateLine, tx, ly, 11, hsCol); ly += 16;
+    }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
     if (showNearBankrupt) { DrawText(bankruptLine, tx, ly, 11, Fade(RED, 0.9f)); ly += 16; }

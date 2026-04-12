@@ -217,6 +217,10 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
         if (home.settlement == entt::null || !registry.valid(home.settlement)) continue;
         const auto& homePos = registry.get<Position>(home.settlement);
 
+        // Reset convoy flag; it's recalculated in GoingToDeposit
+        if (hauler.state != HaulerState::GoingToDeposit)
+            hauler.inConvoy = false;
+
         switch (hauler.state) {
 
         // ---- Idle: return home, then evaluate trades ----
@@ -364,7 +368,20 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
 
             const auto& destPos = registry.get<Position>(hauler.targetSettlement);
             if (!InRange(pos, destPos, ARRIVE_RADIUS)) {
-                MoveToward(vel, pos, destPos.x, destPos.y, speed);
+                // Convoy check: nearby hauler headed to same destination → 25% speed bonus
+                static constexpr float CONVOY_RANGE = 60.f;
+                hauler.inConvoy = false;
+                registry.view<Hauler, Position>(entt::exclude<PlayerTag>).each(
+                    [&](auto other, const Hauler& oh, const Position& op) {
+                        if (other == entity || hauler.inConvoy) return;
+                        if (oh.state != HaulerState::GoingToDeposit) return;
+                        if (oh.targetSettlement != hauler.targetSettlement) return;
+                        float dx = op.x - pos.x, dy = op.y - pos.y;
+                        if (dx*dx + dy*dy < CONVOY_RANGE * CONVOY_RANGE)
+                            hauler.inConvoy = true;
+                    });
+                float convoySpeed = hauler.inConvoy ? speed * 1.25f : speed;
+                MoveToward(vel, pos, destPos.x, destPos.y, convoySpeed);
             } else {
                 vel.vx = vel.vy = 0.f;
                 auto* destSp   = registry.try_get<Stockpile>(hauler.targetSettlement);
