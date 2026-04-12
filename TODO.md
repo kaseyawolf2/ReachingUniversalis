@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale impact from hauler trade success** — In `TransportSystem.cpp`, when a hauler
+  successfully delivers cargo to the destination settlement (the `GoingToDeposit → GoingHome`
+  transition), call `settl->morale = std::min(1.f, settl->morale + 0.01f)` on the *destination*
+  settlement. Trade arriving boosts community confidence. Use `registry.try_get<Settlement>` on
+  `hauler.targetSettlement`. Small per-delivery tick so active trade routes gradually lift morale.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -209,12 +215,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h`; populated from `Settlement::morale` in SimThread's world-status loop.
   `HUD::DrawWorldStatus` renders "M:XX%" label per settlement: green (≥70%), yellow (≥30%),
   red (<30%). Width calculation updated so the status bar expands to fit.
-
-- [ ] **Morale impact from hauler trade success** — In `TransportSystem.cpp`, when a hauler
-  successfully delivers cargo to the destination settlement (the `GoingToDeposit → GoingHome`
-  transition), call `settl->morale = std::min(1.f, settl->morale + 0.01f)` on the *destination*
-  settlement. Trade arriving boosts community confidence. Use `registry.try_get<Settlement>` on
-  `hauler.targetSettlement`. Small per-delivery tick so active trade routes gradually lift morale.
 
 - [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
   loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
