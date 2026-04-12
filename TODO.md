@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
+  loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
+  above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
+  supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
+  the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -213,12 +219,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Morale impact from hauler trade success** — In `TransportSystem.cpp`'s GoingToDeposit
   arrival block, after the sale completes and before return-trip opportunism, bumps
   `destSettl->morale` by +0.01 (capped at 1.0). Active trade routes gradually lift morale.
-
-- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
-  loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
-  above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
-  supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
-  the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
 
 - [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
   to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
