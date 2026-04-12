@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC desperation purchase log** — Log "X desperate — bought food from Y at Ng."
-
 ## Recently Done
+
+- [x] **NPC desperation purchase log** — Logs "X desperate — bought food at Y market for Zg."
 
 - [x] **Scarcity recovery log** — Logs "Recovery: X food stores recovering." on resource recovery.
 
@@ -716,7 +716,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   per resource. Use the existing `s_loggedScarcity` map — detect clearing before `mask &= ~bit`.
   Completes the scarcity narrative arc: shortage → recovery.
 
-- [ ] **NPC desperation purchase log** — In `ConsumptionSystem.cpp`'s emergency market purchase
+- [x] **NPC desperation purchase log** — In `ConsumptionSystem.cpp`'s emergency market purchase
   block (where an NPC buys from a distant settlement because local stockpile is empty), log
   "X desperate — bought food from Y market at Ng." once per NPC per 12 game-hours. Use a
   `static std::map<entt::entity, float> s_desperateCooldown` drained by gameHoursDt. Shows
@@ -823,6 +823,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   when a resource recovers (bit cleared from `s_loggedScarcity`), bump settlement morale by
   +0.01 per recovered resource. Model: recovery from scarcity is a small community boost.
   Use `registry.try_get<Settlement>(e)->morale` already in scope.
+
+- [ ] **Desperation count in settlement tooltip** — Track emergency purchases per settlement
+  per 24h cycle. Add `int desperatePurchases = 0` to `Settlement` component in `Components.h`.
+  Increment in `ConsumptionSystem.cpp` when a purchase fires. Reset alongside `tradeVolume`
+  in `RandomEventSystem.cpp`. Add to `SettlementEntry` in `RenderSnapshot.h`. Display in
+  `HUD::DrawSettlementTooltip` as "Desperation buys: N/day" in red when > 0.
+
+- [ ] **Market price spike log** — In `PriceSystem.cpp`'s price update loop, when a resource
+  price increases by more than 20% in a single update cycle, log "Price spike: food at X now
+  Yg (+Z%)." once per resource per settlement per 12 game-hours. Use a `static
+  std::map<std::pair<entt::entity,int>, float> s_priceSpikeCooldown` (entity + resource type
+  as key). Surfaces sudden price changes that might trigger migration or trade shifts.
 
 ---
 
