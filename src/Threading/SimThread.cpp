@@ -1223,10 +1223,12 @@ void SimThread::WriteSnapshot() {
         float haulerBuyPrice = 0.f;
         int   haulerCargoQty = 0;
         bool  nearBankrupt   = false;
+        int   haulerState    = 0;
         if (isHauler) {
             if (const auto* h = m_registry.try_get<Hauler>(e)) {
                 haulerBuyPrice = h->buyPrice;
                 nearBankrupt   = h->nearBankrupt;
+                haulerState    = static_cast<int>(h->state);
             }
             if (const auto* inv = m_registry.try_get<Inventory>(e)) {
                 for (const auto& [res, qty] : inv->contents)
@@ -1343,7 +1345,7 @@ void SimThread::WriteSnapshot() {
                            harvestBonus, inVocation,
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
-                           nearBankrupt });
+                           nearBankrupt, haulerState });
     });
 
     // ---- Settlements ----

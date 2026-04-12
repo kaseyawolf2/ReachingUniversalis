@@ -82,6 +82,8 @@ struct RenderSnapshot {
         int   haulerCargoQty = 0;
         // True when a hauler's bankruptcy timer exceeds 75% of threshold
         bool  nearBankrupt = false;
+        // Hauler state: 0=Idle, 1=GoingToDeposit, 2=GoingHome
+        int   haulerState = 0;
     };
 
     struct SettlementEntry {

@@ -735,6 +735,17 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showRoute = true;
     }
 
+    // Hauler state label
+    bool showHaulerState = false;
+    char haulerStateLine[48] = {};
+    if (isHauler) {
+        const char* stLabel = (best->haulerState == 1) ? "Delivering"  :
+                              (best->haulerState == 2) ? "Returning home" :
+                                                         "Idle — seeking route";
+        std::snprintf(haulerStateLine, sizeof(haulerStateLine), "Status: %s", stLabel);
+        showHaulerState = true;
+    }
+
     // Near-bankrupt warning
     bool showNearBankrupt = best->nearBankrupt;
 
@@ -788,7 +799,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHarvest)  lineCount++;
     if (showProfit)   lineCount++;
     if (showRoute)        lineCount++;
-    if (showNearBankrupt) lineCount++;
+    if (showNearBankrupt)  lineCount++;
+    if (showHaulerState)   lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -813,7 +825,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
     int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
     int wnb = showNearBankrupt ? MeasureText("!! Near bankruptcy !!", 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb}) + 10;
+    int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -867,7 +880,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
-    if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); ly += 16; }
+    if (showCargo)       { DrawText(cargoLine,        tx, ly, 11, Fade(SKYBLUE, 0.9f));    ly += 16; }
+    if (showHaulerState) { DrawText(haulerStateLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
     if (showNearBankrupt) { DrawText("!! Near bankruptcy !!", tx, ly, 11, Fade(RED, 0.9f));       }
