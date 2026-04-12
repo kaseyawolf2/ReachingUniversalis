@@ -9,9 +9,31 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement founding event log** — Log "Player founded [name] at (x, y)" when P key founds a settlement.
+- [ ] **Gratitude approach stops at polite distance** — Grateful NPCs stop within 25u of target instead of overlapping.
 
 ## Recently Done
+
+- [x] **Event log entry colour coding** — Added "stole"→RED, "saw through"→ORANGE, "Ally trade"→GREEN.
+
+- [x] **Event colour in minimap ring** — Minimap ring uses ModifierColour() instead of generic yellow.
+
+- [x] **Skill degradation with age** — Elder NPCs (65+ days) lose skills at 0.0002/tick, min 0.1.
+
+- [x] **Theft log includes skill level** — Shows "farming X%" or "water X%" after theft penalty.
+
+- [x] **NPC grudge after being stolen from** — Grateful NPCs within 80u see through thief; log social event.
+
+- [x] **Settlement theft count in stockpile panel** — "Thefts: N" in faint red below treasury line.
+
+- [x] **Alliance trade bonus log** — Log "Ally trade: X → Y (+Zg bonus)" on allied deliveries.
+
+- [x] **Thief dot colour on world map** — Thieves drawn in MAROON for ~2 game-hours after stealing.
+
+- [x] **Thief flees home after stealing** — 4-second sprint away from settlement after theft.
+
+- [x] **Skills penalty on theft** — All 3 skills reduced by 0.02 per theft (social ostracism).
+
+- [x] **Settlement founding event log** — Log includes name, coordinates, cost, and settler count.
 
 - [x] **Worker fatigue accumulation** — Fatigued workers (energy < 0.2) produce at 80%.
 
@@ -1056,7 +1078,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `0.8f` if `sched->fatigued`. `fatigued` is cleared when energy recovers above 0.5 (also in
   `NeedDrainSystem`). This makes sleep deprivation have visible production consequences.
 
-- [ ] **Settlement founding event log** — In `SimThread::ProcessInput` (SimThread.cpp), when the
+- [x] **Settlement founding event log** — In `SimThread::ProcessInput` (SimThread.cpp), when the
   player successfully founds a settlement (P key, cost 1500g), log it to `EventLog`: `"Player
   founded [settlement name] at (x, y)"`. Look up the newly created Settlement entity immediately
   after `WorldGenerator::FoundSettlement` returns. This makes founding visible in the event log
@@ -1076,85 +1098,77 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 8. Use `AskUserQuestion` only if genuinely blocked. Don't ask about minor design choices — make
    a reasonable call and note it in the commit message.
 
-- [ ] **Theft indicator in tooltip** — Surface recent theft in the NPC tooltip. Add `bool recentlyStole = false`
+- [x] **Theft indicator in tooltip** — Surface recent theft in the NPC tooltip. Add `bool recentlyStole = false`
   to `AgentEntry` in `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2 game-hours of a theft).
   In `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In `HUD::DrawHoverTooltip`,
   when `recentlyStole`, append a faint RED " (thief)" suffix to line1. Mirror the `familyName` pattern already there.
+  NOTE: Already implemented — recentlyStole exists in AgentEntry, SimThread, and HUD tooltip.
 
-- [ ] **Skills penalty on theft** — When a theft fires in `AgentDecisionSystem`, read the thief's `Skills`
+- [x] **Skills penalty on theft** — When a theft fires in `ConsumptionSystem`, read the thief's `Skills`
   component via `registry.try_get<Skills>`, and reduce all three skill floats (farming, water_drawing,
   woodcutting) by 0.02 each, clamped at 0. This models social ostracism without new components.
 
-- [ ] **Thief flees home after stealing** — After a successful theft, set the NPC's velocity away from the
+- [x] **Thief flees home after stealing** — After a successful theft, set the NPC's velocity away from the
   settlement centre for 3–5 real seconds (use a new `fleeTimer` float in `DeprivationTimer`, or reuse
   `helpedTimer` as a flee flag). In `AgentDecisionSystem`, when `fleeTimer > 0`, move away from home pos
   at full speed. This makes theft visible: a dot sprinting away from the settlement dot.
 
-- [ ] **Thief dot colour on world map** — When `recentlyStole` is true, tint the NPC's world-map
+- [x] **Thief dot colour on world map** — When `recentlyStole` is true, tint the NPC's world-map
   dot with a dark red: `Fade(MAROON, 0.9f)`. In `GameState.cpp`, the agent draw loop already
   applies `Fade(GOLD, 0.85f)` for Celebrating; add an `else if (a.recentlyStole)` branch before
   the default color assignment. Use `AgentEntry::recentlyStole` (already in the snapshot). Makes
   thieves visible on the map for ~2 game-hours after stealing.
 
-- [ ] **Relation score shown in road tooltip** — The road hover tooltip (`HUD::DrawRoadTooltip` in
+- [x] **Relation score shown in road tooltip** — The road hover tooltip (`HUD::DrawRoadTooltip` in
   HUD.cpp) already shows connected settlement names. Extend it to also show the current relation
   score between those two settlements: `"Relations: -0.62 (Rivals)"` / `"Relations: +0.71 (Allies)"`.
   Read from `SettlementEntry::relations` (expose as `std::map<std::string,float>` keyed by
   settlement name) populated in `SimThread::WriteSnapshot`'s settlement loop from `s.relations`.
+  NOTE: Already implemented — relAtoB/relBtoA displayed with Rivals/Allied labels.
 
-- [ ] **Alliance trade bonus log** — When a hauler completes a delivery between allied settlements
+- [x] **Alliance trade bonus log** — When a hauler completes a delivery between allied settlements
   (relation score > 0.5), log it to `EventLog` as `"Ally trade: Greenfield → Wellsworth (+5g bonus)"`.
   In `TransportSystem.cpp`, after the existing ally tax reduction block, check the relation score
   and push a log entry using the hauler's carry quantity and the bonus gold saved. This makes the
   alliance benefit tangible and visible.
 
-- [ ] **Rival settlement tax UI indicator** — In `HUD::DrawRoadTooltip` (HUD.cpp), when the road
+- [x] **Rival settlement tax UI indicator** — In `HUD::DrawRoadTooltip` (HUD.cpp), when the road
   connects rival settlements (relation < -0.5), append a red `"(+30% rival surcharge)"` note to
   the road condition line. Read from the same `SettlementEntry` relation data. Helps player
   understand why haulers on that route are less profitable.
+  NOTE: Already implemented — line 1679 shows "Relations: [who] (+10% tariff)" in RED for rivals.
 
-- [ ] **Settlement theft count in stockpile panel** — Track how many times NPCs have stolen from a
+- [x] **Settlement theft count in stockpile panel** — Track how many times NPCs have stolen from a
   settlement. Add `int theftCount = 0` to `Settlement` component in `Components.h`; increment it
-  in `AgentDecisionSystem`'s theft block each time a theft succeeds. In `SimThread::WriteSnapshot`,
+  in `ConsumptionSystem`'s theft block each time a theft succeeds. In `SimThread::WriteSnapshot`,
   populate a new `int theftCount = 0` in `StockpilePanel`. In `RenderSystem::DrawStockpilePanel`,
   show "Thefts: N" below the treasury line in faint RED when `theftCount > 0`.
 
-- [ ] **NPC grudge after being stolen from** — When an NPC's charity gift or help is followed by a
+- [x] **NPC grudge after being stolen from** — When an NPC's charity gift or help is followed by a
   theft from the same entity (helper's `helpedTimer > 0` and the helped entity steals), log a
-  social event: "Aldric saw through Mira's gratitude." Implement in `AgentDecisionSystem`'s theft
+  social event: "Aldric saw through Mira's gratitude." Implemented in `ConsumptionSystem`'s theft
   block: after confirming a theft, check all nearby NPCs (within 80 units) who have
   `gratitudeTarget == thief entity`; clear their `gratitudeTimer` and log the message. Purely
   social flavour — no new components.
 
-- [ ] **Theft log includes skill level** — Extend the theft log message in `AgentDecisionSystem`'s
-  theft block to include the thief's relevant skill after the penalty: change "Mira stole food from
-  Ashford." to "Mira stole food from Ashford (skill −0.02 → 23%)." Read `sk->farming` after
-  applying the penalty, pick the skill matching `stealRes` (farming→Food, water→Water,
-  woodcutting→Wood), format as integer percent. Only append the skill suffix when the NPC has a
-  `Skills` component.
+- [x] **Theft log includes skill level** — Extend the theft log message in `ConsumptionSystem`'s
+  theft block to include the thief's relevant skill after the penalty: "Mira stole food at
+  Ashford (farming 23%)." Skills penalty applied before log; relevant skill (farming for food,
+  water_drawing for water) shown as integer percent.
 
-- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp`, after the need-drain loop, add
-  a second loop over `registry.view<Skills, Age>()`. When `age.days > 65.f`, reduce all three
-  skills by `0.0002f * gameDt` per tick, clamped at `0.1f` minimum. This creates an economic
-  lifecycle: NPCs peak mid-life, then gradually reduce output as elders. No new components needed.
+- [x] **Skill degradation with age** — In `NeedDrainSystem.cpp`, after the need-drain loop,
+  second loop over `registry.view<Skills, Age>()`. When `age.days > 65.f`, reduce all three
+  skills by `0.0002f * gameDt` per tick, clamped at `0.1f` minimum. Economic lifecycle.
 
-- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
+- [x] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
   within 25 units during hours 18–21, briefly stop both (`vel = 0`) for 30–60 game-seconds.
-  Track with a `chatTimer` float on `DeprivationTimer`. After the timer expires, resume normal
-  gathering movement. Implement in `AgentDecisionSystem` after the evening gathering block.
+  NOTE: Already implemented — chatTimer, CHAT_RADIUS=25, plus affinity building via Relations.
 
-- [ ] **Event colour in minimap ring** — The minimap (`HUD::DrawMinimap` in HUD.cpp) draws a
-  `Fade(YELLOW, 0.8f)` ring around settlements with active modifiers (line ~1087). Use
-  `ModifierColour(s.modifierName)` instead so the ring colour matches the event type
-  (Plague→RED ring, Festival→GOLD ring, etc.). One-line change; requires including the already-
-  defined `ModifierColour` helper (already in the same file).
+- [x] **Event colour in minimap ring** — Minimap ring now uses `ModifierColour(s.modifierName)`
+  instead of `Fade(YELLOW, 0.8f)`. One-line change in `HUD::DrawMinimap`.
 
-- [ ] **Event log entry colour coding** — In `HUD::DrawEventLog` (HUD.cpp), all log entries are
-  currently drawn in `WHITE`. Scan each entry's `text` field for known modifier keywords and tint
-  accordingly: entries containing "plague" or "PLAGUE" → `Fade(RED, 0.9f)`, "festival" or
-  "FESTIVAL" → `Fade(GOLD, 0.85f)`, "drought" or "DROUGHT" → `Fade(ORANGE, 0.85f)`, "stole" →
-  `Fade(RED, 0.7f)`, "died" or "Died" → `Fade(GRAY, 0.8f)`, others → WHITE. No new fields; use
-  `entry.text` which is already in `EventLog::Entry`.
+- [x] **Event log entry colour coding** — Extended existing keyword colour system with "stole"→RED,
+  "saw through"→ORANGE, "Ally trade"→GREEN. Core system already had plague/festival/drought/died.
 
 - [ ] **Gratitude approach stops at polite distance** — In `AgentDecisionSystem`'s GRATITUDE
   block, after computing the target position, if the NPC is within 25 units of the gratitude
@@ -2277,3 +2291,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `int fatiguedWorkers = 0` to `SettlementStatus` in `RenderSnapshot.h`, counted in
   `SimThread::WriteSnapshot`'s settlement status loop by checking `Schedule::fatigued` for
   working NPCs homed at each settlement. Color orange when > 0.
+
+- [ ] **Elder mentorship bonus** — In `ProductionSystem.cpp`, when a facility has at least one
+  elder worker (Age::days > 65) and at least one non-elder, give the non-elder a +5% production
+  bonus. Check `Age` component on each worker entity in the production loop. Log "Elder X
+  mentoring at Y" on first activation (rate-limited per facility, e.g. once per 24h). This
+  counterbalances skill degradation by giving elders a social role even with reduced personal
+  output.
+
+- [ ] **NPC remembers last theft victim** — Add `entt::entity lastTheftVictimSettlement = entt::null`
+  to `DeprivationTimer`. Set it in `ConsumptionSystem` when a theft occurs (to `home.settlement`).
+  In `AgentDecisionSystem`'s migration scoring, if `lastTheftVictimSettlement == home.settlement`,
+  add +0.5 to migration score (shame-driven emigration). Clear the field on successful migration.
+  Adds social consequence: thieves are more likely to leave town.
+
+- [ ] **Seasonal production tooltip** — In `RenderSystem::DrawStockpilePanel`, below the modifier
+  line, show the current season's production effect: "Spring: +10% farming" / "Winter: -20% all"
+  etc. Read from `TimeManager::CurrentSeason()` via the snapshot (add `Season season` to
+  `StockpilePanel` if not already present). Helps the player understand seasonal output swings.
