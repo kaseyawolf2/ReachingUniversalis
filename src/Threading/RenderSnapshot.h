@@ -115,6 +115,9 @@ struct RenderSnapshot {
         bool fatigued = false;
         // True if this NPC is exiled (homeless, theftCount >= 3)
         bool isExiled = false;
+        // Hauler lifetime stats
+        int   lifetimeTrips  = 0;
+        float lifetimeProfit = 0.f;
     };
 
     struct SettlementEntry {

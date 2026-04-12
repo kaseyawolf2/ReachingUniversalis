@@ -566,12 +566,14 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
-                // Best-profit record: track the most profitable single trip
+                // Trip history + best-profit record
                 {
                     float totalQty = 0.f;
                     for (const auto& [type, qty] : inv.contents) totalQty += qty;
                     float tripCost   = hauler.buyPrice * totalQty;
                     float tripProfit = earned - tripCost;
+                    hauler.lifetimeTrips++;
+                    hauler.lifetimeProfit += tripProfit;
                     if (tripProfit > hauler.bestProfit) {
                         hauler.bestProfit = tripProfit;
                         std::string src = cargoSourceName.empty() ? "???" : cargoSourceName;

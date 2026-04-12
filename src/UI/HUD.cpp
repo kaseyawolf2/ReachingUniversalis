@@ -790,6 +790,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showBestRoute = true;
     }
 
+    // Hauler lifetime trip history
+    bool showTripHistory = false;
+    char tripHistoryLine[80] = {};
+    if (isHauler && best->lifetimeTrips > 0) {
+        std::snprintf(tripHistoryLine, sizeof(tripHistoryLine), "Trips: %d (total %+.1fg)",
+                      best->lifetimeTrips, best->lifetimeProfit);
+        showTripHistory = true;
+    }
+
     // Hauler route distance
     bool showRoute = false;
     char routeLine[64] = {};
@@ -872,7 +881,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
     if (showProfit)   lineCount++;
-    if (showBestRoute) lineCount++;
+    if (showBestRoute)    lineCount++;
+    if (showTripHistory)  lineCount++;
     if (showRoute)        lineCount++;
     if (showNearBankrupt)  lineCount++;
     if (showHaulerState)   lineCount++;
@@ -904,6 +914,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
     int wbr = showBestRoute ? MeasureText(bestRouteLine,         11) : 0;
+    int wth = showTripHistory ? MeasureText(tripHistoryLine,     11) : 0;
     int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
     int wnb = showNearBankrupt ? MeasureText(bankruptLine, 11) : 0;
     int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
@@ -911,7 +922,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -980,6 +991,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showBestRoute) { DrawText(bestRouteLine, tx, ly, 11, Fade(GOLD, 0.5f)); ly += 16; }
+    if (showTripHistory) { DrawText(tripHistoryLine, tx, ly, 11, Fade(LIGHTGRAY, 0.5f)); ly += 16; }
     if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
     if (showNearBankrupt) { DrawText(bankruptLine, tx, ly, 11, Fade(RED, 0.9f)); ly += 16; }
     if (showHomeMorale) {

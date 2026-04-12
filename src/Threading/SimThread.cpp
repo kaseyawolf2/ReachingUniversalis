@@ -1358,6 +1358,8 @@ void SimThread::WriteSnapshot() {
         float estimatedProfit = 0.f;
         float bestProfit     = 0.f;
         std::string bestRoute;
+        int   lifetimeTrips  = 0;
+        float lifetimeProfit = 0.f;
         if (isHauler) {
             if (const auto* h = m_registry.try_get<Hauler>(e)) {
                 haulerBuyPrice    = h->buyPrice;
@@ -1367,6 +1369,8 @@ void SimThread::WriteSnapshot() {
                 inConvoy          = h->inConvoy;
                 bestProfit        = h->bestProfit;
                 bestRoute         = h->bestRoute;
+                lifetimeTrips     = h->lifetimeTrips;
+                lifetimeProfit    = h->lifetimeProfit;
                 // Compute estimated profit if hauler is carrying cargo
                 if (h->state == HaulerState::GoingToDeposit &&
                     h->targetSettlement != entt::null && m_registry.valid(h->targetSettlement)) {
@@ -1552,7 +1556,8 @@ void SimThread::WriteSnapshot() {
                            nearBankrupt, bankruptProgress, haulerState, inConvoy, estimatedProfit,
                            bestProfit, std::move(bestRoute),
                            homeMorale, wagePerHour, reputationScore, isFatigued,
-                           isExiled });
+                           isExiled,
+                           lifetimeTrips, lifetimeProfit });
     });
 
     // ---- Settlements ----

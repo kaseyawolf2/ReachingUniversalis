@@ -186,6 +186,8 @@ struct Hauler {
     float        bestProfit     = 0.f;        // highest single-trip profit achieved
     std::string  bestRoute;                   // "A→B" label of the best-profit trip
     bool         bankruptWarned = false;      // true after logging the 50% bankruptcy warning
+    int          lifetimeTrips  = 0;         // total completed deliveries
+    float        lifetimeProfit = 0.f;       // cumulative net profit across all trips
 };
 
 // ---- Economy ----
