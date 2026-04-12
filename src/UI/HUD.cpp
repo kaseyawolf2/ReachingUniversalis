@@ -597,6 +597,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showGrateful = best->isGrateful;
     // "Warm from giving" line: shown when this NPC gave charity and has high heat
     bool showWarmth   = best->recentWarmthGlow;
+    // "Bandit" line: shown for BanditTag entities
+    bool showBandit   = best->isBandit;
 
     // Skill line: show the relevant skill for this agent's profession
     bool showSkill = false;
@@ -631,6 +633,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHelped)   lineCount++;
     if (showGrateful) lineCount++;
     if (showWarmth)   lineCount++;
+    if (showBandit)   lineCount++;
     if (showSkill)    lineCount++;
     if (showCargo)    lineCount++;
 
@@ -644,7 +647,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wh = showHelped   ? MeasureText("Fed by neighbour",      11) : 0;
     int wg = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
     int ww = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww}) + 10;
+    int wb = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -663,10 +667,11 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)   { DrawText(line5,               tx, ly, 11, YELLOW);               ly += 16; }
     if (showFollow) { DrawText(followLine,          tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }
-    if (showHelped)   { DrawText("Fed by neighbour",      tx, ly, 11, Fade(LIME, 0.75f));     ly += 16; }
-    if (showGrateful) { DrawText("Grateful to neighbour", tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
-    if (showWarmth)   { DrawText("Warm from giving",      tx, ly, 11, Fade(ORANGE, 0.75f));  ly += 16; }
-    if (showSkill)    { DrawText(line6,                   tx, ly, 11, skillColor);             ly += 16; }
+    if (showHelped)   { DrawText("Fed by neighbour",            tx, ly, 11, Fade(LIME, 0.75f));     ly += 16; }
+    if (showGrateful) { DrawText("Grateful to neighbour",       tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
+    if (showWarmth)   { DrawText("Warm from giving",            tx, ly, 11, Fade(ORANGE, 0.75f));  ly += 16; }
+    if (showBandit)   { DrawText("Bandit (press E to confront)",tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
+    if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
 

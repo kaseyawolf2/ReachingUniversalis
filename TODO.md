@@ -45,11 +45,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Crime & Consequence
 
-- [ ] **Bandit NPCs from desperation** — Wandering exiles with `money.balance < 2g` for more than
-  48 game-hours become `BanditTag` entities. Bandits move toward roads (target the midpoint of the
-  nearest `Road`) and intercept haulers passing within 40 units — stealing 30% of cargo and
-  fleeing. Player can "confront" a bandit (E key within range) to recover the loot for 10 rep.
-  Remove `BanditTag` if their balance rises above 20g (they go straight).
+- [x] **Bandit NPCs from desperation** — `BanditTag` struct in Components.h; `banditPovertyTimer`
+  in `DeprivationTimer`. Exiles with balance < 2g for 48+ game-hours get `BanditTag`. Bandits lurk
+  near nearest Road midpoint and steal 30% of hauler cargo (3g/unit). Player presses E within 80
+  units to confront: recovers 50% of bandit gold, +10 rep, removes tag. Dark maroon render color.
+  "Bandit (press E to confront)" in tooltip.
 
 ### NPC Memory & Goals
 
@@ -561,3 +561,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentDecisionSystem`'s theft block alongside `timer.theftCount`. In `SimThread::WriteSnapshot`,
   populate `StockpilePanel::theftCount` (add field). In `RenderSystem::DrawStockpilePanel`,
   show "Thefts: N" in faint RED below the treasury line when `theftCount > 0`.
+
+- [ ] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
+  `RenderSnapshot.h`. Set it in `SimThread::WriteSnapshot` when `hs.settlement == entt::null` and
+  the entity is not a bandit (bandit state supersedes exile). In `HUD::DrawHoverTooltip`, show
+  "(exile)" in faded ORANGE below the profession line when `isExiled`. Lets the player identify
+  wandering exiles before they turn bandit.
+
+- [ ] **Bandit density cap per road** — Prevent more than 3 bandits from lurking at the same
+  road midpoint. In `AgentDecisionSystem`'s bandit block, build a `std::map<entt::entity, int>`
+  counting how many bandits target each Road entity. If the count for the nearest road is ≥ 3,
+  pick the second-nearest road instead. Stops visual clumping of bandits on a single road.
+
+- [ ] **Road safety indicator in road tooltip** — Add `int banditCount = 0` to
+  `RenderSnapshot::RoadEntry`. In `WriteSnapshot`, count `BanditTag` entities whose nearest road
+  is this road (use a simple proximity check: within 80 units of the midpoint). In
+  `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
+  meaningful route-safety information.

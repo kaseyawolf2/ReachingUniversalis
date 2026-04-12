@@ -125,6 +125,7 @@ struct DeprivationTimer {
     float                helpedTimer     = 0.f;    // game-hours since receiving charity; > 0 → "recently helped"
     entt::entity         gratitudeTarget = entt::null;  // entity to move toward while grateful
     float                gratitudeTimer  = 0.f;          // real-seconds remaining; > 0 → doing gratitude walk
+    float                banditPovertyTimer = 0.f;       // game-hours as homeless exile with balance < 2g → bandit at 48h
 };
 
 // ---- Inventory / Transport ----
@@ -372,3 +373,10 @@ struct ChildTag  {};   // NPC under age 15; removed at graduation (age 15)
 struct FamilyTag {
     std::string name;   // family/household name (usually a shared surname)
 };
+
+// ---- Bandit ----
+// Applied to exiled NPCs (home.settlement == entt::null) who have had
+// money.balance < 2g for 48+ game-hours. They lurk near road midpoints
+// and intercept haulers within 40 units. Removed when balance recovers
+// above 20g or when the player confronts them (E key).
+struct BanditTag {};

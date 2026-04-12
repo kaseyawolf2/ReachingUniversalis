@@ -62,6 +62,8 @@ struct RenderSnapshot {
         bool recentWarmthGlow = false;
         // True if this NPC's charity cooldown is 0 (ready to give charity)
         bool charityReady = false;
+        // True if this NPC has the BanditTag (exiled, desperate, lurking on roads)
+        bool isBandit = false;
     };
 
     struct SettlementEntry {

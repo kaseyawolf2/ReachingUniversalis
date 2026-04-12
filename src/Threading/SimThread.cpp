@@ -442,9 +442,10 @@ void SimThread::ProcessInput() {
         }
     }
 
-    // One-shot: player work (E) — start/stop working at nearest production facility
+    // One-shot: player work (E) — confront nearby bandit OR work at nearest facility
     if (m_input.playerWork.exchange(false)) {
-        static constexpr float WORK_RADIUS = 80.f;
+        static constexpr float WORK_RADIUS    = 80.f;
+        static constexpr float CONFRONT_RANGE = 80.f;
         auto pv3 = m_registry.view<PlayerTag, Position, AgentState>();
         auto lv3 = m_registry.view<EventLog>();
         EventLog* plog = (lv3.begin() == lv3.end()) ? nullptr
@@ -455,7 +456,36 @@ void SimThread::ProcessInput() {
             auto& ppos3 = pv3.get<Position>(pe3);
             auto& pst3  = pv3.get<AgentState>(pe3);
 
-            if (pst3.behavior == AgentBehavior::Working) {
+            // Check for nearby bandits first — confront takes priority over working
+            entt::entity nearBandit  = entt::null;
+            float        nearBanditD = CONFRONT_RANGE * CONFRONT_RANGE;
+            m_registry.view<BanditTag, Position, Money>().each(
+                [&](auto be, const Position& bp, const Money&) {
+                float dx = bp.x - ppos3.x, dy = bp.y - ppos3.y;
+                float d  = dx*dx + dy*dy;
+                if (d < nearBanditD) { nearBanditD = d; nearBandit = be; }
+            });
+            if (nearBandit != entt::null) {
+                auto* bMoney = m_registry.try_get<Money>(nearBandit);
+                if (bMoney) {
+                    float recover = bMoney->balance * 0.5f;
+                    if (auto* pMoney = m_registry.try_get<Money>(pe3))
+                        pMoney->balance += recover;
+                    bMoney->balance -= recover;
+                    m_registry.remove<BanditTag>(nearBandit);
+                    m_playerReputation += 10;
+                    if (plog) {
+                        std::string bandName = "a bandit";
+                        if (const auto* n = m_registry.try_get<Name>(nearBandit))
+                            bandName = n->value;
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf),
+                            "You confronted %s and recovered %.1fg (+10 rep)",
+                            bandName.c_str(), recover);
+                        plog->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                }
+            } else if (pst3.behavior == AgentBehavior::Working) {
                 // Toggle off
                 pst3.behavior = AgentBehavior::Idle;
                 if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "You stop working");
@@ -1244,6 +1274,11 @@ void SimThread::WriteSnapshot() {
             charityReady     = (dt->charityTimer <= 0.f);
         }
 
+        bool isBandit = m_registry.all_of<BanditTag>(e);
+        // Bandits render as dark maroon regardless of need state
+        if (isBandit && !isPlayer)
+            drawColor = Color{ 140, 30, 30, 255 };
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1254,7 +1289,8 @@ void SimThread::WriteSnapshot() {
                            farmSkill, waterSkill, woodSkill,
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
-                           isGrateful, recentWarmthGlow, charityReady });
+                           isGrateful, recentWarmthGlow, charityReady,
+                           isBandit });
     });
 
     // ---- Settlements ----

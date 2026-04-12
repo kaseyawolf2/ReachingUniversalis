@@ -193,10 +193,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     if (dt <= 0.f) return;
     int currentHour = (int)tm.hourOfDay;
 
-    // Exclude Haulers (TransportSystem handles them) and Player (PlayerInputSystem).
+    // Exclude Haulers (TransportSystem handles them), Player (PlayerInputSystem),
+    // and Bandits (handled in the bandit section at the end of Update).
     auto view = registry.view<Needs, AgentState, Position, Velocity,
                                MoveSpeed, HomeSettlement, DeprivationTimer>(
-                    entt::exclude<Hauler, PlayerTag>);
+                    entt::exclude<Hauler, PlayerTag, BanditTag>);
 
     for (auto entity : view) {
         auto& needs  = view.get<Needs>(entity);
@@ -784,4 +785,138 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             break;   // helper gives to at most one starving NPC per cooldown window
         }
     }
+
+    // ============================================================
+    // BANDIT PROMOTION & BEHAVIOUR
+    // Exiles (home.settlement == entt::null) with balance < 2g for
+    // 48+ game-hours become bandits (BanditTag). Bandits lurk near
+    // the nearest Road midpoint and intercept haulers within 40 units,
+    // stealing 30% of cargo (converted to gold at 3g/unit). Removed
+    // when balance recovers above 20g.
+    // ============================================================
+    static constexpr float BANDIT_POVERTY_THRESH  = 2.f;    // gold below this → accrue poverty
+    static constexpr float BANDIT_PROMOTE_HOURS   = 48.f;   // poverty hours before turning bandit
+    static constexpr float BANDIT_RECOVER_BALANCE = 20.f;   // gold to go straight again
+    static constexpr float BANDIT_INTERCEPT_RANGE = 40.f;   // units to intercept a hauler
+    static constexpr float BANDIT_STEAL_FRACTION  = 0.30f;  // fraction of cargo to steal
+    static constexpr float BANDIT_CARGO_GOLD_RATE = 3.f;    // gold per stolen cargo unit
+
+    auto banditELV = registry.view<EventLog>();
+    EventLog* banditLog = (banditELV.begin() == banditELV.end())
+                          ? nullptr : &banditELV.get<EventLog>(*banditELV.begin());
+
+    // Iterate all NPCs that could be bandits (includes current BanditTag entities).
+    registry.view<Position, Velocity, MoveSpeed, Needs, AgentState,
+                  HomeSettlement, DeprivationTimer, Money>(
+        entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+        [&](auto e, Position& pos, Velocity& vel, const MoveSpeed& spd,
+            Needs& /*needs*/, AgentState& state, HomeSettlement& home,
+            DeprivationTimer& timer, Money& money)
+        {
+            bool isBanditNow = registry.all_of<BanditTag>(e);
+
+            // NPCs with a home cannot be bandits
+            if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                if (isBanditNow) {
+                    registry.remove<BanditTag>(e);
+                    isBanditNow = false;
+                }
+                timer.banditPovertyTimer = 0.f;
+                return;
+            }
+
+            // Recover from banditry if they scraped together enough money
+            if (isBanditNow && money.balance >= BANDIT_RECOVER_BALANCE) {
+                registry.remove<BanditTag>(e);
+                isBanditNow = false;
+                timer.banditPovertyTimer = 0.f;
+            }
+
+            // Poverty accumulation → promotion
+            if (!isBanditNow) {
+                if (money.balance < BANDIT_POVERTY_THRESH) {
+                    timer.banditPovertyTimer += gameHoursDt;
+                    if (timer.banditPovertyTimer >= BANDIT_PROMOTE_HOURS) {
+                        registry.emplace_or_replace<BanditTag>(e);
+                        isBanditNow = true;
+                        if (banditLog) {
+                            std::string name = "An exile";
+                            if (const auto* n = registry.try_get<Name>(e)) name = n->value;
+                            banditLog->Push(charityDay, charityHour,
+                                name + " has turned bandit.");
+                        }
+                    }
+                } else {
+                    timer.banditPovertyTimer = 0.f;
+                }
+            }
+
+            if (!isBanditNow) return;
+
+            // ---- Bandit movement: lurk near nearest road midpoint ----
+            float bestRoadD2 = std::numeric_limits<float>::max();
+            float lurk_x = pos.x, lurk_y = pos.y;
+            registry.view<Road>().each([&](const Road& road) {
+                if (road.blocked) return;
+                const auto* pa = registry.try_get<Position>(road.from);
+                const auto* pb = registry.try_get<Position>(road.to);
+                if (!pa || !pb) return;
+                float mx = (pa->x + pb->x) * 0.5f;
+                float my = (pa->y + pb->y) * 0.5f;
+                float dx2 = mx - pos.x, dy2 = my - pos.y;
+                float d2  = dx2*dx2 + dy2*dy2;
+                if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = mx; lurk_y = my; }
+            });
+
+            // ---- Try to intercept a nearby hauler ----
+            bool intercepted = false;
+            registry.view<Position, Hauler, Inventory, Money>(
+                entt::exclude<PlayerTag>).each(
+                [&](auto haulerE, const Position& hpos, const Hauler&,
+                    Inventory& haulerInv, Money& /*haulerMoney*/)
+                {
+                    if (intercepted) return;
+                    float dx3 = hpos.x - pos.x, dy3 = hpos.y - pos.y;
+                    if (dx3*dx3 + dy3*dy3 > BANDIT_INTERCEPT_RANGE * BANDIT_INTERCEPT_RANGE)
+                        return;
+
+                    // Steal a fraction of each cargo type
+                    float stolenGold = 0.f;
+                    for (auto& [res, qty] : haulerInv.contents) {
+                        if (qty <= 0) continue;
+                        int stealQty = std::max(1, (int)(qty * BANDIT_STEAL_FRACTION));
+                        stealQty = std::min(stealQty, qty);
+                        haulerInv.contents[res] -= stealQty;
+                        stolenGold += stealQty * BANDIT_CARGO_GOLD_RATE;
+                    }
+                    if (stolenGold > 0.f) {
+                        money.balance += stolenGold;
+                        intercepted    = true;
+                        if (banditLog) {
+                            std::string bandName = "A bandit";
+                            if (const auto* n = registry.try_get<Name>(e)) bandName = n->value;
+                            banditLog->Push(charityDay, charityHour,
+                                bandName + " ambushed a hauler on the road.");
+                        }
+                        // Flee away from the hauler
+                        float dist = std::sqrt(dx3*dx3 + dy3*dy3);
+                        if (dist > 0.1f) {
+                            vel.vx = -(dx3 / dist) * spd.value;
+                            vel.vy = -(dy3 / dist) * spd.value;
+                        }
+                    }
+                });
+
+            if (!intercepted) {
+                // Drift toward road lurk point
+                static constexpr float LURK_ARRIVE = 20.f;
+                float dx4 = lurk_x - pos.x, dy4 = lurk_y - pos.y;
+                if (dx4*dx4 + dy4*dy4 > LURK_ARRIVE * LURK_ARRIVE)
+                    MoveToward(vel, pos, lurk_x, lurk_y, spd.value * 0.8f);
+                else
+                    vel.vx = vel.vy = 0.f;
+            }
+
+            state.behavior = AgentBehavior::Idle;
+        });
 }
