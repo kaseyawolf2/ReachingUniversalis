@@ -343,6 +343,10 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 }
                 hauler.cargoSource = entt::null;
 
+                // Successful trade delivery lifts destination settlement morale slightly.
+                if (destSettl)
+                    destSettl->morale = std::min(1.f, destSettl->morale + 0.01f);
+
                 inv.contents.clear();
 
                 // Return-trip opportunism: check if destination has profitable goods to
