@@ -117,12 +117,18 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
-        // Apply settlement modifier (drought etc.), season modifier, and elder wisdom bonus.
+        // Apply settlement modifier (drought etc.), season modifier, elder wisdom, and morale.
         // Elder bonus: each elder at home = +0.5% production, capped at +5%.
+        // Morale bonus: >0.7 = +10% (community pride); <0.3 = -15% (unrest).
         const auto* settl = registry.try_get<Settlement>(fac.settlement);
         int   elders     = elderCount.count(fac.settlement) ? elderCount.at(fac.settlement) : 0;
         float elderBonus = 1.f + std::min(0.05f, elders * 0.005f);
-        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus;
+        float moraleBonus = 1.0f;
+        if (settl) {
+            if      (settl->morale > 0.7f) moraleBonus = 1.10f;
+            else if (settl->morale < 0.3f) moraleBonus = 0.85f;
+        }
+        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus * moraleBonus;
 
         float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 

@@ -31,16 +31,17 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                       panel.name.c_str(), panel.pop, panel.popCap);
     DrawText(headBuf, PX + 8, PY + 6, 14, YELLOW);
 
-    // Stability bar (right side of header)
+    // Morale bar (right side of header) — shows settlement social health
+    // Green = high morale (+10% prod), Yellow = neutral, Red = unrest (-15% prod)
     int stbX = PX + PW - 80, stbY = PY + 8, stbW = 68, stbH = 12;
-    float stb = panel.stability;
-    Color stbCol = (stb > 0.65f) ? GREEN : (stb > 0.35f) ? YELLOW : RED;
+    float mor = panel.morale;
+    Color morCol = (mor > 0.7f) ? GREEN : (mor > 0.3f) ? YELLOW : RED;
     DrawRectangle(stbX, stbY, stbW, stbH, Fade(WHITE, 0.1f));
-    DrawRectangle(stbX, stbY, (int)(stbW * stb), stbH, Fade(stbCol, 0.75f));
+    DrawRectangle(stbX, stbY, (int)(stbW * mor), stbH, Fade(morCol, 0.75f));
     DrawRectangleLines(stbX, stbY, stbW, stbH, Fade(LIGHTGRAY, 0.5f));
-    char stbBuf[16];
-    std::snprintf(stbBuf, sizeof(stbBuf), "%.0f%%", stb * 100.f);
-    DrawText(stbBuf, stbX + 2, stbY, 11, WHITE);
+    char morBuf[20];
+    std::snprintf(morBuf, sizeof(morBuf), "%.0f%% mor", mor * 100.f);
+    DrawText(morBuf, stbX + 2, stbY, 11, WHITE);
 
     int y = PY + 6 + LINE_H;
 

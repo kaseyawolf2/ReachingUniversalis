@@ -249,6 +249,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                     });
             }
 
+            // Births lift settlement morale slightly — new life is cause for hope
+            {
+                auto& sc = settlView.get<Settlement>(settl);
+                sc.morale = std::min(1.f, sc.morale + 0.03f);
+            }
+
             if (log) {
                 const auto& s = settlView.get<Settlement>(settl);
                 std::string msg = "Born: " + npcName + " at " + s.name;

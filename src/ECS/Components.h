@@ -86,6 +86,8 @@ struct Settlement {
     std::string modifierName;              // e.g. "Drought", shown in HUD
     float       treasury = 200.f;          // gold; pays NPC wages; replenished by trade tax
     int         popCap   = 35;             // max population; can be expanded via housing
+    float       morale   = 0.5f;           // 0-1: NPC happiness/social trust; >0.7 = +10% prod; <0.3 = unrest
+    bool        unrest   = false;          // true while morale < 0.3 (logged once on crossing)
 };
 
 struct Stockpile {

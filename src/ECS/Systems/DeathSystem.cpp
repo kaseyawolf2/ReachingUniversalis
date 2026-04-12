@@ -78,12 +78,22 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
-    // ---- Inheritance: 50% of a deceased NPC's gold returns to their settlement ----
-    // This prevents gold from permanently leaving the economy through deaths and
-    // represents the community inheriting from its members (bequests, estate sale, etc.).
+    // ---- Inheritance and morale impact ----
+    // 50% of a deceased NPC's gold returns to their settlement.
+    // Deaths from need-deprivation lower settlement morale — the community feels the loss.
     for (auto e : toRemove) {
         if (!registry.valid(e)) continue;
         const auto* hs = registry.try_get<HomeSettlement>(e);
+
+        // Morale impact: traumatic deaths (need deprivation) hit harder than old age
+        if (hs && hs->settlement != entt::null && registry.valid(hs->settlement)) {
+            if (auto* settl = registry.try_get<Settlement>(hs->settlement)) {
+                const auto* age = registry.try_get<Age>(e);
+                bool wasOldAge = age && (age->days >= age->maxDays * 0.95f);
+                float moralePenalty = wasOldAge ? 0.02f : 0.08f;
+                settl->morale = std::max(0.f, settl->morale - moralePenalty);
+            }
+        }
 
         // Hauler cargo recovery: return goods in transit to home settlement
         if (const auto* inv = registry.try_get<Inventory>(e)) {

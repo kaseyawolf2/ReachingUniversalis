@@ -1650,6 +1650,7 @@ void SimThread::WriteSnapshot() {
             panel.childCount       = childPop;
             panel.popCap           = s.popCap;
             panel.stability        = stability;
+            panel.morale           = s.morale;
             panel.workers          = workers;
             panel.modifierName     = s.modifierName;
             panel.modifierHoursLeft = s.modifierDuration;

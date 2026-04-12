@@ -25,6 +25,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                   : &logView.get<EventLog>(*logView.begin());
 
     // Tick down active settlement modifiers (drought/plague recovery)
+    // Also update morale drift and unrest threshold crossing.
     registry.view<Settlement>().each([&](auto e, Settlement& s) {
         if (s.modifierDuration > 0.f) {
             s.modifierDuration -= gameHoursDt;
@@ -39,6 +40,21 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                 s.modifierName.clear();
                 if (wasPlague) m_plagueSpreadTimer.erase(e);
             }
+        }
+
+        // Morale drifts toward 0.5 baseline at ±0.5% per game-hour (slow, organic recovery)
+        float drift = (0.5f - s.morale) * 0.005f * gameHoursDt;
+        s.morale = std::max(0.f, std::min(1.f, s.morale + drift));
+
+        // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
+        if (!s.unrest && s.morale < 0.3f) {
+            s.unrest = true;
+            if (log) log->Push(tm.day, (int)tm.hourOfDay,
+                "UNREST in " + s.name + " — morale critical, production suffering");
+        } else if (s.unrest && s.morale >= 0.4f) {
+            s.unrest = false;
+            if (log) log->Push(tm.day, (int)tm.hourOfDay,
+                "Tensions ease in " + s.name + " — morale recovering");
         }
     });
 
@@ -245,6 +261,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->productionModifier = DROUGHT_MODIFIER;
         settl->modifierDuration   = DROUGHT_DURATION;
         settl->modifierName       = "Drought";
+        settl->morale = std::max(0.f, settl->morale - 0.10f);  // drought demoralises
         if (log) log->Push(day, hour,
             "DROUGHT strikes " + settl->name + " ("
             + std::to_string((int)DROUGHT_DURATION) + "h)");
@@ -258,6 +275,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (it == sp->quantities.end() || it->second < 5.f) break;
         float lost = it->second * BLIGHT_FRACTION;
         it->second -= lost;
+        settl->morale = std::max(0.f, settl->morale - 0.12f);  // food loss is demoralising
         if (log) log->Push(day, hour,
             "BLIGHT hits " + settl->name + " — "
             + std::to_string((int)lost) + " food destroyed");
@@ -290,6 +308,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->productionModifier = PLAGUE_INIT_MODIFIER;
         settl->modifierDuration   = PLAGUE_INIT_DURATION;
         settl->modifierName       = "Plague";
+        settl->morale = std::max(0.f, settl->morale - 0.20f);  // plague is deeply demoralising
         m_plagueSpreadTimer[target] = 20.f;  // first spread attempt in 20 game-hours
 
         int killCount = KillFraction(registry, target, 0.15f);
@@ -509,6 +528,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->productionModifier = FESTIVAL_MODIFIER;
         settl->modifierDuration   = FESTIVAL_DURATION;
         settl->modifierName       = "Festival";
+        settl->morale = std::min(1.f, settl->morale + 0.15f);  // festivals lift spirits
 
         // Put all NPCs at this settlement into the Celebrating state; count them for the log
         int celebrantCount = 0;

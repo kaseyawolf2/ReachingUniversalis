@@ -135,7 +135,8 @@ struct RenderSnapshot {
         int                           pop       = 0;
         int                           childCount = 0;   // NPCs under age 15
         int                           popCap    = 35;   // max pop from BirthSystem
-        float                         stability = 0.f;   // 0-1 composite settlement health
+        float                         stability = 0.f;   // 0-1 composite settlement health (internal)
+        float                         morale    = 0.5f;  // 0-1 settlement morale (from Settlement component)
         int                           workers   = 0;     // current number of Working NPCs
         std::string                   modifierName;      // active event ("Plague", "Drought", etc.)
         float                         modifierHoursLeft = 0.f;
