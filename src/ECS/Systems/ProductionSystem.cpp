@@ -88,6 +88,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 workerContrib += 0.05f;
                 workerContrib = std::min(2.0f, workerContrib);  // cap per-elder contribution
             }
+            // Track fatigue: fatigued workers produce at 80% rate
+            if (const auto* sched = registry.try_get<Schedule>(e)) {
+                if (sched->fatigued)
+                    workerContrib *= 0.8f;
+            }
             workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
