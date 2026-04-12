@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Illness source context in log** — Add "at Greenfield" to illness log in RandomEventSystem case 2.
 
 ## Recently Done
 
