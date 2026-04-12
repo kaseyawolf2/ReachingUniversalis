@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
-  to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
-  morale. This models grievances being aired and partially resolved — the act of striking itself
-  slightly relieves tension. Check `dt->strikeDuration` transitioning from > 0 to 0 in the drain
-  block and call `registry.try_get<Settlement>(home.settlement)->morale += 0.05f`.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -224,7 +218,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loop, when all three stockpiles (food, water, wood) exceed 80 units, applies +0.002 morale per
   game-hour. Changed from population-relative threshold to fixed 80-unit minimum per the spec.
 
-- [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
+- [x] **Work stoppage morale recovery** — In `ScheduleSystem.cpp`'s strike drain block, when
+  `strikeDuration` transitions from > 0 to 0, bumps home settlement morale by +0.05 (capped at
+  1.0). Models grievances being aired and partially resolved.
+
+- [x] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
   add an age line: "Age: 23" (integer days). Read `AgentEntry::ageDays` cast to int. For children
   (`ageDays < 15`), show "Age: 8 (child)". For elders (`ageDays > 60`), show "Age: 63 (elder)".
   No new snapshot fields needed — `ageDays` is already in `AgentEntry`.
@@ -1086,3 +1084,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   those friends a small morale boost: `settl->morale = std::min(1.f, settl->morale + 0.01f)`
   per friend (capped at 2 boosts). Log `"[FriendName] celebrates [Name]'s new child."` This
   makes social bonds visible in the community's response to new births.
+
+- [ ] **Strike grievance log** — In `ScheduleSystem.cpp`, when `strikeDuration` transitions from
+  0 to >0 (strike begins), log "Workers strike at [Settlement] — [N] workers walk out (morale:
+  XX%)." Count affected NPCs by iterating the same HomeSettlement view used elsewhere. When the
+  strike ends (transition >0 to 0, already handled for morale recovery), log "[Settlement] strike
+  ends — morale recovering." This makes strikes a proper story beat rather than a silent mechanic.
+
+- [ ] **Morale-driven migration push** — In `AgentDecisionSystem.cpp`'s migration scoring, add a
+  morale push factor. When the NPC's home settlement morale < 0.25, add +0.3 to migration score
+  (making them more likely to leave). When home morale > 0.7, add -0.2 (making them more likely
+  to stay). Read morale from `registry.get<Settlement>(home.settlement).morale`. This creates a
+  feedback loop: low morale → strikes → people leave → smaller settlement, which either recovers
+  or collapses organically.
