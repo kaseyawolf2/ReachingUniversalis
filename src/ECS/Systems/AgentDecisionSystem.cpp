@@ -1372,6 +1372,43 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 timer.banditPovertyTimer = 0.f;
             }
 
+            // Wanderer re-settlement: exile with enough gold can buy a fresh start
+            static constexpr float RESETTLE_COST = 30.f;
+            if (!isBanditNow && money.balance >= RESETTLE_COST) {
+                entt::entity bestSettl = entt::null;
+                float bestD2 = std::numeric_limits<float>::max();
+                registry.view<Position, Settlement>().each(
+                    [&](auto se, const Position& sp, const Settlement& ss) {
+                    if (ss.ruinTimer > 0.f) return;
+                    // Count pop at this settlement
+                    int sPop = 0;
+                    registry.view<HomeSettlement>(entt::exclude<Hauler>).each(
+                        [&](const HomeSettlement& hs) { if (hs.settlement == se) ++sPop; });
+                    if (sPop >= ss.popCap - 2) return;
+                    float dx = sp.x - pos.x, dy = sp.y - pos.y;
+                    float d2 = dx*dx + dy*dy;
+                    if (d2 < bestD2) { bestD2 = d2; bestSettl = se; }
+                });
+                if (bestSettl != entt::null) {
+                    home.settlement = bestSettl;
+                    money.balance -= RESETTLE_COST;
+                    if (auto* ts = registry.try_get<Settlement>(bestSettl))
+                        ts->treasury += RESETTLE_COST;
+                    timer.theftCount = 0;
+                    timer.banditPovertyTimer = 0.f;
+                    if (banditLog) {
+                        std::string who = "An exile";
+                        if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                        std::string where = "?";
+                        if (const auto* ts = registry.try_get<Settlement>(bestSettl))
+                            where = ts->name;
+                        banditLog->Push(charityDay, charityHour,
+                            who + " settled at " + where + " (fresh start).");
+                    }
+                    return;
+                }
+            }
+
             // Poverty accumulation → promotion
             if (!isBanditNow) {
                 if (money.balance < BANDIT_POVERTY_THRESH) {
