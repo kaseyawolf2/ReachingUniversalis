@@ -235,6 +235,11 @@ void GameState::Draw() {
             ring = s.selected ? YELLOW :
                    (minStock > 30.f) ? Fade(GREEN, 0.7f)  :
                    (minStock > 10.f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+            // Morale tint: when no event modifier is active, blend ring by morale
+            if (s.modifierName.empty() && !s.selected) {
+                ring = (s.morale >= 0.7f) ? Fade(GREEN, 0.7f) :
+                       (s.morale >= 0.3f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+            }
             // Plague override — ring pulses purple
             if (s.modifierName == "Plague")
                 ring = s.selected ? YELLOW : Color{ 180, 60, 220, 200 };

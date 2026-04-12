@@ -94,6 +94,7 @@ struct RenderSnapshot {
         std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
         std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
         float        ruinTimer  = 0.f;   // > 0 while settlement is in post-collapse ruin state
+        float        morale    = 0.5f;  // settlement morale (0-1) for ring colour
     };
 
     struct RoadEntry {
