@@ -310,6 +310,11 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     auto* settl = registry.try_get<Settlement>(target);
     if (!settl) return;
 
+    // Count population at target once; appended as [pop N] in all settlement-specific log lines.
+    int popCount = 0;
+    registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+        [&](const HomeSettlement& hs) { if (hs.settlement == target) ++popCount; });
+
     switch (pickType(m_rng)) {
 
     case 0: {   // Drought — cripple production
@@ -320,7 +325,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->morale = std::max(0.f, settl->morale - 0.10f);  // drought demoralises
         if (log) log->Push(day, hour,
             "DROUGHT strikes " + settl->name + " ("
-            + std::to_string((int)DROUGHT_DURATION) + "h)");
+            + std::to_string((int)DROUGHT_DURATION) + "h) [pop "
+            + std::to_string(popCount) + "]");
         break;
     }
 
@@ -333,7 +339,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         it->second -= lost;
         settl->morale = std::max(0.f, settl->morale - 0.12f);  // food loss is demoralising
         if (log) log->Push(day, hour,
-            "BLIGHT hits " + settl->name + " — "
+            "BLIGHT hits " + settl->name + " [pop " + std::to_string(popCount) + "] — "
             + std::to_string((int)lost) + " food destroyed");
         break;
     }
@@ -371,8 +377,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[120];
             std::snprintf(buf, sizeof(buf),
-                "PLAGUE erupts at %s — %d died, disease spreading via roads!",
-                settl->name.c_str(), killCount);
+                "PLAGUE erupts at %s [pop %d] — %d died, disease spreading via roads!",
+                settl->name.c_str(), popCount, killCount);
             log->Push(day, hour, buf);
         }
         break;
@@ -382,7 +388,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         static constexpr float BOOM_GOLD = 150.f;
         settl->treasury += BOOM_GOLD;
         if (log) log->Push(day, hour,
-            "TRADE BOOM at " + settl->name
+            "TRADE BOOM at " + settl->name + " [pop " + std::to_string(popCount) + "]"
             + " — treasury +" + std::to_string((int)BOOM_GOLD) + "g");
         break;
     }
@@ -414,7 +420,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         float lost = it->second * 0.40f;
         it->second -= lost;
         if (log) log->Push(day, hour,
-            "SPRING FLOOD at " + settl->name + " — "
+            "SPRING FLOOD at " + settl->name + " [pop " + std::to_string(popCount) + "] — "
             + std::to_string((int)lost) + " food washed away");
         break;
     }
@@ -428,8 +434,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->modifierDuration   = BOUNTY_DURATION;
         settl->modifierName       = "Harvest Bounty";
         if (log) log->Push(day, hour,
-            "HARVEST BOUNTY at " + settl->name + " (+50% production, "
-            + std::to_string((int)BOUNTY_DURATION) + "h)");
+            "HARVEST BOUNTY at " + settl->name + " [pop " + std::to_string(popCount) + "]"
+            + " (+50% production, " + std::to_string((int)BOUNTY_DURATION) + "h)");
         break;
     }
 
@@ -497,7 +503,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.emplace<Skills>(npc, Skills{ skill_dist(m_rng), skill_dist(m_rng), skill_dist(m_rng) });
         }
         if (log) log->Push(day, hour,
-            "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name);
+            "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name
+            + " [pop " + std::to_string(popCount + arrivals) + "]");
         break;
     }
 
@@ -559,7 +566,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         const char* resName = (scarcest == ResourceType::Food)  ? "food"  :
                               (scarcest == ResourceType::Water) ? "water" : "wood";
         if (log) log->Push(day, hour,
-            "OFF-MAP CONVOY at " + settl->name + " +" + std::to_string((int)CONVOY_AMOUNT)
+            "OFF-MAP CONVOY at " + settl->name + " [pop " + std::to_string(popCount) + "] +"
+            + std::to_string((int)CONVOY_AMOUNT)
             + " " + resName + " (paid " + std::to_string((int)cost) + "g)");
         break;
     }
@@ -598,10 +606,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             });
 
         if (log) {
-            char buf[128];
+            char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "FESTIVAL at %s — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
-                settl->name.c_str(), celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
+                "FESTIVAL at %s [pop %d] — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
+                settl->name.c_str(), popCount, celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
             log->Push(day, hour, buf);
         }
         break;
@@ -629,10 +637,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         int killed = KillFraction(registry, target, 0.05f);
 
         if (log) {
-            char buf[160];
+            char buf[180];
             std::snprintf(buf, sizeof(buf),
-                "FIRE at %s — %.0f food, %.0f wood destroyed, %d died",
-                settl->name.c_str(), foodLost, woodLost, killed);
+                "FIRE at %s [pop %d] — %.0f food, %.0f wood destroyed, %d died",
+                settl->name.c_str(), popCount, foodLost, woodLost, killed);
             log->Push(day, hour, buf);
         }
         break;
@@ -661,10 +669,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         }
 
         if (log) {
-            char buf[120];
+            char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "HEAT WAVE strikes %s — production -25%%, water reserves drained (%dh)",
-                settl->name.c_str(), (int)HEATWAVE_DURATION);
+                "HEAT WAVE strikes %s [pop %d] — production -25%%, water reserves drained (%dh)",
+                settl->name.c_str(), popCount, (int)HEATWAVE_DURATION);
             log->Push(day, hour, buf);
         }
         break;
@@ -680,10 +688,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         sp->quantities[ResourceType::Wood] += windfall;
 
         if (log) {
-            char buf[120];
+            char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "LUMBER WINDFALL at %s — storm felled trees, +%.0f wood",
-                settl->name.c_str(), windfall);
+                "LUMBER WINDFALL at %s [pop %d] — storm felled trees, +%.0f wood",
+                settl->name.c_str(), popCount, windfall);
             log->Push(day, hour, buf);
         }
         break;
@@ -756,10 +764,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         registry.emplace<Skills>(npc16, sk16);
 
         if (log) {
-            char buf[120];
+            char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "SKILLED IMMIGRANT: %s (%s) arrives at %s — skill %.0f%%",
-                immName.c_str(), specialty16, settl->name.c_str(), highSkill * 100.f);
+                "SKILLED IMMIGRANT: %s (%s) arrives at %s [pop %d] — skill %.0f%%",
+                immName.c_str(), specialty16, settl->name.c_str(), popCount + 1, highSkill * 100.f);
             log->Push(day, hour, buf);
         }
         break;
@@ -783,10 +791,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             p = std::min(20.f, p * spikeBase);
 
         if (log) {
-            char buf[120];
+            char buf[140];
             std::snprintf(buf, sizeof(buf),
-                "MARKET CRISIS at %s — panic buying, all prices spike %.1f×!",
-                settl->name.c_str(), spikeBase);
+                "MARKET CRISIS at %s [pop %d] — panic buying, all prices spike %.1fx!",
+                settl->name.c_str(), popCount, spikeBase);
             log->Push(day, hour, buf);
         }
         break;
@@ -835,10 +843,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         }
 
         if (log) {
-            char buf[140];
+            char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "EARTHQUAKE at %s — %d facilit%s destroyed, all roads blocked (%dh)",
-                settl->name.c_str(), destroyed,
+                "EARTHQUAKE at %s [pop %d] — %d facilit%s destroyed, all roads blocked (%dh)",
+                settl->name.c_str(), popCount, destroyed,
                 destroyed == 1 ? "y" : "ies", (int)QUAKE_ROAD_BLOCK_DURATION);
             log->Push(day, hour, buf);
         }
