@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s settlement
-  loop, after the morale drift, check if `stockpile` has all three resources above `pop * 2`.
-  If so, nudge morale upward: `s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt)`.
-  This creates a positive feedback loop between good supply management and NPC happiness.
+- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
+  `relations`, log when a relation crosses a threshold for the first time: when score drops
+  below -0.5f add "Rivalry declared: Ashford vs Thornvale" to the event log, when it rises
+  above 0.5f add "Alliance formed: Ashford & Thornvale". Guard with a per-pair cooldown using
+  an `std::set<pair<entt::entity,entt::entity>> s_loggedRivalries` static set to avoid spam.
 
 ---
 
@@ -176,12 +177,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
-  `relations`, log when a relation crosses a threshold for the first time: when score drops
-  below -0.5f add "Rivalry declared: Ashford vs Thornvale" to the event log, when it rises
-  above 0.5f add "Alliance formed: Ashford & Thornvale". Guard with a per-pair cooldown using
-  an `std::set<pair<entt::entity,entt::entity>> s_loggedRivalries` static set to avoid spam.
 
 - [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
   scatter slightly from the settlement centre rather than all heading to the same facility at once.
