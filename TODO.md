@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
+  a short profession abbreviation in grey: "Fa" = Farmer, "Wa" = Water Carrier, "Lu" = Lumberjack,
+  "Me" = Merchant. Read from `AgentEntry::profession` (already populated from the Profession
+  component). No new fields needed.
+
 ---
 
 ## Done
@@ -162,12 +168,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after memory update, views `ProductionFacility` to find the settlement's primary facility
   (highest `baseRate`), then sets `Profession::type = ProfessionForResource(pf.output)`.
   Guarded by `try_get<Profession>` so NPCs without the component are skipped.
-
-- [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
-  a short profession abbreviation in grey: "Fa" = Farmer, "Wa" = Water Carrier, "Lu" = Lumberjack,
-  "Me" = Merchant. Read from `AgentEntry::profession` (already populated from the Profession
-  component). No new fields needed.
 
 - [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
   at their skill-matched facility, check if their `Profession` type matches the facility output
