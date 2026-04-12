@@ -243,7 +243,12 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             if (abbr) {
                 char abbrBuf[8];
                 std::snprintf(abbrBuf, sizeof(abbrBuf), " [%s]", abbr);
-                DrawText(abbrBuf, rx, y, 11, Fade(GRAY, 0.75f));
+                Color abbrCol = (r.profession == "Farmer")       ? Fade(GREEN, 0.6f)   :
+                                (r.profession == "Water Carrier") ? Fade(SKYBLUE, 0.6f) :
+                                (r.profession == "Woodcutter")   ? Fade(BROWN, 0.7f)   :
+                                (r.profession == "Merchant")     ? Fade(GOLD, 0.5f)    :
+                                                                   Fade(GRAY, 0.75f);
+                DrawText(abbrBuf, rx, y, 11, abbrCol);
                 rx += MeasureText(abbrBuf, 11);
             }
 
