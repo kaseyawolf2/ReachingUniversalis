@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC complains about need in greeting** — Append " (complains about [need])" when greeting NPC has any need below 0.3.
 
 ## Recently Done
 
