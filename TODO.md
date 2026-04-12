@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
+- [x] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
   settlement B (where B.relations[A] < -0.5), add a random 20% chance the delivery is "taxed at
   the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
   `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
@@ -253,7 +253,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `convergeFrac` by 1.5 (prices converge 50% faster on allied trade routes). Add a tooltip note
   "Allied: faster price convergence" in `HUD.cpp DrawRoadTooltip` when the alliance line is shown.
 
-- [ ] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
+- [x] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
   settlement B (where B.relations[A] < -0.5), add a random 20% chance the delivery is "taxed at
   the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
   `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
@@ -1141,3 +1141,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   a slow morale drain of -0.001 per game-hour per rival (uncapped, stacks). This creates pressure:
   prolonged rivalry grinds morale down, increasing strike risk, which can push NPCs to migrate away.
   Combined with morale-driven migration push, this creates organic settlement decline under rivalry.
+
+- [ ] **Hauler gate tax shown in tooltip** — Add `bool gateTaxed = false` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`'s hauler snapshot block, set it from a new
+  `Hauler::lastGateTaxed` bool (set true in TransportSystem when gate tax fires, cleared on next
+  delivery). In `HUD::DrawHoverTooltip`, when `gateTaxed` is true, show a red "Gate-taxed at
+  last delivery" line. This surfaces the rivalry harassment mechanic to the player via the UI.
+
+- [ ] **Hauler profit tracking** — Add `float lastTripProfit = 0.f` and `float totalProfit = 0.f`
+  to the `Hauler` component in `Components.h`. Set `lastTripProfit` in `TransportSystem.cpp`'s
+  delivery block (earned minus buy cost). Accumulate into `totalProfit`. Add both to `AgentEntry`
+  in `RenderSnapshot.h` and display in `HUD::DrawHoverTooltip` as "Last trip: +Xg" and
+  "Lifetime: +Xg". No economy impact — purely observability for the player.
