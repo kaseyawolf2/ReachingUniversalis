@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
+  draw a small 3-row legend in the bottom-right corner: a green dot + "Thriving (>70%)", a yellow
+  dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
+  + `DrawText` at fixed screen coordinates. Helps the player decode the contentment colour system.
+
 - [x] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
   `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, compute the average
   contentment of homed NPCs (view `Needs, HomeSettlement`, same exclusions as needStability).
