@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bankruptcy countdown in tooltip** — Show estimated hours until bankruptcy for
+  near-bankrupt haulers. Add bankruptProgress to Hauler and AgentEntry.
+
 ## Recently Done
 
 - [x] **Hauler return trip line** — Gray return-trip line drawn for haulers heading home.
