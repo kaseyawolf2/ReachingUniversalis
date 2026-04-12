@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Hauler route memory** — bestProfit/bestRoute on Hauler, logged on new record, shown in tooltip as "Best: A→B +Xg" in faint GOLD.
+
 - [x] **NPC greeting interactions** — Idle NPCs within 40u greet same-settlement neighbours. greetCooldown (2 real-sec) on DeprivationTimer. Logs to EventLog.
 
 - [x] **Gang disbands on last member removed** — After confrontation scatter, check remaining bandits with same gangName. If none, log "[gang] has been disbanded."
@@ -1255,7 +1257,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   within 40 units. If found, log "[Name] greets [Other]" and set cooldown to 120 game-seconds.
   Adds ambient social texture to settlements without gameplay impact.
 
-- [ ] **Hauler route memory** — Haulers remember their most profitable completed trip. Add
+- [x] **Hauler route memory** — Haulers remember their most profitable completed trip. Add
   `float bestProfit = 0.f` and `std::string bestRoute = ""` to `Hauler`. On delivery completion
   in `TransportSystem`, if profit exceeds bestProfit, update both fields and log "[Hauler] sets
   new personal record: +Xg on [A]→[B]". Pipe bestRoute through RenderSnapshot and show in tooltip
@@ -1380,6 +1382,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the greeting NPC has any need below 0.3, append " (complains about [need])" to the greeting
   message. In `AgentDecisionSystem`'s greeting block, after building the base msg string, check
   `needs.list[i].value < 0.3` and append the need name. Pure log flavour — no gameplay effect.
+
+- [ ] **Hauler preferred route bias** — Haulers with a `bestRoute` set prefer that route when
+  evaluating trades. In `TransportSystem::FindBestRoute` (or equivalent), when scoring candidate
+  routes, add a +10% score bonus if the source→dest matches `hauler.bestRoute`. This creates route
+  specialization: experienced haulers stick to known profitable corridors. Needs to pass the
+  hauler entity into the route evaluation function.
+
+- [ ] **NPC age affects move speed** — In `MovementSystem`, scale NPC speed by age bracket.
+  Children (age < 15) move at 80% speed, elders (age > 55) at 70%, prime adults at 100%. Read
+  `Age::days` from the entity, compute bracket, multiply `MoveSpeed::value` by the factor. Exclude
+  haulers and player (already have separate speed logic). Adds visible age-based behaviour.
 
 ---
 
