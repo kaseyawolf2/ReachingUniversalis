@@ -468,12 +468,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         agents = snap.agents;
     }
 
-    // Build surname→count map once so the tooltip can show family clusters.
+    // Build surname→count and familyName→count maps for family cluster display.
     std::map<std::string, int> surnameCount;
+    std::map<std::string, int> familyNameCount;
     for (const auto& a : agents) {
         auto sp = a.npcName.rfind(' ');
         if (sp != std::string::npos)
             ++surnameCount[a.npcName.substr(sp + 1)];
+        if (!a.familyName.empty())
+            ++familyNameCount[a.familyName];
     }
 
     const RenderSnapshot::AgentEntry* best = nullptr;
@@ -509,9 +512,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     // Prefer the explicit FamilyTag name; fall back to surname-count heuristic.
     {
         if (!best->familyName.empty()) {
+            int n = 1;
+            auto fit = familyNameCount.find(best->familyName);
+            if (fit != familyNameCount.end()) n = fit->second;
             size_t used = std::strlen(line1);
             std::snprintf(line1 + used, sizeof(line1) - used,
-                          "  (Family: %s)", best->familyName.c_str());
+                          "  (Family: %s x%d)", best->familyName.c_str(), n);
         } else {
             auto sp = best->npcName.rfind(' ');
             if (sp != std::string::npos) {
@@ -520,7 +526,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
                 if (it != surnameCount.end() && it->second >= 2) {
                     size_t used = std::strlen(line1);
                     std::snprintf(line1 + used, sizeof(line1) - used,
-                                  "  (Family: %s)", surname.c_str());
+                                  "  (Family: %s x%d)", surname.c_str(), it->second);
                 }
             }
         }
