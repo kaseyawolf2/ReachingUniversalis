@@ -308,6 +308,25 @@ void GameState::Draw() {
         DrawText(label, (int)f.x - 4, (int)f.y - 7, 14, WHITE);
     }
 
+    // Charity-radius overlay: when hovering a canHelp NPC, draw a faint LIME circle
+    // showing the radius within which they can help starving neighbours.
+    {
+        Vector2 mouse = GetMousePosition();
+        Vector2 world = GetScreenToWorld2D(mouse, m_camera);
+        const RenderSnapshot::AgentEntry* hovered = nullptr;
+        float bestDist = 12.f;
+        for (const auto& a : agents) {
+            float dx = world.x - a.x, dy = world.y - a.y;
+            float d  = std::sqrt(dx*dx + dy*dy) - a.size;
+            if (d < bestDist) { bestDist = d; hovered = &a; }
+        }
+        if (hovered && hovered->role == RenderSnapshot::AgentRole::NPC &&
+            hovered->hungerPct > 0.8f && hovered->balance > 20.f &&
+            hovered->charityReady) {
+            DrawCircleLinesV({ hovered->x, hovered->y }, 80.f, Fade(LIME, 0.2f));
+        }
+    }
+
     // Agents
     for (const auto& a : agents) {
         // Celebrating NPCs glow gold for the duration of the festival

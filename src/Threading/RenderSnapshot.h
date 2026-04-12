@@ -60,6 +60,8 @@ struct RenderSnapshot {
         bool isGrateful = false;
         // True if this NPC recently gave charity AND has very high heat (warmth glow)
         bool recentWarmthGlow = false;
+        // True if this NPC's charity cooldown is 0 (ready to give charity)
+        bool charityReady = false;
     };
 
     struct SettlementEntry {
