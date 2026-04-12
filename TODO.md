@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler preferred route bias** — +10% score bonus in FindBestRoute when route matches hauler.bestRoute. Pass hauler entity into route evaluation.
+
 
 ## Recently Done
+
+- [x] **Hauler preferred route bias** — +10% score bonus in FindBestRoute when candidate route matches hauler.bestRoute string. Experienced haulers specialize on profitable corridors.
+
 
 - [x] **NPC complains about need in greeting** — Greeting log appends " (complains about hunger/thirst/fatigue/the cold)" when any need < 0.3. Priority order, first low need only.
 
@@ -1448,7 +1451,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   message. In `AgentDecisionSystem`'s greeting block, after building the base msg string, check
   `needs.list[i].value < 0.3` and append the need name. Pure log flavour — no gameplay effect.
 
-- [ ] **Hauler preferred route bias** — Haulers with a `bestRoute` set prefer that route when
+- [x] **Hauler preferred route bias** — Haulers with a `bestRoute` set prefer that route when
   evaluating trades. In `TransportSystem::FindBestRoute` (or equivalent), when scoring candidate
   routes, add a +10% score bonus if the source→dest matches `hauler.bestRoute`. This creates route
   specialization: experienced haulers stick to known profitable corridors. Needs to pass the
@@ -2920,3 +2923,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   greeter (greeter's hunger need += 0.3, listener's money -= price, settlement treasury += price).
   Log "[Listener] shares a meal with [Greeter]." Follows Gold Flow Rule — money goes to treasury.
   Check `Stockpile` has food > 1 before proceeding. Max once per greeting cooldown cycle.
+
+- [ ] **Hauler route loyalty log** — In `TransportSystem`, when a hauler picks a route that
+  matches their `bestRoute` (the preferred-route bonus fired), log "[Hauler] sticks to their
+  favourite route [bestRoute]." In the Idle→GoingToDeposit transition (after `FindBestRoute`
+  returns), compare `best.dest` against `hauler.bestRoute` using the same name→name format.
+  Pure flavour log — makes hauler specialization visible in the event feed.
+
+- [ ] **Hauler explores new route after losses** — In `TransportSystem`'s Idle state, when
+  `hauler.nearBankrupt` is true and `hauler.bestRoute` is non-empty, clear `hauler.bestRoute`
+  (set to "") so the hauler stops preferring its old route and explores alternatives. Log
+  "[Hauler] abandons familiar route after losses." This creates dynamic route adaptation:
+  haulers stuck in unprofitable patterns break free when facing bankruptcy.
