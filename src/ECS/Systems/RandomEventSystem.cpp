@@ -110,6 +110,13 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                 log->Push(tm.day, (int)tm.hourOfDay,
                     "Recovery: " + s.name + " " + resources + " stores recovering.");
             }
+            // Morale bump: recovering from scarcity is a small community boost
+            if (recovering) {
+                int recoveredCount = ((recovering & 1) ? 1 : 0)
+                                   + ((recovering & 2) ? 1 : 0)
+                                   + ((recovering & 4) ? 1 : 0);
+                s.morale = std::min(1.f, s.morale + 0.01f * recoveredCount);
+            }
             mask &= ~recovering;
             // Log newly scarce resources
             int newBits = 0;
