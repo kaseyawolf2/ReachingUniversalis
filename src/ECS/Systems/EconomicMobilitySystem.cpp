@@ -66,12 +66,27 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
             s_bankruptTimer[e] += CHECK_INTERVAL;
             hauler.nearBankrupt = (s_bankruptTimer[e] >= BANKRUPTCY_HOURS * 0.75f);
             hauler.bankruptProgress = s_bankruptTimer[e];
+            // Warn at 50% progress (once per bankruptcy cycle)
+            if (!hauler.bankruptWarned && hauler.bankruptProgress >= BANKRUPTCY_HOURS * 0.5f) {
+                hauler.bankruptWarned = true;
+                auto lv = registry.view<EventLog>();
+                auto tv = registry.view<TimeManager>();
+                if (!lv.empty() && !tv.empty()) {
+                    const auto& tm = tv.get<TimeManager>(*tv.begin());
+                    std::string who = "A hauler";
+                    if (const auto* n = registry.try_get<Name>(e))
+                        who = n->value;
+                    lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                        who + " is struggling financially.");
+                }
+            }
             if (s_bankruptTimer[e] >= BANKRUPTCY_HOURS)
                 toDegrade.push_back(e);
         } else {
             s_bankruptTimer.erase(e);
             hauler.nearBankrupt = false;
             hauler.bankruptProgress = 0.f;
+            hauler.bankruptWarned = false;
         }
     });
 

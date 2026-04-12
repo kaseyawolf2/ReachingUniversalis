@@ -184,6 +184,7 @@ struct Hauler {
     bool         inConvoy       = false;       // true when travelling near another hauler headed same way
     float        bestProfit     = 0.f;        // highest single-trip profit achieved
     std::string  bestRoute;                   // "A→B" label of the best-profit trip
+    bool         bankruptWarned = false;      // true after logging the 50% bankruptcy warning
 };
 
 // ---- Economy ----
