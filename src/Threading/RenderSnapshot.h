@@ -175,6 +175,7 @@ struct RenderSnapshot {
         float       foodRate  = 0.f;  // estimated food production per game-hour
         float       waterRate = 0.f;
         float       woodRate  = 0.f;
+        int         fatiguedWorkers = 0;  // workers with Schedule::fatigued at this settlement
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----
