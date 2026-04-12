@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement population graph in stockpile panel** — Draw popHistory line graph in RenderSystem::DrawStockpilePanel below resident list.
-
 ## Recently Done
+
+- [x] **Settlement population graph in stockpile panel** — Replaced bar chart with line graph (GREEN growth, RED decline segments, white dots) in RenderSystem::DrawStockpilePanel.
+
 
 - [x] **NPC flee from bandits** — panicTimer on DeprivationTimer. NPCs within 60u scatter at 1.5x speed for 2s after bandit intercept. Skip decisions during panic.
 
@@ -1390,7 +1391,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Add `float panicTimer = 0.f` to `DeprivationTimer`. NPCs with panicTimer > 0 skip normal
   decision-making. Creates a visceral sense of danger around bandit activity.
 
-- [ ] **Settlement population graph in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+- [x] **Settlement population graph in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
   when `panel.popHistory` has 2+ entries, draw a simple line graph (60px tall, spanning panel
   width) showing population over time. Use GREEN for growth segments, RED for decline. Already
   have `popHistory` in StockpilePanel — just need the rendering code. Draw below the resident list.
@@ -2804,3 +2805,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   [road/settlement]!" Rate-limit with `greetCooldown` (reuse existing cooldown on DeprivationTimer).
   Uses existing `Name` and `HomeSettlement` components. Creates information propagation where NPC
   fear translates into visible community awareness of bandit threats.
+
+- [ ] **Resource price history sparkline** — In `RenderSystem::DrawStockpilePanel`, below each
+  resource line, draw a tiny 3-line-high sparkline of the last 20 price samples. Add
+  `std::map<ResourceType, std::vector<float>> priceHistory` to `StockpilePanel` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, record `mkt->GetPrice(type)` each snapshot
+  (cap at 20 entries via ring buffer or push_back + erase). Use same GREEN/RED line style as
+  the population graph. Makes price trends visible without cluttering the display.
+
+- [ ] **Population graph hover tooltip** — In `RenderSystem::DrawStockpilePanel`, when the mouse
+  is inside the population chart area, show the exact population value for the nearest data point.
+  Use `GetMousePosition()` to find the closest X coordinate, then draw a small tooltip box with
+  "Day N: pop X" near the cursor. Uses existing `popHistory` data — no new snapshot fields needed.
