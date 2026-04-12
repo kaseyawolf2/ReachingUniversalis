@@ -45,6 +45,9 @@ private:
     RenderSystem m_renderSystem;
     HUD          m_hud;
 
+    // Road colour mode: false = safety (bandit-aware), true = condition-only
+    bool  m_showRoadCondition = false;
+
     // Road-build mode: tracks the intermediate state between the first and second N key press.
     bool  m_roadBuildMode = false;
     float m_roadBuildSrcX = 0.f;

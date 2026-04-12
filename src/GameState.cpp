@@ -65,6 +65,10 @@ void GameState::PollInput(float dt) {
         m_input.camFollowToggle.store(true);
     }
 
+    if (IsKeyPressed(KEY_O)) {
+        m_showRoadCondition = !m_showRoadCondition;
+    }
+
     // Two-press N: first press selects road start, second press builds the road.
     if (IsKeyPressed(KEY_N)) {
         float px, py;
@@ -164,14 +168,14 @@ void GameState::Draw() {
     // World drawing
     BeginMode2D(m_camera);
 
-    // Roads — color-coded by condition and bandit presence
+    // Roads — color-coded by condition or bandit presence (toggle with O key)
     for (const auto& r : roads) {
         Color col;
         if (r.blocked) {
             col = RED;
-        } else if (r.banditCount >= 3) {
+        } else if (!m_showRoadCondition && r.banditCount >= 3) {
             col = Fade(RED, 0.6f);
-        } else if (r.banditCount > 0) {
+        } else if (!m_showRoadCondition && r.banditCount > 0) {
             col = Fade(ORANGE, 0.5f);
         } else {
             float c = r.condition;
@@ -437,6 +441,12 @@ void GameState::Draw() {
 
     // HUD
     m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);
+
+    // Road overlay mode label (bottom-left corner)
+    {
+        const char* modeLabel = m_showRoadCondition ? "Road: Condition" : "Road: Safety";
+        DrawText(modeLabel, 8, 720 - 18, 10, Fade(LIGHTGRAY, 0.5f));
+    }
 }
 
 // ---- SkyColor --------------------------------------------------------
