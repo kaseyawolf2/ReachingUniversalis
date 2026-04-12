@@ -417,6 +417,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         stl->treasury -= cost;
                     }
                     timer.stealCooldown = STEAL_COOLDOWN_HOURS;
+                    timer.theftCount++;
 
                     // Social shame penalty: reduce all skills by 0.02 (ostracism effect)
                     if (auto* sk = registry.try_get<Skills>(entity)) {
@@ -441,6 +442,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm2.day, (int)tm2.hourOfDay,
                                 who + " stole " + resName + " from " + where + ".");
+
+                            // Exile after 3 thefts: clear home settlement
+                            if (timer.theftCount >= 3) {
+                                std::string exileName = where;
+                                home.settlement = entt::null;
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm2.day, (int)tm2.hourOfDay,
+                                    who + " exiled from " + exileName + " for repeated theft.");
+                            }
                         }
                     }
                 }

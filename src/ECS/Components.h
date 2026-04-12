@@ -119,6 +119,7 @@ struct DeprivationTimer {
     float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
     float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase
     float                stealCooldown   = 0.f;    // game-hours until NPC can steal again (0 = can steal)
+    int                  theftCount      = 0;      // lifetime theft count; >= 3 triggers exile
     float                gossipCooldown  = 0.f;    // game-hours until NPC can gossip prices again (0 = ready)
     float                charityTimer    = 0.f;    // game-hours until NPC can help a starving neighbour again (0 = ready)
     float                helpedTimer     = 0.f;    // game-hours since receiving charity; > 0 → "recently helped"
