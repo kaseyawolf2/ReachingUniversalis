@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Hauler bankruptcy warning log** — bankruptWarned flag on Hauler, log at 50% BANKRUPTCY_HOURS. Resets on recovery.
+
 - [x] **NPC skill-up notification** — Extended existing milestone system in ScheduleSystem with "Apprentice" (0.25) and "Skilled" (0.75) thresholds.
 
 - [x] **Bandit flee visual indicator** — fleeTimer + fleeVx/fleeVy piped through AgentEntry. Red/orange trail drawn behind fleeing bandits in GameState::Draw.
@@ -1293,7 +1295,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the old didn't. Brief faint GOLD text particle above the NPC would be a bonus but the log alone
   is the core feature.
 
-- [ ] **Hauler bankruptcy warning log** — When a hauler's `bankruptProgress` crosses 0.5 for the
+- [x] **Hauler bankruptcy warning log** — When a hauler's `bankruptProgress` crosses 0.5 for the
   first time, log "[Hauler] is struggling financially" in EventLog. Add `bool bankruptWarned = false`
   to `Hauler`. In `EconomicMobilitySystem`, when bankruptProgress >= 0.5 and !bankruptWarned, log
   and set flag. Gives players advance notice before a hauler actually goes bankrupt.
@@ -1444,6 +1446,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   checking generic nearby NPCs, prioritize family members (check `FamilyTag::name` match). If a
   starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always
   offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
+
+- [ ] **Hauler bankruptcy shown in settlement stockpile** — In `RenderSystem::DrawStockpilePanel`,
+  below the resident list, show "Struggling haulers: N" in faint RED when any haulers homed at the
+  settlement have `bankruptWarned == true`. Add `int strugglingHaulers = 0` to
+  `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting Haulers
+  with `bankruptWarned && HomeSettlement == selectedSettlement`.
+
+- [ ] **NPC celebrates skill milestone** — In `ScheduleSystem`'s skill milestone check (the
+  `checkMilestone` lambda), when an NPC reaches Journeyman or Master, set their `AgentState::behavior`
+  to `AgentBehavior::Celebrating` for 30 game-seconds (add `float celebrateTimer = 0.f` to
+  `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
+  Creates a visible moment when NPCs achieve something meaningful.
 
 ---
 
