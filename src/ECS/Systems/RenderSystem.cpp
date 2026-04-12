@@ -171,6 +171,13 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         std::snprintf(resBuf, sizeof(resBuf), "Residents (%d):", (int)panel.residents.size());
         DrawText(resBuf, PX + 8, y, 11, Fade(YELLOW, 0.7f));
         y += LINE_H - 2;
+
+        // Count family members among visible residents for the " ×N" suffix
+        std::map<std::string, int> familyCount;
+        for (const auto& r : panel.residents)
+            if (!r.familyName.empty())
+                familyCount[r.familyName]++;
+
         for (const auto& r : panel.residents) {
             // First entry is richest (sorted descending); highlight in gold
             Color rc = (&r == &panel.residents.front()) ? GOLD : Fade(LIGHTGRAY, 0.85f);
@@ -199,6 +206,18 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             }
 
             DrawText(goldBuf, rx, y, 11, rc);
+            rx += MeasureText(goldBuf, 11);
+
+            // Append " ×N" family count when 2+ members of the same family are present
+            if (!r.familyName.empty()) {
+                auto it = familyCount.find(r.familyName);
+                if (it != familyCount.end() && it->second >= 2) {
+                    char famBuf[8];
+                    std::snprintf(famBuf, sizeof(famBuf), " \xc3\x97%d", it->second);
+                    DrawText(famBuf, rx, y, 11, Fade(DARKGRAY, 0.85f));
+                }
+            }
+
             y += LINE_H - 3;
         }
     }

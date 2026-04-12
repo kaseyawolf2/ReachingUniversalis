@@ -156,6 +156,7 @@ struct RenderSnapshot {
             std::string name;
             float       balance    = 0.f;
             std::string profession;
+            std::string familyName;   // FamilyTag::name, empty if no family
         };
         std::vector<AgentInfo>        residents;
     };

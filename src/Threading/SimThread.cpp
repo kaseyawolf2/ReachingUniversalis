@@ -1691,6 +1691,8 @@ void SimThread::WriteSnapshot() {
                     ai.balance = mn.balance;
                     if (const auto* pr = m_registry.try_get<Profession>(npc))
                         ai.profession = ProfessionLabel(pr->type);
+                    if (const auto* ft = m_registry.try_get<FamilyTag>(npc))
+                        ai.familyName = ft->name;
                     panel.residents.push_back(std::move(ai));
                 });
             std::sort(panel.residents.begin(), panel.residents.end(),
