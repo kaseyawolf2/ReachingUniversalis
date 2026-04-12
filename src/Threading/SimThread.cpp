@@ -1297,6 +1297,7 @@ void SimThread::WriteSnapshot() {
         bool recentWarmthGlow = false;
         bool charityReady    = false;
         bool onStrike        = false;
+        float strikeHoursLeft = 0.f;
         bool ill             = false;
         int  illNeedIdx      = 0;
         bool harvestBonus    = false;
@@ -1307,6 +1308,7 @@ void SimThread::WriteSnapshot() {
             recentWarmthGlow = (htp > 0.9f && dt->charityTimer > 0.f);
             charityReady     = (dt->charityTimer <= 0.f);
             onStrike         = (dt->strikeDuration > 0.f);
+            strikeHoursLeft  = dt->strikeDuration;
             ill              = (dt->illnessTimer > 0.f);
             illNeedIdx       = dt->illnessNeedIdx;
             harvestBonus     = (dt->harvestBonusTimer > 0.f);
@@ -1355,7 +1357,7 @@ void SimThread::WriteSnapshot() {
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady,
-                           isBandit, onStrike, ill, illNeedIdx,
+                           isBandit, onStrike, strikeHoursLeft, ill, illNeedIdx,
                            harvestBonus, inVocation,
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
