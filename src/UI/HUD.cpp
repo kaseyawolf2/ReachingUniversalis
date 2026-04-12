@@ -306,7 +306,7 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     bool showWood = (season == Season::Autumn || season == Season::Winter);
 
     static const int STATUS_FONT = 12;
-    char bufs[4][128]; bool hasEvent[4] = {}; std::string eventNames[4]; int count = 0;
+    char bufs[4][128]; bool hasEvent[4] = {}; bool hungerCrisis[4] = {}; std::string eventNames[4]; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
         // Format: "Name F:stock@price W:stock@price G:treasury [pop+haulers]"
@@ -348,19 +348,22 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             bufs[count][len+2] = '\0';
         }
         (void)trendSym;  // suppress warning if UTF-8 arrows not used
-        hasEvent[count]   = s.hasEvent;
-        eventNames[count] = s.eventName;
+        hasEvent[count]    = s.hasEvent;
+        hungerCrisis[count] = s.hungerCrisis;
+        eventNames[count]  = s.eventName;
         ++count;
     }
 
-    // Second pass: record child counts per entry for the greyed suffix drawn separately.
-    // We store them indexed parallel to bufs[].
+    // Second pass: record child counts and food prefix widths per entry.
     int childCounts[4] = {};
+    char foodPfx[4][64] = {};  // prefix up to food number, for measuring hunger "!" position
     {
         int ci = 0;
         for (const auto& s : ws) {
             if (ci >= 4) break;
-            childCounts[ci++] = s.childCount;
+            childCounts[ci] = s.childCount;
+            std::snprintf(foodPfx[ci], sizeof(foodPfx[ci]), "%s  F:%.0f", s.name.c_str(), s.food);
+            ++ci;
         }
     }
     // Pre-build child suffix strings (e.g. " (3c)") for width measurement and drawing.
@@ -370,9 +373,11 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             std::snprintf(childSuffix[i], sizeof(childSuffix[i]), " (%dc)", childCounts[i]);
     }
 
+    static const int HUNGER_W = 8;  // width reserved for "!" indicator
     int totalW = 0;
     for (int i = 0; i < count; ++i)
-        totalW += MeasureText(bufs[i], STATUS_FONT) + MeasureText(childSuffix[i], STATUS_FONT) + (i > 0 ? 28 : 0);
+        totalW += MeasureText(bufs[i], STATUS_FONT) + MeasureText(childSuffix[i], STATUS_FONT)
+                  + (hungerCrisis[i] ? HUNGER_W : 0) + (i > 0 ? 28 : 0);
     int sx = (SCREEN_W - totalW) / 2;
 
     DrawRectangle(sx - 8, 4, totalW + 16, 34, Fade(BLACK, 0.55f));
@@ -383,7 +388,12 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         bool woodLow = showWood && (ws[i].wood < 20.f) && (season == Season::Winter);
         Color col = woodLow ? RED : (hasEvent[i] ? ModifierColour(eventNames[i]) : WHITE);
         DrawText(bufs[i], cx, 14, STATUS_FONT, col);
-        cx += MeasureText(bufs[i], STATUS_FONT);
+        // Hunger crisis: draw "!" immediately after the food number in red
+        if (hungerCrisis[i]) {
+            int pfxW = MeasureText(foodPfx[i], STATUS_FONT);
+            DrawText("!", cx + pfxW, 14, STATUS_FONT, Fade(RED, 0.9f));
+        }
+        cx += MeasureText(bufs[i], STATUS_FONT) + (hungerCrisis[i] ? HUNGER_W : 0);
         if (childCounts[i] > 0) {
             DrawText(childSuffix[i], cx, 14, STATUS_FONT, Fade(LIGHTGRAY, 0.6f));
             cx += MeasureText(childSuffix[i], STATUS_FONT);

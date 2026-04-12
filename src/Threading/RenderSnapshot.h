@@ -122,6 +122,7 @@ struct RenderSnapshot {
         char        foodPriceTrend = '=';  // price trend: '+' rising, '-' falling
         char        waterPriceTrend = '=';
         char        woodPriceTrend  = '=';
+        bool        hungerCrisis   = false; // any NPC < 15% hunger at this settlement
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----

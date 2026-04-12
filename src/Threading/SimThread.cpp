@@ -1567,11 +1567,18 @@ void SimThread::WriteSnapshot() {
             woodPriceTrend  = getTrend(ResourceType::Wood,  woodPrice);
         }
 
+        bool hungerCrisis = false;
+        m_registry.view<HomeSettlement, Needs>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs, const Needs& nd) {
+            if (hs.settlement == e && nd.list[0].value < 0.15f) hungerCrisis = true;
+        });
+
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
-                                 popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend });
+                                 popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
+                                 hungerCrisis });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
