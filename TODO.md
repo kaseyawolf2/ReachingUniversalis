@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler convoy formation** — 2+ haulers on same road within 60u get 25% speed bonus + tooltip indicator.
+
 ## Recently Done
 
 - [x] **Bandit scatter on confrontation** — Gang members with matching gangName get fleeTimer=3s + velocity away from player at 1.5x speed. Flee check added to bandit section of AgentDecisionSystem.
