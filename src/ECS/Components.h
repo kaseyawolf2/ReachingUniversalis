@@ -96,6 +96,7 @@ struct Settlement {
     int   tradeVolume      = 0;    // deliveries received; reset every 24 game-hours
     int   importCount      = 0;    // goods units received via hauler delivery (24h window)
     int   exportCount      = 0;    // goods units shipped out by haulers (24h window)
+    int   desperatePurchases = 0;  // emergency market purchases this 24h cycle
     float tradeVolumeTimer = 0.f;  // game-hours until next reset
 };
 

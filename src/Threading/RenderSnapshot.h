@@ -110,6 +110,7 @@ struct RenderSnapshot {
         int          tradeVolume = 0;   // deliveries received in current 24h period
         int          imports    = 0;   // goods units imported (24h window)
         int          exports    = 0;   // goods units exported (24h window)
+        int          desperatePurchases = 0; // emergency market purchases this 24h cycle
     };
 
     struct RoadEntry {

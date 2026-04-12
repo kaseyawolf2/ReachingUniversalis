@@ -148,6 +148,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         bought = true; whatBought = "water"; pricePaid = price;
                     }
                 }
+                // Track desperation purchase count on settlement
+                if (bought) {
+                    settl->desperatePurchases++;
+                }
                 // Log desperation purchase (rate-limited per NPC to once per 12 game-hours)
                 if (bought) {
                     float& cd = s_desperateCooldown[entity];

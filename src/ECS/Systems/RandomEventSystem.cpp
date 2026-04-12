@@ -53,6 +53,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             s.tradeVolume = 0;
             s.importCount = 0;
             s.exportCount = 0;
+            s.desperatePurchases = 0;
             s.tradeVolumeTimer -= 24.f;
         }
 
