@@ -242,6 +242,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     if (dt <= 0.f) return;
     int currentHour = (int)tm.hourOfDay;
 
+    // ---- Reputation decay: all NPCs drift toward 0 over time ----
+    static constexpr float REP_DECAY_PER_HOUR = 0.01f;
+    {
+        float gameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+        float decay = REP_DECAY_PER_HOUR * gameHoursDt;
+        registry.view<Reputation>().each([&](Reputation& rep) {
+            if (rep.score > 0.f)
+                rep.score = std::max(0.f, rep.score - decay);
+            else if (rep.score < 0.f)
+                rep.score = std::min(0.f, rep.score + decay);
+        });
+    }
+
     // Exclude Haulers (TransportSystem handles them), Player (PlayerInputSystem),
     // and Bandits (handled in the bandit section at the end of Update).
     auto view = registry.view<Needs, AgentState, Position, Velocity,
