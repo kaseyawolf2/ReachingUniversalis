@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
+- [x] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
   check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
   is still alive. If not (both partners gone), remove `FamilyTag` from all surviving children
   (age < 15 `ChildTag` entities with the same family name at that settlement) so they can form
@@ -935,3 +935,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
+
+- [ ] **Family reunion log on founding** — When a new settlement is founded via the P key in
+  `SimThread::ProcessInput` (SimThread.cpp), scan existing NPCs for any with `FamilyTag` whose
+  `HomeSettlement` is the founding player's nearest settlement. If two or more share the same
+  `FamilyTag::name`, log "The [name] family helped found [settlement name]." immediately after
+  the founding log. Pure flavour; no new components.
+
+- [ ] **Family size shown in stockpile residents panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the existing resident name+profession+gold line, append " ×N" in
+  `Fade(GRAY, 0.7f)` when N ≥ 2 members of the same family are resident. Requires adding
+  `familyName` (std::string) to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`; populate
+  it in `SimThread::WriteSnapshot` near the `StockpilePanel` residents block via
+  `registry.try_get<FamilyTag>(npcEntity)->name`.
+
+- [ ] **Orphan adoption** — When a child has `ChildTag` but no valid `HomeSettlement` (orphaned
+  by family dissolution or settlement collapse), any adult NPC at a settlement with `pop < popCap - 1`
+  who has `charityTimer == 0` can adopt them. In `AgentDecisionSystem`, after the charity block,
+  add: if the adult spots a nearby orphan (ChildTag, no home, within 60 units), set the orphan's
+  `HomeSettlement` to the adult's home, assign the adult's `FamilyTag::name` to the orphan (or
+  emplace a new FamilyTag), and log "X took in orphan Y at Z."
