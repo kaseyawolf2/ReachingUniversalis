@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC remembers last meal source** — Add `std::string lastMealSource = ""` to `DeprivationTimer`. When an NPC eats (in `ConsumptionSystem`), record the settlement name. When hunger drops below 0.2 and lastMealSource is set, log "[NPC] is grateful to [Settlement] for food." Clear on next meal.
-
 ## Recently Done
+
+- [x] **NPC remembers last meal source** — `lastMealSource` on DeprivationTimer. ConsumptionSystem records settlement name on eating; logs gratitude when hunger < 0.2.
+
 
 - [x] **Settlement trade volume in tooltip** — Show "Trade volume: Xg/day" in settlement tooltip.
 
@@ -1317,7 +1318,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (accumulated over rolling window). In `HUD::DrawWorldStatus` settlement tooltip, show
   "Trade volume: Xg/day" in faint WHITE. Helps player identify economic hubs vs backwaters.
 
-- [ ] **NPC remembers last meal source** — Add `std::string lastMealSource = ""` to
+- [x] **NPC remembers last meal source** — Add `std::string lastMealSource = ""` to
   `DeprivationTimer`. When an NPC eats (in `ConsumptionSystem`), record the settlement name. When
   hunger drops below 0.2 and lastMealSource is set, log "[NPC] is grateful to [Settlement] for
   food." Clear on next meal. Adds narrative flavour connecting NPCs to specific settlements.
@@ -2659,3 +2660,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   If `tradeVolume == 0` for 48h (add `int noTradeHours = 0` to `Settlement`), apply -0.02 morale
   ("economic isolation"). Log at threshold transitions. Creates feedback loop: trade success boosts
   morale → better NPC contentment → less migration.
+
+- [ ] **NPC water gratitude** — In `ConsumptionSystem`, mirror the food gratitude pattern for water.
+  Add `std::string lastDrinkSource` to `DeprivationTimer`. When `hadWater` is true (line ~100),
+  record `settl->name` in `timer.lastDrinkSource`. When `needs.list[1].value < 0.2` and
+  `lastDrinkSource` is non-empty, log "[NPC] is grateful to [Settlement] for water." and clear.
+  Completes the meal-memory system for both primary survival needs.
+
+- [ ] **NPC favourite settlement** — Add `std::string favouriteSettlement; int mealCount = 0` to
+  `DeprivationTimer`. In `ConsumptionSystem`, when `lastMealSource` is set and matches current
+  settlement name, increment `mealCount`. When `mealCount >= 20`, set `favouriteSettlement` and
+  log "[NPC] considers [Settlement] home in their heart." In `AgentDecisionSystem`'s migration
+  scoring, add -0.3 penalty if destination != `favouriteSettlement` (reluctance to leave). Creates
+  emotional ties that slow migration churn.
+
+- [ ] **Gratitude reputation boost** — In `ConsumptionSystem`, when the gratitude log fires (hunger
+  < 0.2 with `lastMealSource` set), also check if the NPC has a `Reputation` component and add
+  +0.05 to `rep.score`. Rationale: gratitude is a social positive — NPCs who acknowledge their
+  settlement's support are better community members. Uses existing `Reputation` component via
+  `registry.try_get<Reputation>(entity)`.
