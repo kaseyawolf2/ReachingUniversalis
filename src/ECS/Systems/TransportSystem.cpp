@@ -322,11 +322,12 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 // Rival surcharge: destination imposes a tariff on an undercutting exporter (+10%).
                 // Ally discount: destination rewards trusted trading partner (-5%).
                 float effectiveTax = TRADE_TAX;
+                bool allyTrade = false;
                 if (hauler.cargoSource != entt::null && registry.valid(hauler.cargoSource) && destSettl) {
                     auto it = destSettl->relations.find(hauler.cargoSource);
                     if (it != destSettl->relations.end()) {
                         if (it->second < RIVAL_THRESHOLD) effectiveTax = TRADE_TAX + RIVAL_SURCHARGE;
-                        if (it->second > ALLY_THRESHOLD)  effectiveTax = TRADE_TAX - ALLY_DISCOUNT;
+                        if (it->second > ALLY_THRESHOLD)  { effectiveTax = TRADE_TAX - ALLY_DISCOUNT; allyTrade = true; }
                     }
                 }
 
@@ -406,6 +407,11 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         relImp = std::max(-1.f, relImp - TRADE_DELTA);
                     }
                 }
+                // Save source settlement name before clearing (needed for alliance log)
+                std::string cargoSourceName;
+                if (hauler.cargoSource != entt::null && registry.valid(hauler.cargoSource))
+                    if (const auto* css = registry.try_get<Settlement>(hauler.cargoSource))
+                        cargoSourceName = css->name;
                 hauler.cargoSource = entt::null;
 
                 // Hauler gains reputation for each successful delivery
@@ -444,6 +450,20 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                                 haulerName = nm->value;
                             logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay,
                                 haulerName + " received local loyalty bonus at " + destSettl->name + ".");
+                        }
+                        if (allyTrade && !cargoSourceName.empty()) {
+                            // Calculate the bonus saved: ALLY_DISCOUNT fraction of gross
+                            float gross = 0.f;
+                            for (const auto& [type, qty] : inv.contents) {
+                                float sp = destMkt ? destMkt->GetPrice(type) : hauler.buyPrice;
+                                gross += sp * qty;
+                            }
+                            float bonus = gross * ALLY_DISCOUNT;
+                            char abuf[120];
+                            std::snprintf(abuf, sizeof(abuf),
+                                "Ally trade: %s → %s (+%.1fg bonus)",
+                                cargoSourceName.c_str(), destSettl->name.c_str(), bonus);
+                            logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, abuf);
                         }
                     }
                 }
