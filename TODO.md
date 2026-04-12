@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Family size in tooltip** — Extend the `(Family: X)` suffix added in `DrawHoverTooltip`
+  (HUD.cpp) to include the family size: change to "(Family: X ×N)" where N is the `surnameCount`
+  value for that surname. This tells the player at a glance how large a dynasty has grown without
+  needing extra UI. Just pass the count integer into the snprintf format string.
+
 ---
 
 ## Done
@@ -108,11 +113,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Family size in tooltip** — Extend the `(Family: X)` suffix added in `DrawHoverTooltip`
-  (HUD.cpp) to include the family size: change to "(Family: X ×N)" where N is the `surnameCount`
-  value for that surname. This tells the player at a glance how large a dynasty has grown without
-  needing extra UI. Just pass the count integer into the snprintf format string.
 
 - [ ] **NPC mood colour on world dot** — In `GameState.cpp`, agent dots are currently all WHITE.
   Tint the dot colour by the NPC's contentment: `contentment >= 0.7` → `GREEN`, `>= 0.4` →
