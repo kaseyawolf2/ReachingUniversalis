@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement rivalry events** — Adjacent settlements with morale > 0.7 and pop > 15 trigger rivalry. Reduces trade 20%, lasts 24 game-hours. rivalWith on Settlement.
+
 
 ## Recently Done
+
+- [x] **Settlement rivalry events** — Adjacent settlements with morale > 0.7 and pop > 15 trigger rivalry (2%/game-hour). 20% trade score penalty in FindBestRoute, 24 game-hour duration. rivalWith+rivalryTimer+rivalEntity on Settlement.
+
 
 - [x] **NPC family visit behaviour** — Idle NPCs with FamilyTag visit family at other settlements. 5% chance/game-hour, 30 game-min visit, logged to EventLog. visitTimer+visitTarget on DeprivationTimer.
 
@@ -1423,7 +1426,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   toward the family member's settlement. Log "[Name] is visiting family in [Settlement]." Return
   home after 30 game-minutes. Add `float visitTimer = 0.f` to DeprivationTimer.
 
-- [ ] **Settlement rivalry events** — When two adjacent settlements both have morale > 0.7
+- [x] **Settlement rivalry events** — When two adjacent settlements both have morale > 0.7
   and pop > 15, trigger a "rivalry" modifier. In `RandomEventSystem`, check pairs of connected
   settlements. Rivalry reduces trade between them by 20% (apply penalty in TransportSystem's
   route scoring). Log "[A] and [B] are competing for regional dominance." Lasts 24 game-hours.
@@ -2871,3 +2874,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   from >0 to 0 in `AgentDecisionSystem`), set `goal.celebrateTimer = 3.f` and log "[Name] returned
   home from visiting family." Other family members at the home settlement with matching `FamilyTag::name`
   also get `celebrateTimer = 2.f`. Creates a visible burst of celebration when a traveller comes home.
+
+- [ ] **Rivalry morale effect** — While `Settlement::rivalryTimer > 0`, boost morale by +0.003
+  per game-hour (competitive pride). In the `RandomEventSystem` settlement `.each()` block, after
+  the morale drift logic (line ~48), add: if `rivalryTimer > 0`, `s.morale += 0.003f * gameHoursDt`.
+  Clamp to 1.0. Makes rivalry a double-edged sword: trade suffers but the populace rallies.
+
+- [ ] **Rivalry visual on world map** — In `GameState::Draw`, when rendering road lines between
+  settlements, check if both endpoints have `rivalryTimer > 0` and `rivalEntity` pointing at each
+  other. If so, draw the road in `Fade(ORANGE, 0.5f)` instead of the default colour, and draw a
+  small crossed-swords icon (two short diagonal lines) at the road midpoint. Uses existing
+  `SettlementStatus` — pipe `rivalEntity` as `entt::entity rivalTarget` in `RenderSnapshot.h`.
+
+- [ ] **Rivalry end trade boom** — When a rivalry expires (in `RandomEventSystem` rivalry tick-down,
+  where `rivalryTimer` hits 0), give both settlements a temporary +20% production modifier for 6
+  game-hours (`s.productionModifier = 1.2f; s.modifierDuration = 6.f; s.modifierName = "Post-Rivalry Boom"`).
+  Log "[A] and [B] resume trade — post-rivalry boom." Reward for surviving the rivalry period.
