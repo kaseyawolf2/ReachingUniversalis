@@ -16,8 +16,19 @@ void MovementSystem::Update(entt::registry& registry, float realDt) {
     for (auto entity : view) {
         auto& pos = view.get<Position>(entity);
         auto& vel = view.get<Velocity>(entity);
-        pos.x += vel.vx * gameDt;
-        pos.y += vel.vy * gameDt;
+
+        // Age-based speed scaling for NPCs (not haulers or player)
+        // Age is in game-days; maxDays ~60-100. Children < 15 days, elders > 55 days.
+        float ageFactor = 1.f;
+        if (auto* age = registry.try_get<Age>(entity)) {
+            if (!registry.any_of<Hauler, PlayerTag>(entity)) {
+                if (age->days < 15.f)      ageFactor = 0.8f;  // children
+                else if (age->days > 55.f) ageFactor = 0.7f;  // elders
+            }
+        }
+
+        pos.x += vel.vx * gameDt * ageFactor;
+        pos.y += vel.vy * gameDt * ageFactor;
 
         // Clamp to map bounds — stop velocity on contact so agents don't
         // pile up pressing against the wall.
