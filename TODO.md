@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bankruptcy log includes gold balance** — Show remaining gold in bankruptcy log message.
-
 ## Recently Done
+
+- [x] **Bankruptcy log includes gold balance** — Shows "(Xg left)" in bankruptcy log.
 
 - [x] **Hauler graduation gold threshold shown in tooltip** — Shows "Hauler at: 100g" for NPCs approaching graduation.
 
@@ -825,7 +825,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Shows NPC's progress toward becoming a hauler. No new snapshot fields — `balance` already
   available.
 
-- [ ] **Bankruptcy log includes gold balance** — In `EconomicMobilitySystem.cpp`'s bankruptcy
+- [x] **Bankruptcy log includes gold balance** — In `EconomicMobilitySystem.cpp`'s bankruptcy
   log, append the hauler's remaining balance: "X went bankrupt (2g left) — returned to labor
   at Y". Mirrors the graduation log's gold display. Use `money.balance` already in scope.
 
@@ -2111,3 +2111,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Uses existing Name components and settlement lookup. Rate-limit per recipient to once per
   6 game-hours via `static std::map<entt::entity, float> s_thankCooldown`. Adds warm social
   texture to the charity mechanic.
+
+- [ ] **Road condition colour gradient** — In `GameState.cpp`'s road render loop, colour
+  road lines by condition: `Fade(GREEN, 0.3f)` at condition 1.0, `Fade(YELLOW, 0.3f)` at
+  0.5, `Fade(RED, 0.3f)` at 0.0. Lerp between colors based on `r.condition`. Uses existing
+  `condition` field in `RoadEntry`. Currently all roads are drawn the same color regardless
+  of quality. No new snapshot fields needed.
+
+- [ ] **NPC first-day-at-work log** — In `ScheduleSystem.cpp`, when an NPC transitions from
+  `Idle` to `Working` for the first time (tracked via `static std::set<entt::entity>
+  s_loggedFirstWork`), log "X begins working at Y." Uses existing `AgentState`, `Name`, and
+  `HomeSettlement` components. Gives a narrative moment when new NPCs or immigrants start
+  contributing to the economy.
