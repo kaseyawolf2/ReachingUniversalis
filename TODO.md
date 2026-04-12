@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Illness visible in tooltip** — When an NPC has `depTimer->illnessTimer > 0`, add
+  `bool ill = true` and `int illNeedIdx` to `AgentEntry` in `RenderSnapshot.h`, populated in
+  SimThread's agent snapshot loop. In `HUD::DrawHoverTooltip`, draw a faint red "(ill: hunger)"
+  / "(ill: thirst)" / "(ill: fatigue)" suffix on the needs line. This makes personal events
+  player-visible without requiring any new components.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -188,12 +194,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement doesn't already have it and `hops > 0`). When a rumour arrives at a settlement,
   nudge that settlement's relevant stockpile fear: plague → food hoarding (+10% Food price at
   Market), drought → water scarcity (+15% Water price). Log "Rumour of plague reached Thornvale."
-
-- [ ] **Illness visible in tooltip** — When an NPC has `depTimer->illnessTimer > 0`, add
-  `bool ill = true` and `int illNeedIdx` to `AgentEntry` in `RenderSnapshot.h`, populated in
-  SimThread's agent snapshot loop. In `HUD::DrawHoverTooltip`, draw a faint red "(ill: hunger)"
-  / "(ill: thirst)" / "(ill: fatigue)" suffix on the needs line. This makes personal events
-  player-visible without requiring any new components.
 
 - [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
   windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
