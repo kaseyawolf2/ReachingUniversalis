@@ -1535,12 +1535,14 @@ void SimThread::WriteSnapshot() {
             woodPrice  = mkt->GetPrice(ResourceType::Wood);
         }
 
-        int pop = 0, childPop = 0;
+        int pop = 0, childPop = 0, elderPop = 0;
         m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
             [&](auto ne, const HomeSettlement& hs) {
             if (hs.settlement != e) return;
             ++pop;
             if (m_registry.all_of<ChildTag>(ne)) ++childPop;
+            if (const auto* ag = m_registry.try_get<Age>(ne))
+                if (ag->days > 60.f) ++elderPop;
         });
         int hCount = haulerCount2.count(e) ? haulerCount2.at(e) : 0;
 
@@ -1573,12 +1575,13 @@ void SimThread::WriteSnapshot() {
             if (hs.settlement == e && nd.list[0].value < 0.15f) hungerCrisis = true;
         });
 
+        float elderBonus = std::min(0.05f, elderPop * 0.005f);
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
-                                 hungerCrisis });
+                                 hungerCrisis, elderPop, elderBonus });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {

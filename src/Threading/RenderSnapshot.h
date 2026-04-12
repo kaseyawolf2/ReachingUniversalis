@@ -124,6 +124,8 @@ struct RenderSnapshot {
         char        waterPriceTrend = '=';
         char        woodPriceTrend  = '=';
         bool        hungerCrisis   = false; // any NPC < 15% hunger at this settlement
+        int         elderCount     = 0;     // NPCs over age 60
+        float       elderBonus     = 0.f;   // production bonus from elders (0–5%)
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----

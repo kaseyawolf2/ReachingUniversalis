@@ -820,12 +820,14 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     for (const auto& st : ws)
         if (st.name == best->name) { status = &st; break; }
 
-    int   childCount = status ? status->childCount : 0;
-    float treasury   = status ? status->treasury   : 0.f;
-    int   haulers    = status ? status->haulers     : 0;
-    float food       = status ? status->food  : best->foodStock;
-    float water      = status ? status->water : best->waterStock;
-    float wood       = status ? status->wood  : best->woodStock;
+    int   childCount  = status ? status->childCount  : 0;
+    float treasury    = status ? status->treasury    : 0.f;
+    int   haulers     = status ? status->haulers     : 0;
+    float food        = status ? status->food  : best->foodStock;
+    float water       = status ? status->water : best->waterStock;
+    float wood        = status ? status->wood  : best->woodStock;
+    int   elderCount  = status ? status->elderCount  : 0;
+    float elderBonus  = status ? status->elderBonus  : 0.f;
 
     // Line 1: name + pop/cap + optional event
     char line1[80];
@@ -853,9 +855,17 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showChildren)
         std::snprintf(line4, sizeof(line4), "Children: %d", childCount);
 
-    int lineCount = 3 + (showChildren ? 1 : 0);
+    // Line 5 (optional): elders with production bonus
+    char line5[48] = {};
+    bool showElders = (elderCount > 0);
+    if (showElders)
+        std::snprintf(line5, sizeof(line5), "Elders: %d (+%.0f%% prod)", elderCount, elderBonus * 100.f);
+
+    int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
-                       MeasureText(line3, 11), showChildren ? MeasureText(line4, 11) : 0 }) + 12;
+                       MeasureText(line3, 11),
+                       showChildren ? MeasureText(line4, 11) : 0,
+                       showElders   ? MeasureText(line5, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
@@ -870,8 +880,11 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     DrawText(line2, tx, ty,      11, LIGHTGRAY);           ty += 16;
     Color tresCol = (treasury < 50.f) ? RED : (treasury < 150.f) ? ORANGE : GOLD;
     DrawText(line3, tx, ty,      11, tresCol);             ty += 16;
-    if (showChildren)
-        DrawText(line4, tx, ty,  11, Fade(LIGHTGRAY, 0.7f));
+    if (showChildren) {
+        DrawText(line4, tx, ty,  11, Fade(LIGHTGRAY, 0.7f)); ty += 16;
+    }
+    if (showElders)
+        DrawText(line5, tx, ty,  11, Fade(ORANGE, 0.75f));
 }
 
 // ---- Market overlay (M key) ----
