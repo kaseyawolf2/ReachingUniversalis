@@ -9,11 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC birth log** — In `BirthSystem.cpp`, the birth event currently only logs if there's an
-  `EventLog`. Extend the log message from "Born: Aldric Smith at Ashford" to also include the
-  parent's name if the `ChildTag` has a `followTarget` (the entity following at birth). Use
-  `registry.try_get<Name>(childTag.followTarget)` to get the parent's name and append
-  "raised by Brom Cooper". Requires no new components.
+- [ ] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
+  popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
+  available in `SettlementStatus`. Format: "[12/35 pop ↑]" or "[12/35 pop ↓]". Use plain '+'
+  and '-' ASCII since raylib's default font may not render arrow glyphs.
+
+- [x] **NPC birth log** — Already implemented: BirthSystem.cpp logs "Born: X at Y (to ParentName)"
+  using the wealthiest adult at the settlement. ChildTag is an empty struct with no followTarget.
 
 - [x] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
   show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
@@ -446,11 +448,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   it in SimThread's world-status loop with `s.morale`, and read it in the tooltip. Display it
   in the same green/yellow/red colour scheme as the panel bar.
 
-- [ ] **NPC birth log** — In `BirthSystem.cpp`, the birth event currently only logs if there's an
-  `EventLog`. Extend the log message from "Born: Aldric Smith at Ashford" to also include the
-  parent's name if the `ChildTag` has a `followTarget` (the entity following at birth). Use
-  `registry.try_get<Name>(childTag.followTarget)` to get the parent's name and append
-  "raised by Brom Cooper". Requires no new components.
+- [x] **NPC birth log** — Already implemented: BirthSystem.cpp logs "Born: X at Y (to ParentName)"
+  using the wealthiest adult at the settlement. ChildTag is an empty struct with no followTarget.
 
 - [ ] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
