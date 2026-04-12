@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rumour immunity after delivery** — After a rumour's price effect is applied at a
-  settlement, mark that settlement "rumour-immune" for 48 game-hours against the same RumourType
-  from the same origin. Implement via a `static std::map<key, float> s_rumourImmunity` timer in
-  `AgentDecisionSystem.cpp` alongside `s_rumourDelivered`. Drain by `gameHoursDt` each frame;
-  prune expired entries.
+(none)
 
 ## Recently Done
+
+- [x] **Rumour immunity after delivery** — 48 game-hour timed immunity per origin+type+settlement.
 
 - [x] **Rumour carrier visible in tooltip** — Shows "(spreading: plague/drought/bandits)" in faint yellow.
 
@@ -537,12 +535,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Rumour carrier visible in tooltip** — Shows "(spreading: plague/drought/bandits)" in faint yellow.
 
-- [ ] **Rumour immunity after delivery** — After a rumour's price effect is applied at a
-  settlement, mark that settlement "rumour-immune" for 48 game-hours against the same RumourType
-  from the same origin. Implement via a `static std::map<key, float> s_rumourImmunity` timer in
-  `AgentDecisionSystem.cpp` alongside `s_rumourDelivered`. Drain by `gameHoursDt` each frame;
-  prune expired entries. Prevents a flood of price nudges if many carriers arrive from the same
-  event before immunity expires.
+- [x] **Rumour immunity after delivery** — 48 game-hour timed immunity replaces permanent flag.
 
 - [ ] **GoodHarvest rumour seeding** — In `RandomEventSystem.cpp`'s Harvest Bounty event (case 8
   or the harvest windfall event), after boosting stockpile, attach `Rumour{RumourType::GoodHarvest,
@@ -1582,3 +1575,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h`. Populate from `Rumour::hops` in SimThread's agent snapshot loop. In
   `HUD::DrawHoverTooltip`, extend the rumour line to show "(spreading: plague, 2 hops left)".
   This lets the player gauge how far the rumour can still travel.
+
+- [ ] **Rumour-driven migration bias** — In `AgentDecisionSystem.cpp`'s migration scoring
+  (where NPCs evaluate destination settlements), if the NPC carries a `Rumour` with
+  `RumourType::PlagueNearby`, penalise settlements near the rumour's `origin` by -30% in the
+  migration attractiveness score. Check distance between candidate settlement and `rum->origin`
+  via `Position` components; apply penalty if within 300 world units. Makes NPCs flee plague areas.
+
+- [ ] **Rumour decay visual in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when showing
+  the rumour line "(spreading: plague)", colour-fade the text based on remaining hops: 3 hops =
+  bright yellow, 2 = dim yellow, 1 = faint grey. Use `Fade(YELLOW, 0.3f + 0.23f * rumourHops)`
+  (requires `rumourHops` from the "Rumour hop count in tooltip" task). Visually conveys rumour
+  freshness at a glance.
