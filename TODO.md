@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC age affects move speed** — Children 80%, elders 70%, prime adults 100% in MovementSystem. Exclude haulers/player.
 
 ## Recently Done
 
