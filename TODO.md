@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
+- [x] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
   `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
   with `strikeDuration > 0`. In `HUD::DrawHoverTooltip`, if `onStrike`, append a line
   "On strike" in RED below the behavior line. Helps player understand why workers are idle
@@ -274,12 +274,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
   supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
   the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
-
-- [ ] **Strike indicator in tooltip** — When an NPC has `strikeDuration > 0` (from `DeprivationTimer`),
-  set a `bool onStrike` field in `AgentEntry` (RenderSnapshot.h), populated in SimThread's agent
-  snapshot loop. In `HUD::DrawHoverTooltip` (HUD.cpp), add a faint orange "(on strike)" suffix
-  after the behavior/state line. This lets the player see which workers are currently refusing
-  to work without digging into the event log.
 
 - [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
   to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
@@ -628,6 +622,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   ScheduleSystem: children follow nearest adult at home settlement during leisure hours (target
   cached on `AgentState::target`). At age 15: `ChildTag` removed, skill boosted toward home
   settlement's primary production, "came of age" logged. ConsumptionSystem: age < 15 wage guard.
+
+- [ ] **Strike duration shown in tooltip** — Extend the "On strike" line in `HUD::DrawHoverTooltip`
+  to show the remaining duration: `"On strike (%.0f h left)"` using `DeprivationTimer::strikeDuration`
+  exposed as a new `float strikeHoursLeft` field in `AgentEntry`. Populate it in `SimThread::WriteSnapshot`
+  alongside `onStrike`. Divide `strikeDuration` by 60 to convert sim-seconds to game-hours.
+
+- [ ] **Settlement morale shown in NPC tooltip** — Add the home settlement's morale as a faint
+  line at the bottom of the hover tooltip: `"Home morale: 72%"` (skip if NPC has no home).
+  Expose it via a new `float homeMorale` field in `AgentEntry` (default -1 = no home).
+  Set it in `SimThread::WriteSnapshot` via `registry.try_get<Settlement>(hs->settlement)->morale`.
+  In `HUD::DrawHoverTooltip`, if `homeMorale >= 0`, add the line coloured GREEN/YELLOW/RED
+  using the same thresholds as the morale bar in `DrawStockpilePanel`.
+
+- [ ] **NPC reputation score** — Add a `Reputation` component (float `score`, initially 0) to
+  each NPC. Increase it when the NPC gives charity (`charityTimer` resets), decrease it when
+  they steal. Haulers gain +0.05 rep per completed delivery. In `HUD::DrawHoverTooltip`, expose
+  the score as a `float reputation` field in `AgentEntry` and display `"Rep: +3.2"` (or negative
+  in RED) when non-zero. This creates visible social hierarchy without requiring new UI panels.
 
 ---
 
