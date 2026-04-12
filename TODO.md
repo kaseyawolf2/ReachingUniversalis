@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
+  `moraleBonus` block, add: for each Working NPC at a facility whose `Age::days > 60`, add a
+  flat `+0.05` worker contribution (elders provide tacit knowledge). Use `registry.try_get<Age>(e)`.
+  Cap contribution per-elder at 2.0x to prevent outliers. Log nothing — the effect is subtle
+  and best discovered by the player through observation.
+
 - [x] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
   settlement B (where B.relations[A] < -0.5), add a random 20% chance the delivery is "taxed at
   the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
@@ -259,7 +265,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
   in Y (rivalry tariff)." at low probability to avoid log spam (1 in 5 deliveries).
 
-- [ ] **Population history chart in stockpile panel** — `StockpilePanel::popHistory` (vector<int>)
+- [x] **Population history chart in stockpile panel** — `StockpilePanel::popHistory` (vector<int>)
   is already written by SimThread (up to 30 daily samples). In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), below the population line, draw a small sparkline: 30 thin bars, each
   proportional to the population max across all samples, width 4px, height scaled to 30px.
