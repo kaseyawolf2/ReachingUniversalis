@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC morale comment in tooltip** — Show mood comment based on contentment in HUD.cpp tooltip.
+
 ## Recently Done
 
 - [x] **Settlement population graph in stockpile panel** — Replaced bar chart with line graph (GREEN growth, RED decline segments, white dots) in RenderSystem::DrawStockpilePanel.
