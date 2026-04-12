@@ -314,12 +314,16 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     skills->woodcutting   = std::min(capL, skills->woodcutting   + grow);
                 }
             } else if (state.behavior != AgentBehavior::Working) {
-                // Adult not working: decay
+                // Adult not working: decay.
+                // Elders (age > 65) decay twice as fast but retain tacit knowledge (floor 0.1).
                 if (auto* skills = registry.try_get<Skills>(entity)) {
-                    float decay = SKILL_DECAY_PER_HOUR * gHrs;
-                    skills->farming       = std::max(0.f, skills->farming       - decay);
-                    skills->water_drawing = std::max(0.f, skills->water_drawing - decay);
-                    skills->woodcutting   = std::max(0.f, skills->woodcutting   - decay);
+                    bool isElder = (age2->days > 65.f);
+                    float decayMult = isElder ? 2.0f : 1.0f;
+                    float floor     = isElder ? 0.1f  : 0.f;
+                    float decay = SKILL_DECAY_PER_HOUR * gHrs * decayMult;
+                    skills->farming       = std::max(floor, skills->farming       - decay);
+                    skills->water_drawing = std::max(floor, skills->water_drawing - decay);
+                    skills->woodcutting   = std::max(floor, skills->woodcutting   - decay);
                 }
             }
         }
