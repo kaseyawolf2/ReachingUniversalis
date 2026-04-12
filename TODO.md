@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
+  also look up the settlement's `popTrend` from `RenderSnapshot::SettlementStatus` — but that's
+  render-side. Instead compute it locally: count NPCs at target (already in `popCount`), then
+  compare to a rolling previous count stored in a `std::map<entt::entity, int> m_prevPop` member
+  on `RandomEventSystem`. Append "(↑)" or "(↓)" to `[pop N]` when trend changes by ≥ 2 between
+  samples taken every 24 game-hours. Update sample in `Update()` via a `m_popSampleTimer`.
+
 - [x] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
   `contentment < 0.2f` for an NPC, log "X is desperate at Y" (once per 12 game-hours using the
   existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
