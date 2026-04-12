@@ -1866,7 +1866,7 @@ void SimThread::WriteSnapshot() {
 
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
-                                 pop, hCount, childPop, s.treasury,
+                                 pop, hCount, childPop, s.treasury, s.bountyPool,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
                                  hungerCrisis, elderPop, elderBonus, s.morale,

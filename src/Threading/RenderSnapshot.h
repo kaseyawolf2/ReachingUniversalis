@@ -170,6 +170,7 @@ struct RenderSnapshot {
         int         haulers   = 0;     // hauler count (separate from pop)
         int         childCount = 0;    // NPCs under age 15 (subset of pop)
         float       treasury  = 0.f;   // settlement gold reserves
+        float       bountyPool = 0.f;  // accumulated bounty gold
         bool        hasEvent  = false;  // active random event
         std::string eventName;
         char        popTrend       = '=';  // '+', '=', or '-' over last few days

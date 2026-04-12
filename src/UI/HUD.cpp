@@ -1195,7 +1195,14 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showGivers)
         std::snprintf(lineGivers, sizeof(lineGivers), "Charity givers: %d", givers);
 
-    // Line 14: production output
+    // Line 14 (optional): bounty pool
+    char lineBounty[48] = {};
+    float bountyPool = status ? status->bountyPool : 0.f;
+    bool showBounty = (bountyPool > 0.5f);
+    if (showBounty)
+        std::snprintf(lineBounty, sizeof(lineBounty), "Bounty: %.0fg", bountyPool);
+
+    // Line 15: production output
     char lineOutput[80] = {};
     bool showOutput = false;
     if (status && (status->foodRate > 0.f || status->waterRate > 0.f || status->woodRate > 0.f)) {
@@ -1214,7 +1221,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
                       + (showTrade ? 1 : 0) + (showImpExp ? 1 : 0)
                       + (showDesp ? 1 : 0) + (showFatigue ? 1 : 0)
-                      + (showGivers ? 1 : 0) + (showOutput ? 1 : 0);
+                      + (showGivers ? 1 : 0) + (showBounty ? 1 : 0)
+                      + (showOutput ? 1 : 0);
     int hubW = isTradeHub ? MeasureText("  [Trade Hub]", 12) : 0;
     int w = std::max({ MeasureText(line1, 12) + hubW, MeasureText(line2, 11),
                        MeasureText(line3, 11),
@@ -1228,6 +1236,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        showDesp     ? MeasureText(lineDesp, 11) : 0,
                        showFatigue  ? MeasureText(lineFatigue, 11) : 0,
                        showGivers   ? MeasureText(lineGivers, 11) : 0,
+                       showBounty   ? MeasureText(lineBounty, 11) : 0,
                        showOutput   ? MeasureText(lineOutput, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
@@ -1276,6 +1285,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showGivers) {
         DrawText(lineGivers, tx, ty, 11, Fade(LIME, 0.7f)); ty += 16;
+    }
+    if (showBounty) {
+        DrawText(lineBounty, tx, ty, 11, Fade(GOLD, 0.7f)); ty += 16;
     }
     if (showOutput) {
         DrawText(lineOutput, tx, ty, 11, Fade(GREEN, 0.7f));
