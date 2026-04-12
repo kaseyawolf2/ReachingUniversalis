@@ -1271,6 +1271,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             float dx = starving.x - helper.x, dy = starving.y - helper.y;
             if (dx*dx + dy*dy > CHARITY_RADIUS * CHARITY_RADIUS) continue;
 
+            // Skip NPCs with bad reputation — community cold-shoulders antisocial individuals
+            static constexpr float CHARITY_REP_THRESHOLD = -0.5f;
+            if (const auto* starvingRep = registry.try_get<Reputation>(starving.entity)) {
+                if (starvingRep->score < CHARITY_REP_THRESHOLD) {
+                    if (charityLog) {
+                        std::string helperName = "Someone";
+                        std::string starvName  = "a neighbour";
+                        if (const auto* hn = registry.try_get<Name>(helper.entity))   helperName = hn->value;
+                        if (const auto* sn = registry.try_get<Name>(starving.entity)) starvName  = sn->value;
+                        charityLog->Push(charityDay, charityHour,
+                            helperName + " refused to help " + starvName + " (bad reputation).");
+                    }
+                    continue;
+                }
+            }
+
             // Transfer gold: helper → starving NPC (peer transfer, gold flow rule satisfied)
             auto* helperMoney   = registry.try_get<Money>(helper.entity);
             auto* starvingMoney = registry.try_get<Money>(starving.entity);
