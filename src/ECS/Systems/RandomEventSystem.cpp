@@ -290,9 +290,20 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                     float found = windfall_dist(m_rng);
                     money.balance += found;
                     if (log) {
-                        char buf[100];
-                        std::snprintf(buf, sizeof(buf), "%s found %.0fg on the road",
-                            name.value.c_str(), found);
+                        const char* nearName = "";
+                        if (const auto* hs = registry.try_get<HomeSettlement>(e)) {
+                            if (hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                                if (const auto* stt = registry.try_get<Settlement>(hs->settlement))
+                                    nearName = stt->name.c_str();
+                            }
+                        }
+                        char buf[120];
+                        if (nearName[0] != '\0')
+                            std::snprintf(buf, sizeof(buf), "%s found %.0fg on the road near %s",
+                                name.value.c_str(), found, nearName);
+                        else
+                            std::snprintf(buf, sizeof(buf), "%s found %.0fg on the road",
+                                name.value.c_str(), found);
                         log->Push(tm.day, (int)tm.hourOfDay, buf);
                     }
                     break;
