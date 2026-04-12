@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Desperation count in settlement tooltip** — "Desperation buys: N/day" in red when > 0.
+
 - [x] **Recovery morale bump** — +0.01 morale per recovered resource when scarcity clears.
 
 - [x] **Scarcity causes NPC migration nudge** — +0.3 migration score per scarce resource at home.
@@ -860,7 +862,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   +0.01 per recovered resource. Model: recovery from scarcity is a small community boost.
   Use `registry.try_get<Settlement>(e)->morale` already in scope.
 
-- [ ] **Desperation count in settlement tooltip** — Track emergency purchases per settlement
+- [x] **Desperation count in settlement tooltip** — Track emergency purchases per settlement
   per 24h cycle. Add `int desperatePurchases = 0` to `Settlement` component in `Components.h`.
   Increment in `ConsumptionSystem.cpp` when a purchase fires. Reset alongside `tradeVolume`
   in `RandomEventSystem.cpp`. Add to `SettlementEntry` in `RenderSnapshot.h`. Display in
@@ -2164,3 +2166,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   festival triggers, bump settlement morale by +0.05 in addition to the existing production
   bonus. Log "Festival lifts spirits in X — morale rising." This creates a positive feedback
   loop where prosperous settlements get occasional morale boosts that further improve output.
+
+- [ ] **Desperation triggers morale drain** — In `ConsumptionSystem.cpp`, when the settlement's
+  `desperatePurchases` counter crosses 5 in a single 24h cycle, apply a one-shot morale penalty
+  of -0.02 to the settlement. Track with a `static std::set<entt::entity> s_despMoralePenalized`
+  that resets alongside `desperatePurchases` in `RandomEventSystem.cpp`. Models the social cost
+  of widespread emergency buying — settlements under persistent need pressure lose cohesion.
+
+- [ ] **NPC gratitude for low-price settlement** — In `ConsumptionSystem.cpp`, when an NPC
+  makes an emergency purchase and the market price is below 2.0g, bump `Settlement::morale`
+  by +0.001 (tiny but cumulative). Models NPCs appreciating affordable markets. Conversely,
+  when price exceeds 5.0g, apply -0.001 morale. Creates subtle feedback: fair pricing improves
+  community mood while gouging corrodes it.
