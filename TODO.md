@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has `inConvoy == true`, draw a faint connecting line between convoy members within 60u. `DrawLineEx` in `Fade(GREEN, 0.25f)`.
-
 ## Recently Done
+
+- [x] **Convoy visual on world map** — Faint green lines between convoy haulers (inConvoy && haulerState==1) within 60u in GameState::Draw.
+
 
 - [x] **NPC remembers last meal source** — `lastMealSource` on DeprivationTimer. ConsumptionSystem records settlement name on eating; logs gratitude when hunger < 0.2.
 
@@ -1325,7 +1326,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   hunger drops below 0.2 and lastMealSource is set, log "[NPC] is grateful to [Settlement] for
   food." Clear on next meal. Adds narrative flavour connecting NPCs to specific settlements.
 
-- [ ] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has
+- [x] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has
   `inConvoy == true`, draw a faint connecting line between convoy members. Iterate agents to find
   pairs with `inConvoy && haulerState == 1` within 60u; draw `DrawLineEx` in `Fade(GREEN, 0.25f)`
   between their positions. Makes convoys visible at a glance.
@@ -2681,3 +2682,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   +0.05 to `rep.score`. Rationale: gratitude is a social positive — NPCs who acknowledge their
   settlement's support are better community members. Uses existing `Reputation` component via
   `registry.try_get<Reputation>(entity)`.
+
+- [ ] **Convoy tooltip badge** — In `HUD::DrawHoverTooltip` (`src/UI/HUD.cpp`), when rendering a
+  hauler tooltip and `a.inConvoy == true`, append " [Convoy]" in `Fade(GREEN, 0.6f)` after the
+  hauler state line. Also show the destination settlement name: "Convoy → [destSettlName]". Uses
+  existing `AgentEntry::inConvoy` and `destSettlName` fields already piped through the snapshot.
+
+- [ ] **Convoy speed bonus** — In `MovementSystem` (`src/ECS/Systems/MovementSystem.cpp`), when a
+  hauler has `Hauler::inConvoy == true`, multiply their movement speed by 1.1f (10% bonus from
+  coordinated travel). Requires checking `registry.all_of<Hauler>(e)` and reading `h.inConvoy`.
+  Log once per convoy formation: "[Hauler] is travelling faster in convoy." Rate-limit log to one
+  per hauler per trip (add `bool convoySpeedLogged = false` to `Hauler`, reset on state change).
+
+- [ ] **NPC comments on passing convoy** — In `AgentDecisionSystem`'s idle block, if an idle NPC
+  is within 80u of a hauler with `inConvoy == true`, log: "[NPC] watches a convoy pass through
+  [settlement]." Rate-limited by `greetCooldown` on `DeprivationTimer` (reuse existing cooldown).
+  Uses `registry.view<Hauler, Position>` to find nearby convoy haulers. Adds social flavour
+  connecting bystanders to economic activity.
