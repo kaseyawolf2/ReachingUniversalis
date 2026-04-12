@@ -400,6 +400,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm2.day, (int)tm2.hourOfDay,
                                 who + " moved to " + dest);
+
+                            // Welcome log from destination's perspective
+                            int newPop = 0;
+                            registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                                [&](const HomeSettlement& hs) {
+                                    if (hs.settlement == home.settlement) ++newPop;
+                                });
+                            char wbuf[160];
+                            std::snprintf(wbuf, sizeof(wbuf),
+                                "%s welcomes %s — pop now %d",
+                                dest.c_str(), who.c_str(), newPop);
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm2.day, (int)tm2.hourOfDay, wbuf);
                         }
                     }
                 }
