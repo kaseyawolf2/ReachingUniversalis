@@ -46,19 +46,16 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         float drift = (0.5f - s.morale) * 0.005f * gameHoursDt;
         s.morale = std::max(0.f, std::min(1.f, s.morale + drift));
 
-        // Bonus morale recovery when all three resources are well-supplied (> pop * 2 units each)
+        // Bonus morale recovery when all three stockpiles are above 80 units.
         // Rewards players who maintain surpluses; gives morale a second recovery path.
+        static constexpr float STOCKPILE_ABUNDANCE = 80.f;
         if (const auto* sp = registry.try_get<Stockpile>(e)) {
-            int pop = 0;
-            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-                [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
-            float threshold = static_cast<float>(pop) * 2.f;
             auto foodIt  = sp->quantities.find(ResourceType::Food);
             auto waterIt = sp->quantities.find(ResourceType::Water);
             auto woodIt  = sp->quantities.find(ResourceType::Wood);
-            bool abundant = (foodIt  != sp->quantities.end() && foodIt->second  >= threshold) &&
-                            (waterIt != sp->quantities.end() && waterIt->second >= threshold) &&
-                            (woodIt  != sp->quantities.end() && woodIt->second  >= threshold);
+            bool abundant = (foodIt  != sp->quantities.end() && foodIt->second  >= STOCKPILE_ABUNDANCE) &&
+                            (waterIt != sp->quantities.end() && waterIt->second >= STOCKPILE_ABUNDANCE) &&
+                            (woodIt  != sp->quantities.end() && woodIt->second  >= STOCKPILE_ABUNDANCE);
             if (abundant)
                 s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt);
         }
