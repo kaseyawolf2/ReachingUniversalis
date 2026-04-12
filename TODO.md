@@ -9,9 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity recipient log detail** — Extend charity log to "X helped [Name] at [Settlement]."
-
 ## Recently Done
+
+- [x] **Bandit density cap per road** — Max 3 bandits per road midpoint; excess wander randomly. Pre-count map built before bandit loop; lurk selection skips full roads.
+
+- [x] **Exile indicator in tooltip** — "[Exiled]" in faint RED on behavior line for homeless exiles.
+
+- [x] **Wanderer re-settlement** — Exiled NPCs with 30g+ buy fresh start at nearest settlement.
+
+- [x] **Charity radius shown on hover** — Faint 80u LIME circle around charity-ready NPCs on hover.
 
 - [x] **Fatigue count in settlement tooltip** — "Fatigued workers: N" in ORANGE in settlement tooltip.
 
@@ -1092,6 +1098,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after `WorldGenerator::FoundSettlement` returns. This makes founding visible in the event log
   alongside other major events.
 
+- [ ] **Bandit flee on confrontation log detail** — When the player confronts a bandit (E key),
+  log the bandit's name, gold recovered, and the road they were lurking near. In `SimThread::ProcessInput`'s
+  bandit confrontation block, find the nearest Road entity and include its endpoint settlement names
+  in the log message: "Player confronted [name] on the [A]–[B] road, recovered [N]g."
+
+- [ ] **Bandit territory warning in road tooltip** — When hovering a road in HUD tooltip, if the
+  pre-built `banditsPerRoad` count for that road is > 0, show "Bandits: N" in faint RED. Add
+  `int banditCount = 0` to `RenderSnapshot::RoadEntry`. In `SimThread::WriteSnapshot`, build the
+  same nearest-road map used in `AgentDecisionSystem` and write the count per road entry.
+
+- [ ] **Bandit gang name** — When 2+ bandits lurk at the same road, assign them a shared gang name
+  (e.g. "The [Road-A]-[Road-B] Wolves"). Add `std::string gangName` to `DeprivationTimer`. In
+  `AgentDecisionSystem`'s bandit lurk block, after selecting a road, if the road already has 1+
+  bandits, copy the existing gang name; otherwise generate one from the road's endpoint settlement
+  names. Show gang name in bandit tooltip after "[Bandit]".
+
 ---
 
 ## Session Rules (read every cron run)
@@ -1193,93 +1215,60 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Warmth glow shown in tooltip** — NOTE: Already implemented — `recentWarmthGlow` in
   AgentEntry, "Warm from giving" in ORANGE in tooltip, full lineCount/pw pattern.
 
-- [ ] **Charity recipient log detail** — Extend the charity log in `AgentDecisionSystem`'s
-  charity block: change "X helped a starving neighbour." to "X helped [Name] at [Settlement]."
-  After finding the starving NPC, call `registry.try_get<Name>` on `starving.entity` for their
-  name and `registry.try_get<Settlement>` on the starving NPC's `HomeSettlement::settlement`
-  for the settlement name. No new components — just expand the `charityLog->Push` format string.
+- [x] **Charity recipient log detail** — NOTE: Already implemented — log reads "X helped Y at Z."
+  with recipient name, settlement, and frequency count (xN).
 
-- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
-  (hungerPct > 0.8, balance > 20g, charityTimer == 0 i.e. `recentWarmthGlow` is false and
-  `recentlyHelped` is false as a proxy), draw a faint dim circle of radius 80 around them
-  in `GameState.cpp`'s agent draw loop. Use `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only
-  draw for the hovered NPC (compare world-mouse position to agent position within `a.size + 8`).
+- [x] **Charity radius shown on hover** — Faint 80u LIME circle around hovered charity-ready NPC.
+  Uses `charityReady` flag and world-mouse hover check in `GameState.cpp` agent draw loop.
 
-- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, after finding
-  the starving NPC, extend the log: change "X helped a starving neighbour." to "X helped [Name]
-  at [Settlement]." Read `registry.try_get<Name>` on `starving.entity` and
-  `registry.try_get<Settlement>` on `starving.homeSettl`. No new components needed.
+- [x] **Charity recipient log detail** — (duplicate) Already implemented.
 
-- [ ] **NPC mood colour on world dot** — In `GameState.cpp`'s agent draw loop, tint NPC dots by
-  contentment: `contentment >= 0.7` → `WHITE` (current), `>= 0.4` → `YELLOW`, `< 0.4` → `RED`.
-  Use `AgentEntry::contentment` (already in snapshot). Only apply when role is NPC and the dot
-  isn't already overridden by Celebrating (GOLD) or distress color logic in SimThread. The
-  contentment tint replaces the need-distress color that SimThread already computes, so verify
-  the two don't conflict — SimThread sets drawColor based on worst need; the render loop in
-  GameState can layer a contentment tint on top via `ColorAlphaBlend` or just gate on `a.contentment`.
+- [x] **NPC mood colour on world dot** — NOTE: Already implemented — GameState.cpp lines 344-346
+  use GREEN/YELLOW/RED based on contentment thresholds 0.7/0.4.
 
-- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, after
-  identifying `starving.entity`, expand the log from "X helped a starving neighbour." to
-  "X helped [Name] at [Settlement]." Read `registry.try_get<Name>(starving.entity)` for the
-  recipient name and `registry.try_get<Settlement>` on `starving.homeSettl` for the settlement.
-  No new components. The charity block is in the large NPC loop near the bottom of
-  `AgentDecisionSystem::Update`.
+- [x] **Charity recipient log detail** — (duplicate) Already implemented.
 
-- [ ] **Gratitude shown in world dot** — While `isGrateful` is true, draw a faint LIME ring
-  around the NPC's world dot in `GameState::Draw`. After the `DrawCircleV` for the agent dot,
-  add: if `a.isGrateful && a.role == RenderSnapshot::AgentRole::NPC`, call
-  `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(LIME, 0.45f))`. `isGrateful` is already in
+- [x] **Gratitude shown in world dot** — (duplicate) Already implemented in GameState.cpp.
   `AgentEntry`. Keeps the visual footprint small (just one extra ring draw per grateful NPC).
 
-- [ ] **Wanderer re-settlement** — Exiled NPCs (those with `HomeSettlement::settlement == entt::null`
-  and `theftCount >= 3` in `DeprivationTimer`) can earn a fresh start. In `AgentDecisionSystem`'s
-  IDLE/SEEKING block, when `home.settlement == entt::null`, check if `balance >= 30.f`. If so,
-  find the nearest settlement with `pop < popCap - 2` and set it as the new `home.settlement`,
-  deduct 30g from `Money::balance`, credit to that settlement's `treasury`, reset `theftCount = 0`.
-  Log "X settled at Y (fresh start)."
+- [x] **Wanderer re-settlement** — Exile with 30g+ finds nearest non-ruin settlement with capacity,
+  pays 30g (to treasury), resets theftCount, logs "X settled at Y (fresh start)."
 
-- [ ] **Exile indicator in tooltip** — Surface exile state in the NPC hover tooltip. Add
+- [x] **Exile indicator in tooltip** — Surface exile state in the NPC hover tooltip. Add
   `bool isExiled = false` to `AgentEntry` in `RenderSnapshot.h`; set when
   `home.settlement == entt::null && dt->theftCount >= 3` in `SimThread::WriteSnapshot`. In
   `HUD::DrawHoverTooltip`, when `isExiled`, append " [Exiled]" in `Fade(RED, 0.8f)` to line2
   (the behavior line), or show it as a separate faint red line below the role line.
 
-- [ ] **Wanderer re-settlement** — Exiled NPCs (`home.settlement == entt::null`,
-  `theftCount >= 3`) with `balance >= 30g` can re-settle. In `AgentDecisionSystem`'s
-  IDLE/SEEKING block, when `home.settlement == entt::null`, find nearest settlement with
-  `pop < popCap - 2`, deduct 30g from `Money::balance`, credit to that `Settlement::treasury`,
-  set as new `home.settlement`, reset `theftCount = 0`. Log "X settled at Y (fresh start)."
+- [x] **Wanderer re-settlement** — (duplicate) Already implemented.
 
-- [ ] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
+- [x] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
   `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when home entity is `entt::null` AND
   `dt->theftCount >= 3`. In `HUD::DrawHoverTooltip`, when `isExiled`, show a faint red
   "[Exiled]" line below the role/behavior lines — same `lineCount`/`pw` pattern as `showHelped`.
 
-- [ ] **Gratitude world dot ring** — While `isGrateful` is true, draw a faint LIME ring
+- [x] **Gratitude world dot ring** — (duplicate) Already implemented. While `isGrateful` is true, draw a faint LIME ring
   around the NPC's world dot in `GameState::Draw`. After `DrawCircleV` for the agent dot,
   add: if `a.isGrateful && a.role == RenderSnapshot::AgentRole::NPC`, call
   `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(LIME, 0.45f))`. `isGrateful` is already
   in `AgentEntry`.
 
-- [ ] **Charity giver count in settlement tooltip** — In `SimThread::WriteSnapshot`, when
+- [x] **Charity giver count in settlement tooltip** — In `SimThread::WriteSnapshot`, when
   building `worldStatus`, count how many NPCs at this settlement have `charityTimer > 0`
   (i.e. gave charity recently). Add `int recentGivers = 0` to `SettlementStatus` in
   `RenderSnapshot.h`. In `HUD`'s settlement list panel (`DrawWorldStatus`), append
   a faint `(Ng)` suffix (in LIME) when `recentGivers > 0` — like the existing `(Nc)` child suffix.
 
-- [ ] **Theft frequency shown in stockpile panel** — Add `int theftCount = 0` (total thefts
-  since settlement founding) to `Settlement` in `Components.h`. Increment in
-  `AgentDecisionSystem`'s theft block alongside `timer.theftCount`. In `SimThread::WriteSnapshot`,
-  populate `StockpilePanel::theftCount` (add field). In `RenderSystem::DrawStockpilePanel`,
-  show "Thefts: N" in faint RED below the treasury line when `theftCount > 0`.
+- [x] **Theft frequency shown in stockpile panel** — (duplicate) Already implemented —
+  Settlement::theftCount incremented in ConsumptionSystem, shown in stockpile panel.
 
-- [ ] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
+- [x] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
   `RenderSnapshot.h`. Set it in `SimThread::WriteSnapshot` when `hs.settlement == entt::null` and
   the entity is not a bandit (bandit state supersedes exile). In `HUD::DrawHoverTooltip`, show
   "(exile)" in faded ORANGE below the profession line when `isExiled`. Lets the player identify
   wandering exiles before they turn bandit.
 
-- [ ] **Bandit density cap per road** — Prevent more than 3 bandits from lurking at the same
+- [x] **Bandit density cap per road** — Prevent more than 3 bandits from lurking at the same
   road midpoint. In `AgentDecisionSystem`'s bandit block, build a `std::map<entt::entity, int>`
   counting how many bandits target each Road entity. If the count for the nearest road is ≥ 3,
   pick the second-nearest road instead. Stops visual clumping of bandits on a single road.
