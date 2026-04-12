@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Hauler road avoidance** — 15% route score penalty per bandit (max 60%). Nervous log when departing on bandit road.
+
+
 - [x] **Bandit gang name** — 2+ bandits at same road form named gang (e.g. "The X-Y Wolves"). Stored in DeprivationTimer::gangName, shown in tooltip.
 
 
@@ -1123,7 +1126,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   bandits, copy the existing gang name; otherwise generate one from the road's endpoint settlement
   names. Show gang name in bandit tooltip after "[Bandit]".
 
-- [ ] **Hauler road avoidance** — Haulers with cargo should prefer roads with fewer bandits. In
+- [x] **Hauler road avoidance** — Haulers with cargo should prefer roads with fewer bandits. In
   `TransportSystem`'s route selection (if applicable) or `AgentDecisionSystem`'s hauler pathfinding,
   add a penalty to road attractiveness proportional to nearby bandit count. Haulers already know their
   destination; if multiple paths exist, prefer the safer one. If only one path, proceed but log a
@@ -1154,6 +1157,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block, after removing BanditTag from the confronted bandit, iterate nearby BanditTag entities
   with matching gangName; set their `fleeTimer = 3.f` and velocity away from the player. Makes
   confrontation feel more dynamic.
+
+- [ ] **Hauler convoy formation** — When 2+ haulers travel the same road in the same direction
+  within 60 units of each other, they form an informal convoy. Add `bool inConvoy = false` to the
+  `Hauler` component. In `TransportSystem`'s `GoingToDeposit` state, check for other GoingToDeposit
+  haulers heading to the same destination within 60u; if found, set `inConvoy = true`. Convoys get
+  a 25% speed bonus. Pipe `inConvoy` through `RenderSnapshot::AgentEntry` and show in tooltip.
+
+- [ ] **Hauler profit summary in tooltip** — Show estimated trip profit in the hauler tooltip.
+  Add `float estimatedProfit = 0.f` to `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`,
+  compute `(destPrice - buyPrice) * cargoQty * 0.8` (after 20% tax). Show as "Est. profit: +Ng"
+  in faint GREEN below the cargo line. Helps the player understand hauler economics at a glance.
 
 ---
 
