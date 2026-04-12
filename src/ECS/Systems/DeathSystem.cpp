@@ -145,8 +145,9 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                             std::string who = "Someone";
                             if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
                             char ebuf[128];
-                            std::snprintf(ebuf, sizeof(ebuf), "%s left an estate of %.0fg to %s.",
-                                          who.c_str(), estate, settl->name.c_str());
+                            std::snprintf(ebuf, sizeof(ebuf), "%s%s left an estate of %.0fg to %s.",
+                                          who.c_str(), isElder ? " (elder)" : "",
+                                          estate, settl->name.c_str());
                             logView3.get<EventLog>(*logView3.begin()).Push(
                                 tm3.day, (int)tm3.hourOfDay, ebuf);
                         }
