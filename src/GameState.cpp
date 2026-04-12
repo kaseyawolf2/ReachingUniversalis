@@ -222,9 +222,10 @@ void GameState::Draw() {
         Color fill = Fade(DARKGREEN, 0.15f);
         Color ring;
         if (s.pop == 0) {
-            // Collapsed settlement — grey fill, dark ring
+            // Collapsed settlement — grey fill; lighter ring during ruin cooldown
             fill = Fade(DARKGRAY, 0.15f);
-            ring = s.selected ? YELLOW : Fade(DARKGRAY, 0.7f);
+            ring = s.selected ? YELLOW :
+                   (s.ruinTimer > 0.f) ? Fade(GRAY, 0.85f) : Fade(DARKGRAY, 0.7f);
         } else {
             float minStock = std::min(s.foodStock, s.waterStock);
             // In cold seasons, include wood shortage in ring health assessment

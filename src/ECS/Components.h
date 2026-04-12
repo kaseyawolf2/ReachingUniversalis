@@ -89,6 +89,7 @@ struct Settlement {
     float       morale        = 0.5f;      // 0-1: NPC happiness/social trust; >0.7 = +10% prod; <0.3 = unrest
     bool        unrest        = false;     // true while morale < 0.3 (logged once on crossing)
     float       strikeCooldown = 0.f;     // game-hours until next work-stoppage can fire (0 = eligible)
+    float       ruinTimer     = 0.f;     // game-hours remaining in ruin state after collapse (no births, grey dot)
     // Inter-settlement relations: entity → score (-1 = rival, 0 = neutral, +1 = ally)
     // Updated when haulers complete deliveries. Rival → +10% trade surcharge; Ally → -5% tax.
     std::map<entt::entity, float> relations;

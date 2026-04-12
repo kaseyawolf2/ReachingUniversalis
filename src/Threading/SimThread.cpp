@@ -1339,7 +1339,7 @@ void SimThread::WriteSnapshot() {
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
             food, water, wood, spop, s.popCap, snapSeason, specialty,
-            s.modifierName
+            s.modifierName, s.ruinTimer
         });
     });
 

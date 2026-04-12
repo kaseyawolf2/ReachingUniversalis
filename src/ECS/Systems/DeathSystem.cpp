@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include <vector>
 #include <cstdio>
+#include <algorithm>
 
 // An NPC dies if any single need stays at 0 for this many gameDt seconds.
 // 12 game-hours = 12 * 60 gameDt seconds at 1x speed.
@@ -151,12 +152,17 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
         auto& log2 = logView2.get<EventLog>(*logView2.begin());
         auto& tm2  = timeView.get<TimeManager>(*timeView.begin());
 
-        registry.view<Settlement>().each([&](auto settl, const Settlement& s) {
+        registry.view<Settlement>().each([&](auto settl, Settlement& s) {
+            // Drain ruin timer each tick
+            if (s.ruinTimer > 0.f) {
+                s.ruinTimer = std::max(0.f, s.ruinTimer - gameDt / 60.f);  // gameDt in sim-secs; timer in game-hours
+            }
             int pop = 0;
             registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
                 [&](const HomeSettlement& hs) { if (hs.settlement == settl) ++pop; });
             if (pop == 0 && !m_collapsed.count(settl)) {
                 m_collapsed.insert(settl);
+                s.ruinTimer = 300.f;  // 300 game-hours cooldown before repopulation
                 log2.Push(tm2.day, (int)tm2.hourOfDay,
                     s.name + " has COLLAPSED — population zero");
 

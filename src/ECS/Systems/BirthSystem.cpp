@@ -88,7 +88,8 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
         bool canBirth = (pop < effectivePopCap)
                      && (food  >= BIRTH_FOOD_MIN)
                      && (water >= BIRTH_WATER_MIN)
-                     && woodOk;
+                     && woodOk
+                     && (settlComp.ruinTimer <= 0.f);  // no births during ruin cooldown
 
         if (canBirth) {
             tracker.accumulator += gameHoursDt;

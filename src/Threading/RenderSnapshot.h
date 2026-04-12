@@ -80,6 +80,7 @@ struct RenderSnapshot {
         Season       season     = Season::Spring;   // snapshot season for ring logic
         std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
         std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
+        float        ruinTimer  = 0.f;   // > 0 while settlement is in post-collapse ruin state
     };
 
     struct RoadEntry {
