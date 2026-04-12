@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Mood score shown in settlement tooltip** — Show "Mood: X%" in HUD settlement tooltip, color-coded by value.
 
 ## Recently Done
 
