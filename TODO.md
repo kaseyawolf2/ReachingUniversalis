@@ -9,14 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Work stoppage event** — New random event type in `RandomEventSystem`: when settlement morale
-  < 0.3, there is a 5% chance per day of a Work Stoppage. All `Schedule`-following NPCs at that
-  settlement enter `AgentBehavior::Idle` for 6 game-hours, refusing to work. Settlement treasury
-  is not charged wages during this period. Log: "Workers in Ashford downed tools."
-
 ---
 
 ## Done
+
+- [x] **Work stoppage event** — `Settlement::strikeCooldown` (24h recharge) + `DeprivationTimer::strikeDuration`
+  (6h per strike). In `RandomEventSystem::Update`'s settlement loop: 5% per game-day chance when
+  morale < 0.3 and cooldown elapsed. Sets strikeDuration on all Schedule NPCs at that settlement,
+  forces Idle. `ScheduleSystem` drains strikeDuration and blocks Idle→Working while > 0. Wages
+  not charged automatically (ConsumptionSystem only pays Working NPCs). Logs striker count.
 
 - [x] **Settlement morale** — `Settlement::morale` float (0–1) in Components.h. Rises on birth
   (+0.03), festival (+0.15). Falls on need-death (-0.08), old-age death (-0.02), theft (-0.05),
@@ -283,6 +284,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
   supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
   the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
+
+- [ ] **Strike indicator in tooltip** — When an NPC has `strikeDuration > 0` (from `DeprivationTimer`),
+  set a `bool onStrike` field in `AgentEntry` (RenderSnapshot.h), populated in SimThread's agent
+  snapshot loop. In `HUD::DrawHoverTooltip` (HUD.cpp), add a faint orange "(on strike)" suffix
+  after the behavior/state line. This lets the player see which workers are currently refusing
+  to work without digging into the event log.
+
+- [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
+  to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
+  morale. This models grievances being aired and partially resolved — the act of striking itself
+  slightly relieves tension. Check `dt->strikeDuration` transitioning from > 0 to 0 in the drain
+  block and call `registry.try_get<Settlement>(home.settlement)->morale += 0.05f`.
+
+- [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
+  add an age line: "Age: 23" (integer days). Read `AgentEntry::ageDays` cast to int. For children
+  (`ageDays < 15`), show "Age: 8 (child)". For elders (`ageDays > 60`), show "Age: 63 (elder)".
+  No new snapshot fields needed — `ageDays` is already in `AgentEntry`.
 
 ---
 
