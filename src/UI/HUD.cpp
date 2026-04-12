@@ -712,6 +712,18 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)
         std::snprintf(rumourLine, sizeof(rumourLine), "(spreading: %s)", best->rumourLabel.c_str());
 
+    // Hauler profit estimation
+    bool showProfit = false;
+    char profitLine[64] = {};
+    Color profitColor = GREEN;
+    if (isHauler && best->haulerCargoQty > 0) {
+        float cost = best->haulerBuyPrice * best->haulerCargoQty;
+        float profit = best->balance - cost;
+        std::snprintf(profitLine, sizeof(profitLine), "Profit: ~%.0fg", profit);
+        profitColor = (profit >= 0.f) ? Fade(GREEN, 0.8f) : Fade(RED, 0.8f);
+        showProfit = true;
+    }
+
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
     const char* illLabel = nullptr;
     if (best->ill) {
@@ -760,6 +772,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
+    if (showProfit)   lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -781,7 +794,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
     int wr  = showRumour  ? MeasureText(rumourLine,              11) : 0;
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv}) + 10;
+    int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -835,7 +849,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
-    if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
+    if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); ly += 16; }
+    if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          }
 }
 
 // ---- Facility hover tooltip ----

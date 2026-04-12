@@ -77,6 +77,9 @@ struct RenderSnapshot {
         // Rumour propagation: true if NPC carries an active rumour
         bool hasRumour = false;
         std::string rumourLabel;   // e.g. "plague", "drought", "bandits"
+        // Hauler profit estimation: buyPrice * cargoQty vs current balance
+        float haulerBuyPrice = 0.f;
+        int   haulerCargoQty = 0;
     };
 
     struct SettlementEntry {

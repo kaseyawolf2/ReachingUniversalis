@@ -1219,6 +1219,18 @@ void SimThread::WriteSnapshot() {
                 haulerCargo = inv->contents;
         }
 
+        // Hauler profit estimation fields
+        float haulerBuyPrice = 0.f;
+        int   haulerCargoQty = 0;
+        if (isHauler) {
+            if (const auto* h = m_registry.try_get<Hauler>(e))
+                haulerBuyPrice = h->buyPrice;
+            if (const auto* inv = m_registry.try_get<Inventory>(e)) {
+                for (const auto& [res, qty] : inv->contents)
+                    haulerCargoQty += qty;
+            }
+        }
+
         // Home settlement name for tooltip
         std::string homeSettlName;
         if (!isPlayer) {
@@ -1326,7 +1338,8 @@ void SimThread::WriteSnapshot() {
                            isGrateful, recentWarmthGlow, charityReady,
                            isBandit, onStrike, ill, illNeedIdx,
                            harvestBonus, inVocation,
-                           hasRumour, std::move(rumourLabel) });
+                           hasRumour, std::move(rumourLabel),
+                           haulerBuyPrice, haulerCargoQty });
     });
 
     // ---- Settlements ----
