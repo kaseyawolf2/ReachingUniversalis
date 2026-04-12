@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit threat radius visual** — Draw faint RED circle at 80u radius when hovering a bandit NPC in GameState::Draw.
-
 ## Recently Done
+
+- [x] **Bandit threat radius visual** — DrawCircleLinesV at 80u in Fade(RED, 0.2f) when hovering a bandit in GameState::Draw.
+
 
 - [x] **NPC morale comment in tooltip** — "Mood: Content/Getting by/Struggling/Desperate" line in HUD tooltip, color-coded GREEN/YELLOW/ORANGE/RED by contentment.
 
@@ -1406,7 +1407,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "Desperate". Add to the tooltip line sequence in `HUD.cpp`'s agent tooltip section. Use matching
   colors (GREEN/YELLOW/ORANGE/RED). No new data needed — contentment already in AgentEntry.
 
-- [ ] **Bandit threat radius visual** — When hovering a bandit NPC, draw a faint RED circle
+- [x] **Bandit threat radius visual** — When hovering a bandit NPC, draw a faint RED circle
   showing the 80-unit intercept range where they can attack haulers. In `GameState::Draw`'s agent
   loop (where charity radius is drawn for helpers), add a parallel check: if hovered agent is
   `isBandit`, draw `DrawCircleLinesV` at 80u radius in `Fade(RED, 0.2f)`. Helps player gauge danger.
@@ -2836,3 +2837,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   nudging the lowest need of the sad NPC up by 0.01. Rate-limit to once per 6 game-hours per
   pair (use `greetCooldown`). Log once: "[NPC] cheered up [NPC] at [settlement]." Creates
   emergent social support networks where happy NPCs stabilise struggling neighbours.
+
+- [ ] **Bandit territory marking** — In `GameState::Draw`, when NOT hovering any agent, draw a
+  faint red-tinted region around each road midpoint that has `banditCount > 0` (from `RoadEntry`).
+  Use `DrawCircleV` at the road midpoint `((x1+x2)/2, (y1+y2)/2)` with radius 40u and
+  `Fade(RED, 0.04f * banditCount)` (capped at 0.15f). Makes bandit-infested roads visible on
+  the world map without requiring hover. Uses existing `RoadEntry::banditCount` field.
+
+- [ ] **Bandit gang name in tooltip** — In `HUD::DrawHoverTooltip`, when `a.isBandit` and
+  `a.gangName` is non-empty, show "Gang: [gangName]" as a tooltip line in `Fade(MAROON, 0.8f)`.
+  Add after the bandit line. Uses existing `AgentEntry::gangName` field already piped through
+  the snapshot. Adds identity to bandit groups and makes them feel like named threats.
