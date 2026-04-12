@@ -9,11 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
-  dies of old age, increase the inheritance fraction from the default 0.5 to 0.8 (elders have had
-  more time to save). Add an `isElder` check before the `INHERITANCE_FRACTION` constant usage in
-  the old-age death block and use 0.8f when true. Log: "Aldric Smith (elder) left an estate of
-  45g to Ashford." Requires no new components.
+- [x] **Elder deathbed savings inheritance** — Elder 0.8 fraction and isElder check were already
+  implemented. Added "(elder)" tag to estate log message for visual distinction.
 
 - [x] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
@@ -462,11 +459,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   available in `SettlementStatus`. Format: "[12/35 pop +]" or "[12/35 pop -]". Uses plain '+'
   and '-' ASCII.
 
-- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
-  dies of old age, increase the inheritance fraction from the default 0.5 to 0.8 (elders have had
-  more time to save). Add an `isElder` check before the `INHERITANCE_FRACTION` constant usage in
-  the old-age death block and use 0.8f when true. Log: "Aldric Smith (elder) left an estate of
-  45g to Ashford." Requires no new components.
+- [x] **Elder deathbed savings inheritance** — Elder 0.8 fraction and isElder check were already
+  implemented. Added "(elder)" tag to estate log message for visual distinction.
 
 - [ ] **Contentment milestone log** — In `RandomEventSystem`'s per-NPC event loop, track a
   `contentmentMilestone` bool in a static per-entity `std::set<entt::entity> s_lowLogged`. When
@@ -1452,3 +1446,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentEntry::color` based on `Money::balance`: < 10g = GRAY, 10-50g = BEIGE, 50-200g = SKYBLUE,
   > 200g = GOLD. Currently all NPCs share a single color per role. This visual distinction lets
   the player see wealth distribution at a glance. Only apply to NPCs (not Player, Hauler, Child).
+
+- [ ] **Elder mentorship skill boost** — In `ProductionSystem.cpp`'s worker loop, when an elder
+  (age > 60, from `Age` component) is working at a facility alongside younger NPCs, grant a
+  +5% skill gain bonus to all non-elder workers at the same facility. Track by checking if any
+  worker in the facility's NPC list has `age.days > 60`. Apply to the `Skills` component's
+  relevant skill (farming/water/woodcutting matching facility output). Small per-tick increment
+  `+= 0.0001f * gameHoursDt` when elder is present.
+
+- [ ] **Death cause in event log** — In `DeathSystem.cpp`'s need-deprivation death block, the
+  log currently says "X died at Y". Extend to include the specific need that killed them:
+  "X died of hunger at Y" / "X died of thirst at Y" / "X died of exposure at Y". Check which
+  need in `Needs::list` is at 0 (the lethal one) and map index 0→hunger, 1→thirst, 2→exhaustion,
+  3→exposure. If multiple are at 0, pick the first.
