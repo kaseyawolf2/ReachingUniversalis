@@ -2,6 +2,8 @@
 #include "ECS/Components.h"
 #include <cmath>
 #include <algorithm>
+#include <map>
+#include <cstdio>
 
 // Stock levels that trigger price movement
 static constexpr float PRICE_HIGH_STOCK = 100.f;   // above → price decays
@@ -47,9 +49,21 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
     Season season = tm.CurrentSeason();
 
     // ---- Supply/demand price adjustment per settlement ----
-    registry.view<Market, Stockpile>().each(
-        [&](Market& mkt, const Stockpile& sp) {
+    // Price spike cooldown: (entity, resourceType) → game-hours remaining
+    static std::map<std::pair<entt::entity, int>, float> s_priceSpikeCooldown;
+    // Drain cooldowns
+    for (auto& [key, cd] : s_priceSpikeCooldown)
+        cd = std::max(0.f, cd - gameHoursDt);
+
+    auto* log = [&]() -> EventLog* {
+        auto lv = registry.view<EventLog>();
+        return (lv.begin() != lv.end()) ? &lv.get<EventLog>(*lv.begin()) : nullptr;
+    }();
+
+    registry.view<Market, Stockpile, Settlement>().each(
+        [&](entt::entity e, Market& mkt, const Stockpile& sp, const Settlement& settl) {
             for (auto& [res, price] : mkt.price) {
+                float oldPrice = price;
                 auto it = sp.quantities.find(res);
                 float stock = (it != sp.quantities.end()) ? it->second : 0.f;
 
@@ -60,6 +74,23 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
 
                 float floor = SeasonPriceFloor(res, season);
                 price = std::max(floor, std::min(PRICE_MAX, price));
+
+                // Log price spikes > 20% (rate-limited to once per 12 game-hours per resource)
+                if (oldPrice > 0.f && price > oldPrice * 1.2f) {
+                    auto key = std::make_pair(e, static_cast<int>(res));
+                    float& cd = s_priceSpikeCooldown[key];
+                    if (cd <= 0.f && log) {
+                        const char* resName = (res == ResourceType::Food) ? "food"
+                                            : (res == ResourceType::Water) ? "water" : "wood";
+                        float pct = (price - oldPrice) / oldPrice * 100.f;
+                        char buf[128];
+                        std::snprintf(buf, sizeof(buf),
+                            "Price spike: %s at %s now %.1fg (+%.0f%%)",
+                            resName, settl.name.c_str(), price, pct);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        cd = 12.f;
+                    }
+                }
             }
         });
 
