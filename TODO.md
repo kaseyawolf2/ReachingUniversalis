@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Abundance end log** — Log "Abundance fading at X — stores declining." when settlement
+  exits abundance before scarcity reset.
+
 ## Recently Done
 
 - [x] **Bankrupt hauler flash before demotion** — Red pulsating ring on haulers near bankruptcy
