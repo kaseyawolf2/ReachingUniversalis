@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler idle duration warning** — Log when hauler idle > 12h; clear on state change.
-
 ## Recently Done
+
+- [x] **Hauler idle duration warning** — Logs "idle for 12h — no profitable routes." once per idle period.
 
 - [x] **Graduation log includes gold saved** — Shows "(125g)" in hauler graduation log.
 
@@ -701,7 +701,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   graduation log, append the NPC's balance: "X saved enough (125g) to become a hauler at Y".
   Gives the player a sense of how much wealth is involved in the career transition.
 
-- [ ] **Hauler idle duration warning** — In `TransportSystem.cpp`, when a hauler has been in
+- [x] **Hauler idle duration warning** — In `TransportSystem.cpp`, when a hauler has been in
   `HaulerState::Idle` for more than 12 game-hours (`waitTimer > 12.f`), log "Hauler X idle
   for 12h at Y — no profitable routes." once per idle period using a `static
   std::set<entt::entity> s_loggedIdle`. Clear on state transition away from Idle. Surfaces
@@ -796,6 +796,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Bankruptcy log includes gold balance** — In `EconomicMobilitySystem.cpp`'s bankruptcy
   log, append the hauler's remaining balance: "X went bankrupt (2g left) — returned to labor
   at Y". Mirrors the graduation log's gold display. Use `money.balance` already in scope.
+
+- [ ] **Idle hauler dimming** — In `GameState.cpp`'s agent render loop, when a hauler has
+  `behavior == Idle` and `haulerCargoQty == 0`, draw them at 50% opacity (`Fade(drawColor, 0.5f)`)
+  to visually distinguish active traders from idle ones. No new snapshot fields — `behavior`
+  and `haulerCargoQty` already in `AgentEntry`.
+
+- [ ] **Settlement import/export balance** — In `TransportSystem.cpp`'s delivery block, track
+  net goods flow per settlement: `static std::map<entt::entity, int> s_exportCount` incremented
+  at source on pickup, `s_importCount` incremented at destination on delivery. Add
+  `int imports = 0, exports = 0` to `SettlementEntry` in `RenderSnapshot.h`. Display in
+  settlement tooltip as "Trade: +N imports / -N exports". Reset every 24 game-hours alongside
+  `tradeVolume`.
 
 ---
 
