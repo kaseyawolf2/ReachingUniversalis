@@ -9,12 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill reset on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, when a profession change occurs (new type differs from old), halve the old primary
-  skill and boost the new primary skill by 10% (capped at 1.0). For example, an ex-Farmer who
-  becomes a Lumberjack loses half their farming skill and gets +0.1 woodcutting. Use
-  `try_get<Skills>` and the old/new `ProfessionForResource` to identify which skill to adjust.
-  Models the cost of retraining in a new trade.
+- [x] **Skill reset on profession change** — On profession change during migration, halve old
+  skill and boost new by +0.1. Only when both professions are non-Idle.
 
 - [x] **Profession shown in migration log** — Added arrival log "X (Farmer) moved to Y" in
   MIGRATING arrival block. Omits profession suffix when Idle or no Profession component.
@@ -496,12 +492,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Profession shown in migration log** — Added arrival log with profession in MIGRATING block.
 
-- [ ] **Skill reset on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, when a profession change occurs (new type differs from old), halve the old primary
-  skill and boost the new primary skill by 10% (capped at 1.0). For example, an ex-Farmer who
-  becomes a Lumberjack loses half their farming skill and gets +0.1 woodcutting. Use
-  `try_get<Skills>` and the old/new `ProfessionForResource` to identify which skill to adjust.
-  Models the cost of retraining in a new trade.
+- [x] **Skill reset on profession change** — On profession change during migration, halve old
+  skill and boost new by +0.1.
 
 - [ ] **Migrant welcome log at destination** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
   block, after the profession update, push a second log entry from the destination settlement's
@@ -1499,3 +1491,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to migrate along. Use `registry.try_get<Name>` on both the original migrant and the follower,
   and `registry.try_get<Settlement>(dest)` for the destination name. Currently friend-following
   is silent — this surfaces a key social mechanic.
+
+- [ ] **Skill decay for idle NPCs** — In `NeedDrainSystem.cpp`, when an NPC's `AgentBehavior`
+  is `Idle` (from `AgentState`), slowly decay all three skills by `-0.0002f * gameHoursDt`
+  (floored at 0.05f). Check `try_get<Skills>` and `try_get<AgentState>`. This creates pressure
+  for NPCs to keep working and makes prolonged unemployment meaningful.
+
+- [ ] **Profession change log event** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival block,
+  when the skill reset fires (old profession != new), log "X retrained: Farmer → Woodcutter
+  (farming 45%→22%, woodcutting 38%→48%)" showing both old and new skill values. Use the
+  skill values captured before and after the adjustment. Surfaces the retraining mechanic.
