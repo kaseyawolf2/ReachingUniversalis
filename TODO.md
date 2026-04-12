@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Bounty pool shown in stockpile panel** — "Bounty: Xg" in faint GOLD below treasury line when bountyPool > 0. Added to StockpilePanel, piped from Settlement in WriteSnapshot.
+
 - [x] **Settlement danger indicator** — Pulsing red "!" next to settlement name when connected roads have 3+ total bandits. Sums banditCount from RoadEntry by nameA/nameB match.
 
 - [x] **Road condition overlay toggle** — O key toggles m_showRoadCondition: Safety mode (bandits override) vs Condition mode (pure condition palette). Label in bottom-left.
@@ -1218,7 +1220,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   world map. In `GameState::Draw`'s settlement loop, sum `banditCount` from all roads where
   `nameA == settlement.name || nameB == settlement.name`; if total >= 3, draw the indicator.
 
-- [ ] **Bounty pool shown in stockpile panel** — Add `float bountyPool = 0.f` to
+- [x] **Bounty pool shown in stockpile panel** — Add `float bountyPool = 0.f` to
   `RenderSnapshot::StockpilePanel`. In `SimThread::WriteSnapshot`'s stockpile panel section, copy
   `Settlement::bountyPool` into the panel. In `HUD::DrawStockpilePanel`, show "Bounty: Xg" in
   faint GOLD below the treasury line when bountyPool > 0. Lets players know which settlements
@@ -1282,6 +1284,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after the scatter, find non-bandit NPCs within 120 units. For each witness, add +0.1 to their
   `Reputation::score` (they saw justice done) and log: "[NPC] witnessed [player] confront [bandit]."
   Uses existing `Reputation` component; creates social memory of player's actions.
+
+- [ ] **Settlement trade volume in tooltip** — Add `float tradeVolume24h = 0.f` to
+  `RenderSnapshot::SettlementStatus`. In `SimThread::WriteSnapshot`, copy `Settlement::tradeVolume`
+  (accumulated over rolling window). In `HUD::DrawWorldStatus` settlement tooltip, show
+  "Trade volume: Xg/day" in faint WHITE. Helps player identify economic hubs vs backwaters.
+
+- [ ] **NPC remembers last meal source** — Add `std::string lastMealSource = ""` to
+  `DeprivationTimer`. When an NPC eats (in `ConsumptionSystem`), record the settlement name. When
+  hunger drops below 0.2 and lastMealSource is set, log "[NPC] is grateful to [Settlement] for
+  food." Clear on next meal. Adds narrative flavour connecting NPCs to specific settlements.
 
 - [ ] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has
   `inConvoy == true`, draw a faint connecting line between convoy members. Iterate agents to find
