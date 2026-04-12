@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler loss-making trip log** — Log when tripProfit < 0 in TransportSystem's GoingToDeposit arrival block.
+
 ## Recently Done
 
 - [x] **Hauler trip history summary** — lifetimeTrips/lifetimeProfit on Hauler, piped through AgentEntry, shown as "Trips: N (total +Xg)" in tooltip.
