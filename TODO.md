@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Gang disbands on last member removed** — After confrontation scatter, check remaining bandits with same gangName. If none, log "[gang] has been disbanded."
+
 - [x] **NPC migration considers bandit danger** — -5% migration score per bandit near road midpoint (100u radius, min 20%). Added in FindMigrationTarget after memory bonus.
 
 - [x] **Bounty pool shown in settlement tooltip** — "Bounty: Xg" in faint GOLD in settlement hover tooltip when bountyPool > 0.5. Added to SettlementStatus, piped from Settlement.
@@ -1240,7 +1242,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   candidate settlement, sum `banditCount` on its connecting roads; apply a -5% migration score
   penalty per bandit. NPCs prefer safer destinations. Affects the `MigrationMemory`-based scoring.
 
-- [ ] **Gang disbands on last member removed** — In `SimThread::ProcessInput`'s bandit confrontation
+- [x] **Gang disbands on last member removed** — In `SimThread::ProcessInput`'s bandit confrontation
   block, after removing the BanditTag, check if any other bandit still has the same gangName. If not,
   log "[gang name] has been disbanded." in EventLog. Gives satisfying closure when the player clears
   a gang. Check via `registry.view<BanditTag, DeprivationTimer>` filtering by gangName match.
@@ -1354,6 +1356,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   showing the 80-unit intercept range where they can attack haulers. In `GameState::Draw`'s agent
   loop (where charity radius is drawn for helpers), add a parallel check: if hovered agent is
   `isBandit`, draw `DrawCircleLinesV` at 80u radius in `Fade(RED, 0.2f)`. Helps player gauge danger.
+
+- [ ] **NPC family visit behaviour** — NPCs with a `FamilyTag` occasionally visit family members
+  at other settlements. In `AgentDecisionSystem`, when an NPC is idle and has family elsewhere
+  (check FamilyTag::name matches across settlements), 5% chance per game-hour to set movement
+  toward the family member's settlement. Log "[Name] is visiting family in [Settlement]." Return
+  home after 30 game-minutes. Add `float visitTimer = 0.f` to DeprivationTimer.
+
+- [ ] **Settlement rivalry events** — When two adjacent settlements both have morale > 0.7
+  and pop > 15, trigger a "rivalry" modifier. In `RandomEventSystem`, check pairs of connected
+  settlements. Rivalry reduces trade between them by 20% (apply penalty in TransportSystem's
+  route scoring). Log "[A] and [B] are competing for regional dominance." Lasts 24 game-hours.
+  Add `std::string rivalWith = ""` to Settlement.
 
 ---
 
