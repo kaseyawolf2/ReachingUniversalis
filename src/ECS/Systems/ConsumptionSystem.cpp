@@ -216,9 +216,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 timer.fleeTimer     = 4.f;   // sprint away for ~4 real seconds
                 justStole = true;
 
-                // Theft costs reputation
-                if (auto* rep = registry.try_get<Reputation>(entity))
-                    rep->score -= 0.2f;
+                // Theft costs reputation (-0.5 per act; creates component if missing)
+                registry.get_or_emplace<Reputation>(entity).score -= 0.5f;
                 if (settl) settl->theftCount++;
                 // Social ostracism: theft erodes skills slightly
                 std::string skillSuffix;
@@ -250,8 +249,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 timer.stealCooldown = STEAL_COOLDOWN;
                 timer.fleeTimer     = 4.f;
                 justStole = true;
-                if (auto* rep = registry.try_get<Reputation>(entity))
-                    rep->score -= 0.2f;
+                registry.get_or_emplace<Reputation>(entity).score -= 0.5f;
                 if (settl) settl->theftCount++;
                 std::string skillSuffix2;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
