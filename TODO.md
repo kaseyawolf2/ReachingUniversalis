@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale impact from hauler trade success** — In `TransportSystem.cpp`, when a hauler
-  successfully delivers cargo to the destination settlement (the `GoingToDeposit → GoingHome`
-  transition), call `settl->morale = std::min(1.f, settl->morale + 0.01f)` on the *destination*
-  settlement. Trade arriving boosts community confidence. Use `registry.try_get<Settlement>` on
-  `hauler.targetSettlement`. Small per-delivery tick so active trade routes gradually lift morale.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -215,6 +209,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h`; populated from `Settlement::morale` in SimThread's world-status loop.
   `HUD::DrawWorldStatus` renders "M:XX%" label per settlement: green (≥70%), yellow (≥30%),
   red (<30%). Width calculation updated so the status bar expands to fit.
+
+- [x] **Morale impact from hauler trade success** — In `TransportSystem.cpp`'s GoingToDeposit
+  arrival block, after the sale completes and before return-trip opportunism, bumps
+  `destSettl->morale` by +0.01 (capped at 1.0). Active trade routes gradually lift morale.
 
 - [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
   loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
@@ -524,6 +522,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   decreased by > 0.03, nothing otherwise. Update `s_prevMorale` once per second (gate with a
   static float timer incremented by `GetFrameTime()`). Helps players see if their actions are
   improving or worsening settlement mood.
+
+- [ ] **Trade delivery log with morale** — In `TransportSystem.cpp`'s GoingToDeposit arrival
+  block, after the existing delivery logic (sale + morale bump), push an EventLog entry:
+  "Hauler delivered [qty] [resource] to [settlement] (morale +1%)". Use the existing `destSettl`
+  name, `inv.contents` (before clear), and `registry.view<EventLog>()`. Rate-limit to once per
+  hauler per 6 game-hours using `hauler.waitTimer` (already reset on arrival) to avoid log spam.
+  No new components needed.
+
+- [ ] **Hauler home morale penalty on bankruptcy** — In `EconomicMobilitySystem.cpp`'s hauler
+  bankruptcy block (where `BanditTag` or demotion happens), apply a morale penalty of -0.03 to
+  the hauler's home settlement. A merchant going bankrupt is demoralising for the community. Use
+  `registry.try_get<Settlement>(home.settlement)->morale -= 0.03f` with a `std::max(0.f, ...)`
+  clamp. No new components needed.
 
 ---
 
