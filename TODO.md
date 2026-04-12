@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler home morale penalty on bankruptcy** — Apply -0.03 morale to home settlement
-  when a hauler goes bankrupt in EconomicMobilitySystem.cpp.
-
 ## Recently Done
+
+- [x] **Hauler home morale penalty on bankruptcy** — Apply -0.03 morale to home settlement
+  when a hauler goes bankrupt in EconomicMobilitySystem.cpp.
 
 - [x] **Trade delivery log with morale** — Logs "Hauler delivered N food to X (morale +1%)".
 
@@ -582,7 +582,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Trade delivery log with morale** — Logs delivery with cargo summary and morale bump.
 
-- [ ] **Hauler home morale penalty on bankruptcy** — In `EconomicMobilitySystem.cpp`'s hauler
+- [x] **Hauler home morale penalty on bankruptcy** — In `EconomicMobilitySystem.cpp`'s hauler
   bankruptcy block (where `BanditTag` or demotion happens), apply a morale penalty of -0.03 to
   the hauler's home settlement. A merchant going bankrupt is demoralising for the community. Use
   `registry.try_get<Settlement>(home.settlement)->morale -= 0.03f` with a `std::max(0.f, ...)`
@@ -599,6 +599,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   units, apply -0.003 morale per game-hour. This makes shortages actively harmful to morale
   rather than just neutral. Use the same `registry.try_get<Stockpile>(e)` already accessed.
   No new components needed.
+
+- [ ] **Hauler profit margin in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when hovering
+  a hauler with cargo, show "Profit: ~Ng" calculated as `money.balance - buyPrice * cargoQty`
+  (approximate margin from last trade). Read `Hauler::buyPrice` and `Inventory::contents` from
+  `AgentEntry` fields (add `float haulerBuyPrice` and `int haulerCargoQty` to `AgentEntry` in
+  `RenderSnapshot.h`, populate in SimThread). Display in green if positive, red if negative.
+
+- [ ] **Bankrupt hauler flash before demotion** — In `EconomicMobilitySystem.cpp`, when a
+  hauler's `s_bankruptTimer` exceeds `BANKRUPTCY_HOURS * 0.75` (18h), set a `bool nearBankrupt`
+  flag on a new `AgentEntry` field. In `GameState.cpp`'s agent render loop, draw a faint red
+  pulsating ring (like celebrating but red) around near-bankrupt haulers. Gives visual warning
+  before demotion. Add `bool nearBankrupt` to `AgentEntry` in `RenderSnapshot.h`.
 
 ---
 
