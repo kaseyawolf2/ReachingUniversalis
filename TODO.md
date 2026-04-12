@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
-  `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
-  loop via `try_get<DeprivationTimer>`. In `GameState.cpp`'s agent render loop, draw a small
-  `Fade(GOLD, 0.4f)` ring (radius 10) around workers with the bonus active. This makes good
-  personal events legible in the overworld view.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -205,6 +199,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   windfall log now reads "Aldric Smith found 12g on the road near Greenfield" using
   `try_get<HomeSettlement>` → `try_get<Settlement>` to get the name. Falls back to the original
   format if the NPC has no home settlement.
+
+- [x] **Harvest bonus glow on worker dot** — Added `bool harvestBonus` to `AgentEntry` in
+  `RenderSnapshot.h`, populated from `DeprivationTimer::harvestBonusTimer > 0` in SimThread's
+  WriteSnapshot. `GameState.cpp`'s agent render loop draws a faint `Fade(GOLD, 0.4f)` ring
+  (radius 10) around any agent with the bonus active.
 
 - [ ] **Morale shown in world status bar** — Add `float morale` to `SettlementStatus` in
   `RenderSnapshot.h`; populate it in SimThread's world-status loop with `s.morale`. In
@@ -500,6 +499,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   minor illness), extend the log from "X fell ill (hunger)" to "X fell ill (hunger) at Greenfield"
   using `try_get<HomeSettlement>` → `try_get<Settlement>`. Same pattern as the windfall log fix.
   No new components needed.
+
+- [ ] **Harvest bonus shown in tooltip** — When `AgentEntry::harvestBonus` is true (already
+  wired), draw a faint gold "(good harvest)" line in `HUD::DrawHoverTooltip` (HUD.cpp) below
+  the illness line. Add to `lineCount`, `pw` calculation, and draw block using the same pattern
+  as the `showStrike` line. No new snapshot fields needed — `harvestBonus` is already in
+  `AgentEntry`.
+
+- [ ] **Celebrating NPC glow ring** — In `GameState.cpp`'s agent render loop, when
+  `a.behavior == AgentBehavior::Celebrating`, draw a pulsating `Fade(GOLD, alpha)` ring
+  (radius 12) where `alpha` oscillates between 0.2 and 0.6 using `sinf(GetTime() * 3.f)`.
+  This adds visual life to festivals and personal celebrations beyond just the dot colour
+  change. No new fields needed — `behavior` is already in `AgentEntry`.
 
 ---
 
