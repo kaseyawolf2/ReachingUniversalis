@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Illness recovery log** — When `DeprivationTimer::illnessTimer` transitions from >0 to 0,
+  log "X recovered from illness at Y." Track with `static std::set<entt::entity> s_currentlyIll`.
 
 ## Recently Done
 
