@@ -1,6 +1,8 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <map>
+#include <set>
+#include <utility>
 #include <random>
 
 // Fires random world events at intervals to stress the simulation:
@@ -21,6 +23,10 @@ private:
 
     // Active plagues: settlement entity → game-hours until next spread attempt
     std::map<entt::entity, float> m_plagueSpreadTimer;
+
+    // Canonical pairs (min id, max id) already logged to avoid duplicate rivalry/alliance spam
+    std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalries;
+    std::set<std::pair<uint32_t,uint32_t>> m_loggedAlliances;
 
     void TriggerEvent(entt::registry& registry, int day, int hour);
     // Kill killFraction of the settlement's population (excluding player).

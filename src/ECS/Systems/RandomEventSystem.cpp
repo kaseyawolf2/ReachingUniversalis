@@ -80,7 +80,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
 
         // Drift inter-settlement relations toward neutral (0) at 0.3% per game-hour.
         // Also prune entries pointing to destroyed settlement entities.
-        static constexpr float RELATION_DRIFT = 0.003f;
+        // Log first-time rivalry/alliance threshold crossings.
+        static constexpr float RELATION_DRIFT    = 0.003f;
+        static constexpr float RIVALRY_THRESHOLD = -0.5f;
+        static constexpr float ALLIANCE_THRESHOLD = 0.5f;
         for (auto it = s.relations.begin(); it != s.relations.end(); ) {
             if (!registry.valid(it->first)) {
                 it = s.relations.erase(it);
@@ -88,6 +91,34 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             }
             if (it->second > 0.f) it->second = std::max(0.f, it->second - RELATION_DRIFT * gameHoursDt);
             else                  it->second = std::min(0.f, it->second + RELATION_DRIFT * gameHoursDt);
+
+            // Canonical pair to avoid logging both A→B and B→A
+            uint32_t idA = static_cast<uint32_t>(entt::to_integral(e));
+            uint32_t idB = static_cast<uint32_t>(entt::to_integral(it->first));
+            auto key = (idA < idB) ? std::make_pair(idA, idB) : std::make_pair(idB, idA);
+
+            if (log) {
+                const auto* otherSettl = registry.try_get<Settlement>(it->first);
+                if (otherSettl) {
+                    if (it->second <= RIVALRY_THRESHOLD && !m_loggedRivalries.count(key)) {
+                        m_loggedRivalries.insert(key);
+                        m_loggedAlliances.erase(key);  // reset alliance state for this pair
+                        log->Push(tm.day, (int)tm.hourOfDay,
+                            "Rivalry declared: " + s.name + " vs " + otherSettl->name);
+                    } else if (it->second > RIVALRY_THRESHOLD) {
+                        m_loggedRivalries.erase(key);  // allow re-trigger if they drift hostile again
+                    }
+                    if (it->second >= ALLIANCE_THRESHOLD && !m_loggedAlliances.count(key)) {
+                        m_loggedAlliances.insert(key);
+                        m_loggedRivalries.erase(key);  // reset rivalry state for this pair
+                        log->Push(tm.day, (int)tm.hourOfDay,
+                            "Alliance formed: " + s.name + " & " + otherSettl->name);
+                    } else if (it->second < ALLIANCE_THRESHOLD) {
+                        m_loggedAlliances.erase(key);  // allow re-trigger if they become close again
+                    }
+                }
+            }
+
             ++it;
         }
 
