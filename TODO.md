@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler return trip line** — Draw faint gray return line for haulers heading home.
+  Add homeX/homeY to AgentEntry, populate from HomeSettlement position in SimThread.
+
 ## Recently Done
 
 - [x] **Route line colour by cargo type** — Route lines now coloured by cargo (green/blue/brown).
