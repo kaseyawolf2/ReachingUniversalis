@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC contentment affects work output** — Contentment-based production multiplier in ProductionSystem: ≥0.7 = 1.0×, 0.4–0.7 = 0.85×, <0.4 = 0.65×.
 
 ## Recently Done
 
