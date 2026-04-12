@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include <cmath>
 #include <algorithm>
+#include <set>
 #include <vector>
 #include <limits>
 #include <random>
@@ -18,6 +19,7 @@ static constexpr float ALLY_THRESHOLD    =  0.5f;   // above this → importer s
 static constexpr float TRADE_DELTA       =  0.04f;  // per delivery: exporter gains, importer loses
 static constexpr float RIVAL_SURCHARGE   =  0.10f;  // extra tax fraction when rival (20%→30%)
 static constexpr float ALLY_DISCOUNT     =  0.05f;  // tax reduction when allied (20%→15%)
+static std::set<entt::entity> s_loggedIdle;  // tracks haulers that have triggered the idle warning log
 
 static void MoveToward(Velocity& vel, const Position& from,
                         float tx, float ty, float speed) {
@@ -252,10 +254,26 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 hauler.cargoSource      = home.settlement;   // track where goods came from
                 hauler.state            = HaulerState::GoingToDeposit;
                 hauler.waitCycles       = 0;
+                s_loggedIdle.erase(entity);
             } else {
                 // No good route yet — wait before re-evaluating (patience increases)
                 ++hauler.waitCycles;
                 hauler.waitTimer = WAIT_INTERVAL;
+                // Log once when a hauler has been idle for 12+ hours
+                if (hauler.waitCycles >= 12 && s_loggedIdle.insert(entity).second) {
+                    auto logV = registry.view<EventLog>();
+                    auto tmV  = registry.view<TimeManager>();
+                    if (logV.begin() != logV.end() && tmV.begin() != tmV.end()) {
+                        auto& evLog = logV.get<EventLog>(*logV.begin());
+                        const auto& tmRef = tmV.get<TimeManager>(*tmV.begin());
+                        std::string who = "Hauler";
+                        if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                        std::string where = "?";
+                        if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
+                        evLog.Push(tmRef.day, (int)tmRef.hourOfDay,
+                            who + " idle for 12h at " + where + " — no profitable routes.");
+                    }
+                }
             }
             break;
         }
