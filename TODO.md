@@ -9,7 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Profession vocation label in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp),
+  when an NPC's `Profession::type` matches their highest-skill resource (i.e. they are working
+  in their vocation), append " [vocation]" in `Fade(GOLD, 0.6f)` to the role line. The match
+  check mirrors the ScheduleSystem bonus: `ProfessionForResource` of the aptitude resource ==
+  `prof->type`. Add `bool inVocation = false` to `AgentEntry` in `RenderSnapshot.h`; populate
+  in SimThread's agent snapshot loop via `try_get<Profession>` + `try_get<Skills>`.
 
 ## Recently Done
 
