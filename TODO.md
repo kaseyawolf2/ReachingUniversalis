@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession vocation label in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp),
-  when an NPC's `Profession::type` matches their highest-skill resource (i.e. they are working
-  in their vocation), append " [vocation]" in `Fade(GOLD, 0.6f)` to the role line. The match
-  check mirrors the ScheduleSystem bonus: `ProfessionForResource` of the aptitude resource ==
-  `prof->type`. Add `bool inVocation = false` to `AgentEntry` in `RenderSnapshot.h`; populate
-  in SimThread's agent snapshot loop via `try_get<Profession>` + `try_get<Skills>`.
+(none)
 
 ## Recently Done
+
+- [x] **Profession vocation label in NPC tooltip** — Shows "[vocation]" in gold when profession matches best skill.
 
 - [x] **Idle NPC count in stockpile panel** — Shows "Working: N / Idle: N" in Treasury line.
 
@@ -522,12 +519,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Idle NPC count in stockpile panel** — Shows "Working: N / Idle: N" in Treasury line.
 
-- [ ] **Profession vocation label in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp),
-  when an NPC's `Profession::type` matches their highest-skill resource (i.e. they are working
-  in their vocation), append " [vocation]" in `Fade(GOLD, 0.6f)` to the role line. The match
-  check mirrors the ScheduleSystem bonus: `ProfessionForResource` of the aptitude resource ==
-  `prof->type`. Add `bool inVocation = false` to `AgentEntry` in `RenderSnapshot.h`; populate
-  in SimThread's agent snapshot loop via `try_get<Profession>` + `try_get<Skills>`.
+- [x] **Profession vocation label in NPC tooltip** — Shows "[vocation]" in gold when profession matches best skill.
 
 - [ ] **Skill milestone log** — In `ScheduleSystem.cpp`'s skill-at-worksite block, after
   `skills->Advance(...)`, check if the skill just crossed 0.5 (journeyman) or 0.9 (master)
@@ -1547,3 +1539,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Grudge` component (`entt::entity target; float timer;`). While the grudge is active (e.g. 48
   game-hours), the NPC avoids migrating to that settlement. In `Components.h`, add the `Grudge`
   struct. Drain `timer` in `AgentDecisionSystem::Update` and remove the component when expired.
+
+- [ ] **Vocation bonus production boost** — In `ProductionSystem.cpp`, when calculating per-worker
+  contribution, check if the worker has `inVocation` status (profession matches highest skill).
+  Workers in their vocation get a 10% production bonus on top of the normal skill multiplier.
+  Use `try_get<Profession>` + `try_get<Skills>` to compute the vocation match inline, mirroring
+  the same logic used in SimThread's snapshot loop.
+
+- [ ] **NPC friendship from shared workplace** — In `AgentDecisionSystem.cpp`, when two NPCs
+  are both Working at the same facility (same `ProductionFacility::settlement` and same
+  `output`), increment a `Friendship` component between them. Add `struct Friendship { entt::entity
+  friend_; float bond = 0.f; }` to `Components.h`. Bond grows by 0.01 per game-hour of shared
+  work, capped at 1.0. When an NPC considers migrating, penalise destinations that would separate
+  them from friends with bond > 0.5.
