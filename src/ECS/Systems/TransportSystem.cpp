@@ -60,15 +60,29 @@ static TradeRoute FindBestRoute(entt::registry& registry,
     // Build reachable-destination list from open roads, carrying road condition.
     // Poor-condition roads get a penalty applied to the route score so haulers
     // prefer better-maintained routes when multiple options are available.
-    struct DestInfo { entt::entity e; float conditionPenalty; };
+    // Bandit-heavy roads also penalised: each bandit adds ~15% score reduction.
+    struct DestInfo { entt::entity e; float conditionPenalty; int bandits; };
     std::vector<DestInfo> dests;
-    registry.view<Road>().each([&](const Road& road) {
+    registry.view<Road>().each([&](auto roadEnt, const Road& road) {
         if (road.blocked) return;
         // Condition penalty: 0 = perfect road (no penalty), 1 = near-collapse (50% penalty)
         float penalty = 1.f - std::max(0.15f, road.condition);  // range [0, 0.85]
         float condPenalty = penalty * 0.6f;  // scale to [0, 0.51] — max ~50% score reduction
-        if (road.from == homeSettlement) dests.push_back({ road.to,   condPenalty });
-        else if (road.to == homeSettlement) dests.push_back({ road.from, condPenalty });
+        // Count bandits near this road's midpoint
+        int banditCount = 0;
+        const auto* pa = registry.try_get<Position>(road.from);
+        const auto* pb = registry.try_get<Position>(road.to);
+        if (pa && pb) {
+            float mx = (pa->x + pb->x) * 0.5f;
+            float my = (pa->y + pb->y) * 0.5f;
+            registry.view<Position, BanditTag>().each(
+                [&](const Position& bp) {
+                    float dx = bp.x - mx, dy = bp.y - my;
+                    if (dx*dx + dy*dy < 100.f * 100.f) ++banditCount;
+                });
+        }
+        if (road.from == homeSettlement) dests.push_back({ road.to,   condPenalty, banditCount });
+        else if (road.to == homeSettlement) dests.push_back({ road.from, condPenalty, banditCount });
     });
 
     for (const auto& di : dests) {
@@ -96,6 +110,8 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             float profit = gross - homePrice * qty - gross * TAX_RATE;
             float score  = profit / std::max(100.f, dist);  // profit-per-distance
             score *= (1.f - di.conditionPenalty);            // road condition discount
+            float banditPen = std::min(0.6f, di.bandits * 0.15f); // each bandit ≈ 15%, max 60%
+            score *= (1.f - banditPen);
             if (score > bestScore) {
                 bestScore     = score;
                 best.dest     = destEnt;
@@ -256,6 +272,45 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 hauler.state            = HaulerState::GoingToDeposit;
                 hauler.waitCycles       = 0;
                 s_loggedIdle.erase(entity);
+
+                // Log nervous warning if route has bandits
+                {
+                    int routeBandits = 0;
+                    std::string roadNameA, roadNameB;
+                    registry.view<Road>().each([&](const Road& rd) {
+                        if (rd.blocked) return;
+                        bool match = (rd.from == home.settlement && rd.to == best.dest)
+                                  || (rd.to == home.settlement && rd.from == best.dest);
+                        if (!match) return;
+                        const auto* pa2 = registry.try_get<Position>(rd.from);
+                        const auto* pb2 = registry.try_get<Position>(rd.to);
+                        if (!pa2 || !pb2) return;
+                        float mx = (pa2->x + pb2->x) * 0.5f;
+                        float my = (pa2->y + pb2->y) * 0.5f;
+                        registry.view<Position, BanditTag>().each(
+                            [&](const Position& bp) {
+                                float dx2 = bp.x - mx, dy2 = bp.y - my;
+                                if (dx2*dx2 + dy2*dy2 < 100.f * 100.f) ++routeBandits;
+                            });
+                        if (const auto* sa = registry.try_get<Settlement>(rd.from)) roadNameA = sa->name;
+                        if (const auto* sb = registry.try_get<Settlement>(rd.to))   roadNameB = sb->name;
+                    });
+                    if (routeBandits > 0) {
+                        auto logV = registry.view<EventLog>();
+                        auto tmV  = registry.view<TimeManager>();
+                        if (logV.begin() != logV.end() && tmV.begin() != tmV.end()) {
+                            auto& evLog = logV.get<EventLog>(*logV.begin());
+                            const auto& tmRef = tmV.get<TimeManager>(*tmV.begin());
+                            std::string who = "A hauler";
+                            if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                            char buf[160];
+                            std::snprintf(buf, sizeof(buf), "%s nervously travels the %s-%s road (%d bandit%s spotted)",
+                                who.c_str(), roadNameA.c_str(), roadNameB.c_str(),
+                                routeBandits, routeBandits > 1 ? "s" : "");
+                            evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                        }
+                    }
+                }
             } else {
                 // No good route yet — wait before re-evaluating (patience increases)
                 ++hauler.waitCycles;
