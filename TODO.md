@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Market price spike log** — Logs "Price spike: X at Y now Zg (+N%)" rate-limited per 12h.
+
 - [x] **Desperation count in settlement tooltip** — "Desperation buys: N/day" in red when > 0.
 
 - [x] **Recovery morale bump** — +0.01 morale per recovered resource when scarcity clears.
@@ -868,7 +870,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   in `RandomEventSystem.cpp`. Add to `SettlementEntry` in `RenderSnapshot.h`. Display in
   `HUD::DrawSettlementTooltip` as "Desperation buys: N/day" in red when > 0.
 
-- [ ] **Market price spike log** — In `PriceSystem.cpp`'s price update loop, when a resource
+- [x] **Market price spike log** — In `PriceSystem.cpp`'s price update loop, when a resource
   price increases by more than 20% in a single update cycle, log "Price spike: food at X now
   Yg (+Z%)." once per resource per settlement per 12 game-hours. Use a `static
   std::map<std::pair<entt::entity,int>, float> s_priceSpikeCooldown` (entity + resource type
@@ -2178,3 +2180,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   by +0.001 (tiny but cumulative). Models NPCs appreciating affordable markets. Conversely,
   when price exceeds 5.0g, apply -0.001 morale. Creates subtle feedback: fair pricing improves
   community mood while gouging corrodes it.
+
+- [ ] **Price crash log** — Mirror of price spike: in `PriceSystem.cpp`, when a resource price
+  drops more than 20% in one update cycle, log "Price crash: food at X now Yg (-Z%)." once per
+  resource per settlement per 12 game-hours. Reuse the same `s_priceSpikeCooldown` map (key
+  already includes entity+resource). Surfaces deflation events e.g. after a hauler flood.
+
+- [ ] **Price trend arrows in settlement tooltip** — In `HUD::DrawSettlementTooltip`, after the
+  resource stocks line, show tiny trend indicators using the existing `foodPriceTrend`,
+  `waterPriceTrend`, `woodPriceTrend` chars from `SettlementStatus`. Display as colored arrows:
+  "+" → green up-arrow text, "-" → red down-arrow, "=" → nothing. Append to the stocks line
+  like "Food: 50 ^  Water: 30  Wood: 10 v". No new snapshot fields needed.
