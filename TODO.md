@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Hunger crisis indicator in world status** — Added `bool hungerCrisis` to `SettlementStatus`
-  (RenderSnapshot.h). SimThread checks any homed NPC with `Needs::list[0].value < 0.15f`.
-  HUD draws a red "!" immediately after the food number using `MeasureText` on a prefix string.
+- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
+  dies of old age, increase the inheritance fraction from 0.5 to 0.8 (elders have more time to
+  accumulate and bequeath wealth). Add an `isElder` check in the inheritance block and use 0.8f
+  instead of `INHERITANCE_FRACTION`. Log: "Aldric Smith left an estate of 45g to Ashford."
 
 ---
 
@@ -157,11 +158,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Elder count in settlement tooltip** — `elderCount`/`elderBonus` added to `SettlementStatus`.
   SimThread counts via `try_get<Age>`. Tooltip shows "Elders: N (+X% prod)" in orange.
-
-- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
-  dies of old age, increase the inheritance fraction from 0.5 to 0.8 (elders have more time to
-  accumulate and bequeath wealth). Add an `isElder` check in the inheritance block and use 0.8f
-  instead of `INHERITANCE_FRACTION`. Log: "Aldric Smith left an estate of 45g to Ashford."
 
 - [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
   complete in `AgentDecisionSystem`), update their `Profession` component to match the new
