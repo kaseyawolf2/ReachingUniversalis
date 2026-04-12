@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
+  in the stockpile panel (detect mouse Y within the section), show a small 2-line tooltip with
+  the richest NPC's name and balance, and the poorest's. Use `panel.residents.front()` and
+  `panel.residents.back()` already in the snapshot. Draw it in `RenderSystem::DrawStockpilePanel`
+  using `GetMousePosition()` comparison against the section Y range. No new fields needed.
+
 - [x] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
   subtract 0.2 from the score of any destination that is currently in Winter (`Season::Winter`).
   Read the season from `TimeManager` (already in registry view). This creates organic population
