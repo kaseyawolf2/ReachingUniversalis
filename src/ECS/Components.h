@@ -182,6 +182,8 @@ struct Hauler {
     bool         nearBankrupt    = false;       // true when bankruptcy timer > 75% threshold
     float        bankruptProgress = 0.f;      // game-hours toward bankruptcy (0–24)
     bool         inConvoy       = false;       // true when travelling near another hauler headed same way
+    float        bestProfit     = 0.f;        // highest single-trip profit achieved
+    std::string  bestRoute;                   // "A→B" label of the best-profit trip
 };
 
 // ---- Economy ----

@@ -540,6 +540,33 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // Best-profit record: track the most profitable single trip
+                {
+                    float totalQty = 0.f;
+                    for (const auto& [type, qty] : inv.contents) totalQty += qty;
+                    float tripCost   = hauler.buyPrice * totalQty;
+                    float tripProfit = earned - tripCost;
+                    if (tripProfit > hauler.bestProfit) {
+                        hauler.bestProfit = tripProfit;
+                        std::string src = cargoSourceName.empty() ? "???" : cargoSourceName;
+                        std::string dst = destSettl ? destSettl->name : "???";
+                        hauler.bestRoute = src + "\xe2\x86\x92" + dst;  // UTF-8 →
+                        auto logV2 = registry.view<EventLog>();
+                        auto tmV2  = registry.view<TimeManager>();
+                        if (!logV2.empty() && !tmV2.empty()) {
+                            const auto& tm3 = tmV2.get<TimeManager>(*tmV2.begin());
+                            std::string haulerName = "Hauler";
+                            if (auto* nm = registry.try_get<Name>(entity))
+                                haulerName = nm->value;
+                            char pbuf[160];
+                            std::snprintf(pbuf, sizeof(pbuf),
+                                "%s sets new personal record: +%.1fg on %s",
+                                haulerName.c_str(), tripProfit, hauler.bestRoute.c_str());
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm3.day, (int)tm3.hourOfDay, pbuf);
+                        }
+                    }
+                }
+
                 inv.contents.clear();
 
                 // Return-trip opportunism: check if destination has profitable goods to

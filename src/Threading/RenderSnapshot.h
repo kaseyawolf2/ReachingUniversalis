@@ -99,6 +99,9 @@ struct RenderSnapshot {
         bool  inConvoy = false;
         // Estimated trip profit: (destPrice - buyPrice) * qty * 0.8 (after 20% tax)
         float estimatedProfit = 0.f;
+        // Best single-trip profit record
+        float bestProfit = 0.f;
+        std::string bestRoute;
         // Home settlement morale (-1 if no home)
         float homeMorale = -1.f;
         // Estimated wage for working NPCs (game gold per game-hour)
