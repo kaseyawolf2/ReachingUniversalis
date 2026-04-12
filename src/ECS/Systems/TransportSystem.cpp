@@ -112,6 +112,10 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             score *= (1.f - di.conditionPenalty);            // road condition discount
             float banditPen = std::min(0.6f, di.bandits * 0.15f); // each bandit ≈ 15%, max 60%
             score *= (1.f - banditPen);
+            // Rivalry penalty: 20% score reduction when home and dest are rivals
+            auto* homeSettl = registry.try_get<Settlement>(homeSettlement);
+            if (homeSettl && homeSettl->rivalryTimer > 0.f && homeSettl->rivalEntity == destEnt)
+                score *= 0.8f;
             if (score > bestScore) {
                 bestScore     = score;
                 best.dest     = destEnt;

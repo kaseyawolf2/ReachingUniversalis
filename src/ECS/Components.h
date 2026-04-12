@@ -100,6 +100,9 @@ struct Settlement {
     int   theftCount        = 0;   // cumulative NPC theft events at this settlement
     float tradeVolumeTimer = 0.f;  // game-hours until next reset
     float bountyPool       = 0.f;  // gold accumulated from adjacent-road bandits; paid to player on confrontation
+    std::string  rivalWith;              // name of rival settlement (empty = no rivalry)
+    float        rivalryTimer = 0.f;     // game-hours remaining on rivalry effect
+    entt::entity rivalEntity = entt::null;  // entity of rival settlement
 };
 
 struct Stockpile {

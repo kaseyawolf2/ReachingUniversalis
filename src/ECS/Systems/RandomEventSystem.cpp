@@ -293,6 +293,58 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         }
     });
 
+    // ---- Settlement rivalry: tick down and trigger ----
+    // Tick down active rivalries first
+    registry.view<Settlement>().each([&](auto e, Settlement& s) {
+        if (s.rivalryTimer > 0.f) {
+            s.rivalryTimer -= gameHoursDt;
+            if (s.rivalryTimer <= 0.f) {
+                if (log)
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        "Rivalry fades between " + s.name + " and " + s.rivalWith);
+                s.rivalryTimer  = 0.f;
+                s.rivalWith.clear();
+                s.rivalEntity   = entt::null;
+            }
+        }
+    });
+
+    // Check for new rivalries between connected settlements
+    {
+        static constexpr float RIVALRY_DURATION = 24.f;  // game-hours
+        static constexpr float RIVALRY_CHECK_PROB = 0.02f; // 2% per game-hour per eligible pair
+        registry.view<Road>().each([&](const Road& road) {
+            if (road.blocked) return;
+            auto* sa = registry.try_get<Settlement>(road.from);
+            auto* sb = registry.try_get<Settlement>(road.to);
+            if (!sa || !sb) return;
+            // Both must have morale > 0.7, neither already in a rivalry
+            if (sa->morale <= 0.7f || sb->morale <= 0.7f) return;
+            if (sa->rivalryTimer > 0.f || sb->rivalryTimer > 0.f) return;
+            // Count populations
+            int popA = 0, popB = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                [&](const HomeSettlement& hs) {
+                    if (hs.settlement == road.from) ++popA;
+                    if (hs.settlement == road.to)   ++popB;
+                });
+            if (popA <= 15 || popB <= 15) return;
+            // Probability roll
+            std::uniform_real_distribution<float> chance(0.f, 1.f);
+            if (chance(m_rng) >= RIVALRY_CHECK_PROB * gameHoursDt) return;
+            // Trigger rivalry on both settlements
+            sa->rivalWith   = sb->name;
+            sa->rivalEntity = road.to;
+            sa->rivalryTimer = RIVALRY_DURATION;
+            sb->rivalWith   = sa->name;
+            sb->rivalEntity = road.from;
+            sb->rivalryTimer = RIVALRY_DURATION;
+            if (log)
+                log->Push(tm.day, (int)tm.hourOfDay,
+                    sa->name + " and " + sb->name + " are competing for regional dominance.");
+        });
+    }
+
     // Tick down bandit timers (auto-clear road)
     registry.view<Road>().each([&](Road& road) {
         if (road.banditTimer > 0.f) {
