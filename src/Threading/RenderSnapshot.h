@@ -122,6 +122,7 @@ struct RenderSnapshot {
         int          workerCount = 0;     // Working NPCs currently assigned here
         float        avgSkill    = 0.5f;  // average relevant skill of workers
         std::string  settlementName;      // home settlement name
+        float        morale     = 0.5f;  // settlement morale (for production tooltip)
     };
 
     // ---- World status bar ----

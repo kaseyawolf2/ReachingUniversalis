@@ -913,7 +913,12 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     float seasonMult = SeasonProductionModifier(curSeason);
     float estOutput  = best->baseRate * scale * skillMult * seasonMult;
 
-    char line1[64], line2[64], line3[64], line4[64], line5[64];
+    // Morale production factor: same formula as ProductionSystem
+    float moraleFactor = 1.0f + 0.3f * (best->morale - 0.5f);
+    float moralePct    = (moraleFactor - 1.0f) * 100.f;
+    bool showMorale    = (std::abs(moralePct) >= 0.5f);  // only show when non-trivial
+
+    char line1[64], line2[64], line3[64], line4[64], line5[64], line6[64] = {};
     std::snprintf(line1, sizeof(line1), "%s @ %s", typeName,
                   best->settlementName.empty() ? "?" : best->settlementName.c_str());
     std::snprintf(line2, sizeof(line2), "Workers: %d  Skill: %.0f%%",
@@ -924,12 +929,16 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     // Degradation indicator: base rate below starting value (4.0) means decay has happened
     float healthPct = std::min(100.f, best->baseRate / 4.0f * 100.f);
     std::snprintf(line5, sizeof(line5), "Facility health: %.0f%%", healthPct);
+    if (showMorale)
+        std::snprintf(line6, sizeof(line6), "Morale: %+.0f%%", moralePct);
 
+    int lineCount = showMorale ? 6 : 5;
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11), MeasureText(line4, 11),
-                       MeasureText(line5, 11) }) + 12;
-    int h = 5 * 16 + 4;
+                       MeasureText(line5, 11),
+                       showMorale ? MeasureText(line6, 11) : 0 }) + 12;
+    int h = lineCount * 16 + 4;
     int tx = (int)screen.x + 18, ty = (int)screen.y - h;
     if (tx + w > SCREEN_W) tx = (int)screen.x - w - 10;
     if (ty < 0) ty = (int)screen.y + 14;
@@ -946,6 +955,10 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     DrawText(line4, tx, ty + 48, 11, outCol);
     Color healthCol = (healthPct >= 80.f) ? GREEN : (healthPct >= 50.f) ? YELLOW : RED;
     DrawText(line5, tx, ty + 64, 11, healthCol);
+    if (showMorale) {
+        Color moraleCol = (moralePct > 0.f) ? GREEN : RED;
+        DrawText(line6, tx, ty + 80, 11, moraleCol);
+    }
 }
 
 // ---- Settlement hover tooltip ----

@@ -1471,11 +1471,15 @@ void SimThread::WriteSnapshot() {
                 if (sa.count > 0) avgSkill = sa.sum / sa.count;
             }
             std::string sname;
-            if (fac.settlement != entt::null && m_registry.valid(fac.settlement))
-                if (const auto* s = m_registry.try_get<Settlement>(fac.settlement))
+            float facMorale = 0.5f;
+            if (fac.settlement != entt::null && m_registry.valid(fac.settlement)) {
+                if (const auto* s = m_registry.try_get<Settlement>(fac.settlement)) {
                     sname = s->name;
+                    facMorale = s->morale;
+                }
+            }
 
-            facilities.push_back({ pos.x, pos.y, fac.output, fac.baseRate, workers, avgSkill, sname });
+            facilities.push_back({ pos.x, pos.y, fac.output, fac.baseRate, workers, avgSkill, sname, facMorale });
         });
     }
 
