@@ -158,8 +158,10 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
             if (const auto* n = registry.try_get<Name>(e)) who = n->value;
             std::string where = "?";
             if (const auto* s = registry.try_get<Settlement>(hs.settlement)) where = s->name;
-            log->Push(tm.day, (int)tm.hourOfDay,
-                who + " saved enough to become a hauler at " + where);
+            char buf[160];
+            std::snprintf(buf, sizeof(buf), "%s saved enough (%.0fg) to become a hauler at %s",
+                          who.c_str(), money.balance, where.c_str());
+            log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
     });
 }
