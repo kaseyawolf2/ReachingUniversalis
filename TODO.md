@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Bandit territory warning in road tooltip** — "Bandits: N" in faint RED in road tooltip. Pre-count map in WriteSnapshot, `banditCount` field on `RoadEntry`.
+
+
 - [x] **Bandit flee on confrontation log detail** — Log includes bandit name, gold recovered, and nearest road's settlement names: "Player confronted X on the A-B road, recovered Ng."
 
 
@@ -1106,7 +1109,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   bandit confrontation block, find the nearest Road entity and include its endpoint settlement names
   in the log message: "Player confronted [name] on the [A]–[B] road, recovered [N]g."
 
-- [ ] **Bandit territory warning in road tooltip** — When hovering a road in HUD tooltip, if the
+- [x] **Bandit territory warning in road tooltip** — When hovering a road in HUD tooltip, if the
   pre-built `banditsPerRoad` count for that road is > 0, show "Bandits: N" in faint RED. Add
   `int banditCount = 0` to `RenderSnapshot::RoadEntry`. In `SimThread::WriteSnapshot`, build the
   same nearest-road map used in `AgentDecisionSystem` and write the count per road entry.
@@ -1127,6 +1130,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentDecisionSystem`, reduce `reputation` by 0.01 per game-hour toward zero (positive reps decay
   down, negative decay up). This prevents permanent reputation from a single act and encourages
   ongoing good/bad behavior. Add `reputationDecayRate` constant near other reputation constants.
+
+- [ ] **Road danger colour on world map** — In `GameState::Draw`, colour road lines based on
+  bandit presence. Use `RoadEntry::banditCount`: 0 = normal grey, 1-2 = Fade(ORANGE, 0.5f),
+  3+ = Fade(RED, 0.6f). Gives immediate visual feedback about road safety without hovering.
+
+- [ ] **Bandit bounty board** — When a settlement has bandits on an adjacent road, NPCs at that
+  settlement accumulate a `bountyPool` (add `float bountyPool = 0.f` to `Settlement` component).
+  Each game-hour, each settlement adds 0.5g per adjacent-road bandit to the pool. When the player
+  confronts a bandit on a road adjacent to a settlement with bountyPool > 0, they receive the pool
+  as bonus gold (credited from treasury). Log: "Collected Ng bounty from [settlement]."
 
 ---
 
