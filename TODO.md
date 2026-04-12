@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hunger crisis indicator in world status** — In `DrawWorldStatus` (HUD.cpp), if any NPC at
+  a settlement has `hungerPct < 0.15f` (near starvation), add a small "!" warning after the food
+  stock. Track via a new `bool hungerCrisis` field in `SettlementStatus` (RenderSnapshot.h) set
+  in SimThread's world-status loop using `m_registry.view<HomeSettlement, Needs>`. Draw the "!"
+  in RED tint immediately after the food number.
+
 ---
 
 ## Done
@@ -130,12 +136,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Hunger crisis indicator in world status** — In `DrawWorldStatus` (HUD.cpp), if any NPC at
-  a settlement has `hungerPct < 0.15f` (near starvation), add a small "!" warning after the food
-  stock. Track via a new `bool hungerCrisis` field in `SettlementStatus` (RenderSnapshot.h) set
-  in SimThread's world-status loop using `m_registry.view<HomeSettlement, Needs>`. Draw the "!"
-  in RED tint immediately after the food number.
 
 - [ ] **Population cap shown in stockpile panel header** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), the header currently shows "[12/35 pop, 3 child]" (popCap already wired in).
