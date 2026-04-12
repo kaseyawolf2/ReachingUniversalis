@@ -349,6 +349,9 @@ void GameState::Draw() {
         // Harvest bonus glow: faint gold ring around workers with active good-harvest bonus
         if (a.harvestBonus)
             DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(GOLD, 0.4f));
+        // Vocation indicator: small gold ring when working in their best-skill profession
+        if (a.inVocation && a.behavior == AgentBehavior::Working)
+            DrawCircleLinesV({ a.x, a.y }, 5.f, Fade(GOLD, 0.5f));
     }
 
     EndMode2D();
