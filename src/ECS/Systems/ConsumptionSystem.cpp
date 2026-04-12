@@ -93,6 +93,25 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             // Refill hunger exactly enough to cancel NeedDrainSystem's drain.
             needs.list[0].value += needs.list[0].drainRate * gameDt;
             needs.list[0].value  = std::min(needs.list[0].value, 1.f);
+            // Remember where this meal came from
+            if (settl) timer.lastMealSource = settl->name;
+        }
+
+        // ---- Gratitude for last meal ----
+        // When hunger drops below 0.2, NPC recalls the settlement that fed them.
+        if (needs.list[0].value < 0.2f && !timer.lastMealSource.empty()) {
+            auto lv2 = registry.view<EventLog>();
+            auto tv2 = registry.view<TimeManager>();
+            if (!lv2.empty() && !tv2.empty()) {
+                const auto& tm2 = tv2.get<TimeManager>(*tv2.begin());
+                std::string who = "An NPC";
+                if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                char buf[160];
+                std::snprintf(buf, sizeof(buf), "%s is grateful to %s for food.",
+                              who.c_str(), timer.lastMealSource.c_str());
+                lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+            }
+            timer.lastMealSource.clear();
         }
 
         // ---- Water / Thirst ----

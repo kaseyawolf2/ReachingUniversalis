@@ -150,6 +150,7 @@ struct DeprivationTimer {
     float                fleeTimer          = 0.f;       // real-seconds remaining for post-theft flee (sprint away from settlement)
     float                greetCooldown      = 0.f;       // real-seconds until NPC can greet a neighbour again (0 = ready)
     std::string          gangName;                       // bandit gang name (set when lurking at a road with other bandits)
+    std::string          lastMealSource;                 // settlement name where NPC last ate; cleared after gratitude log
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
