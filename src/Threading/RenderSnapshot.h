@@ -56,6 +56,8 @@ struct RenderSnapshot {
         bool recentlyHelped = false;
         // True if this NPC stole from a stockpile within the last 2 game-hours
         bool recentlyStole = false;
+        // True if this NPC is currently walking toward a helper in gratitude
+        bool isGrateful = false;
     };
 
     struct SettlementEntry {

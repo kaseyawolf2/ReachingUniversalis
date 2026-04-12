@@ -592,7 +592,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     // "Fed by neighbour" line: shown when this NPC recently received charity
-    bool showHelped = best->recentlyHelped;
+    bool showHelped   = best->recentlyHelped;
+    // "Grateful to neighbour" line: shown while the NPC is walking toward their helper
+    bool showGrateful = best->isGrateful;
 
     // Skill line: show the relevant skill for this agent's profession
     bool showSkill = false;
@@ -622,11 +624,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     int lineCount = hasName ? 4 : 3;
-    if (showGold)   lineCount++;
-    if (showFollow) lineCount++;
-    if (showHelped) lineCount++;
-    if (showSkill)  lineCount++;
-    if (showCargo)  lineCount++;
+    if (showGold)     lineCount++;
+    if (showFollow)   lineCount++;
+    if (showHelped)   lineCount++;
+    if (showGrateful) lineCount++;
+    if (showSkill)    lineCount++;
+    if (showCargo)    lineCount++;
 
     int w1 = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
     int w2 = MeasureText(line2, 11);
@@ -635,8 +638,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wf = showFollow ? MeasureText(followLine,            11) : 0;
     int w6 = showSkill  ? MeasureText(line6,                 11) : 0;
     int wc = showCargo  ? MeasureText(cargoLine,             11) : 0;
-    int wh = showHelped ? MeasureText("Fed by neighbour",    11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc, wh}) + 10;
+    int wh = showHelped   ? MeasureText("Fed by neighbour",    11) : 0;
+    int wg = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
+    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc, wh, wg}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -655,8 +659,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)   { DrawText(line5,               tx, ly, 11, YELLOW);               ly += 16; }
     if (showFollow) { DrawText(followLine,          tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }
-    if (showHelped) { DrawText("Fed by neighbour",  tx, ly, 11, Fade(LIME, 0.75f));   ly += 16; }
-    if (showSkill)  { DrawText(line6,               tx, ly, 11, skillColor);           ly += 16; }
+    if (showHelped)   { DrawText("Fed by neighbour",      tx, ly, 11, Fade(LIME, 0.75f));   ly += 16; }
+    if (showGrateful) { DrawText("Grateful to neighbour", tx, ly, 11, Fade(LIME, 0.55f));   ly += 16; }
+    if (showSkill)    { DrawText(line6,                   tx, ly, 11, skillColor);            ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
 
