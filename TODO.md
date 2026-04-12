@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement trade volume in tooltip** — Show "Trade volume: Xg/day" in settlement tooltip.
-
 ## Recently Done
+
+- [x] **Settlement trade volume in tooltip** — Show "Trade volume: Xg/day" in settlement tooltip.
+
 
 - [x] **NPC witness bandit confrontation** — Non-bandit NPCs within 120u gain +0.1 reputation. Logged per witness.
 
@@ -1309,7 +1310,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Reputation::score` (they saw justice done) and log: "[NPC] witnessed [player] confront [bandit]."
   Uses existing `Reputation` component; creates social memory of player's actions.
 
-- [ ] **Settlement trade volume in tooltip** — Add `float tradeVolume24h = 0.f` to
+- [x] **Settlement trade volume in tooltip** — Add `float tradeVolume24h = 0.f` to
   `RenderSnapshot::SettlementStatus`. In `SimThread::WriteSnapshot`, copy `Settlement::tradeVolume`
   (accumulated over rolling window). In `HUD::DrawWorldStatus` settlement tooltip, show
   "Trade volume: Xg/day" in faint WHITE. Helps player identify economic hubs vs backwaters.
@@ -2638,3 +2639,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   line, show the current season's production effect: "Spring: +10% farming" / "Winter: -20% all"
   etc. Read from `TimeManager::CurrentSeason()` via the snapshot (add `Season season` to
   `StockpilePanel` if not already present). Helps the player understand seasonal output swings.
+
+- [ ] **Settlement trade volume trend arrow** — Add `char tradeVolumeTrend = '='` to
+  `RenderSnapshot::SettlementStatus`. In `SimThread::WriteSnapshot`, compare current `tradeVolume`
+  with a 24h-ago snapshot stored on the `Settlement` component (add `int prevTradeVolume = 0`).
+  Set trend to '+' if current > prev * 1.2, '-' if current < prev * 0.8, '=' otherwise. Show the
+  trend arrow after "T:X" in the scrollable panel, colored green/red/gray like `popTrend`.
+
+- [ ] **NPC gossip about trade volume** — In `AgentDecisionSystem`'s idle gossip block, if the
+  NPC's home settlement has `tradeVolume >= 5`, add a chance (10%) to log: "[NPC] remarks on the
+  busy trade at [settlement]." If `tradeVolume == 0`, log: "[NPC] worries about the lack of trade
+  at [settlement]." Requires reading `Settlement::tradeVolume` via `HomeSettlement`. Adds social
+  commentary that connects NPC chatter to actual economic activity.
+
+- [ ] **Trade hub morale bonus** — In `ScheduleSystem` or a new small system, once per 24h check
+  each settlement's `tradeVolume`. If `tradeVolume >= 8`, grant +0.01 morale ("prosperous trade").
+  If `tradeVolume == 0` for 48h (add `int noTradeHours = 0` to `Settlement`), apply -0.02 morale
+  ("economic isolation"). Log at threshold transitions. Creates feedback loop: trade success boosts
+  morale → better NPC contentment → less migration.
