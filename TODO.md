@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement name in event log** — In `RandomEventSystem.cpp`, random events like "Drought at
+  Ashford" currently emit to the global EventLog with just the settlement name in the string. Add
+  the settlement's current population in brackets: "Drought at Ashford [pop 12]". Read from
+  `Settlement::` component and `popCount` computed locally. Helps the player gauge event severity.
+
 ---
 
 ## Done
@@ -117,11 +122,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Settlement name in event log** — In `RandomEventSystem.cpp`, random events like "Drought at
-  Ashford" currently emit to the global EventLog with just the settlement name in the string. Add
-  the settlement's current population in brackets: "Drought at Ashford [pop 12]". Read from
-  `Settlement::` component and `popCount` computed locally. Helps the player gauge event severity.
 
 - [ ] **Child count in stockpile tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp, the tooltip
   shown when hovering a settlement dot), add a "Children: N" line when `childCount > 0`. Read
