@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Convoy bandit deterrence** — Skip haulers with `inConvoy == true` in bandit intercept block of `AgentDecisionSystem`.
+
 ## Recently Done
 
 - [x] **Convoy log announcement** — Track wasInConvoy + convoyPartner in TransportSystem convoy check. Log "[A] formed convoy with [B] on the way to [settlement]." on false→true transition.
