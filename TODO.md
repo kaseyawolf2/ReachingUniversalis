@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Personal goal system** — Add a `Goal` component: `enum GoalType { SaveGold, ReachAge,
-  FindFamily, BecomeHauler }` with a `progress` float and `target` float. Each NPC gets one goal
-  at spawn. When met, log a small event ("Aldric reached his savings goal!"), give a 2-hour
-  `Celebrating` state boost, then assign a new goal. Goals affect behaviour: SaveGold NPCs spend
-  less on emergency purchases; BecomeHauler NPCs work harder (small production bonus).
-
 ---
 
 ## Done
@@ -50,6 +44,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 ### NPC Crime & Consequence
+
+- [x] **Personal goal system** — `GoalType` enum + `Goal` component (progress/target/celebrateTimer)
+  in Components.h. Assigned at spawn in `WorldGenerator::SpawnNPCs`. Goal progress checked in
+  `AgentDecisionSystem`; on completion: log event, 2h `Celebrating` state, assign new goal.
+  SaveGold → doubled purchase interval in `ConsumptionSystem`. BecomeHauler → +10% worker
+  contribution in `ProductionSystem`. Celebrating block extended for personal celebrations.
 
 - [x] **Bandit NPCs from desperation** — `BanditTag` struct in Components.h; `banditPovertyTimer`
   in `DeprivationTimer`. Exiles with balance < 2g for 48+ game-hours get `BanditTag`. Bandits lurk
@@ -578,3 +578,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   is this road (use a simple proximity check: within 80 units of the midpoint). In
   `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
   meaningful route-safety information.
+
+- [ ] **Goal shown in NPC tooltip** — Add `std::string goalDescription` to `RenderSnapshot::AgentEntry`
+  (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity has a `Goal` component, set it to
+  e.g. "Goal: Save Gold (42/100g)" using the `GoalLabel()` helper and `goal.progress`/`goal.target`.
+  In `HUD::DrawHoverTooltip` (HUD.cpp), render it as an extra line in dim SKYBLUE below the skill
+  line. Lets the player see at a glance what each NPC is striving for.
+
+- [ ] **Goal progress milestone log** — In `AgentDecisionSystem`'s goal system section, when
+  `progress` crosses 50% of `target` for the first time (add a `bool halfwayLogged` field to `Goal`
+  in Components.h), push a brief log: "Aldric is halfway to their savings goal (50/100g)." Set
+  `halfwayLogged = true` after firing. Reset it to `false` when a new goal is assigned. Gives
+  players a mid-goal feedback signal.
+
+- [ ] **BecomeHauler goal auto-completes on graduation** — In `EconomicMobilitySystem.cpp`,
+  when an NPC graduates to Hauler (`registry.emplace<Hauler>`), check if they have a `Goal` with
+  `type == GoalType::BecomeHauler`. If so, set `goal.progress = goal.target` immediately so the
+  goal system picks it up next tick and triggers the celebration + new goal assignment. Currently
+  graduation happens but the goal completion fires only on the next frame via the registry check —
+  making it explicit here ensures the log fires reliably.
