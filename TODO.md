@@ -9,15 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Exile on repeat theft** — Track a `theftCount` int on `DeprivationTimer`. After 3 thefts,
-  the NPC is "exiled": their `HomeSettlement` is cleared, they become a wanderer (no home, no wages,
-  no schedule). They can re-settle at a new settlement by spending 30g (implement as an extended
-  version of the existing H-key settle logic, triggered automatically for wanderers in
-  `AgentDecisionSystem` when they have enough gold).
-
 ---
 
 ## Done
+
+- [x] **Exile on repeat theft** — `theftCount` int on `DeprivationTimer`; incremented each theft. At 3, `HomeSettlement` cleared. Logs "X exiled from Y for repeated theft."
 
 - [x] **Charity radius shown on hover** — `charityReady` field in `AgentEntry`; faint `Fade(LIME, 0.2f)` circle (radius 80) drawn in `GameState::Draw` when hovering NPC with `hungerPct > 0.8`, `balance > 20g`, `charityReady`.
 
@@ -534,8 +530,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(LIME, 0.45f))`. `isGrateful` is already in
   `AgentEntry`. Keeps the visual footprint small (just one extra ring draw per grateful NPC).
 
-- [ ] **Exile on repeat theft** — Add `int theftCount = 0` to `DeprivationTimer` in
-  `Components.h`. Increment it in `AgentDecisionSystem`'s theft block after setting
-  `stealCooldown`. When `theftCount >= 3`, clear `HomeSettlement::settlement = entt::null` to
-  make the NPC a wanderer (no wages, no schedule). Log "X exiled from Y for repeated theft."
-  No re-settlement logic needed in this first pass — just the exile trigger.
+- [ ] **Wanderer re-settlement** — Exiled NPCs (those with `HomeSettlement::settlement == entt::null`
+  and `theftCount >= 3` in `DeprivationTimer`) can earn a fresh start. In `AgentDecisionSystem`'s
+  IDLE/SEEKING block, when `home.settlement == entt::null`, check if `balance >= 30.f`. If so,
+  find the nearest settlement with `pop < popCap - 2` and set it as the new `home.settlement`,
+  deduct 30g from `Money::balance`, credit to that settlement's `treasury`, reset `theftCount = 0`.
+  Log "X settled at Y (fresh start)."
+
+- [ ] **Exile indicator in tooltip** — Surface exile state in the NPC hover tooltip. Add
+  `bool isExiled = false` to `AgentEntry` in `RenderSnapshot.h`; set when
+  `home.settlement == entt::null && dt->theftCount >= 3` in `SimThread::WriteSnapshot`. In
+  `HUD::DrawHoverTooltip`, when `isExiled`, append " [Exiled]" in `Fade(RED, 0.8f)` to line2
+  (the behavior line), or show it as a separate faint red line below the role line.
+
+- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, expand the log
+  from "X helped a starving neighbour." to "X helped [Name] at [Settlement]." Read
+  `registry.try_get<Name>(starving.entity)` for the recipient name and
+  `registry.try_get<Settlement>` on `starving.homeSettl` for the settlement name. No new
+  components — just expand the `charityLog->Push` format string.
