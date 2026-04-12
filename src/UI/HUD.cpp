@@ -595,6 +595,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
             }
         }
     }
+    // Vocation tag is drawn separately in gold after line1 (see draw section below)
 
     bool hasName = !best->npcName.empty();
     if (hasName) {
@@ -760,8 +761,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     int ly = ty;
     DrawText(line1, tx, ly, 12, WHITE);
+    int line1W = MeasureText(line1, 12);
     if (best->recentlyStole)
-        DrawText("  (thief)", tx + MeasureText(line1, 12), ly, 12, Fade(RED, 0.85f));
+        DrawText("  (thief)", tx + line1W, ly, 12, Fade(RED, 0.85f));
+    if (best->inVocation) {
+        int afterThief = best->recentlyStole ? MeasureText("  (thief)", 12) : 0;
+        DrawText(" [vocation]", tx + line1W + afterThief, ly, 12, Fade(GOLD, 0.6f));
+    }
     ly += 16;
     if (hasName) {
         Color ageLineCol = (best->ageDays < 15.f) ? Fade(SKYBLUE, 0.85f) :

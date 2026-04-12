@@ -1287,6 +1287,19 @@ void SimThread::WriteSnapshot() {
         if (isBandit && !isPlayer)
             drawColor = Color{ 140, 30, 30, 255 };
 
+        // Vocation check: profession matches highest skill
+        bool inVocation = false;
+        if (const auto* prof2 = m_registry.try_get<Profession>(e)) {
+            if (const auto* sk2 = m_registry.try_get<Skills>(e)) {
+                ResourceType bestRes = ResourceType::Food;
+                float bestVal = sk2->farming;
+                if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = ResourceType::Water; }
+                if (sk2->woodcutting   > bestVal) { bestRes = ResourceType::Wood; }
+                inVocation = (prof2->type == ProfessionForResource(bestRes)
+                              && prof2->type != ProfessionType::Idle);
+            }
+        }
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1299,7 +1312,7 @@ void SimThread::WriteSnapshot() {
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady,
                            isBandit, onStrike, ill, illNeedIdx,
-                           harvestBonus });
+                           harvestBonus, inVocation });
     });
 
     // ---- Settlements ----

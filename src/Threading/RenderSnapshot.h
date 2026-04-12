@@ -72,6 +72,8 @@ struct RenderSnapshot {
         int  illNeedIdx = 0;
         // True if this NPC has an active good-harvest bonus (harvestBonusTimer > 0)
         bool harvestBonus = false;
+        // True if this NPC's profession matches their highest skill (working in vocation)
+        bool inVocation = false;
     };
 
     struct SettlementEntry {
