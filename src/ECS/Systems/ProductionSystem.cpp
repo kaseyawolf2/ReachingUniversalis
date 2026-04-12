@@ -93,6 +93,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 if (sched->fatigued)
                     workerContrib *= 0.8f;
             }
+            // Contentment factor: unhappy NPCs produce less
+            if (const auto* needs = registry.try_get<Needs>(e)) {
+                float sum = 0.f;
+                for (int ni = 0; ni < 4; ++ni) sum += needs->list[ni].value;
+                float contentment = sum / 4.f;
+                float contentFactor = (contentment >= 0.7f) ? 1.0f :
+                                      (contentment >= 0.4f) ? 0.85f : 0.65f;
+                workerContrib *= contentFactor;
+            }
             workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
