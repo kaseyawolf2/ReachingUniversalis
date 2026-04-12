@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Rival hauler harassment** — When a hauler from settlement A (home) arrives at rival
+  settlement B (where B.relations[A] < -0.5), add a random 20% chance the delivery is "taxed at
+  the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
+  `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
+  in Y (rivalry tariff)." at low probability to avoid log spam (1 in 5 deliveries).
+
 - [x] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
   road's arbitrage rate in `PriceSystem.cpp`. In the per-road arbitrage loop, check
   `sA->relations.find(road.to)` and `sB->relations.find(road.from)`; if both scores > 0.5, multiply
