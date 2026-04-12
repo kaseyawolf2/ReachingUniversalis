@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Hauler home morale penalty on bankruptcy** — Apply -0.03 morale to home settlement
+  when a hauler goes bankrupt in EconomicMobilitySystem.cpp.
 
 ## Recently Done
 
