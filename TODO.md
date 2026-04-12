@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC wage shown in tooltip** — "Wage: ~X.Xg/hr" for working NPCs based on skill.
+
 - [x] **Facility morale included in est. output** — estOutput now includes morale production modifier.
 
 - [x] **Market price spike log** — Logs "Price spike: X at Y now Zg (+N%)" rate-limited per 12h.
@@ -883,7 +885,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   output reflects the actual production speed. Currently the estimate ignores morale.
   No new snapshot fields — `best->morale` already available.
 
-- [ ] **NPC wage shown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for working NPCs
+- [x] **NPC wage shown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for working NPCs
   (non-hauler, non-player, behavior == Working), show "Wage: ~X.Xg/hr" calculated as
   `WAGE_RATE * (0.5 + skill)` using the NPC's primary skill. Add `float wage = 0.f` to
   `AgentEntry` in `RenderSnapshot.h`, computed in SimThread from the worker's skill and
@@ -2203,3 +2205,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   line showing next season's expected output modifier. Use `SeasonProductionModifier(nextSeason)`
   where `nextSeason` is `(curSeason + 1) % 4`. Display as "Next season: X% output". Helps
   players plan ahead for seasonal production shifts. No new snapshot fields needed.
+
+- [ ] **Wage comparison in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
+  the residents list, show "Avg wage: X.Xg/hr" computed from the mean of `AgentInfo::wage` for
+  working residents (where wage > 0). Add `float wage = 0.f` to `StockpilePanel::AgentInfo`
+  in `RenderSnapshot.h`, populated from the same `wagePerHour` value already on `AgentEntry`.
+  Copy into `AgentInfo` during the residents loop in `SimThread::WriteSnapshot`. Color: gold.
+
+- [ ] **Wealth inequality indicator** — In `HUD::DrawSettlementTooltip`, compute a simple Gini
+  coefficient from the agent balances of NPCs homed at that settlement. Add `float gini = 0.f`
+  to `SettlementStatus` in `RenderSnapshot.h`, computed in `SimThread::WriteSnapshot` during
+  the settlement status loop. Display as "Inequality: X%" (gini * 100). Color green (< 30%),
+  yellow (< 60%), red (>= 60%). Surfaces economic stratification within settlements.
