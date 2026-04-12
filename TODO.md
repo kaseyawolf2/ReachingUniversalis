@@ -9,15 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, add a faint indication in the
-  tooltip. In `SimThread::WriteSnapshot`, add a `bool isGrateful = false` field to `AgentEntry`
-  (alongside `recentlyHelped`), set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`,
-  when `isGrateful`, show a small dim line "Grateful to neighbour" in LIME (below the "Fed by
-  neighbour" line if also present). Mirrors the `showHelped` pattern already in place.
-
 ---
 
 ## Done
+
+- [x] **Gratitude shown in tooltip** — `isGrateful` bool in `AgentEntry`; set from `gratitudeTimer > 0` in SimThread. "Grateful to neighbour" line in `Fade(LIME, 0.55f)` in tooltip, below "Fed by neighbour".
 
 - [x] **Gratitude approach stops at polite distance** — Distance check before `MoveToward` in GRATITUDE block; `vel = 0` when within 25 units of helper.
 
@@ -497,3 +493,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the dot: after drawing the main dot, if `a.isGrateful` (add this field to `AgentEntry` via
   the Gratitude tooltip task), call `DrawCircleLines` with radius `a.size + 2` in
   `Fade(LIME, 0.5f)`. Only draw when role is NPC (not hauler, player, child).
+
+- [ ] **Gratitude shown in world dot** — While `isGrateful` is true, draw a faint LIME ring
+  around the NPC's world-map dot. In `GameState.cpp`'s agent draw loop (where `Fade(GOLD, 0.85f)`
+  is used for Celebrating), after drawing the main dot, add: if `a.isGrateful && a.role ==
+  RenderSnapshot::AgentRole::NPC`, call `DrawCircleLines((int)wx, (int)wy, a.size + 2.f,
+  Fade(LIME, 0.5f))`. `isGrateful` is already in `AgentEntry` from this task.
+
+- [ ] **Warmth glow shown in tooltip** — Mirrors "Fed by neighbour". Add `bool recentWarmthGlow`
+  to `AgentEntry` in `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when
+  `needs.list[(int)NeedType::Heat].value > 0.9f` AND `dt->charityTimer > 0.f`. In
+  `HUD::DrawHoverTooltip`, when `recentWarmthGlow`, add a "Warm from giving" line in
+  `Fade(ORANGE, 0.75f)`. Add to `lineCount` and `pw` max — same pattern as `showHelped`.
+
+- [ ] **Charity recipient log detail** — Extend the charity log in `AgentDecisionSystem`'s
+  charity block: change "X helped a starving neighbour." to "X helped [Name] at [Settlement]."
+  After finding the starving NPC, call `registry.try_get<Name>` on `starving.entity` for their
+  name and `registry.try_get<Settlement>` on the starving NPC's `HomeSettlement::settlement`
+  for the settlement name. No new components — just expand the `charityLog->Push` format string.
