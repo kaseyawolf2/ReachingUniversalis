@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Wealthy NPC golden ring** — Draw faint gold outer ring on NPCs with balance > 80g.
-
 ## Recently Done
+
+- [x] **Wealthy NPC golden ring** — Faint gold ring on NPCs with balance > 80g.
 
 - [x] **Bankruptcy countdown in tooltip** — Shows "~Xh left" countdown for near-bankrupt haulers.
 
@@ -795,7 +795,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   is static in EconomicMobilitySystem, add a `float bankruptProgress` field to `Hauler` struct
   that gets set alongside `nearBankrupt`. Display as `24 - bankruptProgress` hours remaining.
 
-- [ ] **Wealthy NPC golden ring** — In `GameState.cpp`'s agent render loop, when an NPC
+- [x] **Wealthy NPC golden ring** — In `GameState.cpp`'s agent render loop, when an NPC
   (non-hauler, non-player) has `balance > 80`, draw a faint `Fade(GOLD, 0.25f)` outer ring
   (radius 8). Makes wealthy NPCs visually distinct and highlights economic stratification.
   No new snapshot fields — `balance` is already in `AgentEntry`.
@@ -2056,3 +2056,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to log "Elder X tells stories to youngsters at Y." Listening NPCs get +0.02 contentment.
   Rate-limit per elder to once per 24h via `static std::map<entt::entity, int> s_storyDay`.
   Creates intergenerational social texture.
+
+- [ ] **Sick NPC visual tint** — In `GameState.cpp`'s agent render loop, when `a.ill` is true,
+  apply a green-ish tint to the NPC's draw color by blending with `Color{100, 180, 100, 255}`
+  at 30% weight. Makes illness visually noticeable without tooltips. Uses existing `ill` field
+  in `AgentEntry`. No new snapshot fields needed.
+
+- [ ] **NPC work pride log** — In `ProductionSystem.cpp`, when an NPC's relevant skill reaches
+  0.85 (Master rank), log "X has mastered farming/water/woodcutting at Y" once. Use `static
+  std::set<entt::entity> s_loggedMastery` to ensure one-time logging. Add skill check after
+  the existing skill increment block. Gives a narrative moment to skill progression.
