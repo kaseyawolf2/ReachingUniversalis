@@ -908,15 +908,18 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     int   elderCount  = status ? status->elderCount  : 0;
     float elderBonus  = status ? status->elderBonus  : 0.f;
 
-    // Line 1: name + pop/cap + optional event
-    char line1[80];
+    // Line 1: name + pop/cap + trend + optional event
+    char popTrendStr[4] = {};
+    if (status && status->popTrend == '+') std::snprintf(popTrendStr, sizeof(popTrendStr), " +");
+    else if (status && status->popTrend == '-') std::snprintf(popTrendStr, sizeof(popTrendStr), " -");
+    char line1[96];
     if (!best->modifierName.empty())
-        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop]  — %s",
+        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop%s]  — %s",
                       best->name.c_str(), best->pop, best->popCap,
-                      best->modifierName.c_str());
+                      popTrendStr, best->modifierName.c_str());
     else
-        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop]",
-                      best->name.c_str(), best->pop, best->popCap);
+        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop%s]",
+                      best->name.c_str(), best->pop, best->popCap, popTrendStr);
 
     // Line 2: resource stocks
     char line2[64];
