@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale bar in stockpile panel** — Draw horizontal morale bar below treasury line
+  in `RenderSystem::DrawStockpilePanel`. Green/yellow/red by threshold.
+
 ## Recently Done
 
 - [x] **Near-bankrupt tooltip warning** — Show "!! Near bankruptcy !!" in red in hauler tooltip.
@@ -683,11 +686,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `best->nearBankrupt` is true, show a "!! Near bankruptcy !!" line in `Fade(RED, 0.9f)`.
   Add to lineCount and width calc. Complements the red ring with textual detail.
 
-- [ ] **Scarcity resource label in log** — When the scarcity morale penalty fires, log which
-  specific resource(s) are low: "Shortage: X running low on food, water" (once per scarcity
-  period per settlement). Use `static std::map<entt::entity, int> s_loggedScarcity` with a
-  bitmask (bit 0=food, 1=water, 2=wood). Set bit on first trigger per resource, clear when
-  that resource rises above 20. Keeps scarcity visible without spam.
+- [x] **Scarcity resource label in log** — Already implemented as part of "Scarcity log event"
+  task. Uses `s_loggedScarcity` bitmask in `RandomEventSystem.cpp`.
 
 - [ ] **Morale bar in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the
   existing treasury line, draw a small horizontal morale bar (width 100px, height 8px). Fill
