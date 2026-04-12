@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Scarcity morale penalty** — If any stockpile < 10 units, apply -0.003 morale/game-hour.
-
 ## Recently Done
+
+- [x] **Scarcity morale penalty** — If any stockpile < 10 units, apply -0.003 morale/game-hour.
 
 - [x] **Stockpile abundance log event** — Log "Prosperity: [settlement] has abundant stores —
   morale rising." on first abundance trigger (all 3 stockpiles >= 80). One-shot per settlement
@@ -600,7 +600,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   std::set<entt::entity> s_loggedAbundance`; insert on first trigger, erase when any stockpile
   drops below 40. One-shot per settlement per abundance period to avoid log spam.
 
-- [ ] **Scarcity morale penalty** — In `RandomEventSystem::Update`'s per-settlement loop, after
+- [x] **Scarcity morale penalty** — In `RandomEventSystem::Update`'s per-settlement loop, after
   the abundance check, add a scarcity check: if any stockpile (food, water, wood) is below 10
   units, apply -0.003 morale per game-hour. This makes shortages actively harmful to morale
   rather than just neutral. Use the same `registry.try_get<Stockpile>(e)` already accessed.
@@ -627,6 +627,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   graduation block, set the new hauler's `AgentState::behavior = Celebrating` for 2 game-hours
   (set `celebrateTimer = 2.f` on `DeprivationTimer`). Also bump home settlement morale by +0.02.
   Becoming a hauler is a proud moment for the community.
+
+- [ ] **Scarcity log event** — In `RandomEventSystem::Update`'s scarcity check, log "Shortage:
+  [settlement] running low on [resource]" once per scarcity period per resource. Use a
+  `static std::map<entt::entity, int> s_loggedScarcity` keyed by entity, value is a bitmask
+  (bit 0=food, 1=water, 2=wood). Set bit on first trigger, clear when that resource rises above
+  20. Keeps scarcity visible in the event log without spam.
+
+- [ ] **Morale-dependent work speed** — In `ProductionSystem.cpp`'s per-worker contribution
+  block, multiply worker output by a morale factor: `1.0 + 0.3 * (morale - 0.5)`. At morale
+  0.8 workers produce +9%, at 0.2 they produce -9%. Read morale from `try_get<Settlement>` via
+  worker's `HomeSettlement`. Makes morale mechanically important beyond cosmetic display.
 
 ---
 
