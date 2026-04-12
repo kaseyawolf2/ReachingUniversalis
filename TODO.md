@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Rumour carrier visible in tooltip** — Add `bool hasRumour = false` and
+  `std::string rumourLabel` to `AgentEntry` in `RenderSnapshot.h`. In SimThread's agent snapshot
+  loop, check `registry.try_get<Rumour>(e)` and if present set `hasRumour = true` and
+  `rumourLabel = "plague" / "drought" / "bandits"`. In `HUD::DrawHoverTooltip`, when `hasRumour`,
+  draw a faint yellow "(spreading: plague)" line below the needs line.
 
 ## Recently Done
 
