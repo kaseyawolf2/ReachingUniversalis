@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Settlement mood indicator** — moodScore (avg NPC need satisfaction) on SettlementEntry. Green inner glow ≥0.7, red <0.3. Skipped during active events.
+
 - [x] **Hauler route memory** — bestProfit/bestRoute on Hauler, logged on new record, shown in tooltip as "Best: A→B +Xg" in faint GOLD.
 
 - [x] **NPC greeting interactions** — Idle NPCs within 40u greet same-settlement neighbours. greetCooldown (2 real-sec) on DeprivationTimer. Logs to EventLog.
@@ -1263,7 +1265,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   new personal record: +Xg on [A]→[B]". Pipe bestRoute through RenderSnapshot and show in tooltip
   as "Best: [A]→[B] +Xg" in faint GOLD.
 
-- [ ] **Settlement mood indicator** — Settlements where average NPC need satisfaction is high
+- [x] **Settlement mood indicator** — Settlements where average NPC need satisfaction is high
   (all needs > 0.6 for 80%+ of residents) display a faint green glow, while struggling settlements
   (any need < 0.3 for 50%+ of residents) show faint red. In `SimThread::WriteSnapshot`, compute
   per-settlement mood score from NPC needs. Add `float moodScore = 0.5f` to `RenderSnapshot::SettlementEntry`.
@@ -1393,6 +1395,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Children (age < 15) move at 80% speed, elders (age > 55) at 70%, prime adults at 100%. Read
   `Age::days` from the entity, compute bracket, multiply `MoveSpeed::value` by the factor. Exclude
   haulers and player (already have separate speed logic). Adds visible age-based behaviour.
+
+- [ ] **Mood score shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`, show
+  "Mood: X%" from `SettlementEntry::moodScore`. Add the line after the morale line with matching
+  colour coding (GREEN ≥0.7, YELLOW ≥0.4, RED below). Uses data already piped through
+  `RenderSnapshot::SettlementEntry::moodScore` — only needs tooltip rendering.
+
+- [ ] **NPC contentment affects work output** — In `ProductionSystem`, when computing worker
+  contribution, multiply by a contentment factor: contentment ≥ 0.7 gives 1.0×, 0.4–0.7 gives
+  0.85×, < 0.4 gives 0.65×. Read contentment from `Needs` (weighted average). Unhappy NPCs
+  produce less, creating pressure on settlements to maintain quality of life.
 
 ---
 
