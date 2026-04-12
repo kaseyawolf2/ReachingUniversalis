@@ -420,19 +420,22 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->modifierDuration   = FESTIVAL_DURATION;
         settl->modifierName       = "Festival";
 
-        // Put all NPCs at this settlement into the Celebrating state
+        // Put all NPCs at this settlement into the Celebrating state; count them for the log
+        int celebrantCount = 0;
         registry.view<AgentState, HomeSettlement>(
             entt::exclude<PlayerTag, Hauler>).each(
             [&](AgentState& as, const HomeSettlement& hs) {
-                if (hs.settlement == target)
+                if (hs.settlement == target) {
                     as.behavior = AgentBehavior::Celebrating;
+                    ++celebrantCount;
+                }
             });
 
         if (log) {
-            char buf[120];
+            char buf[128];
             std::snprintf(buf, sizeof(buf),
-                "FESTIVAL at %s — treasury +%.0fg, production +35%% (%dh)",
-                settl->name.c_str(), FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
+                "FESTIVAL at %s — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
+                settl->name.c_str(), celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
             log->Push(day, hour, buf);
         }
         break;
