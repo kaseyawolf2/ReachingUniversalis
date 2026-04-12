@@ -1278,6 +1278,11 @@ void SimThread::WriteSnapshot() {
         if (const auto* rep = m_registry.try_get<Reputation>(e))
             reputationScore = rep->score;
 
+        // Fatigue snapshot
+        bool isFatigued = false;
+        if (const auto* sched = m_registry.try_get<Schedule>(e))
+            isFatigued = sched->fatigued;
+
         // Scale visual size by life stage so children are visibly smaller.
         // Children (<15 days): 60% size; youth (15-25): 80%; adult: 100%; elderly (>65): 105%
         float drawSize = rend.size;
@@ -1374,7 +1379,7 @@ void SimThread::WriteSnapshot() {
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
                            nearBankrupt, bankruptProgress, haulerState,
-                           homeMorale, wagePerHour, reputationScore });
+                           homeMorale, wagePerHour, reputationScore, isFatigued });
     });
 
     // ---- Settlements ----

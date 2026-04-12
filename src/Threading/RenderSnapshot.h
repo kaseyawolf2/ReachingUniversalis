@@ -99,6 +99,8 @@ struct RenderSnapshot {
         float wage = 0.f;
         // NPC reputation score (positive = good, negative = bad)
         float reputation = 0.f;
+        // True if this NPC is fatigued (energy < 0.2 while working → 80% prod)
+        bool fatigued = false;
     };
 
     struct SettlementEntry {

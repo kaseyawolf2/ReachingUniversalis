@@ -629,9 +629,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         else
             std::snprintf(lineAge, sizeof(lineAge), "Age: %d", ageInt);
     }
-    if (hasName)
-        std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
-    else
+    if (hasName) {
+        if (best->fatigued)
+            std::snprintf(line2, sizeof(line2), "%s (fatigued)", BehaviorLabel(best->behavior));
+        else
+            std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
+    } else
         std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
                       best->hungerPct*100.f, best->thirstPct*100.f,
                       best->energyPct*100.f, best->heatPct*100.f);
@@ -916,7 +919,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         ly += 16;
     }
     {
-        DrawText(line2, tx, ly, 11, LIGHTGRAY);
+        DrawText(line2, tx, ly, 11, best->fatigued ? ORANGE : LIGHTGRAY);
         if (!hasName && illLabel)
             DrawText(illLabel, tx + MeasureText(line2, 11) + 4, ly, 11, Fade(RED, 0.75f));
         ly += 16;
