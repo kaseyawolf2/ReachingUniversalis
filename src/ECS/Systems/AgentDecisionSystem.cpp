@@ -578,6 +578,70 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     }
 
     // ============================================================
+    // WANDERING ORPHAN RE-SETTLEMENT
+    // Children (ChildTag) with no valid HomeSettlement wander toward
+    // the nearest settlement with available pop capacity (within 200 units).
+    // ============================================================
+    {
+        // Pre-build per-settlement current pop count
+        std::map<entt::entity, int> orphanPopCount;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+            [&](const HomeSettlement& hs) {
+            if (hs.settlement != entt::null) ++orphanPopCount[hs.settlement];
+        });
+
+        registry.view<ChildTag, Position, Velocity, MoveSpeed, HomeSettlement, AgentState>().each(
+            [&](auto orphan, const Position& pos, Velocity& vel,
+                const MoveSpeed& spd, HomeSettlement& home, AgentState& state) {
+            // Only process true orphans — no valid home settlement
+            if (home.settlement != entt::null && registry.valid(home.settlement)) return;
+
+            // Find nearest settlement with available capacity within 200 units
+            entt::entity best   = entt::null;
+            float        bestD2 = 200.f * 200.f;
+            registry.view<Position, Settlement>().each(
+                [&](auto se, const Position& sp, const Settlement& s) {
+                int curPop = orphanPopCount.count(se) ? orphanPopCount.at(se) : 0;
+                if (curPop >= s.popCap) return;
+                float dx = sp.x - pos.x, dy = sp.y - pos.y;
+                float d2 = dx*dx + dy*dy;
+                if (d2 < bestD2) { bestD2 = d2; best = se; }
+            });
+
+            if (best == entt::null) return;
+
+            const auto& destPos = registry.get<Position>(best);
+            float dist = std::sqrt(bestD2);
+
+            if (dist <= SETTLE_RANGE) {
+                // Arrived — assign home
+                home.settlement = best;
+                ++orphanPopCount[best];  // update count so two orphans don't pick the same slot
+                state.behavior  = AgentBehavior::Idle;
+                vel.vx = vel.vy = 0.f;
+
+                // Log
+                auto lv = registry.view<EventLog>();
+                auto tv = registry.view<TimeManager>();
+                if (lv.begin() != lv.end() && tv.begin() != tv.end()) {
+                    const auto& tm = tv.get<TimeManager>(*tv.begin());
+                    const auto& sn = registry.get<Settlement>(best);
+                    char buf[128];
+                    const char* who = "Orphan";
+                    if (const auto* nm = registry.try_get<Name>(orphan)) who = nm->value.c_str();
+                    std::snprintf(buf, sizeof(buf), "%s found a new home at %s.",
+                                  who, sn.name.c_str());
+                    lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                }
+            } else {
+                // Move toward destination
+                MoveToward(vel, pos, destPos.x, destPos.y, spd.value);
+                state.behavior = AgentBehavior::Migrating;
+            }
+        });
+    }
+
+    // ============================================================
     // GOSSIP / PRICE SHARING
     // When two NPCs from different settlements are within 30 units,
     // the "visitor's" home Market prices nudge 5% toward the local
