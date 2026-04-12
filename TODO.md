@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
+- [x] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
-  available in `SettlementStatus`. Format: "[12/35 pop ↑]" or "[12/35 pop ↓]". Use plain '+'
-  and '-' ASCII since raylib's default font may not render arrow glyphs.
+  available in `SettlementStatus`. Format: "[12/35 pop +]" or "[12/35 pop -]". Uses plain '+'
+  and '-' ASCII.
 
 - [x] **NPC birth log** — Already implemented: BirthSystem.cpp logs "Born: X at Y (to ParentName)"
   using the wealthiest adult at the settlement. ChildTag is an empty struct with no followTarget.
@@ -451,10 +451,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **NPC birth log** — Already implemented: BirthSystem.cpp logs "Born: X at Y (to ParentName)"
   using the wealthiest adult at the settlement. ChildTag is an empty struct with no followTarget.
 
-- [ ] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
+- [x] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
-  available in `SettlementStatus`. Format: "[12/35 pop ↑]" or "[12/35 pop ↓]". Use plain '+'
-  and '-' ASCII since raylib's default font may not render arrow glyphs.
+  available in `SettlementStatus`. Format: "[12/35 pop +]" or "[12/35 pop -]". Uses plain '+'
+  and '-' ASCII.
 
 - [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
   dies of old age, increase the inheritance fraction from the default 0.5 to 0.8 (elders have had
@@ -1434,3 +1434,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentDecisionSystem.cpp`'s migration scoring, apply a -0.3 penalty to the grudge target
   settlement. Clear grudge after 48 game-hours via a `float grudgeTimer = 0.f` on
   `DeprivationTimer`. Makes theft have social consequences — thieves avoid returning.
+
+- [ ] **Settlement tooltip: active workers count** — In `DrawSettlementTooltip` (HUD.cpp), add
+  a line "Workers: N" showing how many NPCs at this settlement currently have
+  `AgentBehavior::Working`. Add `int workerCount = 0` to `SettlementStatus` in
+  `RenderSnapshot.h`. Populate in SimThread's world-status loop by counting NPCs with
+  `HomeSettlement` matching this settlement AND `AgentBehavior::Working` in their `Velocity`
+  component's behavior field. Display in LIGHTGRAY after the elders line.
+
+- [ ] **NPC wealth-based clothing color** — In `SimThread::WriteSnapshot()`'s agent loop, set
+  `AgentEntry::color` based on `Money::balance`: < 10g = GRAY, 10-50g = BEIGE, 50-200g = SKYBLUE,
+  > 200g = GOLD. Currently all NPCs share a single color per role. This visual distinction lets
+  the player see wealth distribution at a glance. Only apply to NPCs (not Player, Hauler, Child).
