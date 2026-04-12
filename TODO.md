@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
+  subtract 0.2 from the score of any destination that is currently in Winter (`Season::Winter`).
+  Read the season from `TimeManager` (already in registry view). This creates organic population
+  flow away from winter-hit settlements toward warmer-season regions, making seasonal population
+  patterns emergent rather than purely price-driven.
+
 - [x] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
   `moraleBonus` block, add: for each Working NPC at a facility whose `Age::days > 60`, add a
   flat `+0.05` worker contribution (elders provide tacit knowledge). Use `registry.try_get<Age>(e)`.
