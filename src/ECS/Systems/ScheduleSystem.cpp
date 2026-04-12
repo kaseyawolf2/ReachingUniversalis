@@ -1,6 +1,7 @@
 #include "ScheduleSystem.h"
 #include "ECS/Components.h"
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <random>
 
@@ -108,6 +109,16 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     std::string msg = who + " came of age at " + where;
                     if (!raisedBy.empty())
                         msg += " (raised by " + raisedBy + ")";
+                    // Append highest skill and value
+                    if (const auto* sk = registry.try_get<Skills>(entity)) {
+                        float best = sk->farming;
+                        const char* skName = "Farming";
+                        if (sk->water_drawing > best) { best = sk->water_drawing; skName = "Water"; }
+                        if (sk->woodcutting   > best) { best = sk->woodcutting;   skName = "Woodcutting"; }
+                        char skBuf[48];
+                        std::snprintf(skBuf, sizeof(skBuf), " — best skill: %s %.0f%%", skName, best * 100.f);
+                        msg += skBuf;
+                    }
                     logv2.get<EventLog>(*logv2.begin()).Push(
                         tm.day, (int)tm.hourOfDay, msg);
                 }
