@@ -397,19 +397,25 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         // Draw background
         DrawRectangle(PX + 8, y, CHART_W, CHART_H, Fade(WHITE, 0.05f));
 
-        // Draw bars
-        float barW = (float)CHART_W / n;
+        // Draw line graph: GREEN for growth segments, RED for decline
+        float segW = (n > 1) ? (float)CHART_W / (n - 1) : 0.f;
+        for (int i = 0; i < n - 1; ++i) {
+            float f0 = (float)(panel.popHistory[i]     - pMin) / range;
+            float f1 = (float)(panel.popHistory[i + 1] - pMin) / range;
+            float x0 = PX + 8 + i * segW;
+            float y0 = y + CHART_H - f0 * CHART_H;
+            float x1 = PX + 8 + (i + 1) * segW;
+            float y1 = y + CHART_H - f1 * CHART_H;
+            Color segCol = (panel.popHistory[i + 1] >= panel.popHistory[i])
+                         ? Fade(GREEN, 0.8f) : Fade(RED, 0.8f);
+            DrawLineEx({ x0, y0 }, { x1, y1 }, 2.f, segCol);
+        }
+        // Draw dots at each data point
         for (int i = 0; i < n; ++i) {
             float frac = (float)(panel.popHistory[i] - pMin) / range;
-            int bh    = std::max(1, (int)(frac * CHART_H));
-            int bx    = PX + 8 + (int)(i * barW);
-            int bw    = std::max(1, (int)barW - 1);
-            // Color by trend: newest bar is brightest, oldest faded
-            float alpha = 0.4f + 0.6f * ((float)(i + 1) / n);
-            Color barCol = (panel.popHistory[i] == pMax) ? Fade(GOLD, alpha) :
-                           (panel.popHistory[i] > (pMin + pMax) / 2) ? Fade(GREEN, alpha) :
-                           Fade(RED, alpha);
-            DrawRectangle(bx, y + CHART_H - bh, bw, bh, barCol);
+            float px = PX + 8 + i * segW;
+            float py = y + CHART_H - frac * CHART_H;
+            DrawCircleV({ px, py }, 2.f, Fade(WHITE, 0.6f));
         }
         // Min/max labels
         char minBuf[8], maxBuf[8];
