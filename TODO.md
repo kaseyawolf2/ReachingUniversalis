@@ -9,11 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
-  dies of old age, increase the inheritance fraction from 0.5 to 0.8 (elders have more time to
-  accumulate and bequeath wealth). Add an `isElder` check in the inheritance block and use 0.8f
-  instead of `INHERITANCE_FRACTION`. Log: "Aldric Smith left an estate of 45g to Ashford."
-
 ---
 
 ## Done
@@ -158,6 +153,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Elder count in settlement tooltip** — `elderCount`/`elderBonus` added to `SettlementStatus`.
   SimThread counts via `try_get<Age>`. Tooltip shows "Elders: N (+X% prod)" in orange.
+
+- [x] **Elder deathbed savings inheritance** — `DeathSystem.cpp` inheritance block: `try_get<Age>`
+  in the per-death loop; if `age->days > 60`, uses 0.8f fraction instead of 0.5f. Logs
+  "X left an estate of Ng to Settlement." for estates ≥ 10g.
 
 - [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
   complete in `AgentDecisionSystem`), update their `Profession` component to match the new
@@ -440,6 +439,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   NPC contentment drops below 0.2 for the first time (not in set), log "X is desperate at Y"
   and insert into set. When contentment recovers above 0.5, remove from set (so the message can
   fire again later). This avoids log spam while ensuring desperate NPCs are surfaced once.
+
+- [ ] **Estate log on need-death too** — `DeathSystem.cpp`: the estate log ("X left an estate of
+  Ng to Y") currently only fires in the inheritance block (after the morale/cargo blocks), but
+  the name retrieval uses `try_get<Name>` which works for both old-age and need-death. Verify the
+  log fires for need-death by confirming the inheritance block is reached for all `toRemove`
+  entities, not just old-age ones. If `money->balance >= MIN_INHERITANCE` is always evaluated,
+  no code change is needed — just a test/verification pass with a log trace.
+
+- [ ] **Elder will tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for elders (ageDays >
+  60 and hasName), append a faint line "Will: 80% to treasury" in `Fade(GOLD, 0.5f)` below the
+  gold balance line. This surfaces the inheritance mechanic to the player via the UI. Read
+  `ageDays` from `AgentEntry` (already present). No new snapshot fields needed.
+
+- [ ] **Estate size shown in settlement tooltip** — Add `float pendingEstates = 0.f` to
+  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, sum `money->balance`
+  for all elders (age > 60) homed at each settlement multiplied by 0.8f. In
+  `DrawSettlementTooltip` (HUD.cpp), show "Estates: ~Ng" in dim gold when > 0. Gives the player
+  a forward-looking economic signal — how much will flow into treasury when elders die.
 
 ---
 
