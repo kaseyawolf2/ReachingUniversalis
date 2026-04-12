@@ -1590,7 +1590,7 @@ void SimThread::WriteSnapshot() {
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
-                                 hungerCrisis, elderPop, elderBonus });
+                                 hungerCrisis, elderPop, elderBonus, s.morale });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {

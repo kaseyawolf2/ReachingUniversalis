@@ -373,10 +373,24 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             std::snprintf(childSuffix[i], sizeof(childSuffix[i]), " (%dc)", childCounts[i]);
     }
 
+    // Pre-build morale label strings (e.g. " M:72%") for width measurement and drawing.
+    char moraleBuf[4][16] = {};
+    float moraleVal[4] = {};
+    {
+        int mi = 0;
+        for (const auto& s : ws) {
+            if (mi >= 4) break;
+            moraleVal[mi] = s.morale;
+            std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%", s.morale * 100.f);
+            ++mi;
+        }
+    }
+
     static const int HUNGER_W = 8;  // width reserved for "!" indicator
     int totalW = 0;
     for (int i = 0; i < count; ++i)
         totalW += MeasureText(bufs[i], STATUS_FONT) + MeasureText(childSuffix[i], STATUS_FONT)
+                  + MeasureText(moraleBuf[i], STATUS_FONT)
                   + (hungerCrisis[i] ? HUNGER_W : 0) + (i > 0 ? 28 : 0);
     int sx = (SCREEN_W - totalW) / 2;
 
@@ -397,6 +411,13 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         if (childCounts[i] > 0) {
             DrawText(childSuffix[i], cx, 14, STATUS_FONT, Fade(LIGHTGRAY, 0.6f));
             cx += MeasureText(childSuffix[i], STATUS_FONT);
+        }
+        // Morale label: green (≥0.7), yellow (≥0.3), red (<0.3)
+        {
+            Color moraleCol = (moraleVal[i] >= 0.7f) ? Fade(GREEN, 0.8f)  :
+                              (moraleVal[i] >= 0.3f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+            DrawText(moraleBuf[i], cx, 14, STATUS_FONT, moraleCol);
+            cx += MeasureText(moraleBuf[i], STATUS_FONT);
         }
         cx += 12;
     }
