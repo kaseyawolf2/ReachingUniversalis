@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Settlement rivalry events** — Adjacent settlements with morale > 0.7 and pop > 15 trigger rivalry. Reduces trade 20%, lasts 24 game-hours. rivalWith on Settlement.
 
 ## Recently Done
 
