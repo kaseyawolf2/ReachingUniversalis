@@ -770,15 +770,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)
         std::snprintf(rumourLine, sizeof(rumourLine), "(spreading: %s)", best->rumourLabel.c_str());
 
-    // Hauler profit estimation
+    // Hauler estimated trip profit (computed in WriteSnapshot from destination prices)
     bool showProfit = false;
     char profitLine[64] = {};
     Color profitColor = GREEN;
-    if (isHauler && best->haulerCargoQty > 0) {
-        float cost = best->haulerBuyPrice * best->haulerCargoQty;
-        float profit = best->balance - cost;
-        std::snprintf(profitLine, sizeof(profitLine), "Profit: ~%.0fg", profit);
-        profitColor = (profit >= 0.f) ? Fade(GREEN, 0.8f) : Fade(RED, 0.8f);
+    if (isHauler && best->haulerCargoQty > 0 && best->haulerState == 1) {
+        std::snprintf(profitLine, sizeof(profitLine), "Est. profit: %+.1fg",
+                      best->estimatedProfit);
+        profitColor = (best->estimatedProfit >= 0.f) ? Fade(GREEN, 0.8f) : Fade(RED, 0.8f);
         showProfit = true;
     }
 

@@ -97,6 +97,8 @@ struct RenderSnapshot {
         int   haulerState = 0;
         // True when hauler is travelling near another hauler to the same destination
         bool  inConvoy = false;
+        // Estimated trip profit: (destPrice - buyPrice) * qty * 0.8 (after 20% tax)
+        float estimatedProfit = 0.f;
         // Home settlement morale (-1 if no home)
         float homeMorale = -1.f;
         // Estimated wage for working NPCs (game gold per game-hour)
