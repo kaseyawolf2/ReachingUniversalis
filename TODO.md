@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Strike duration shown in tooltip** — Show remaining strike hours in NPC hover tooltip.
-
 ## Recently Done
+
+- [x] **Strike duration shown in tooltip** — "On strike (Xh left)" with remaining hours.
 
 - [x] **NPC wage shown in tooltip** — "Wage: ~X.Xg/hr" for working NPCs based on skill.
 
@@ -1015,7 +1015,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   cached on `AgentState::target`). At age 15: `ChildTag` removed, skill boosted toward home
   settlement's primary production, "came of age" logged. ConsumptionSystem: age < 15 wage guard.
 
-- [ ] **Strike duration shown in tooltip** — Extend the "On strike" line in `HUD::DrawHoverTooltip`
+- [x] **Strike duration shown in tooltip** — Extend the "On strike" line in `HUD::DrawHoverTooltip`
   to show the remaining duration: `"On strike (%.0f h left)"` using `DeprivationTimer::strikeDuration`
   exposed as a new `float strikeHoursLeft` field in `AgentEntry`. Populate it in `SimThread::WriteSnapshot`
   alongside `onStrike`. Divide `strikeDuration` by 60 to convert sim-seconds to game-hours.
@@ -2219,3 +2219,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `SettlementStatus` in `RenderSnapshot.h`, computed in `SimThread::WriteSnapshot` during
   the settlement status loop. Display as "Inequality: X%" (gini * 100). Color green (< 30%),
   yellow (< 60%), red (>= 60%). Surfaces economic stratification within settlements.
+
+- [ ] **Strike contagion between NPCs** — In `RandomEventSystem.cpp`'s unrest block, when a
+  settlement has morale < 0.3 and a strike fires, also give a 30% chance per non-striking
+  working NPC at the same settlement to join the strike (set their `strikeDuration` to half the
+  normal `STRIKE_DURATION_HOURS`). Log "Strike spreads at X — N workers join." Uses existing
+  `DeprivationTimer::strikeDuration` and `HomeSettlement` to find co-located NPCs.
+
+- [ ] **Post-strike morale recovery** — In `ScheduleSystem.cpp`, when an NPC's `strikeDuration`
+  expires (transitions from > 0 to 0), bump their home settlement's morale by +0.005 per NPC.
+  Models the resolution of grievances. Use `registry.try_get<HomeSettlement>` to find the
+  settlement, then `registry.try_get<Settlement>` to access `morale`. Rate-limit: only apply
+  if settlement morale < 0.6 (prevents overshoot from mass strike endings).
