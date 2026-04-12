@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale bar in stockpile panel** — Draw horizontal morale bar below treasury line
-  in `RenderSystem::DrawStockpilePanel`. Green/yellow/red by threshold.
-
 ## Recently Done
+
+- [x] **Morale bar in stockpile panel** — Horizontal bar below treasury, green/yellow/red by threshold.
 
 - [x] **Near-bankrupt tooltip warning** — Show "!! Near bankruptcy !!" in red in hauler tooltip.
 
@@ -689,7 +688,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Scarcity resource label in log** — Already implemented as part of "Scarcity log event"
   task. Uses `s_loggedScarcity` bitmask in `RandomEventSystem.cpp`.
 
-- [ ] **Morale bar in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the
+- [x] **Morale bar in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the
   existing treasury line, draw a small horizontal morale bar (width 100px, height 8px). Fill
   proportional to `panel.morale` (already in `StockpilePanel`). Colour: green ≥0.7, yellow
   ≥0.3, red <0.3. Label "Morale" to the left. Visual complement to the M:XX% in status bar.
@@ -772,6 +771,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (non-hauler, non-player) has `balance > 80`, draw a faint `Fade(GOLD, 0.25f)` outer ring
   (radius 8). Makes wealthy NPCs visually distinct and highlights economic stratification.
   No new snapshot fields — `balance` is already in `AgentEntry`.
+
+- [ ] **Stockpile bar chart in panel** — In `RenderSystem::DrawStockpilePanel`, below the
+  per-resource text lines, draw 3 small horizontal bars (food=green, water=blue, wood=brown)
+  whose width is proportional to `qty / 200.f` (capped at 100px). Background in dark gray.
+  Gives a visual at-a-glance read of relative stockpile levels. No new snapshot fields.
+
+- [ ] **NPC mood emoji in residents list** — In `RenderSystem::DrawStockpilePanel`'s residents
+  loop, after the profession abbreviation and gold amount, append a tiny mood indicator based
+  on the resident's contentment stored in `StockpilePanel::AgentInfo`. Add `float contentment`
+  to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`, populate in SimThread. Show a green
+  dot (>0.7), yellow dot (>0.4), or red dot (<0.4) after each resident's name line.
 
 ---
 
