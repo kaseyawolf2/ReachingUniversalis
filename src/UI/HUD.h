@@ -20,6 +20,7 @@ private:
     void DrawDebugOverlay(const RenderSnapshot& snapshot) const;
     void DrawHoverTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void DrawFacilityTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
+    void DrawSettlementTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void DrawRoadTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void UpdateNotifications(const RenderSnapshot& snapshot);
     void DrawNotifications();

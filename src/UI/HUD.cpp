@@ -282,6 +282,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
     DrawFacilityTooltip(snap, camera);
+    DrawSettlementTooltip(snap, camera);
     DrawRoadTooltip(snap, camera);
     if (debugOverlay)  DrawDebugOverlay(snap);
     if (marketOverlay) DrawMarketOverlay(snap);
@@ -769,6 +770,91 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     DrawText(line4, tx, ty + 48, 11, outCol);
     Color healthCol = (healthPct >= 80.f) ? GREEN : (healthPct >= 50.f) ? YELLOW : RED;
     DrawText(line5, tx, ty + 64, 11, healthCol);
+}
+
+// ---- Settlement hover tooltip ----
+// Shown when the mouse hovers inside a settlement circle.
+// Displays name, pop, resources, treasury, and children count.
+
+void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam) const {
+    Vector2 mouse = GetMousePosition();
+    Vector2 world = GetScreenToWorld2D(mouse, cam);
+
+    std::vector<RenderSnapshot::SettlementEntry>  settls;
+    std::vector<RenderSnapshot::SettlementStatus> ws;
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        settls = snap.settlements;
+        ws     = snap.worldStatus;
+    }
+
+    // Find settlement the mouse is inside (by world-space radius)
+    const RenderSnapshot::SettlementEntry* best = nullptr;
+    float bestDist = 1e9f;
+    for (const auto& s : settls) {
+        float dx = world.x - s.x, dy = world.y - s.y;
+        float d  = std::sqrt(dx*dx + dy*dy);
+        if (d < s.radius && d < bestDist) { bestDist = d; best = &s; }
+    }
+    if (!best) return;
+
+    // Match to SettlementStatus for childCount, treasury, haulers, prices
+    const RenderSnapshot::SettlementStatus* status = nullptr;
+    for (const auto& st : ws)
+        if (st.name == best->name) { status = &st; break; }
+
+    int   childCount = status ? status->childCount : 0;
+    float treasury   = status ? status->treasury   : 0.f;
+    int   haulers    = status ? status->haulers     : 0;
+    float food       = status ? status->food  : best->foodStock;
+    float water      = status ? status->water : best->waterStock;
+    float wood       = status ? status->wood  : best->woodStock;
+
+    // Line 1: name + pop/cap + optional event
+    char line1[80];
+    if (!best->modifierName.empty())
+        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop]  — %s",
+                      best->name.c_str(), best->pop, best->popCap,
+                      best->modifierName.c_str());
+    else
+        std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop]",
+                      best->name.c_str(), best->pop, best->popCap);
+
+    // Line 2: resource stocks
+    char line2[64];
+    std::snprintf(line2, sizeof(line2), "Food: %.0f  Water: %.0f  Wood: %.0f",
+                  food, water, wood);
+
+    // Line 3: treasury + haulers
+    char line3[64];
+    std::snprintf(line3, sizeof(line3), "Treasury: %.0fg  Haulers: %d",
+                  treasury, haulers);
+
+    // Line 4 (optional): children
+    char line4[32] = {};
+    bool showChildren = (childCount > 0);
+    if (showChildren)
+        std::snprintf(line4, sizeof(line4), "Children: %d", childCount);
+
+    int lineCount = 3 + (showChildren ? 1 : 0);
+    int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
+                       MeasureText(line3, 11), showChildren ? MeasureText(line4, 11) : 0 }) + 12;
+    int h = lineCount * 16 + 4;
+
+    Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
+    int tx = (int)screen.x + 14, ty = (int)screen.y - h - (int)best->radius;
+    if (tx + w > SCREEN_W) tx = (int)screen.x - w - 10;
+    if (ty < 0)             ty = (int)screen.y + (int)best->radius + 6;
+
+    DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.75f));
+
+    Color nameCol = (best->pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
+    DrawText(line1, tx, ty,      12, nameCol);             ty += 16;
+    DrawText(line2, tx, ty,      11, LIGHTGRAY);           ty += 16;
+    Color tresCol = (treasury < 50.f) ? RED : (treasury < 150.f) ? ORANGE : GOLD;
+    DrawText(line3, tx, ty,      11, tresCol);             ty += 16;
+    if (showChildren)
+        DrawText(line4, tx, ty,  11, Fade(LIGHTGRAY, 0.7f));
 }
 
 // ---- Market overlay (M key) ----
