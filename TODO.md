@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale trend arrow in world status bar** — Track previous morale per settlement,
-  show +/- trend after M:XX% in HUD::DrawWorldStatus.
+(none)
 
 ## Recently Done
+
+- [x] **Morale trend arrow in world status bar** — Shows +/- after M:XX% based on 1s sampled morale delta.
 
 - [x] **Morale colour on settlement ring** — Ring tinted green/yellow/red by morale when no event active.
 
@@ -574,12 +575,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Morale colour on settlement ring** — Ring tinted by morale when no event active.
 
-- [ ] **Morale trend arrow in world status bar** — In `HUD::DrawWorldStatus` (HUD.cpp), track
-  previous morale per settlement using a `static std::map<std::string, float> s_prevMorale`.
-  After drawing "M:XX%", append "+" if morale increased by > 0.03 since last frame, "-" if
-  decreased by > 0.03, nothing otherwise. Update `s_prevMorale` once per second (gate with a
-  static float timer incremented by `GetFrameTime()`). Helps players see if their actions are
-  improving or worsening settlement mood.
+- [x] **Morale trend arrow in world status bar** — +/- appended to M:XX% label.
 
 - [ ] **Trade delivery log with morale** — In `TransportSystem.cpp`'s GoingToDeposit arrival
   block, after the existing delivery logic (sale + morale bump), push an EventLog entry:
@@ -1672,3 +1668,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block (where hauler cargo is deposited into a settlement's `Stockpile`), add a small morale
   boost: `settl->morale = std::min(1.f, settl->morale + 0.02f)` per delivery. This rewards
   well-connected trade networks with happier settlements, reinforcing the value of hauler routes.
+
+- [ ] **Contentment trend arrow in world status bar** — In `HUD::DrawWorldStatus` (HUD.cpp),
+  apply the same trend tracking pattern used for morale to the contentment label (C:XX%). Use
+  a `static std::map<std::string, float> s_prevContent` sampled once per second. Append "+"
+  if contentment rose by > 0.03, "-" if fell by > 0.03. Gives players visibility into whether
+  NPC wellbeing is improving or declining at each settlement.
+
+- [ ] **Morale event log on threshold crossing** — In `RandomEventSystem.cpp`'s settlement
+  event loop (where `s.morale` is already read), add a static set tracking settlements that
+  crossed below 0.25 morale. When a settlement's morale drops below 0.25 for the first time,
+  log "Morale crisis at X — settlers may leave!" via `EventLog`. Clear the entry when morale
+  recovers above 0.4. Mirrors the existing unrest/recovery log pattern.
