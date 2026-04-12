@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
-  dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
-  settlement dots are drawn; check `SettlementEntry::modifierName == "Festival"` and use
-  `Fade(GOLD, 0.85f)` instead of the normal WHITE/GREEN color. Only applies during the festival
-  window, reverts automatically when `modifierName` clears.
-
 ---
 
 ## Backlog
@@ -34,6 +28,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
   the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
   in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
+
+- [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
+  world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
+  text. Colour-code it: "Plague" → RED, "Drought" → ORANGE, "Festival" → GOLD, "Bounty" → GREEN,
+  others → YELLOW. Find the `modifierName` draw calls in HUD.cpp (search for `modifierName` or
+  `modifierHoursLeft`), wrap in a helper that maps the string to a colour, and pass it to
+  `DrawText`. No new fields needed — `modifierName` is already in the snapshot.
 
 - [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
   when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
@@ -294,6 +295,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Festival dot colour** — In `GameState.cpp`'s settlement render loop, added Festival
+  override after the Plague override: `modifierName == "Festival"` → ring = `Fade(GOLD, 0.85f)`
+  (selected stays YELLOW). Same 2-line pattern as Plague. No new fields.
 
 - [x] **Festival NPC colour** — In `GameState.cpp`'s agent draw loop, compute `drawColor` at
   render time: if `AgentEntry::behavior == Celebrating`, use `Fade(GOLD, 0.85f)` instead of
