@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity a
+  second (or Nth) time, change the log message to: "Aldric helped a starving neighbour (×2)."
+  Track a `std::map<entt::entity, int> s_charityCount` static inside `AgentDecisionSystem::Update`
+  (like `s_bankruptTimer` in EconomicMobilitySystem). Prune entries for destroyed entities each
+  check. Use the counter in the `charityLog->Push` format: if count > 1, append " (×N)".
+
 ---
 
 ## Done
@@ -42,12 +48,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 ### NPC Crime & Consequence
-
-- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity a
-  second (or Nth) time, change the log message to: "Aldric helped a starving neighbour (×2)."
-  Track a `std::map<entt::entity, int> s_charityCount` static inside `AgentDecisionSystem::Update`
-  (like `s_bankruptTimer` in EconomicMobilitySystem). Prune entries for destroyed entities each
-  check. Use the counter in the `charityLog->Push` format: if count > 1, append " (×N)".
 
 - [ ] **Bandit NPCs from desperation** — Wandering exiles with `money.balance < 2g` for more than
   48 game-hours become `BanditTag` entities. Bandits move toward roads (target the midpoint of the
