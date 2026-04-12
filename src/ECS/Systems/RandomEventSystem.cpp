@@ -46,6 +46,23 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         float drift = (0.5f - s.morale) * 0.005f * gameHoursDt;
         s.morale = std::max(0.f, std::min(1.f, s.morale + drift));
 
+        // Bonus morale recovery when all three resources are well-supplied (> pop * 2 units each)
+        // Rewards players who maintain surpluses; gives morale a second recovery path.
+        if (const auto* sp = registry.try_get<Stockpile>(e)) {
+            int pop = 0;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+                [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
+            float threshold = static_cast<float>(pop) * 2.f;
+            auto foodIt  = sp->quantities.find(ResourceType::Food);
+            auto waterIt = sp->quantities.find(ResourceType::Water);
+            auto woodIt  = sp->quantities.find(ResourceType::Wood);
+            bool abundant = (foodIt  != sp->quantities.end() && foodIt->second  >= threshold) &&
+                            (waterIt != sp->quantities.end() && waterIt->second >= threshold) &&
+                            (woodIt  != sp->quantities.end() && woodIt->second  >= threshold);
+            if (abundant)
+                s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt);
+        }
+
         // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
         if (!s.unrest && s.morale < 0.3f) {
             s.unrest = true;
