@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale shown in world status bar** — Add `float morale` to `SettlementStatus` in
-  `RenderSnapshot.h`; populate it in SimThread's world-status loop with `s.morale`. In
-  `HUD::DrawWorldStatus` (HUD.cpp), after the food/water/wood numbers, render a small coloured
-  "M:XX%" label using the same green/yellow/red colour logic as the panel bar. Gives a per-
-  settlement morale glance without opening the stockpile panel.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -210,6 +204,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h`, populated from `DeprivationTimer::harvestBonusTimer > 0` in SimThread's
   WriteSnapshot. `GameState.cpp`'s agent render loop draws a faint `Fade(GOLD, 0.4f)` ring
   (radius 10) around any agent with the bonus active.
+
+- [x] **Morale shown in world status bar** — Added `float morale` to `SettlementStatus` in
+  `RenderSnapshot.h`; populated from `Settlement::morale` in SimThread's world-status loop.
+  `HUD::DrawWorldStatus` renders "M:XX%" label per settlement: green (≥70%), yellow (≥30%),
+  red (<30%). Width calculation updated so the status bar expands to fit.
 
 - [ ] **Morale impact from hauler trade success** — In `TransportSystem.cpp`, when a hauler
   successfully delivers cargo to the destination settlement (the `GoingToDeposit → GoingHome`
@@ -511,6 +510,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (radius 12) where `alpha` oscillates between 0.2 and 0.6 using `sinf(GetTime() * 3.f)`.
   This adds visual life to festivals and personal celebrations beyond just the dot colour
   change. No new fields needed — `behavior` is already in `AgentEntry`.
+
+- [ ] **Morale colour on settlement ring** — In `GameState.cpp`'s settlement render loop,
+  when no event modifier is active, tint the settlement ring outline by morale: add `float morale`
+  to `SettlementEntry` in `RenderSnapshot.h`, populated from `Settlement::morale` in SimThread's
+  settlement snapshot loop. In the render loop, when `!s.modifierName.empty()` is false, set
+  `ringColor = (morale >= 0.7f) ? GREEN : (morale >= 0.3f) ? YELLOW : RED`. This gives players
+  spatial awareness of which settlements are struggling without hovering.
+
+- [ ] **Morale trend arrow in world status bar** — In `HUD::DrawWorldStatus` (HUD.cpp), track
+  previous morale per settlement using a `static std::map<std::string, float> s_prevMorale`.
+  After drawing "M:XX%", append "+" if morale increased by > 0.03 since last frame, "-" if
+  decreased by > 0.03, nothing otherwise. Update `s_prevMorale` once per second (gate with a
+  static float timer incremented by `GetFrameTime()`). Helps players see if their actions are
+  improving or worsening settlement mood.
 
 ---
 
