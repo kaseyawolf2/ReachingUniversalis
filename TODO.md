@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Convoy log announcement** — In `TransportSystem`'s GoingToDeposit convoy check, log when `inConvoy` transitions false→true.
-
 ## Recently Done
+
+- [x] **Convoy log announcement** — Track wasInConvoy + convoyPartner in TransportSystem convoy check. Log "[A] formed convoy with [B] on the way to [settlement]." on false→true transition.
+
 
 - [x] **Convoy visual on world map** — Faint green lines between convoy haulers (inConvoy && haulerState==1) within 60u in GameState::Draw.
 
@@ -1333,7 +1334,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   pairs with `inConvoy && haulerState == 1` within 60u; draw `DrawLineEx` in `Fade(GREEN, 0.25f)`
   between their positions. Makes convoys visible at a glance.
 
-- [ ] **Convoy log announcement** — In `TransportSystem`'s GoingToDeposit convoy check, when
+- [x] **Convoy log announcement** — In `TransportSystem`'s GoingToDeposit convoy check, when
   `inConvoy` transitions from false to true, log: "[Hauler A] formed convoy with [Hauler B] on
   the way to [settlement]." Add a `bool wasInConvoy` local to compare before/after. Use the same
   EventLog pattern as the nervous-travel log. Only log once per formation (check old state).
@@ -2701,3 +2702,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   [settlement]." Rate-limited by `greetCooldown` on `DeprivationTimer` (reuse existing cooldown).
   Uses `registry.view<Hauler, Position>` to find nearby convoy haulers. Adds social flavour
   connecting bystanders to economic activity.
+
+- [ ] **Convoy dissolution log** — In `TransportSystem`'s GoingToDeposit convoy check, when
+  `inConvoy` transitions from true to false (wasInConvoy && !hauler.inConvoy), log: "[Hauler]
+  parted ways with their convoy near [settlement]." Uses the same `wasInConvoy` pattern already
+  in place. Destination settlement name from `registry.try_get<Settlement>(hauler.targetSettlement)`.
+
+- [ ] **Hauler remembers convoy partners** — Add `std::string lastConvoyPartner` to `Hauler`
+  in `Components.h`. Set it in `TransportSystem` when convoy forms (the convoyPartner's Name).
+  In the GoingToDeposit arrival block (where cargo is sold), if `lastConvoyPartner` is non-empty,
+  log: "[Hauler] and [Partner] completed a successful trade run to [settlement]." Clear after
+  logging. Pipe `lastConvoyPartner` through `RenderSnapshot::AgentEntry` for tooltip display.
