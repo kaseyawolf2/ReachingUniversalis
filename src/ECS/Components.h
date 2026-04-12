@@ -97,6 +97,7 @@ struct Settlement {
     int   importCount      = 0;    // goods units received via hauler delivery (24h window)
     int   exportCount      = 0;    // goods units shipped out by haulers (24h window)
     int   desperatePurchases = 0;  // emergency market purchases this 24h cycle
+    int   theftCount        = 0;   // cumulative NPC theft events at this settlement
     float tradeVolumeTimer = 0.f;  // game-hours until next reset
 };
 

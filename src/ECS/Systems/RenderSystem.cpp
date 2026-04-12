@@ -16,8 +16,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     int eventLines  = (int)panel.recentEvents.size();
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     bool hasSpecialty = !panel.specialty.empty();
+    bool hasTheft    = (panel.theftCount > 0);
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0)
-                      + (hasSpecialty ? 1 : 0);
+                      + (hasSpecialty ? 1 : 0) + (hasTheft ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int barChartH   = 4 + 3 * (6 + 3);  // stockpile bar chart (3 bars + gaps)
@@ -72,6 +73,14 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     Color tresCol = (panel.treasury < 50.f) ? RED : (panel.treasury < 150.f) ? ORANGE : GOLD;
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
+
+    // Theft count (only shown when > 0)
+    if (panel.theftCount > 0) {
+        char theftBuf[32];
+        std::snprintf(theftBuf, sizeof(theftBuf), "Thefts: %d", panel.theftCount);
+        DrawText(theftBuf, PX + 8, y, 11, Fade(RED, 0.7f));
+        y += LINE_H;
+    }
 
     // Morale bar
     {

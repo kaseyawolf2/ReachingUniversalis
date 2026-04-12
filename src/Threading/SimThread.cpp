@@ -1802,6 +1802,7 @@ void SimThread::WriteSnapshot() {
             panel.morale           = s.morale;
             panel.workers          = workers;
             panel.idle             = idleCount.count(e) ? idleCount.at(e) : 0;
+            panel.theftCount       = s.theftCount;
             panel.modifierName     = s.modifierName;
             panel.modifierHoursLeft = s.modifierDuration;
             // Infer specialty from primary facility (same logic as SettlementEntry)
