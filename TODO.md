@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit scatter on confrontation** — Gang members flee when player confronts one of them.
+
 ## Recently Done
 
 - [x] **Gang log announcement** — Logs "[Name] joined [gang] on the A-B road." when gangName transitions from empty to non-empty.
