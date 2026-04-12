@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler graduation celebration** — New haulers celebrate 2h and home morale +0.02.
+
 ## Recently Done
 
 - [x] **Abundance end log** — Log "Abundance fading at X — stores declining." when settlement
