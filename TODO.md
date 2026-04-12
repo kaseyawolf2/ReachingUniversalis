@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Illness contagion between NPCs** — In gossip proximity loop, 10% chance to spread
-  illness from sick NPC to healthy one via DeprivationTimer fields.
+(none)
 
 ## Recently Done
+
+- [x] **Illness contagion between NPCs** — 10% contagion chance in gossip loop, logs spread events.
 
 - [x] **Illness NPC dot tint** — Purple tint on sick NPC/Child dots via RGB averaging.
 
@@ -550,12 +551,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Illness NPC dot tint** — Purple tint on sick NPC/Child dots.
 
-- [ ] **Illness contagion between NPCs** — In `AgentDecisionSystem.cpp`'s gossip proximity check
-  (the same `GOSSIP_RADIUS` loop), when two NPCs are close and one has `illnessTimer > 0` while
-  the other doesn't, apply a 10% chance to copy the illness to the healthy NPC: set their
-  `illnessTimer = ILLNESS_DURATION` and `illnessNeedIdx` to the same index. Gate it behind a 
-  check that the target's own `illnessTimer <= 0` (no stacking). Log "X caught illness from Y."
-  This requires no new components — just reads/writes `DeprivationTimer` fields already present.
+- [x] **Illness contagion between NPCs** — 10% contagion in gossip loop, same illness type.
 
 - [ ] **Skill discovery location in log** — In `RandomEventSystem`'s per-NPC event loop (case 0:
   skill discovery), extend the log from "X had a skill insight in farming" to "X had a skill
@@ -1614,3 +1610,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   penalty to that settlement's attractiveness score. NPCs with `Rumour{PlagueNearby}` referencing
   that settlement apply an additional -20%. This makes plague a real population driver as healthy
   NPCs flee afflicted areas.
+
+- [ ] **Contagion chain length tracking** — Add `int contagionGen = 0` to `DeprivationTimer`
+  in `Components.h`. When illness spreads via contagion in `AgentDecisionSystem.cpp`, set the
+  new patient's `contagionGen = source.contagionGen + 1`. When the random event creates illness
+  (case 2 in `RandomEventSystem.cpp`), reset `contagionGen = 0`. Log the generation in the
+  contagion message: "X caught illness from Y (gen 3)". Add `int contagionGen = 0` to
+  `AgentEntry` in `RenderSnapshot.h` and show it in the illness tooltip line in `HUD.cpp`.
+
+- [ ] **Quarantine behaviour for ill NPCs** — In `AgentDecisionSystem.cpp`'s migration and
+  gossip sections, when an NPC has `illnessTimer > 0`, reduce their gossip radius by 50%
+  (use `GOSSIP_RADIUS * 0.5f` for sick NPCs) and block migration initiation entirely. This
+  simulates self-quarantine behaviour, slowing contagion spread while keeping the sick NPC
+  at their home settlement. Check `DeprivationTimer::illnessTimer` in the existing gossip
+  and migration code paths.
