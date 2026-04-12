@@ -412,6 +412,23 @@ void GameState::Draw() {
             float alpha = 0.3f + 0.3f * sinf((float)GetTime() * 4.f);
             DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(RED, alpha));
         }
+        // Bandit flee trail: fading line in opposite direction of velocity
+        if (a.isBandit && a.fleeTimer > 0.f) {
+            float vLen = std::sqrt(a.fleeVx * a.fleeVx + a.fleeVy * a.fleeVy);
+            if (vLen > 0.1f) {
+                // Trail points opposite to velocity, length proportional to flee intensity
+                float trailLen = 20.f * std::min(1.f, a.fleeTimer);
+                float nx = -a.fleeVx / vLen, ny = -a.fleeVy / vLen;
+                float alpha = 0.5f * std::min(1.f, a.fleeTimer);
+                DrawLineEx({ a.x, a.y },
+                           { a.x + nx * trailLen, a.y + ny * trailLen },
+                           2.f, Fade(RED, alpha));
+                // Second shorter trail for visual depth
+                DrawLineEx({ a.x + nx * 3.f, a.y + ny * 3.f },
+                           { a.x + nx * trailLen * 0.6f, a.y + ny * trailLen * 0.6f },
+                           1.5f, Fade(ORANGE, alpha * 0.6f));
+            }
+        }
         // Wealthy NPC: faint gold outer ring for NPCs with balance > 80g
         if (a.role == RenderSnapshot::AgentRole::NPC && a.balance > 80.f)
             DrawCircleLinesV({ a.x, a.y }, 8.f, Fade(GOLD, 0.25f));

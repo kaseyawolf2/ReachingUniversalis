@@ -71,6 +71,9 @@ struct RenderSnapshot {
         bool isBandit = false;
         // Bandit gang name (non-empty when 2+ bandits share the same road)
         std::string gangName;
+        // Remaining flee time in real-seconds (> 0 when bandit is fleeing after confrontation)
+        float fleeTimer = 0.f;
+        float fleeVx = 0.f, fleeVy = 0.f;  // velocity snapshot when fleeing (for speed trail)
         // True if this NPC is currently on strike (DeprivationTimer::strikeDuration > 0)
         bool onStrike = false;
         // Remaining strike duration in game-hours (0 when not striking)
