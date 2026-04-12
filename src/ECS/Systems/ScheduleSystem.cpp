@@ -264,8 +264,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-                    if (auto* skills = registry.try_get<Skills>(entity))
-                        skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt);
+                    if (auto* skills = registry.try_get<Skills>(entity)) {
+                        // +10% skill gain when the NPC's profession matches the facility type
+                        float gainMult = 1.0f;
+                        if (const auto* prof = registry.try_get<Profession>(entity))
+                            if (prof->type == ProfessionForResource(facType))
+                                gainMult = 1.1f;
+                        skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt * gainMult);
+                    }
                 }
             }
         }
