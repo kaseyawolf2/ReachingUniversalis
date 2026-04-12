@@ -27,6 +27,7 @@ private:
     // Canonical pairs (min id, max id) already logged to avoid duplicate rivalry/alliance spam
     std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalries;
     std::set<std::pair<uint32_t,uint32_t>> m_loggedAlliances;
+    std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalryRecovery;  // tracks -0.3 recovery crossing
 
     void TriggerEvent(entt::registry& registry, int day, int hour);
     // Kill killFraction of the settlement's population (excluding player).

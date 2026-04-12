@@ -78,9 +78,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         // Drift inter-settlement relations toward neutral (0) at 0.3% per game-hour.
         // Also prune entries pointing to destroyed settlement entities.
         // Log first-time rivalry/alliance threshold crossings.
-        static constexpr float RELATION_DRIFT    = 0.003f;
-        static constexpr float RIVALRY_THRESHOLD = -0.5f;
-        static constexpr float ALLIANCE_THRESHOLD = 0.5f;
+        static constexpr float RELATION_DRIFT       = 0.003f;
+        static constexpr float RIVALRY_THRESHOLD     = -0.5f;
+        static constexpr float RIVALRY_RECOVERY      = -0.3f;
+        static constexpr float ALLIANCE_THRESHOLD    =  0.5f;
         for (auto it = s.relations.begin(); it != s.relations.end(); ) {
             if (!registry.valid(it->first)) {
                 it = s.relations.erase(it);
@@ -97,21 +98,36 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             if (log) {
                 const auto* otherSettl = registry.try_get<Settlement>(it->first);
                 if (otherSettl) {
+                    // Rivalry onset: crosses below -0.5
                     if (it->second <= RIVALRY_THRESHOLD && !m_loggedRivalries.count(key)) {
                         m_loggedRivalries.insert(key);
-                        m_loggedAlliances.erase(key);  // reset alliance state for this pair
+                        m_loggedAlliances.erase(key);
+                        m_loggedRivalryRecovery.erase(key);  // allow recovery log later
                         log->Push(tm.day, (int)tm.hourOfDay,
-                            "Rivalry declared: " + s.name + " vs " + otherSettl->name);
-                    } else if (it->second > RIVALRY_THRESHOLD) {
-                        m_loggedRivalries.erase(key);  // allow re-trigger if they drift hostile again
+                            "RIVALRY: " + s.name + " and " + otherSettl->name +
+                            " relations deteriorate \xe2\x80\x94 tariffs imposed");
                     }
+                    // Rivalry recovery: crosses above -0.3 after being in rivalry
+                    if (it->second >= RIVALRY_RECOVERY && m_loggedRivalries.count(key)
+                        && !m_loggedRivalryRecovery.count(key)) {
+                        m_loggedRivalryRecovery.insert(key);
+                        m_loggedRivalries.erase(key);  // allow re-trigger if they drift hostile again
+                        log->Push(tm.day, (int)tm.hourOfDay,
+                            "Relations improving between " + s.name + " and " + otherSettl->name);
+                    } else if (it->second > RIVALRY_THRESHOLD && it->second < RIVALRY_RECOVERY) {
+                        // Between -0.5 and -0.3: keep rivalry flag but no recovery yet
+                    } else if (it->second > RIVALRY_RECOVERY) {
+                        m_loggedRivalries.erase(key);
+                    }
+
+                    // Alliance onset: crosses above +0.5
                     if (it->second >= ALLIANCE_THRESHOLD && !m_loggedAlliances.count(key)) {
                         m_loggedAlliances.insert(key);
-                        m_loggedRivalries.erase(key);  // reset rivalry state for this pair
+                        m_loggedRivalries.erase(key);
                         log->Push(tm.day, (int)tm.hourOfDay,
                             "Alliance formed: " + s.name + " & " + otherSettl->name);
                     } else if (it->second < ALLIANCE_THRESHOLD) {
-                        m_loggedAlliances.erase(key);  // allow re-trigger if they become close again
+                        m_loggedAlliances.erase(key);
                     }
                 }
             }
