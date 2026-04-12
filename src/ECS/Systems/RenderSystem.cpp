@@ -72,6 +72,22 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
 
+    // Morale bar
+    {
+        int labelW = MeasureText("Morale", 11);
+        DrawText("Morale", PX + 8, y + 0, 11, Fade(LIGHTGRAY, 0.7f));
+        int barX = PX + 8 + labelW + 6;
+        int barW = 100, barH = 8;
+        float fill = std::max(0.f, std::min(1.f, panel.morale));
+        Color barCol = (fill >= 0.7f) ? GREEN : (fill >= 0.3f) ? YELLOW : RED;
+        DrawRectangle(barX, y + 1, barW, barH, Fade(DARKGRAY, 0.5f));
+        DrawRectangle(barX, y + 1, (int)(barW * fill), barH, barCol);
+        char pctBuf[8];
+        std::snprintf(pctBuf, sizeof(pctBuf), "%d%%", (int)(fill * 100));
+        DrawText(pctBuf, barX + barW + 4, y + 0, 11, barCol);
+        y += LINE_H;
+    }
+
     // Active event modifier (if any)
     if (!panel.modifierName.empty()) {
         char modBuf[64];
