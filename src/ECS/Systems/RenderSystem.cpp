@@ -24,14 +24,21 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     DrawRectangleLines(PX, PY, PW, ph, LIGHTGRAY);
 
     // Header with stability bar
-    char headBuf[80];
+    // Split into prefix + pop number + suffix so crowding can tint the pop in ORANGE.
+    bool crowded = (panel.popCap > 0 && panel.pop >= panel.popCap - 2);
+    char headPfx[80], headPop[16], headSfx[32];
+    std::snprintf(headPfx, sizeof(headPfx), "%s  [", panel.name.c_str());
+    std::snprintf(headPop, sizeof(headPop), "%d/%d", panel.pop, panel.popCap);
     if (panel.childCount > 0)
-        std::snprintf(headBuf, sizeof(headBuf), "%s  [%d/%d pop, %d child]",
-                      panel.name.c_str(), panel.pop, panel.popCap, panel.childCount);
+        std::snprintf(headSfx, sizeof(headSfx), " pop, %d child]", panel.childCount);
     else
-        std::snprintf(headBuf, sizeof(headBuf), "%s  [%d/%d pop]",
-                      panel.name.c_str(), panel.pop, panel.popCap);
-    DrawText(headBuf, PX + 8, PY + 6, 14, YELLOW);
+        std::snprintf(headSfx, sizeof(headSfx), " pop]");
+    int hx = PX + 8;
+    DrawText(headPfx, hx, PY + 6, 14, YELLOW);
+    hx += MeasureText(headPfx, 14);
+    DrawText(headPop, hx, PY + 6, 14, crowded ? ORANGE : YELLOW);
+    hx += MeasureText(headPop, 14);
+    DrawText(headSfx, hx, PY + 6, 14, YELLOW);
 
     // Morale bar (right side of header) — shows settlement social health
     // Green = high morale (+10% prod), Yellow = neutral, Red = unrest (-15% prod)
