@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC morale comment in tooltip** — Show mood comment based on contentment in HUD.cpp tooltip.
-
 ## Recently Done
+
+- [x] **NPC morale comment in tooltip** — "Mood: Content/Getting by/Struggling/Desperate" line in HUD tooltip, color-coded GREEN/YELLOW/ORANGE/RED by contentment.
+
 
 - [x] **Settlement population graph in stockpile panel** — Replaced bar chart with line graph (GREEN growth, RED decline segments, white dots) in RenderSystem::DrawStockpilePanel.
 
@@ -1398,7 +1399,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   width) showing population over time. Use GREEN for growth segments, RED for decline. Already
   have `popHistory` in StockpilePanel — just need the rendering code. Draw below the resident list.
 
-- [ ] **NPC morale comment in tooltip** — When hovering an NPC, show a one-line mood comment
+- [x] **NPC morale comment in tooltip** — When hovering an NPC, show a one-line mood comment
   based on contentment: >0.8 "Content", 0.5-0.8 "Getting by", 0.3-0.5 "Struggling", <0.3
   "Desperate". Add to the tooltip line sequence in `HUD.cpp`'s agent tooltip section. Use matching
   colors (GREEN/YELLOW/ORANGE/RED). No new data needed — contentment already in AgentEntry.
@@ -2819,3 +2820,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   is inside the population chart area, show the exact population value for the nearest data point.
   Use `GetMousePosition()` to find the closest X coordinate, then draw a small tooltip box with
   "Day N: pop X" near the cursor. Uses existing `popHistory` data — no new snapshot fields needed.
+
+- [ ] **Mood-based NPC idle chatter** — In `AgentDecisionSystem`'s idle gossip/greeting block,
+  use the NPC's contentment to select different chat messages. When `contentment > 0.8`, log
+  cheerful remarks ("[NPC] hums a tune at [settlement]"). When `contentment < 0.3`, log
+  complaints ("[NPC] grumbles about conditions at [settlement]"). Rate-limit with existing
+  `greetCooldown` on `DeprivationTimer`. Uses `Needs` to compute contentment inline (same
+  weighted average as SimThread::WriteSnapshot). Creates emotionally varied social chatter.
+
+- [ ] **Mood contagion between neighbours** — In `AgentDecisionSystem`'s idle block, when two
+  NPCs are within 30u and both idle, blend their contentment slightly: the happier NPC loses
+  0.01 contentment, the sadder gains 0.01 (clamped 0-1). Modify `Needs` values directly by
+  nudging the lowest need of the sad NPC up by 0.01. Rate-limit to once per 6 game-hours per
+  pair (use `greetCooldown`). Log once: "[NPC] cheered up [NPC] at [settlement]." Creates
+  emergent social support networks where happy NPCs stabilise struggling neighbours.
