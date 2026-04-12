@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bankruptcy countdown in tooltip** — Show estimated hours until bankruptcy for
-  near-bankrupt haulers. Add bankruptProgress to Hauler and AgentEntry.
-
 ## Recently Done
+
+- [x] **Bankruptcy countdown in tooltip** — Shows "~Xh left" countdown for near-bankrupt haulers.
 
 - [x] **Hauler return trip line** — Gray return-trip line drawn for haulers heading home.
 
@@ -787,7 +786,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   from `HomeSettlement` position in SimThread). Shows both outbound (coloured) and return
   (gray) trade flow.
 
-- [ ] **Bankruptcy countdown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
+- [x] **Bankruptcy countdown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
   `best->nearBankrupt` is true, also show "Bankrupt in: ~Xh" estimating remaining time.
   Add `float bankruptTimer = 0.f` to `AgentEntry` in `RenderSnapshot.h`, populated from
   `Hauler::nearBankrupt` flag plus the static timer in EconomicMobilitySystem. Since the timer
@@ -2042,3 +2041,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   20px). When 3+ NPCs cluster within 25px at night, log "Tavern gathering at X" once per
   night per settlement. Use `static std::map<entt::entity, int> s_tavernDay` to track last
   logged day. Adds emergent social atmosphere without new components.
+
+- [ ] **NPC grudge after theft** — When an NPC steals food/water (in `ConsumptionSystem.cpp`),
+  nearby NPCs within 30px who witness the theft develop a grudge. Add `entt::entity grudgeTarget
+  = entt::null` and `float grudgeTimer = 0.f` to `DeprivationTimer` in `Components.h`. Witness
+  NPCs set grudgeTarget to the thief; grudgeTimer decays at 0.1/game-hour. While grudgeTimer > 0,
+  the witness refuses to share charity with the thief (checked in the charity block of
+  `AgentDecisionSystem.cpp`). Log "X witnessed Y stealing at Z" once per theft event.
+
+- [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`, when an elder (age > 60) is
+  idle at night (hours 20–22) and 2+ younger NPCs are within 30px, 10% chance per game-hour
+  to log "Elder X tells stories to youngsters at Y." Listening NPCs get +0.02 contentment.
+  Rate-limit per elder to once per 24h via `static std::map<entt::entity, int> s_storyDay`.
+  Creates intergenerational social texture.
