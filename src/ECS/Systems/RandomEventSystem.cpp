@@ -421,10 +421,15 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                             const char* needName =
                                 (dt.illnessNeedIdx == 0) ? "hunger" :
                                 (dt.illnessNeedIdx == 1) ? "thirst" : "fatigue";
-                            char buf[100];
+                            const char* settName = "the wilds";
+                            if (const auto* hs = registry.try_get<HomeSettlement>(e))
+                                if (hs->settlement != entt::null && registry.valid(hs->settlement))
+                                    if (const auto* stt = registry.try_get<Settlement>(hs->settlement))
+                                        settName = stt->name.c_str();
+                            char buf[120];
                             std::snprintf(buf, sizeof(buf),
-                                "%s fell ill (%s doubled for %dh)",
-                                name.value.c_str(), needName, (int)ILLNESS_DURATION);
+                                "%s fell ill (%s doubled for %dh) at %s",
+                                name.value.c_str(), needName, (int)ILLNESS_DURATION, settName);
                             log->Push(tm.day, (int)tm.hourOfDay, buf);
                         }
                     }
