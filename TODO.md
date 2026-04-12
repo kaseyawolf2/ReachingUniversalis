@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill reset on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, when a profession change occurs (new type differs from old), halve the old primary
+  skill and boost the new primary skill by 10% (capped at 1.0). For example, an ex-Farmer who
+  becomes a Lumberjack loses half their farming skill and gets +0.1 woodcutting. Use
+  `try_get<Skills>` and the old/new `ProfessionForResource` to identify which skill to adjust.
+  Models the cost of retraining in a new trade.
+
 - [x] **Profession shown in migration log** — Added arrival log "X (Farmer) moved to Y" in
   MIGRATING arrival block. Omits profession suffix when Idle or no Profession component.
 
