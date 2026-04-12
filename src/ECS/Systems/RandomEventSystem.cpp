@@ -1,6 +1,7 @@
 #include "RandomEventSystem.h"
 #include "ECS/Components.h"
 #include <algorithm>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -56,8 +57,24 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             bool abundant = (foodIt  != sp->quantities.end() && foodIt->second  >= STOCKPILE_ABUNDANCE) &&
                             (waterIt != sp->quantities.end() && waterIt->second >= STOCKPILE_ABUNDANCE) &&
                             (woodIt  != sp->quantities.end() && woodIt->second  >= STOCKPILE_ABUNDANCE);
-            if (abundant)
+            // One-shot abundance log: fires once per abundance period
+            static std::set<entt::entity> s_loggedAbundance;
+            static constexpr float SCARCITY_RESET = 40.f;
+            if (abundant) {
                 s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt);
+                if (s_loggedAbundance.insert(e).second && log) {
+                    std::string where = s.name;
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        "Prosperity: " + where + " has abundant stores — morale rising.");
+                }
+            } else {
+                // Reset when any stockpile drops below 40 so it can fire again next time
+                bool belowReset = (foodIt  == sp->quantities.end() || foodIt->second  < SCARCITY_RESET) ||
+                                  (waterIt == sp->quantities.end() || waterIt->second < SCARCITY_RESET) ||
+                                  (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_RESET);
+                if (belowReset)
+                    s_loggedAbundance.erase(e);
+            }
         }
 
         // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
