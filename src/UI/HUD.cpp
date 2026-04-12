@@ -724,6 +724,17 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showProfit = true;
     }
 
+    // Hauler route distance
+    bool showRoute = false;
+    char routeLine[64] = {};
+    if (isHauler && best->hasRouteDest) {
+        float dx = best->destX - best->x;
+        float dy = best->destY - best->y;
+        float dist = std::sqrt(dx * dx + dy * dy) / 100.f;
+        std::snprintf(routeLine, sizeof(routeLine), "Route: %.1fkm", dist);
+        showRoute = true;
+    }
+
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
     const char* illLabel = nullptr;
     if (best->ill) {
@@ -773,6 +784,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
     if (showProfit)   lineCount++;
+    if (showRoute)    lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -795,7 +807,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wr  = showRumour  ? MeasureText(rumourLine,              11) : 0;
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr}) + 10;
+    int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -850,7 +863,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); ly += 16; }
-    if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          }
+    if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
+    if (showRoute)  { DrawText(routeLine,           tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); }
 }
 
 // ---- Facility hover tooltip ----
