@@ -1377,9 +1377,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             // Set helper cooldown
             auto* helperTmr = registry.try_get<DeprivationTimer>(helper.entity);
             if (helperTmr) helperTmr->charityTimer = CHARITY_COOLDOWN;
-            // Charity boosts reputation
-            if (auto* rep = registry.try_get<Reputation>(helper.entity))
-                rep->score += 0.1f;
+            // Charity boosts reputation (+0.2 per act of generosity)
+            {
+                auto& rep = registry.get_or_emplace<Reputation>(helper.entity);
+                rep.score += 0.2f;
+            }
             helper.canHelp = false;   // don't help a second NPC this frame
 
             // Warmth "warm glow" buff: giving charity raises the helper's Heat need slightly.
