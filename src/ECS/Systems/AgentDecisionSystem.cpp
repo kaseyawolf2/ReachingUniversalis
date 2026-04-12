@@ -554,6 +554,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             state.behavior = AgentBehavior::Idle;
             state.target   = entt::null;
 
+            // ---- Chat timer: NPC is mid-conversation, stay still ----
+            if (timer.chatTimer > 0.f) {
+                timer.chatTimer -= dt;
+                vel.vx = vel.vy = 0.f;
+                continue;
+            }
+
             // ---- Evening gathering (hours 18–21) ----
             // Idle NPCs drift toward their home settlement centre at dusk,
             // making the world visually alive: people return home in the evening.
@@ -567,6 +574,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     MoveToward(vel, pos, homePos.x, homePos.y, speed * 0.6f);
                 } else {
                     vel.vx = vel.vy = 0.f;
+
+                    // ---- Idle chat: pair up with a nearby Idle neighbour ----
+                    // When gathered at home and not chatting, scan for another Idle NPC
+                    // from the same settlement within 25 units. Stop both for 30–60 game-seconds.
+                    static constexpr float CHAT_RADIUS   = 25.f;
+                    static std::uniform_real_distribution<float> s_chatDist(30.f, 60.f);
+                    static std::mt19937 s_chatRng{ std::random_device{}() };
+
+                    registry.view<AgentState, Position, HomeSettlement, DeprivationTimer>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>)
+                        .each([&](auto other, AgentState& oState, const Position& oPos,
+                                  const HomeSettlement& oHome, DeprivationTimer& oTimer) {
+                        if (other == entity) return;
+                        if (oHome.settlement != home.settlement) return;
+                        if (oState.behavior != AgentBehavior::Idle) return;
+                        if (oTimer.chatTimer > 0.f) return;  // already chatting
+                        float cdx = oPos.x - pos.x, cdy = oPos.y - pos.y;
+                        if (cdx*cdx + cdy*cdy > CHAT_RADIUS * CHAT_RADIUS) return;
+                        // Found a chat partner — stop both for a random duration
+                        float dur = s_chatDist(s_chatRng);
+                        timer.chatTimer  = dur;
+                        oTimer.chatTimer = dur;
+                    });
                 }
             } else {
                 vel.vx = vel.vy = 0.f;

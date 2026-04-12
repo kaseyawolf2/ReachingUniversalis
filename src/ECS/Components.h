@@ -134,6 +134,7 @@ struct DeprivationTimer {
     float                gratitudeTimer  = 0.f;          // real-seconds remaining; > 0 → doing gratitude walk
     float                banditPovertyTimer = 0.f;       // game-hours as homeless exile with balance < 2g → bandit at 48h
     float                strikeDuration     = 0.f;       // game-hours remaining on work stoppage (0 = can work normally)
+    float                chatTimer          = 0.f;       // game-seconds remaining in evening chat stop (0 = free to move)
     float                personalEventTimer = 0.f;       // game-hours until next personal event (randomised per NPC)
     float                illnessTimer       = 0.f;       // game-hours remaining for minor illness (2× drain on one need)
     int                  illnessNeedIdx     = 0;         // which need index (0=Hunger,1=Thirst,2=Energy) is ill
