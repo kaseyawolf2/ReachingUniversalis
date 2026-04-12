@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
+  complete in `AgentDecisionSystem`), update their `Profession` component to match the new
+  settlement's primary output facility. Use the same `ProfessionForResource` helper from
+  Components.h. This reflects NPCs adapting to their new community's trade over time.
+
 ---
 
 ## Done
@@ -157,11 +162,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Elder deathbed savings inheritance** — `DeathSystem.cpp` inheritance block: `try_get<Age>`
   in the per-death loop; if `age->days > 60`, uses 0.8f fraction instead of 0.5f. Logs
   "X left an estate of Ng to Settlement." for estates ≥ 10g.
-
-- [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
-  complete in `AgentDecisionSystem`), update their `Profession` component to match the new
-  settlement's primary output facility. Use the same `ProfessionForResource` helper from
-  Components.h. This reflects NPCs adapting to their new community's trade over time.
 
 - [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
