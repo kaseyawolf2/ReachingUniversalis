@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
+  dies of old age, increase the inheritance fraction from the default 0.5 to 0.8 (elders have had
+  more time to save). Add an `isElder` check before the `INHERITANCE_FRACTION` constant usage in
+  the old-age death block and use 0.8f when true. Log: "Aldric Smith (elder) left an estate of
+  45g to Ashford." Requires no new components.
+
 - [x] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
   available in `SettlementStatus`. Format: "[12/35 pop +]" or "[12/35 pop -]". Uses plain '+'
