@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit bounty board** — Settlements accumulate bountyPool (0.5g/hr per adjacent bandit); player collects on confrontation.
+
 ## Recently Done
 
 - [x] **Road danger colour on world map** — Orange for 1-2 bandits, red for 3+. Overrides condition-based colouring.
