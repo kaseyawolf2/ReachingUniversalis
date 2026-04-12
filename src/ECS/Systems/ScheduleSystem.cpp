@@ -200,7 +200,13 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             if (dt->strikeDuration > 0.f) {
                 float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
                 dt->strikeDuration = std::max(0.f, dt->strikeDuration - gameHoursDt);
-                onStrike = true;
+                if (dt->strikeDuration > 0.f) {
+                    onStrike = true;
+                } else {
+                    // Strike just ended — nudge home settlement morale up
+                    if (auto* sett = registry.try_get<Settlement>(home.settlement))
+                        sett->morale = std::min(1.f, sett->morale + 0.05f);
+                }
             }
         }
 
