@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC flee from bandits** — Nearby non-bandit NPCs panic-flee when a bandit steals from a hauler. Add panicTimer to DeprivationTimer.
+
 ## Recently Done
 
 - [x] **Reputation loss from theft** — -0.5 via get_or_emplace<Reputation> in both food and water theft blocks of ConsumptionSystem.
