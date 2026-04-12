@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rumour carrier visible in tooltip** — Add `bool hasRumour = false` and
-  `std::string rumourLabel` to `AgentEntry` in `RenderSnapshot.h`. In SimThread's agent snapshot
-  loop, check `registry.try_get<Rumour>(e)` and if present set `hasRumour = true` and
-  `rumourLabel = "plague" / "drought" / "bandits"`. In `HUD::DrawHoverTooltip`, when `hasRumour`,
-  draw a faint yellow "(spreading: plague)" line below the needs line.
+(none)
 
 ## Recently Done
+
+- [x] **Rumour carrier visible in tooltip** — Shows "(spreading: plague/drought/bandits)" in faint yellow.
 
 - [x] **Profession match indicator on world dot** — Gold ring (radius 5) on working NPCs in vocation.
 
@@ -533,12 +531,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Profession match indicator on world dot** — Gold ring on working NPCs in vocation.
 
-- [ ] **Rumour carrier visible in tooltip** — Add `bool hasRumour = false` and
-  `std::string rumourLabel` to `AgentEntry` in `RenderSnapshot.h`. In SimThread's agent snapshot
-  loop, check `registry.try_get<Rumour>(e)` and if present set `hasRumour = true` and
-  `rumourLabel = "plague" / "drought" / "bandits"`. In `HUD::DrawHoverTooltip`, when `hasRumour`,
-  draw a faint yellow "(spreading: plague)" line below the needs line. Makes rumour-carrying NPCs
-  identifiable to the player as they wander between settlements.
+- [x] **Rumour carrier visible in tooltip** — Shows "(spreading: plague/drought/bandits)" in faint yellow.
 
 - [ ] **Rumour immunity after delivery** — After a rumour's price effect is applied at a
   settlement, mark that settlement "rumour-immune" for 48 game-hours against the same RumourType
@@ -1575,3 +1568,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   while the other has skill < 0.4, boost the learner's `SKILL_GAIN_PER_GAME_HOUR` by 50%.
   Requires iterating nearby Working NPCs at the same `ProductionFacility` entity. Add a log
   via `EventLog` when mentorship begins: "Master X is mentoring Y in Farming."
+
+- [ ] **Rumour visual on world dot** — In `GameState.cpp`'s agent draw loop (line ~332), when
+  `AgentEntry::hasRumour` is true, draw a small pulsing yellow ring (radius 7, alpha
+  `0.3 + 0.2*sin(time*4)`) around the NPC dot. This makes rumour carriers visually distinct on
+  the world map without needing to hover each NPC individually.
+
+- [ ] **Rumour hop count in tooltip** — Add `int rumourHops = 0` to `AgentEntry` in
+  `RenderSnapshot.h`. Populate from `Rumour::hops` in SimThread's agent snapshot loop. In
+  `HUD::DrawHoverTooltip`, extend the rumour line to show "(spreading: plague, 2 hops left)".
+  This lets the player gauge how far the rumour can still travel.
