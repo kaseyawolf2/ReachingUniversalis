@@ -9,11 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession change on migration** — When an NPC arrives at a new settlement (migration
-  complete in `AgentDecisionSystem`), update their `Profession` component to match the new
-  settlement's primary output facility. Use the same `ProfessionForResource` helper from
-  Components.h. This reflects NPCs adapting to their new community's trade over time.
-
 ---
 
 ## Done
@@ -162,6 +157,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Elder deathbed savings inheritance** — `DeathSystem.cpp` inheritance block: `try_get<Age>`
   in the per-death loop; if `age->days > 60`, uses 0.8f fraction instead of 0.5f. Logs
   "X left an estate of Ng to Settlement." for estates ≥ 10g.
+
+- [x] **Profession change on migration** — `AgentDecisionSystem.cpp` MIGRATING arrival block:
+  after memory update, views `ProductionFacility` to find the settlement's primary facility
+  (highest `baseRate`), then sets `Profession::type = ProfessionForResource(pf.output)`.
+  Guarded by `try_get<Profession>` so NPCs without the component are skipped.
 
 - [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
@@ -427,13 +427,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the old-age death block and use 0.8f when true. Log: "Aldric Smith (elder) left an estate of
   45g to Ashford." Requires no new components.
 
-- [ ] **Profession change on migration** — In `AgentDecisionSystem.cpp`, when an NPC arrives at
-  a new settlement (migration complete: within `SETTLE_RANGE` of `state.target`), update their
-  `Profession` component to match the new settlement's primary output facility. Find the primary
-  facility via `registry.view<ProductionFacility>().each(...)` filtering by `settlement == dest`
-  and pick the one with the highest `baseRate`. Use `ProfessionForResource(fac.output)` from
-  Components.h. No new components needed.
-
 - [ ] **Contentment milestone log** — In `RandomEventSystem`'s per-NPC event loop, track a
   `contentmentMilestone` bool in a static per-entity `std::set<entt::entity> s_lowLogged`. When
   NPC contentment drops below 0.2 for the first time (not in set), log "X is desperate at Y"
@@ -457,6 +450,26 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   for all elders (age > 60) homed at each settlement multiplied by 0.8f. In
   `DrawSettlementTooltip` (HUD.cpp), show "Estates: ~Ng" in dim gold when > 0. Gives the player
   a forward-looking economic signal — how much will flow into treasury when elders die.
+
+- [ ] **Profession shown in migration log** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, after setting the new profession, append it to the existing migration log message.
+  Currently the log reads "Mira moved to Thornvale". Change it to "Mira (Farmer) moved to
+  Thornvale" by reading `ProfessionLabel(prof->type)` after updating `prof->type`. If the NPC
+  has no Profession component, omit the suffix. No new fields or components needed.
+
+- [ ] **Skill reset on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, when a profession change occurs (new type differs from old), halve the old primary
+  skill and boost the new primary skill by 10% (capped at 1.0). For example, an ex-Farmer who
+  becomes a Lumberjack loses half their farming skill and gets +0.1 woodcutting. Use
+  `try_get<Skills>` and the old/new `ProfessionForResource` to identify which skill to adjust.
+  Models the cost of retraining in a new trade.
+
+- [ ] **Migrant welcome log at destination** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, after the profession update, push a second log entry from the destination settlement's
+  perspective: "Ashford welcomes Mira Reed (Farmer) — pop now 14." Read the new pop count by
+  iterating `HomeSettlement` views (as in other systems) or use the settlement's existing
+  `popCap`/current-pop from prior computation. Use `registry.view<EventLog>()` the same way
+  as the departure log.
 
 ---
 
