@@ -9,10 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder will tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for elders (ageDays >
-  60 and hasName), append a faint line "Will: 80% to treasury" in `Fade(GOLD, 0.5f)` below the
-  gold balance line. This surfaces the inheritance mechanic to the player via the UI. Read
-  `ageDays` from `AgentEntry` (already present). No new snapshot fields needed.
+- [x] **Elder will tooltip line** — Added "Will: 80% to treasury" in Fade(GOLD, 0.5f) for
+  elders with gold in the NPC hover tooltip.
 
 - [x] **Estate log on need-death too** — Already works: the inheritance block iterates all
   `toRemove` entities (both old-age and need-deprivation deaths). Verified.
@@ -477,10 +475,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Estate log on need-death too** — Already works: inheritance block iterates all `toRemove`.
 
-- [ ] **Elder will tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for elders (ageDays >
-  60 and hasName), append a faint line "Will: 80% to treasury" in `Fade(GOLD, 0.5f)` below the
-  gold balance line. This surfaces the inheritance mechanic to the player via the UI. Read
-  `ageDays` from `AgentEntry` (already present). No new snapshot fields needed.
+- [x] **Elder will tooltip line** — Added "Will: 80% to treasury" in Fade(GOLD, 0.5f) for
+  elders with gold in the NPC hover tooltip.
 
 - [ ] **Estate size shown in settlement tooltip** — Add `float pendingEstates = 0.f` to
   `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, sum `money->balance`
@@ -1461,3 +1457,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "X died of hunger at Y" / "X died of thirst at Y" / "X died of exposure at Y". Check which
   need in `Needs::list` is at 0 (the lethal one) and map index 0→hunger, 1→thirst, 2→exhaustion,
   3→exposure. If multiple are at 0, pick the first.
+
+- [ ] **NPC aging speed tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for NPCs with
+  `ageDays > 0`, show remaining lifespan estimate: "~N days left" calculated as
+  `(int)(best->maxDays - best->ageDays)`. Display in Fade(LIGHTGRAY, 0.6f) after the age line.
+  For elders (ageDays > 60), color it Fade(RED, 0.5f) to signal urgency. No new snapshot fields.
+
+- [ ] **Hauler idle timer log** — In `TransportSystem.cpp`, track how many consecutive game-hours
+  a hauler has been in `HaulerState::Idle` without finding a route. Add `float idleHours = 0.f`
+  to `Hauler` component in `Components.h`. Increment by `gameHoursDt` when idle, reset to 0 on
+  state transition. When `idleHours > 8.f`, log "Hauler X idle for 8h — no profitable routes"
+  once (use a bool guard `idleLogged`). Reset guard on state change.
