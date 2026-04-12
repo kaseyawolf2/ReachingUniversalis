@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
+  drift already runs), add threshold-crossing logs. When `A.relations[B]` crosses below -0.5 for
+  the first time, log "RIVALRY: X and Y relations deteriorate — tariffs imposed (+10%)". When it
+  rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
+  crossing approach as `Settlement::unrest`. This makes rivalry formation a visible story beat.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
