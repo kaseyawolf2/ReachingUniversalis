@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit bounty board** — Settlements accumulate bountyPool (0.5g/hr per adjacent bandit); player collects on confrontation.
-
 ## Recently Done
+
+- [x] **Bandit bounty board** — Settlement::bountyPool accumulates 0.5g/hr per adjacent bandit (from treasury). Paid to player on confrontation with log.
+
 
 - [x] **Road danger colour on world map** — Orange for 1-2 bandits, red for 3+. Overrides condition-based colouring.
 
@@ -1149,7 +1150,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   bandit presence. Use `RoadEntry::banditCount`: 0 = normal grey, 1-2 = Fade(ORANGE, 0.5f),
   3+ = Fade(RED, 0.6f). Gives immediate visual feedback about road safety without hovering.
 
-- [ ] **Bandit bounty board** — When a settlement has bandits on an adjacent road, NPCs at that
+- [x] **Bandit bounty board** — When a settlement has bandits on an adjacent road, NPCs at that
   settlement accumulate a `bountyPool` (add `float bountyPool = 0.f` to `Settlement` component).
   Each game-hour, each settlement adds 0.5g per adjacent-road bandit to the pool. When the player
   confronts a bandit on a road adjacent to a settlement with bountyPool > 0, they receive the pool
@@ -1195,6 +1196,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   total on connected roads) show a faint red exclamation mark above the settlement name on the
   world map. In `GameState::Draw`'s settlement loop, sum `banditCount` from all roads where
   `nameA == settlement.name || nameB == settlement.name`; if total >= 3, draw the indicator.
+
+- [ ] **Bounty pool shown in stockpile panel** — Add `float bountyPool = 0.f` to
+  `RenderSnapshot::StockpilePanel`. In `SimThread::WriteSnapshot`'s stockpile panel section, copy
+  `Settlement::bountyPool` into the panel. In `HUD::DrawStockpilePanel`, show "Bounty: Xg" in
+  faint GOLD below the treasury line when bountyPool > 0. Lets players know which settlements
+  are worth patrolling for bounty payouts.
+
+- [ ] **Bounty pool shown in settlement tooltip** — Add `float bountyPool = 0.f` to
+  `RenderSnapshot::SettlementStatus`. In `SimThread::WriteSnapshot`'s worldStatus block, copy
+  `Settlement::bountyPool`. In `HUD::DrawWorldStatus` settlement tooltip, show "Bounty: Xg" in
+  faint GOLD when bountyPool > 0.5. Quick glance at which towns are offering bounties.
+
+- [ ] **NPC migration considers bandit danger** — In `AgentDecisionSystem`'s `FindMigrationTarget`
+  (or migration trigger block), penalize settlements connected by bandit-heavy roads. For each
+  candidate settlement, sum `banditCount` on its connecting roads; apply a -5% migration score
+  penalty per bandit. NPCs prefer safer destinations. Affects the `MigrationMemory`-based scoring.
 
 ---
 
