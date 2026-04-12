@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Reputation loss from theft** — Subtract 0.5 from thief's Reputation in ConsumptionSystem theft block.
+
 ## Recently Done
 
 - [x] **Reputation gain from charity** — +0.2 via get_or_emplace<Reputation> in AgentDecisionSystem charity block. Creates component if missing.
