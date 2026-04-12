@@ -9,11 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hunger crisis indicator in world status** — In `DrawWorldStatus` (HUD.cpp), if any NPC at
-  a settlement has `hungerPct < 0.15f` (near starvation), add a small "!" warning after the food
-  stock. Track via a new `bool hungerCrisis` field in `SettlementStatus` (RenderSnapshot.h) set
-  in SimThread's world-status loop using `m_registry.view<HomeSettlement, Needs>`. Draw the "!"
-  in RED tint immediately after the food number.
+- [x] **Hunger crisis indicator in world status** — Added `bool hungerCrisis` to `SettlementStatus`
+  (RenderSnapshot.h). SimThread checks any homed NPC with `Needs::list[0].value < 0.15f`.
+  HUD draws a red "!" immediately after the food number using `MeasureText` on a prefix string.
 
 ---
 
@@ -137,46 +135,28 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### Settlement Social Dynamics
 
-- [ ] **Population cap shown in stockpile panel header** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), the header currently shows "[12/35 pop, 3 child]" (popCap already wired in).
-  Verify `StockpilePanel::popCap` is being written by SimThread (check WriteSnapshot around the
-  panel block), and if the cap is being hit (pop >= popCap - 2), tint the pop number in ORANGE to
-  signal crowding. No new fields needed — just a colour change based on existing data.
+- [x] **Population cap shown in stockpile panel header** — `popCap` was already wired. Split header
+  into prefix + pop-number + suffix `DrawText` calls. Pop drawn in ORANGE when `pop >= popCap - 2`.
 
-- [ ] **Wandering orphan re-settlement** — Children with `ChildTag` and no `HomeSettlement`
-  (orphans) should autonomously seek a new home. In `AgentDecisionSystem`, after the existing
-  migration logic, add a check: if the entity has `ChildTag`, `!HomeSettlement` (or
-  `hs.settlement == entt::null`), and is within 200 units of any settlement with available pop
-  capacity, assign that settlement as their new `HomeSettlement`. Log: "Orphan Aldric found a
-  new home at Thornvale."
+- [x] **Wandering orphan re-settlement** — Separate pass in `AgentDecisionSystem::Update` after
+  the main NPC loop. Orphans (ChildTag + null HomeSettlement) seek nearest settlement within
+  200 units with available capacity. Moves via `Migrating` state; logs on arrival.
 
-- [ ] **Collapse cooldown — settlement ruins** — After a settlement collapses (enters
-  `m_collapsed` in DeathSystem), set a `Settlement::ruinTimer = 300.f` game-hours. While
-  `ruinTimer > 0`, the settlement cannot have new births (check in `BirthSystem`) and the
-  settlement dot renders in DARKGRAY in `GameState.cpp`. Drain `ruinTimer` by `gameDt` in
-  `DeathSystem`. Gives a natural recovery period before repopulation.
+- [x] **Collapse cooldown — settlement ruins** — `Settlement::ruinTimer = 300.f` set on collapse
+  in DeathSystem (also drains timer there). BirthSystem checks `ruinTimer <= 0`. Ring renders in
+  GRAY (lighter than DARKGRAY) while ruin timer > 0. `SettlementEntry::ruinTimer` carries it.
 
-- [ ] **Orphan count in collapse log** — In `DeathSystem`'s orphan-scatter block, include the
-  orphan count in both log messages: change "Orphaned children of Ashford scattered." to
-  "3 children of Ashford orphaned and scattered." This requires counting orphans before the
-  loop (or using the already-counted `orphanCount` to format the string more expressively).
+- [x] **Orphan count in collapse log** — `DeathSystem.cpp`: log now reads "N children of X
+  orphaned and scattered." using `snprintf` with `orphanCount` (already computed in the loop).
 
-- [ ] **Apprentice tooltip badge** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role/name
-  line, when an NPC has `ChildTag` AND `ageDays >= 12` (check `AgentEntry::ageDays`), append
-  " [Apprentice]" in dim yellow to the role label, or as a separate line below the "Child" label.
-  No new components or snapshot fields needed — `ageDays` is already in `AgentEntry`.
+- [x] **Apprentice tooltip badge** — `HUD::DrawHoverTooltip`: appends " [Apprentice]" in
+  `Fade(YELLOW, 0.6f)` after the age line text when `role == Child && ageDays >= 12`.
 
-- [ ] **Graduation announcement shows skill** — In `ScheduleSystem.cpp`'s graduation block,
-  after the "came of age" log is pushed, also append the new adult's highest skill and its value:
-  "Aldric Smith came of age at Ashford (raised by Brom Cooper) — best skill: Farming 38%".
-  Read the `Skills` component just before removing `ChildTag`; find the highest value and its
-  label. No new components needed.
+- [x] **Graduation announcement shows skill** — `ScheduleSystem.cpp` graduation block: appends
+  " — best skill: Farming 38%" using `try_get<Skills>`, comparing the three skill floats.
 
-- [ ] **Elder count in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp), after
-  the population line, add an "Elders: N (+X% prod)" line when any elders are present at the
-  settlement. Add `int elderCount = 0` and `float elderBonus = 0.f` to `SettlementStatus` in
-  `RenderSnapshot.h`; populate in SimThread's world-status loop using `age->days > 60.f`; display
-  in the tooltip in grey with the bonus percentage.
+- [x] **Elder count in settlement tooltip** — `elderCount`/`elderBonus` added to `SettlementStatus`.
+  SimThread counts via `try_get<Age>`. Tooltip shows "Elders: N (+X% prod)" in orange.
 
 - [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
   dies of old age, increase the inheritance fraction from 0.5 to 0.8 (elders have more time to
@@ -445,6 +425,25 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
   available in `SettlementStatus`. Format: "[12/35 pop ↑]" or "[12/35 pop ↓]". Use plain '+'
   and '-' ASCII since raylib's default font may not render arrow glyphs.
+
+- [ ] **Elder deathbed savings inheritance** — In `DeathSystem.cpp`, when an elder (age > 60)
+  dies of old age, increase the inheritance fraction from the default 0.5 to 0.8 (elders have had
+  more time to save). Add an `isElder` check before the `INHERITANCE_FRACTION` constant usage in
+  the old-age death block and use 0.8f when true. Log: "Aldric Smith (elder) left an estate of
+  45g to Ashford." Requires no new components.
+
+- [ ] **Profession change on migration** — In `AgentDecisionSystem.cpp`, when an NPC arrives at
+  a new settlement (migration complete: within `SETTLE_RANGE` of `state.target`), update their
+  `Profession` component to match the new settlement's primary output facility. Find the primary
+  facility via `registry.view<ProductionFacility>().each(...)` filtering by `settlement == dest`
+  and pick the one with the highest `baseRate`. Use `ProfessionForResource(fac.output)` from
+  Components.h. No new components needed.
+
+- [ ] **Contentment milestone log** — In `RandomEventSystem`'s per-NPC event loop, track a
+  `contentmentMilestone` bool in a static per-entity `std::set<entt::entity> s_lowLogged`. When
+  NPC contentment drops below 0.2 for the first time (not in set), log "X is desperate at Y"
+  and insert into set. When contentment recovers above 0.5, remove from set (so the message can
+  fire again later). This avoids log spam while ensuring desperate NPCs are surfaced once.
 
 ---
 
