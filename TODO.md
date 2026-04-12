@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
+- [x] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
   in the stockpile panel (detect mouse Y within the section), show a small 2-line tooltip with
   the richest NPC's name and balance, and the poorest's. Use `panel.residents.front()` and
   `panel.residents.back()` already in the snapshot. Draw it in `RenderSystem::DrawStockpilePanel`
@@ -296,7 +296,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   flow away from winter-hit settlements toward warmer-season regions, making seasonal population
   patterns emergent rather than purely price-driven.
 
-- [ ] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
+- [x] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
   in the stockpile panel (detect mouse Y within the section), show a small 2-line tooltip with
   the richest NPC's name and balance, and the poorest's. Use `panel.residents.front()` and
   `panel.residents.back()` already in the snapshot. Draw it in `RenderSystem::DrawStockpilePanel`
@@ -1201,3 +1201,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   log message. Change from "Mira moved to Thornvale" to "Mira moved to Thornvale (Spring)". Read
   season from `TimeManager` already accessible in the Update scope. No new components needed —
   purely enriches the event log narrative.
+
+- [ ] **Wealth inequality indicator in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  after the residents section, compute a Gini-like ratio: `(richest.balance - poorest.balance) /
+  max(1, richest.balance)` from `panel.residents.front()` and `.back()`. Show "Inequality: XX%"
+  in dim text. Color RED when > 0.8 (high inequality), YELLOW > 0.5, GREEN otherwise. No new
+  snapshot fields — computed from existing residents data at render time.
+
+- [ ] **Poorest NPC charity priority** — In `AgentDecisionSystem.cpp`'s charity block, when
+  selecting a charity recipient, prefer the poorest NPC at the settlement rather than the first
+  found. Iterate the `HomeSettlement` view, track the NPC with lowest `Money::balance` that meets
+  the need threshold, and give to them instead. This makes charity targeted rather than random,
+  creating more meaningful wealth redistribution among NPCs.
