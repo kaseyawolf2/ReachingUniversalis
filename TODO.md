@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
+- [x] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
   `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, compute the average
   contentment of homed NPCs (view `Needs, HomeSettlement`, same exclusions as needStability).
   In `HUD::DrawWorldStatus` (HUD.cpp), after the existing pop count, append a small coloured
@@ -360,7 +360,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
   with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
 
-- [ ] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
+- [x] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
   `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, compute the average
   contentment of homed NPCs (view `Needs, HomeSettlement`, same exclusions as needStability).
   In `HUD::DrawWorldStatus` (HUD.cpp), after the existing pop count, append a small coloured
@@ -1292,3 +1292,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `AgentEntry` in RenderSnapshot.h, set in SimThread by comparing against the eldest tracked
   per settlement), show "Settlement elder — respected" in `Fade(ORANGE, 0.7f)` below the age
   line. Surfaces the eldest mechanic to the hover tooltip without cluttering the panel.
+
+- [ ] **Contentment trend arrow in status bar** — In `HUD::DrawWorldStatus` (HUD.cpp), after the
+  "C:XX%" contentment label, append a '+' or '-' trend character when contentment changes >5%
+  between snapshots. Add `float prevAvgContentment = 1.f` to `SettlementStatus` in RenderSnapshot.h.
+  Set it in SimThread's world-status loop from a `std::map<entt::entity, float> m_contentPrev`
+  member (same pattern as `m_popPrev`). Draw '+' in GREEN, '-' in RED after the percentage.
+
+- [ ] **Low contentment event trigger** — In `RandomEventSystem::Update`'s settlement loop, when
+  average contentment drops below 0.25 (compute the same way as SimThread: avg of 4 needs across
+  homed NPCs), trigger a "Desperation" event: 30% chance per game-day that a random NPC steals
+  from the stockpile (same logic as existing theft in `AgentDecisionSystem` but triggered by
+  settlement-wide suffering rather than individual need). Log "Desperation theft at [Settlement]."
+  This connects the contentment metric to emergent behavior.
