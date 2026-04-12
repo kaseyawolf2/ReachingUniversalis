@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler graduation gold threshold shown in tooltip** — Show "Hauler at: 100g" progress
-  for NPCs with balance > 50g.
-
 ## Recently Done
+
+- [x] **Hauler graduation gold threshold shown in tooltip** — Shows "Hauler at: 100g" for NPCs approaching graduation.
 
 - [x] **NPC mood emoji in residents list** — Colored mood dot per resident in stockpile panel.
 
@@ -818,7 +817,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`, populate in SimThread. Show a green
   dot (>0.7), yellow dot (>0.4), or red dot (<0.4) after each resident's name line.
 
-- [ ] **Hauler graduation gold threshold shown in tooltip** — In `HUD::DrawHoverTooltip`
+- [x] **Hauler graduation gold threshold shown in tooltip** — In `HUD::DrawHoverTooltip`
   (HUD.cpp), for non-hauler NPCs with balance > 50, show "Hauler at: 100g" (the graduation
   threshold) with a tiny progress bar. Read `GRADUATION_THRESHOLD` value (100g) as a constant.
   Shows NPC's progress toward becoming a hauler. No new snapshot fields — `balance` already
@@ -2097,3 +2096,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   within 100px to `AgentBehavior::Celebrating` for 2 game-hours and give the settlement +0.1
   morale. Log "Settlement X founded — locals celebrate!" Uses existing `AgentState` and
   `Settlement::morale`. No new components needed.
+
+- [ ] **NPC homesickness during migration** — In `AgentDecisionSystem.cpp`'s migration block,
+  when an NPC begins migrating away from their home settlement, 30% chance to log "X leaves
+  Y with a heavy heart." The migrating NPC gets -0.05 contentment. If the NPC's bond with
+  home is strong (lived there > 20 game-days, checked via `Age::days` minus an estimated
+  arrival time), add `float residencyDays = 0.f` to `DeprivationTimer` in `Components.h`,
+  incremented alongside existing timers in `ConsumptionSystem.cpp`.
+
+- [ ] **Charity recipient thank-you log** — In `AgentDecisionSystem.cpp`'s charity block,
+  when charity is successfully given, 40% chance to log "X thanks Y for food/water at Z."
+  Uses existing Name components and settlement lookup. Rate-limit per recipient to once per
+  6 game-hours via `static std::map<entt::entity, float> s_thankCooldown`. Adds warm social
+  texture to the charity mechanic.
