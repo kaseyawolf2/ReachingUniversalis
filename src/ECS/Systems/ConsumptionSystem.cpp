@@ -187,6 +187,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
 
         bool canSteal = (timer.stealCooldown <= 0.f)
                      && (!money || money->balance < 1.f);   // only if broke
+        bool justStole = false;
         if (canSteal) {
             // Steal food if close to dying of hunger
             if (timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
@@ -194,6 +195,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 // Don't refill need — they'll pick it up as consumption next tick
                 timer.stealCooldown = STEAL_COOLDOWN;
                 timer.fleeTimer     = 4.f;   // sprint away for ~4 real seconds
+                justStole = true;
 
                 // Log it
                 auto lv3 = registry.view<EventLog>();
@@ -224,6 +226,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 waterStock -= STEAL_AMOUNT;
                 timer.stealCooldown = STEAL_COOLDOWN;
                 timer.fleeTimer     = 4.f;
+                justStole = true;
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();
                 if (lv3.begin() != lv3.end() && tv3.begin() != tv3.end()) {
@@ -243,6 +246,40 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     sk->farming       = std::max(0.f, sk->farming       - 0.02f);
                     sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
                     sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                }
+            }
+        }
+
+        // ---- Grudge: nearby grateful NPCs see through the thief ----
+        if (justStole) {
+            const auto* thiefPos = registry.try_get<Position>(entity);
+            std::string thiefName = "Someone";
+            if (auto* n = registry.try_get<Name>(entity)) thiefName = n->value;
+            if (thiefPos) {
+                auto dtView = registry.view<DeprivationTimer, Position>();
+                for (auto other : dtView) {
+                    if (other == entity) continue;
+                    auto& otherTimer = dtView.get<DeprivationTimer>(other);
+                    if (otherTimer.gratitudeTarget != entity || otherTimer.gratitudeTimer <= 0.f)
+                        continue;
+                    const auto& otherPos = dtView.get<Position>(other);
+                    float dx = thiefPos->x - otherPos.x;
+                    float dy = thiefPos->y - otherPos.y;
+                    if (dx*dx + dy*dy > 80.f * 80.f) continue;
+                    // Clear gratitude — betrayed trust
+                    otherTimer.gratitudeTimer  = 0.f;
+                    otherTimer.gratitudeTarget = entt::null;
+                    // Log
+                    auto lv4 = registry.view<EventLog>();
+                    auto tv4 = registry.view<TimeManager>();
+                    if (lv4.begin() != lv4.end() && tv4.begin() != tv4.end()) {
+                        const auto& tm4 = tv4.get<TimeManager>(*tv4.begin());
+                        std::string witness = "An NPC";
+                        if (auto* wn = registry.try_get<Name>(other)) witness = wn->value;
+                        lv4.get<EventLog>(*lv4.begin()).Push(
+                            tm4.day, (int)tm4.hourOfDay,
+                            witness + " saw through " + thiefName + "'s gratitude.");
+                    }
                 }
             }
         }
