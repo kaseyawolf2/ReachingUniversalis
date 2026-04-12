@@ -376,6 +376,17 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // Loyalty bonus: 5% extra when delivering to home settlement
+                bool loyaltyApplied = false;
+                if (earned > 0.f) {
+                    auto* hs = registry.try_get<HomeSettlement>(entity);
+                    if (hs && hs->settlement == hauler.targetSettlement) {
+                        float bonus = earned * 0.05f;
+                        earned += bonus;
+                        loyaltyApplied = true;
+                    }
+                }
+
                 // Credit hauler's wallet with net profit
                 if (auto* money = registry.try_get<Money>(entity))
                     if (earned > 0.f) money->balance += earned;
@@ -420,6 +431,13 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                             "Hauler delivered %s to %s (morale +1%%)",
                             cargo.c_str(), destSettl->name.c_str());
                         logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                        if (loyaltyApplied) {
+                            std::string haulerName = "Hauler";
+                            if (auto* nm = registry.try_get<Name>(entity))
+                                haulerName = nm->value;
+                            logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay,
+                                haulerName + " received local loyalty bonus at " + destSettl->name + ".");
+                        }
                     }
                 }
 
