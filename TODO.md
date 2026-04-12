@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale-dependent work speed** — Multiply worker output by morale factor in ProductionSystem.
-
 ## Recently Done
+
+- [x] **Morale-dependent work speed** — Continuous morale factor in ProductionSystem: 1.0 + 0.3*(morale - 0.5).
 
 - [x] **Scarcity log event** — Log "Shortage: X running low on food, water" once per scarcity
   period per resource, using bitmask tracking in RandomEventSystem.cpp.
@@ -650,7 +650,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (bit 0=food, 1=water, 2=wood). Set bit on first trigger, clear when that resource rises above
   20. Keeps scarcity visible in the event log without spam.
 
-- [ ] **Morale-dependent work speed** — In `ProductionSystem.cpp`'s per-worker contribution
+- [x] **Morale-dependent work speed** — In `ProductionSystem.cpp`'s per-worker contribution
   block, multiply worker output by a morale factor: `1.0 + 0.3 * (morale - 0.5)`. At morale
   0.8 workers produce +9%, at 0.2 they produce -9%. Read morale from `try_get<Settlement>` via
   worker's `HomeSettlement`. Makes morale mechanically important beyond cosmetic display.
@@ -706,6 +706,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "X desperate — bought food from Y market at Ng." once per NPC per 12 game-hours. Use a
   `static std::map<entt::entity, float> s_desperateCooldown` drained by gameHoursDt. Shows
   when NPCs are forced into expensive emergency purchases.
+
+- [ ] **Morale factor shown in production tooltip** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
+  append "Morale: +X%" or "Morale: -X%" to the facility tooltip when morale factor differs
+  from 1.0. Add `float morale = 0.5f` to `FacilityEntry` in `RenderSnapshot.h`, populate from
+  `Settlement::morale` via facility's `settlement` field in SimThread. Green when positive,
+  red when negative.
+
+- [ ] **Production output shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`
+  (HUD.cpp), add a line "Output: food X/h, water Y/h" showing the sum of `baseRate * scale`
+  for each facility type at this settlement. Add `float foodRate, waterRate, woodRate` to
+  `SettlementStatus` in `RenderSnapshot.h`, computed in SimThread by iterating
+  `ProductionFacility` components with matching settlement.
 
 ---
 
