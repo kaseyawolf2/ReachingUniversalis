@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **GoodHarvest rumour seeding** — Add `RumourType::GoodHarvest` to Components.h, seed
-  rumour on Harvest Bounty event in RandomEventSystem.cpp, handle arrival price effect (-5%
-  food) and log in AgentDecisionSystem.cpp's spreadRumour lambda.
+(none)
 
 ## Recently Done
+
+- [x] **GoodHarvest rumour seeding** — New RumourType, seeded on Harvest Bounty, -5% food price on arrival.
 
 - [x] **Rumour immunity after delivery** — 48 game-hour timed immunity per origin+type+settlement.
 
@@ -539,12 +539,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Rumour immunity after delivery** — 48 game-hour timed immunity replaces permanent flag.
 
-- [ ] **GoodHarvest rumour seeding** — In `RandomEventSystem.cpp`'s Harvest Bounty event (case 8
-  or the harvest windfall event), after boosting stockpile, attach `Rumour{RumourType::GoodHarvest,
-  target, 3}` to up to 2 NPCs at that settlement (same pattern as plague/drought seeding). In
-  `AgentDecisionSystem.cpp`'s `spreadRumour` lambda, add a case for `GoodHarvest`: when the rumour
-  arrives at a new settlement, boost food price by -5% (discount from expected abundance) and log
-  "Rumour of good harvest reached X." Completes the three-rumour-type system.
+- [x] **GoodHarvest rumour seeding** — New RumourType, seeded on Harvest Bounty, -5% food on arrival.
 
 - [ ] **Illness recovery log** — In `RandomEventSystem::Update`'s per-NPC event loop (which
   already drains `illnessTimer`), when `illnessTimer` transitions from `> 0` to `0` (i.e. it was
@@ -1589,3 +1584,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   bright yellow, 2 = dim yellow, 1 = faint grey. Use `Fade(YELLOW, 0.3f + 0.23f * rumourHops)`
   (requires `rumourHops` from the "Rumour hop count in tooltip" task). Visually conveys rumour
   freshness at a glance.
+
+- [ ] **GoodHarvest rumour migration pull** — In `AgentDecisionSystem.cpp`'s migration scoring
+  (where NPCs evaluate destination settlements), if the NPC carries a `Rumour` with
+  `RumourType::GoodHarvest`, boost the score of the rumour's `origin` settlement by +20%.
+  Makes NPCs hearing about a bountiful harvest more likely to migrate toward it.
+
+- [ ] **Rumour origin name in tooltip** — Add `std::string rumourOrigin` to `AgentEntry` in
+  `RenderSnapshot.h`. Populate from the `Rumour::origin` entity's `Settlement::name` in
+  SimThread's snapshot loop. Extend the rumour tooltip line in `HUD::DrawHoverTooltip` to
+  show "(spreading: good harvest from Ashford)" instead of just "(spreading: good harvest)".
+  Gives the player information about where the rumour originated.
