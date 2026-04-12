@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Illness NPC dot tint** — Blend ill NPC drawColor toward purple in GameState.cpp agent
-  render loop. Only for NPC and Child roles.
+(none)
 
 ## Recently Done
+
+- [x] **Illness NPC dot tint** — Purple tint on sick NPC/Child dots via RGB averaging.
 
 - [x] **Illness recovery log** — Logs "X recovered from illness at Y" on timer-to-zero transition.
 
@@ -546,11 +547,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Illness recovery log** — Logs recovery on illnessTimer transition to zero.
 
-- [ ] **Illness NPC dot tint** — When an NPC has `ill = true` in `AgentEntry` (already added),
-  apply a subtle visual tint in `GameState.cpp`'s agent render loop: blend the existing `drawColor`
-  toward `Fade(PURPLE, 0.5f)` using `ColorLerp` or manual component averaging. Only apply for
-  `AgentRole::NPC` and `AgentRole::Child`; leave haulers and player unchanged. Makes sick NPCs
-  subtly visible on the map without reading their tooltip.
+- [x] **Illness NPC dot tint** — Purple tint on sick NPC/Child dots.
 
 - [ ] **Illness contagion between NPCs** — In `AgentDecisionSystem.cpp`'s gossip proximity check
   (the same `GOSSIP_RADIUS` loop), when two NPCs are close and one has `illnessTimer > 0` while
@@ -1605,3 +1602,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   if the worker has `DeprivationTimer::illnessTimer > 0` (via `try_get<DeprivationTimer>`),
   reduce their production contribution by 40%. This makes illness a tangible economic cost
   beyond just accelerated need drain, creating pressure to keep NPCs healthy.
+
+- [ ] **Illness count in settlement stockpile panel** — Add `int illCount = 0` to `StockpilePanel`
+  in `RenderSnapshot.h`. In SimThread's WriteSnapshot, count homed NPCs with
+  `DeprivationTimer::illnessTimer > 0` for the selected settlement. In `RenderSystem::DrawStockpilePanel`,
+  if `illCount > 0`, append " | Sick: N" to the Treasury/Working/Idle line in `Fade(PURPLE, 0.7f)`.
+
+- [ ] **NPC avoids plague settlement** — In `AgentDecisionSystem.cpp`'s migration destination
+  scoring, if a candidate settlement has `Settlement::modifierName == "Plague"`, apply a -50%
+  penalty to that settlement's attractiveness score. NPCs with `Rumour{PlagueNearby}` referencing
+  that settlement apply an additional -20%. This makes plague a real population driver as healthy
+  NPCs flee afflicted areas.
