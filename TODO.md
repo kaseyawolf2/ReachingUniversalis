@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
+  with `strikeDuration > 0`. In `HUD::DrawHoverTooltip`, if `onStrike`, append a line
+  "On strike" in RED below the behavior line. Helps player understand why workers are idle
+  despite it being a work shift.
+
 ---
 
 ## Done
@@ -171,12 +177,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
-  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
-  with `strikeDuration > 0`. In `HUD::DrawHoverTooltip`, if `onStrike`, append a line
-  "On strike" in RED below the behavior line. Helps player understand why workers are idle
-  despite it being a work shift.
 
 - [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s settlement
   loop, after the morale drift, check if `stockpile` has all three resources above `pop * 2`.
