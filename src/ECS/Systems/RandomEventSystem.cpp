@@ -95,10 +95,20 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             bool foodLow  = (foodIt  == sp->quantities.end() || foodIt->second  < SCARCITY_THRESHOLD);
             bool waterLow = (waterIt == sp->quantities.end() || waterIt->second < SCARCITY_THRESHOLD);
             bool woodLow  = (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_THRESHOLD);
-            // Clear bits when resource recovers above 20
-            if (!foodLow  && foodIt  != sp->quantities.end() && foodIt->second  >= SCARCITY_CLEAR)  mask &= ~1;
-            if (!waterLow && waterIt != sp->quantities.end() && waterIt->second >= SCARCITY_CLEAR)  mask &= ~2;
-            if (!woodLow  && woodIt  != sp->quantities.end() && woodIt->second  >= SCARCITY_CLEAR)  mask &= ~4;
+            // Detect and log recoveries before clearing bits
+            int recovering = 0;
+            if ((mask & 1) && !foodLow  && foodIt  != sp->quantities.end() && foodIt->second  >= SCARCITY_CLEAR) recovering |= 1;
+            if ((mask & 2) && !waterLow && waterIt != sp->quantities.end() && waterIt->second >= SCARCITY_CLEAR) recovering |= 2;
+            if ((mask & 4) && !woodLow  && woodIt  != sp->quantities.end() && woodIt->second  >= SCARCITY_CLEAR) recovering |= 4;
+            if (recovering && log) {
+                std::string resources;
+                if (recovering & 1) resources += "food";
+                if (recovering & 2) { if (!resources.empty()) resources += ", "; resources += "water"; }
+                if (recovering & 4) { if (!resources.empty()) resources += ", "; resources += "wood"; }
+                log->Push(tm.day, (int)tm.hourOfDay,
+                    "Recovery: " + s.name + " " + resources + " stores recovering.");
+            }
+            mask &= ~recovering;
             // Log newly scarce resources
             int newBits = 0;
             if (foodLow  && !(mask & 1)) newBits |= 1;
