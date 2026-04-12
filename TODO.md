@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC family visit behaviour** — Idle NPCs with family at other settlements occasionally visit. visitTimer on DeprivationTimer.
+
 ## Recently Done
 
 - [x] **Bandit threat radius visual** — DrawCircleLinesV at 80u in Fade(RED, 0.2f) when hovering a bandit in GameState::Draw.
