@@ -225,6 +225,19 @@ void GameState::Draw() {
         DrawLineEx({ a.x, a.y }, { a.destX, a.destY }, 1.5f, lineCol);
     }
 
+    // Convoy lines: connect nearby haulers travelling together
+    for (size_t i = 0; i < agents.size(); ++i) {
+        const auto& a = agents[i];
+        if (!a.inConvoy || a.haulerState != 1) continue;
+        for (size_t j = i + 1; j < agents.size(); ++j) {
+            const auto& b = agents[j];
+            if (!b.inConvoy || b.haulerState != 1) continue;
+            float dx = a.x - b.x, dy = a.y - b.y;
+            if (dx * dx + dy * dy > 60.f * 60.f) continue;
+            DrawLineEx({ a.x, a.y }, { b.x, b.y }, 1.5f, Fade(GREEN, 0.25f));
+        }
+    }
+
     // Settlements — ring color reflects food+water health
     for (const auto& s : settlements) {
         Color fill = Fade(DARKGREEN, 0.15f);
