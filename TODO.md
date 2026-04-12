@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migration memory** — Add a `MigrationMemory` component: a small map of
-  `{ settlement_name → last_known_price_snapshot }`. When an NPC migrates, they carry their old
-  settlement's prices. In `AgentDecisionSystem`, migrating NPCs prefer destinations where their
-  remembered prices suggest a better life (food cheaper, wages higher). Update memory on arrival.
-  Also used by the gossip system above.
-
 ---
 
 ## Done
@@ -50,6 +44,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 ### NPC Crime & Consequence
+
+- [x] **Migration memory** — `MigrationMemory` component in Components.h: `std::map<string,
+  PriceSnapshot>` capped at 12 entries. Seeded at spawn with home prices. Updated on migration
+  departure and arrival. Gossip exchanges now also update both parties' memories. In
+  `FindMigrationTarget`: +20% score if destination food cheaper in memory, +10% if water cheaper.
 
 - [x] **Personal goal system** — `GoalType` enum + `Goal` component (progress/target/celebrateTimer)
   in Components.h. Assigned at spawn in `WorldGenerator::SpawnNPCs`. Goal progress checked in
@@ -597,3 +596,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   goal system picks it up next tick and triggers the celebration + new goal assignment. Currently
   graduation happens but the goal completion fires only on the next frame via the registry check —
   making it explicit here ensures the log fires reliably.
+
+- [ ] **Migration memory shown in tooltip** — Add `std::string migrationMemorySummary` to
+  `RenderSnapshot::AgentEntry` (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity
+  has a `MigrationMemory` with ≥ 2 entries, set it to e.g. "Knows: Wellsworth (food 2g), Millhaven
+  (wood 1g)". In `HUD::DrawHoverTooltip`, render it as an extra dim GRAY line. Gives the player
+  insight into what an NPC knows about the world.
+
+- [ ] **Stale memory decay** — In `AgentDecisionSystem`'s migration trigger section, add a
+  `lastVisitedDay` int field to `MigrationMemory::PriceSnapshot` (Components.h). When recording
+  a snapshot, set it to the current `tm.day`. When scoring destinations in `FindMigrationTarget`,
+  if `tm.day - snap.lastVisitedDay > 30` (more than 30 days old), reduce the memory bonus to 50%
+  — stale knowledge is less reliable. This creates realistic information decay over time.
+
+- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
+  12–48 game-hours per NPC (jittered by entity ID). Small events: skill discovery (+0.1 to a
+  random skill), windfall (find 5–15g — no gold source needed, treat as lucky find), minor illness
+  (one need drains 2× for 6 game-hours via a `illnessTimer` float on `DeprivationTimer`), good
+  harvest (working NPC produces 1.5× for 4 hours via a `harvestBonus` float). Log the notable
+  ones. Use `entt::to_integral(e) % period` for deterministic per-entity jitter.
