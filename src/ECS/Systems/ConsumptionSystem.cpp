@@ -1,6 +1,7 @@
 #include "ConsumptionSystem.h"
 #include "ECS/Components.h"
 #include <algorithm>
+#include <map>
 #include <string>
 
 // Stockpile draw-down rates per NPC per game-hour.
@@ -21,6 +22,8 @@ static constexpr float STOCK_LOW = 0.01f;
 // How often an NPC can make an emergency market purchase when stockpile is empty (game-hours).
 // They pay market price, money goes to settlement treasury.
 static constexpr float PURCHASE_INTERVAL = 2.f;
+
+static std::map<entt::entity, float> s_desperateCooldown;
 
 void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
@@ -102,6 +105,12 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             needs.list[1].value  = std::min(needs.list[1].value, 1.f);
         }
 
+        // Drain desperation log cooldown
+        if (auto cdIt = s_desperateCooldown.find(entity); cdIt != s_desperateCooldown.end()) {
+            cdIt->second -= gameHoursDt;
+            if (cdIt->second <= 0.f) s_desperateCooldown.erase(cdIt);
+        }
+
         // ---- Emergency market purchase ----
         // When stockpile is empty, an NPC with money can buy goods at market price.
         // Gold flows to the settlement treasury; need is refilled.
@@ -114,6 +123,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         if (timer.purchaseTimer >= effectivePurchaseInterval && settl && money && money->balance > 0.f) {
             auto* mkt = registry.try_get<Market>(home.settlement);
             if (mkt) {
+                bool bought = false;
+                const char* whatBought = nullptr;
+                float pricePaid = 0.f;
                 // Buy 1 unit of food if empty
                 if (!hadFood) {
                     float price = mkt->GetPrice(ResourceType::Food);
@@ -122,6 +134,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         settl->treasury += price;
                         stockpile->quantities[ResourceType::Food] += 1.f;
                         timer.purchaseTimer = 0.f;
+                        bought = true; whatBought = "food"; pricePaid = price;
                     }
                 }
                 // Buy 1 unit of water if empty (separate check)
@@ -132,6 +145,28 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         settl->treasury += price;
                         stockpile->quantities[ResourceType::Water] += 1.f;
                         timer.purchaseTimer = 0.f;
+                        bought = true; whatBought = "water"; pricePaid = price;
+                    }
+                }
+                // Log desperation purchase (rate-limited per NPC to once per 12 game-hours)
+                if (bought) {
+                    float& cd = s_desperateCooldown[entity];
+                    if (cd <= 0.f) {
+                        auto logV = registry.view<EventLog>();
+                        if (logV.begin() != logV.end()) {
+                            auto& evLog = logV.get<EventLog>(*logV.begin());
+                            std::string who = "NPC";
+                            if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                            char buf[128];
+                            std::snprintf(buf, sizeof(buf), "%s desperate — bought %s at %s market for %.1fg",
+                                          who.c_str(), whatBought, settl->name.c_str(), pricePaid);
+                            auto tmV = registry.view<TimeManager>();
+                            if (tmV.begin() != tmV.end()) {
+                                const auto& tmRef = tmV.get<TimeManager>(*tmV.begin());
+                                evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                            }
+                        }
+                        cd = 12.f;
                     }
                 }
             }
