@@ -347,8 +347,34 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     });
                     if (bestFac != entt::null) {
                         const auto& pf = registry.get<ProductionFacility>(bestFac);
-                        if (auto* prof = registry.try_get<Profession>(entity))
-                            prof->type = ProfessionForResource(pf.output);
+                        if (auto* prof = registry.try_get<Profession>(entity)) {
+                            ProfessionType oldType = prof->type;
+                            ProfessionType newType = ProfessionForResource(pf.output);
+                            prof->type = newType;
+
+                            // Skill adjustment on profession change: halve old, boost new by 10%
+                            if (oldType != newType && oldType != ProfessionType::Idle
+                                && newType != ProfessionType::Idle) {
+                                if (auto* sk = registry.try_get<Skills>(entity)) {
+                                    // Map profession → resource for skill lookup
+                                    auto profToRes = [](ProfessionType p) -> ResourceType {
+                                        switch (p) {
+                                            case ProfessionType::Farmer:       return ResourceType::Food;
+                                            case ProfessionType::WaterCarrier: return ResourceType::Water;
+                                            case ProfessionType::Lumberjack:   return ResourceType::Wood;
+                                            default:                           return ResourceType::Food;
+                                        }
+                                    };
+                                    ResourceType oldRes = profToRes(oldType);
+                                    ResourceType newRes = profToRes(newType);
+                                    // Halve old skill
+                                    float oldVal = sk->ForResource(oldRes);
+                                    sk->Advance(oldRes, -(oldVal * 0.5f));
+                                    // Boost new skill by 10% (capped at 1.0 by Advance)
+                                    sk->Advance(newRes, 0.1f);
+                                }
+                            }
+                        }
                     }
                 }
 
