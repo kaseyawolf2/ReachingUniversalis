@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Celebrating NPC glow ring** — Pulsating gold ring on celebrating NPCs in GameState.cpp.
 
 ## Recently Done
 
