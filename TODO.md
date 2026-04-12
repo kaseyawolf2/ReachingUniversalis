@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill discovery location in log** — Extend skill insight log to include settlement name.
+(none)
 
 ## Recently Done
+
+- [x] **Skill discovery location in log** — Added "at Greenfield" to skill insight log messages.
 
 - [x] **Illness contagion between NPCs** — 10% contagion chance in gossip loop, logs spread events.
 
@@ -553,10 +555,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Illness contagion between NPCs** — 10% contagion in gossip loop, same illness type.
 
-- [ ] **Skill discovery location in log** — In `RandomEventSystem`'s per-NPC event loop (case 0:
-  skill discovery), extend the log from "X had a skill insight in farming" to "X had a skill
-  insight in farming at Greenfield" using the same `try_get<HomeSettlement>` → `try_get<Settlement>`
-  pattern now used in the windfall case. No new components needed.
+- [x] **Skill discovery location in log** — Added settlement name to skill insight log.
 
 - [ ] **Illness source context in log** — In `RandomEventSystem`'s per-NPC event loop (case 2:
   minor illness), extend the log from "X fell ill (hunger)" to "X fell ill (hunger) at Greenfield"
@@ -1624,3 +1623,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   simulates self-quarantine behaviour, slowing contagion spread while keeping the sick NPC
   at their home settlement. Check `DeprivationTimer::illnessTimer` in the existing gossip
   and migration code paths.
+
+- [ ] **Windfall location in log** — In `RandomEventSystem.cpp`'s per-NPC event loop (case 1:
+  windfall), extend "X found Ng on the road" to "X found Ng on the road near Greenfield" using
+  the same `try_get<HomeSettlement>` → `try_get<Settlement>` pattern. Same one-line change as
+  the skill discovery location task.
+
+- [ ] **NPC gratitude strengthens affinity** — In `AgentDecisionSystem.cpp`'s charity section,
+  when an NPC receives charity (the `recentlyHelped` path), if both NPCs have `Relations`
+  components, boost the recipient's affinity toward the helper by +0.15 (capped at 1.0).
+  Use `registry.get_or_emplace<Relations>(recipient)` to ensure the component exists. This
+  makes charity create lasting social bonds that influence future migration and gossip.
