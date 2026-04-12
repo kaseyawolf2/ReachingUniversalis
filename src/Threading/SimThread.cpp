@@ -1231,13 +1231,15 @@ void SimThread::WriteSnapshot() {
         if (const auto* ft = m_registry.try_get<FamilyTag>(e))
             familyName = ft->name;
 
-        bool recentlyHelped = false;
-        bool recentlyStole  = false;
-        bool isGrateful     = false;
+        bool recentlyHelped  = false;
+        bool recentlyStole   = false;
+        bool isGrateful      = false;
+        bool recentWarmthGlow = false;
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
-            recentlyHelped = (dt->helpedTimer > 0.f);
-            recentlyStole  = (dt->stealCooldown > 46.f);
-            isGrateful     = (dt->gratitudeTimer > 0.f);
+            recentlyHelped   = (dt->helpedTimer > 0.f);
+            recentlyStole    = (dt->stealCooldown > 46.f);
+            isGrateful       = (dt->gratitudeTimer > 0.f);
+            recentWarmthGlow = (htp > 0.9f && dt->charityTimer > 0.f);
         }
 
         agents.push_back({ pos.x, pos.y, drawSize,
@@ -1250,7 +1252,7 @@ void SimThread::WriteSnapshot() {
                            farmSkill, waterSkill, woodSkill,
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
-                           isGrateful });
+                           isGrateful, recentWarmthGlow });
     });
 
     // ---- Settlements ----

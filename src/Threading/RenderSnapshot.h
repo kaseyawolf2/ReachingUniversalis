@@ -58,6 +58,8 @@ struct RenderSnapshot {
         bool recentlyStole = false;
         // True if this NPC is currently walking toward a helper in gratitude
         bool isGrateful = false;
+        // True if this NPC recently gave charity AND has very high heat (warmth glow)
+        bool recentWarmthGlow = false;
     };
 
     struct SettlementEntry {
