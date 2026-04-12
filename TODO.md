@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Wealthy NPC golden ring** — Draw faint gold outer ring on NPCs with balance > 80g.
+
 ## Recently Done
 
 - [x] **Bankruptcy countdown in tooltip** — Shows "~Xh left" countdown for near-bankrupt haulers.
