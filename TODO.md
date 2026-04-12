@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
+  `contentment < 0.2f` for an NPC, log "X is desperate at Y" (once per 12 game-hours using the
+  existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
+  snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
+  only if the NPC has a Name and HomeSettlement, and rate-limit per entity.
+
 - [x] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
   draw a small 3-row legend in the bottom-right corner: a green dot + "Thriving (>70%)", a yellow
   dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
