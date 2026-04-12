@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler route efficiency tooltip** — Show "Route: Xkm" in tooltip for haulers en route.
+
 ## Recently Done
 
 - [x] **Morale-dependent work speed** — Continuous morale factor in ProductionSystem: 1.0 + 0.3*(morale - 0.5).
