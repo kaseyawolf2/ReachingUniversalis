@@ -136,6 +136,7 @@ struct RenderSnapshot {
         float       elderBonus     = 0.f;   // production bonus from elders (0–5%)
         float       morale         = 0.5f;  // settlement morale (0–1)
         float       avgContentment = 1.f;   // average NPC contentment (0–1)
+        float       pendingEstates = 0.f;  // sum of elder (age>60) balances * 0.8 (future inheritance)
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----

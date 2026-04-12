@@ -949,13 +949,20 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showElders)
         std::snprintf(line5, sizeof(line5), "Elders: %d (+%.0f%% prod)", elderCount, elderBonus * 100.f);
 
-    // Line 6 (optional): specialty
+    // Line 6 (optional): pending estates
+    char lineEst[48] = {};
+    float estates = status ? status->pendingEstates : 0.f;
+    bool showEstates = (estates > 0.f);
+    if (showEstates)
+        std::snprintf(lineEst, sizeof(lineEst), "Estates: ~%.0fg", estates);
+
+    // Line 7 (optional): specialty
     char line6[48] = {};
     bool showSpecialty = !best->specialty.empty();
     if (showSpecialty)
         std::snprintf(line6, sizeof(line6), "Specialty: %s", best->specialty.c_str());
 
-    // Line 7: morale (always shown when status available)
+    // Line 8: morale (always shown when status available)
     char line7[32] = {};
     float morale = status ? status->morale : 0.5f;
     bool showMorale = (status != nullptr);
@@ -963,11 +970,13 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         std::snprintf(line7, sizeof(line7), "Morale: %d%%", (int)(morale * 100));
 
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
+                      + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
+                       showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
@@ -989,6 +998,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showElders) {
         DrawText(line5, tx, ty,  11, Fade(ORANGE, 0.75f)); ty += 16;
+    }
+    if (showEstates) {
+        DrawText(lineEst, tx, ty, 11, Fade(GOLD, 0.5f));   ty += 16;
     }
     if (showSpecialty) {
         DrawText(line6, tx, ty,  11, WHITE);                ty += 16;

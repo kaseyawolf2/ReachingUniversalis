@@ -1600,13 +1600,21 @@ void SimThread::WriteSnapshot() {
         });
         float avgContentment = (contentN > 0) ? contentSum / contentN : 1.f;
 
+        // Sum pending estates: elder (age > 60) balances * 0.8 inheritance fraction
+        float pendingEstates = 0.f;
+        m_registry.view<HomeSettlement, Age, Money>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs, const Age& age, const Money& m) {
+                if (hs.settlement == e && age.days > 60.f)
+                    pendingEstates += m.balance * 0.8f;
+            });
+
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
                                  hungerCrisis, elderPop, elderBonus, s.morale,
-                                 avgContentment });
+                                 avgContentment, pendingEstates });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
