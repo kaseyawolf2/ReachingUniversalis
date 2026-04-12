@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC reputation decay** — 0.01/game-hour toward zero for all Reputation entities.
+
+
 - [x] **Hauler road avoidance** — 15% route score penalty per bandit (max 60%). Nervous log when departing on bandit road.
 
 
@@ -1132,7 +1135,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   destination; if multiple paths exist, prefer the safer one. If only one path, proceed but log a
   warning: "[Hauler] nervously travels the [A]-[B] road (N bandits spotted)."
 
-- [ ] **NPC reputation decay** — Reputation should slowly decay toward 0 over time. In
+- [x] **NPC reputation decay** — Reputation should slowly decay toward 0 over time. In
   `AgentDecisionSystem`, reduce `reputation` by 0.01 per game-hour toward zero (positive reps decay
   down, negative decay up). This prevents permanent reputation from a single act and encourages
   ongoing good/bad behavior. Add `reputationDecayRate` constant near other reputation constants.
@@ -1168,6 +1171,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Add `float estimatedProfit = 0.f` to `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`,
   compute `(destPrice - buyPrice) * cargoQty * 0.8` (after 20% tax). Show as "Est. profit: +Ng"
   in faint GREEN below the cargo line. Helps the player understand hauler economics at a glance.
+
+- [ ] **Reputation shown in NPC tooltip** — Add the NPC's reputation score to the tooltip.
+  Show "Reputation: +X.X" in GREEN for positive, "-X.X" in RED for negative, omit when score == 0.
+  Already in `RenderSnapshot::AgentEntry::reputation`; just add the tooltip line in `HUD.cpp`.
+
+- [ ] **Reputation affects charity willingness** — NPCs with negative reputation should be less
+  likely to receive charity. In `AgentDecisionSystem`'s charity block, when checking if a neighbour
+  qualifies for help, skip NPCs whose `Reputation::score < -0.5f`. Antisocial NPCs get cold-shouldered
+  by the community. Log when charity is refused: "[Helper] refused to help [Thief] (bad reputation)."
 
 ---
 
