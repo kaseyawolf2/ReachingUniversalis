@@ -340,6 +340,14 @@ void GameState::Draw() {
         } else {
             drawColor = a.color;
         }
+        // Illness tint: blend toward purple for sick NPCs and children
+        if (a.ill && (a.role == RenderSnapshot::AgentRole::NPC ||
+                      a.role == RenderSnapshot::AgentRole::Child)) {
+            Color sick = Fade(PURPLE, 0.5f);
+            drawColor.r = (unsigned char)((drawColor.r + sick.r) / 2);
+            drawColor.g = (unsigned char)((drawColor.g + sick.g) / 2);
+            drawColor.b = (unsigned char)((drawColor.b + sick.b) / 2);
+        }
         DrawCircleV({ a.x, a.y }, a.size, drawColor);
         // Children have no ring — keeps them visually distinct from working adults
         if (a.role != RenderSnapshot::AgentRole::Child)
