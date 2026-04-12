@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
+  12–48 game-hours per NPC (jittered per entity). Small events: skill discovery (+0.1 to a random
+  skill), windfall (find 5–15g on the road), minor illness (one need drains 2× for 6 hours),
+  good harvest (worker produces 1.5× for 4 hours). Log the interesting ones.
+
 ---
 
 ## Done
@@ -63,11 +68,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "Bandit (press E to confront)" in tooltip.
 
 ### NPC Memory & Goals
-
-- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
-  12–48 game-hours per NPC (jittered per entity). Small events: skill discovery (+0.1 to a random
-  skill), windfall (find 5–15g on the road), minor illness (one need drains 2× for 6 hours),
-  good harvest (worker produces 1.5× for 4 hours). Log the interesting ones.
 
 ### Settlement Social Dynamics
 
