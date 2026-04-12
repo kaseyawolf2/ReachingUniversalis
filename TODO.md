@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
+  after the "Residents (N):" header, count how many distinct `familyName` values appear in
+  `panel.residents` and how many surnames appear ≥ 2 times. Add a compact line below the header:
+  "Families: 3 dynasties" or "No established families" if all residents have unique surnames.
+  Build counts by iterating `panel.residents` — no new snapshot fields needed.
+
 - [x] **Profession distribution in stockpile panel** — Below the residents list header in
   `DrawStockpilePanel` (RenderSystem.cpp), add a single compact line showing profession counts,
   e.g. "Fa:4 Wa:3 Lu:2". Build the counts by iterating `panel.residents` (already populated).
@@ -314,7 +320,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Render in dim LIGHTGRAY after the header line. Replaces no existing line — just one extra row.
   No new snapshot fields needed.
 
-- [ ] **Richest NPC name in world economy bar** — In `HUD::DrawWorldStatus` (HUD.cpp), the
+- [x] **Richest NPC name in world economy bar** — In `HUD::DrawWorldStatus` (HUD.cpp), the
   economy debug overlay already shows `econRichestName` and `econRichestWealth` (both in
   `RenderSnapshot`). If `debugOverlay` is on, render a line "Richest: [Name] — 123g" in GOLD
   below the existing economy stats. Read directly from `snap.econRichestName` and
