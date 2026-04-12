@@ -276,6 +276,34 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             if (dt.harvestBonusTimer > 0.f)
                 dt.harvestBonusTimer = std::max(0.f, dt.harvestBonusTimer - gameHoursDt);
 
+            // Suffering log: when contentment < 0.2, log once until recovery above 0.5
+            if (log) {
+                static std::set<entt::entity> s_desperateLogged;
+                if (const auto* needs = registry.try_get<Needs>(e)) {
+                    float contentment = needs->list[0].value * 0.3f
+                                      + needs->list[1].value * 0.3f
+                                      + needs->list[2].value * 0.2f
+                                      + needs->list[3].value * 0.2f;
+                    if (contentment < 0.2f && !s_desperateLogged.count(e)) {
+                        s_desperateLogged.insert(e);
+                        const auto* hs = registry.try_get<HomeSettlement>(e);
+                        const char* settName = "the wilds";
+                        if (hs && hs->settlement != entt::null && registry.valid(hs->settlement))
+                            if (const auto* stt = registry.try_get<Settlement>(hs->settlement))
+                                settName = stt->name.c_str();
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf), "%s is desperate at %s",
+                            name.value.c_str(), settName);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    } else if (contentment >= 0.5f) {
+                        s_desperateLogged.erase(e);
+                    }
+                }
+                // Prune dead entities from the set
+                for (auto it = s_desperateLogged.begin(); it != s_desperateLogged.end(); )
+                    if (!registry.valid(*it)) it = s_desperateLogged.erase(it); else ++it;
+            }
+
             dt.personalEventTimer -= gameHoursDt;
             if (dt.personalEventTimer > 0.f) return;
 
