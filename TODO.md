@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Near-bankrupt tooltip warning** — Show "!! Near bankruptcy !!" in red in hauler tooltip.
+
 ## Recently Done
 
 - [x] **Hauler route line on world map** — Faint sky-blue line from hauler to destination.
