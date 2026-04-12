@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
+- [x] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
   `moraleBonus` block, add: for each Working NPC at a facility whose `Age::days > 60`, add a
   flat `+0.05` worker contribution (elders provide tacit knowledge). Use `registry.try_get<Age>(e)`.
   Cap contribution per-elder at 2.0x to prevent outliers. Log nothing — the effect is subtle
@@ -272,7 +272,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Color GREEN when trend is up, RED when down, GRAY flat. Gives an at-a-glance population
   trajectory without opening any extra panel.
 
-- [ ] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
+- [x] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
   `moraleBonus` block, add: for each Working NPC at a facility whose `Age::days > 60`, add a
   flat `+0.05` worker contribution (elders provide tacit knowledge). Use `registry.try_get<Age>(e)`.
   Cap contribution per-elder at 2.0x to prevent outliers. Log nothing — the effect is subtle
@@ -1159,3 +1159,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   delivery block (earned minus buy cost). Accumulate into `totalProfit`. Add both to `AgentEntry`
   in `RenderSnapshot.h` and display in `HUD::DrawHoverTooltip` as "Last trip: +Xg" and
   "Lifetime: +Xg". No economy impact — purely observability for the player.
+
+- [ ] **Elder mentorship skill transfer** — In `ProductionSystem.cpp`'s worker counting loop,
+  when a working elder (age > 60) is at the same settlement as non-elder workers, boost those
+  workers' relevant `Skills` field by +0.002 per game-hour (mentorship). Use `registry.try_get<Skills>`
+  on each non-elder worker in a second pass after counting. Cap skills at 1.0 as usual. This
+  creates emergent value in elder presence — settlements with working elders upskill faster.
+
+- [ ] **Elder retirement event** — In `RandomEventSystem::Update`'s per-NPC loop, when an NPC
+  reaches age 55 (check `Age::days` crossing 55 with a static `std::set<entt::entity>` to fire
+  once), log "X retires from active work at Y." and set `AgentState::behavior` to Idle permanently
+  by adding a `bool retired = false` flag to `DeprivationTimer`. `ScheduleSystem` skips work
+  assignment for retired NPCs. They still contribute the settlement elder bonus but no longer
+  as active workers — creating a natural workforce lifecycle.
+
+- [ ] **Working elder shown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for named NPCs
+  with `ageDays > 60` who are Working (check `AgentEntry::behavior`), show "Elder worker (+5%
+  knowledge)" in `Fade(GOLD, 0.6f)` below the age line. No new snapshot fields needed — `ageDays`
+  and behavior are already in `AgentEntry`. Surfaces the elder knowledge bonus to the player.
