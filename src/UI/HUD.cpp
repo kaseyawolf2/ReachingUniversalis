@@ -699,6 +699,11 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showGrateful = best->isGrateful;
     // "Warm from giving" line: shown when this NPC gave charity and has high heat
     bool showWarmth   = best->recentWarmthGlow;
+    // "Gave charity" line: shown when charityTimer > 0 (recently gave charity)
+    bool showCharity  = (best->charityTimerLeft > 0.f);
+    char charityLine[48] = {};
+    if (showCharity)
+        std::snprintf(charityLine, sizeof(charityLine), "Gave charity (%.1fh ago)", best->charityTimerLeft);
     // "Bandit" line: shown for BanditTag entities
     bool showBandit   = best->isBandit;
     // "On strike" line: shown when NPC has active strikeDuration
@@ -835,6 +840,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHelped)   lineCount++;
     if (showGrateful) lineCount++;
     if (showWarmth)   lineCount++;
+    if (showCharity)  lineCount++;
     if (showBandit)   lineCount++;
     if (showStrike)   lineCount++;
     if (showSkill)    lineCount++;
@@ -865,6 +871,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wh  = showHelped   ? MeasureText("Fed by neighbour",      11) : 0;
     int wg  = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
     int ww  = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
+    int wch = showCharity  ? MeasureText(charityLine,            11) : 0;
     int wb  = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
     int wsk = showStrike   ? MeasureText(strikeLine, 11) : 0;
     int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
@@ -878,7 +885,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -929,6 +936,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHelped)   { DrawText("Fed by neighbour",            tx, ly, 11, Fade(LIME, 0.75f));     ly += 16; }
     if (showGrateful) { DrawText("Grateful to neighbour",       tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
     if (showWarmth)   { DrawText("Warm from giving",            tx, ly, 11, Fade(ORANGE, 0.75f));  ly += 16; }
+    if (showCharity)  { DrawText(charityLine,                   tx, ly, 11, Fade(LIME, 0.5f));     ly += 16; }
     if (showBandit)   { DrawText("Bandit (press E to confront)",tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
     if (showStrike)   { DrawText(strikeLine,                    tx, ly, 11, RED);                    ly += 16; }
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }

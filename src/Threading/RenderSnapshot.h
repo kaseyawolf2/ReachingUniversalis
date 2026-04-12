@@ -65,6 +65,8 @@ struct RenderSnapshot {
         bool recentWarmthGlow = false;
         // True if this NPC's charity cooldown is 0 (ready to give charity)
         bool charityReady = false;
+        // Remaining charity cooldown in game-hours (> 0 means recently gave charity)
+        float charityTimerLeft = 0.f;
         // True if this NPC has the BanditTag (exiled, desperate, lurking on roads)
         bool isBandit = false;
         // True if this NPC is currently on strike (DeprivationTimer::strikeDuration > 0)
