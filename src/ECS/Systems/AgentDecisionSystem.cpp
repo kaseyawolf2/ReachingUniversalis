@@ -320,7 +320,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             timer.gratitudeTimer -= dt;
             if (timer.gratitudeTarget != entt::null && registry.valid(timer.gratitudeTarget)) {
                 const auto& tgtPos = registry.get<Position>(timer.gratitudeTarget);
-                MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.7f);
+                float gdx = tgtPos.x - pos.x, gdy = tgtPos.y - pos.y;
+                float gdist2 = gdx*gdx + gdy*gdy;
+                static constexpr float POLITE_DIST = 25.f;
+                if (gdist2 <= POLITE_DIST * POLITE_DIST) {
+                    // Close enough — stand still for the rest of the gratitude window
+                    vel.vx = vel.vy = 0.f;
+                } else {
+                    MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.7f);
+                }
                 state.behavior = AgentBehavior::Idle;
             } else {
                 // Helper gone — cancel gratitude
