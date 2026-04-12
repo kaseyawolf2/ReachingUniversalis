@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
+- [x] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
   drift already runs), add threshold-crossing logs. When `A.relations[B]` crosses below -0.5 for
   the first time, log "RIVALRY: X and Y relations deteriorate — tariffs imposed (+10%)". When it
   rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
@@ -233,7 +233,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (`ageDays < 15`), show "Age: 8 (child)". For elders (`ageDays > 60`), show "Age: 63 (elder)".
   No new snapshot fields needed — `ageDays` is already in `AgentEntry`.
 
-- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
+- [x] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
   drift already runs), add threshold-crossing logs. When `A.relations[B]` crosses below -0.5 for
   the first time, log "RIVALRY: X and Y relations deteriorate — tariffs imposed (+10%)". When it
   rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
@@ -1103,3 +1103,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to stay). Read morale from `registry.get<Settlement>(home.settlement).morale`. This creates a
   feedback loop: low morale → strikes → people leave → smaller settlement, which either recovers
   or collapses organically.
+
+- [ ] **Rivalry tariff shown in hauler tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when the
+  hovered entity is a hauler with a `cargoSource` set, check if the destination settlement has
+  `relations[cargoSource] < -0.5`. If so, show a red "Rivalry tariff (+30%)" line below the cargo
+  info. Read relations from `SettlementStatus` or add a `bool rivalryTariff` to `AgentEntry` and
+  set it in SimThread's hauler snapshot block. This surfaces the rivalry mechanic to the player.
+
+- [ ] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, when both source and
+  destination settlements have `relations[other] > 0.5` (allied), log "Allied trade: [Hauler]
+  delivers [N] [resource] from [Source] to [Dest] (boosted)." at 1-in-3 frequency to avoid spam.
+  Use a static counter per hauler entity. This complements the rivalry log by making positive
+  relations also visible as story beats.
+
+- [ ] **Rivalry decay on successful trade** — In `TransportSystem.cpp`'s delivery completion block,
+  after crediting the destination treasury, nudge `dest.relations[source]` by +0.02 per delivery.
+  This creates a natural path out of rivalry: continued trade slowly rebuilds relations. Combined
+  with the -0.04 per hauler delivery on the exporter side, net effect is that importing settlements
+  slowly warm to their trade partners while exporters cool — modelling the asymmetry of trade.
