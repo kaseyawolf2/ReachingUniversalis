@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement population graph in stockpile panel** — Draw popHistory line graph in RenderSystem::DrawStockpilePanel below resident list.
+
 ## Recently Done
 
 - [x] **NPC flee from bandits** — panicTimer on DeprivationTimer. NPCs within 60u scatter at 1.5x speed for 2s after bandit intercept. Skip decisions during panic.
