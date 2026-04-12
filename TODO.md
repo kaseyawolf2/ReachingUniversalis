@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
+- [x] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
   count how many other agents at that settlement share the same `familyName` and append " ×N" in
   dim color (DARKGRAY) when N ≥ 2. E.g. "Aldric Smith ×3" shows there are 3 members of the Smith
@@ -948,3 +948,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   add: if the adult spots a nearby orphan (ChildTag, no home, within 60 units), set the orphan's
   `HomeSettlement` to the adult's home, assign the adult's `FamilyTag::name` to the orphan (or
   emplace a new FamilyTag), and log "X took in orphan Y at Z."
+
+- [ ] **Largest family in settlement header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), in the header section after the treasury/workers line, add a one-liner
+  showing the most populous family at this settlement: `"Largest family: Smith ×4"`. Build the
+  count by iterating `panel.residents` and finding the `familyName` with the highest count.
+  Only show when at least one family has ≥ 2 members. No new snapshot fields needed.
+
+- [ ] **Family wealth total in stockpile panel** — Extend the family `×N` display to also show
+  the combined gold of all family members in the visible residents list. After `×N` add
+  `(total Xg)` in `Fade(GOLD, 0.6f)`. Sum `r.balance` for all residents sharing that
+  `familyName`. This makes family economic power visible at a glance.
+
+- [ ] **Skill degradation with age** — In `ScheduleSystem.cpp`'s skill decay block (the adult
+  `!Working` decay path, lines ~310–318), add an additional age-based multiplier: when
+  `age.days > 65`, multiply the decay rate by 2 so elders lose skills twice as fast.
+  This creates a visible lifecycle — peak working years mid-life, gradual decline as elders.
+  No new components; uses the existing `SKILL_DECAY_PER_HOUR` constant and `age2->days` check.
