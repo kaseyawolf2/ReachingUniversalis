@@ -80,6 +80,32 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                           (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_THRESHOLD);
             if (scarce)
                 s.morale = std::max(0.f, s.morale - 0.003f * gameHoursDt);
+
+            // One-shot scarcity log per resource: bitmask tracks which resources have been logged
+            static std::map<entt::entity, int> s_loggedScarcity;
+            static constexpr float SCARCITY_CLEAR = 20.f;
+            int& mask = s_loggedScarcity[e];
+            bool foodLow  = (foodIt  == sp->quantities.end() || foodIt->second  < SCARCITY_THRESHOLD);
+            bool waterLow = (waterIt == sp->quantities.end() || waterIt->second < SCARCITY_THRESHOLD);
+            bool woodLow  = (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_THRESHOLD);
+            // Clear bits when resource recovers above 20
+            if (!foodLow  && foodIt  != sp->quantities.end() && foodIt->second  >= SCARCITY_CLEAR)  mask &= ~1;
+            if (!waterLow && waterIt != sp->quantities.end() && waterIt->second >= SCARCITY_CLEAR)  mask &= ~2;
+            if (!woodLow  && woodIt  != sp->quantities.end() && woodIt->second  >= SCARCITY_CLEAR)  mask &= ~4;
+            // Log newly scarce resources
+            int newBits = 0;
+            if (foodLow  && !(mask & 1)) newBits |= 1;
+            if (waterLow && !(mask & 2)) newBits |= 2;
+            if (woodLow  && !(mask & 4)) newBits |= 4;
+            if (newBits && log) {
+                std::string resources;
+                if (newBits & 1) resources += "food";
+                if (newBits & 2) { if (!resources.empty()) resources += ", "; resources += "water"; }
+                if (newBits & 4) { if (!resources.empty()) resources += ", "; resources += "wood"; }
+                log->Push(tm.day, (int)tm.hourOfDay,
+                    "Shortage: " + s.name + " running low on " + resources + ".");
+            }
+            mask |= newBits;
         }
 
         // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
