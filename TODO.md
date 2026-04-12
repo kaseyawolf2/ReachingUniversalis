@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Convoy visual on world map** — In `GameState::Draw`'s agent loop, when a hauler has `inConvoy == true`, draw a faint connecting line between convoy members within 60u. `DrawLineEx` in `Fade(GREEN, 0.25f)`.
+
 ## Recently Done
 
 - [x] **NPC remembers last meal source** — `lastMealSource` on DeprivationTimer. ConsumptionSystem records settlement name on eating; logs gratitude when hunger < 0.2.
