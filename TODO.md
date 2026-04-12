@@ -9,7 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Idle NPC count in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), extend the "Treasury/Workers" line to also show idle NPCs:
+  "Treasury: 230g   Working: 4 / Idle: 3". Add `int idle = 0` to `StockpilePanel` in
+  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot by counting homed NPCs with
+  `AgentBehavior::Idle` (excluding Haulers, player). No visual layout change beyond the extended
+  string.
 
 ## Recently Done
 
