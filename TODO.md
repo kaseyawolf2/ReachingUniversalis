@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
+  `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
+  loop via `try_get<DeprivationTimer>`. In `GameState.cpp`'s agent render loop, draw a small
+  `Fade(GOLD, 0.4f)` ring (radius 10) around workers with the bonus active. This makes good
+  personal events legible in the overworld view.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -199,12 +205,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   windfall log now reads "Aldric Smith found 12g on the road near Greenfield" using
   `try_get<HomeSettlement>` → `try_get<Settlement>` to get the name. Falls back to the original
   format if the NPC has no home settlement.
-
-- [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
-  `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
-  loop via `try_get<DeprivationTimer>`. In `GameState.cpp`'s agent render loop, draw a small
-  `Fade(GOLD, 0.4f)` ring (radius 10) around workers with the bonus active. This makes good
-  personal events legible in the overworld view.
 
 - [ ] **Morale shown in world status bar** — Add `float morale` to `SettlementStatus` in
   `RenderSnapshot.h`; populate it in SimThread's world-status loop with `s.morale`. In
