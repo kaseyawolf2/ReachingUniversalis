@@ -1019,7 +1019,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     char popTrendStr[4] = {};
     if (status && status->popTrend == '+') std::snprintf(popTrendStr, sizeof(popTrendStr), " +");
     else if (status && status->popTrend == '-') std::snprintf(popTrendStr, sizeof(popTrendStr), " -");
-    char line1[96];
+    char line1[128];
     if (!best->modifierName.empty())
         std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop%s]  — %s",
                       best->name.c_str(), best->pop, best->popCap,
@@ -1027,6 +1027,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     else
         std::snprintf(line1, sizeof(line1), "%s  [%d/%d pop%s]",
                       best->name.c_str(), best->pop, best->popCap, popTrendStr);
+
+    // Trade hub badge: appended when settlement has ≥5 deliveries/day
+    bool isTradeHub = (best->tradeVolume >= 5);
 
     // Line 2: resource stocks
     char line2[64];
@@ -1094,7 +1097,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                       + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
                       + (showTrade ? 1 : 0) + (showOutput ? 1 : 0);
-    int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
+    int hubW = isTradeHub ? MeasureText("  [Trade Hub]", 12) : 0;
+    int w = std::max({ MeasureText(line1, 12) + hubW, MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
@@ -1113,7 +1117,10 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.75f));
 
     Color nameCol = (best->pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
-    DrawText(line1, tx, ty,      12, nameCol);             ty += 16;
+    DrawText(line1, tx, ty,      12, nameCol);
+    if (isTradeHub)
+        DrawText("  [Trade Hub]", tx + MeasureText(line1, 12), ty, 12, Fade(GOLD, 0.8f));
+    ty += 16;
     DrawText(line2, tx, ty,      11, LIGHTGRAY);           ty += 16;
     Color tresCol = (treasury < 50.f) ? RED : (treasury < 150.f) ? ORANGE : GOLD;
     DrawText(line3, tx, ty,      11, tresCol);             ty += 16;
