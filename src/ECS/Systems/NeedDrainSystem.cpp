@@ -84,4 +84,18 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
                 sched->fatigued = false;
         }
     }
+
+    // ---- Skill degradation with age ----
+    // Elders (65+ game-days) slowly lose skills, creating an economic lifecycle.
+    auto skillAgeView = registry.view<Skills, Age>();
+    for (auto entity : skillAgeView) {
+        const auto& age = skillAgeView.get<Age>(entity);
+        if (age.days > 65.f) {
+            auto& sk = skillAgeView.get<Skills>(entity);
+            float decay = 0.0002f * gameDt;
+            sk.farming       = std::max(0.1f, sk.farming       - decay);
+            sk.water_drawing = std::max(0.1f, sk.water_drawing - decay);
+            sk.woodcutting   = std::max(0.1f, sk.woodcutting   - decay);
+        }
+    }
 }
