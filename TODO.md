@@ -13,6 +13,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Done
 
+- [x] **NPC age display in tooltip** — `lineAge[32]` in `DrawHoverTooltip` (HUD.cpp). For named
+  NPCs, inserted immediately after the name/role line (line1). Format: "Age: 8 (child)" for
+  `ageDays < 15`, "Age: 63 (elder)" for `ageDays > 60`, "Age: 32" otherwise. Colour-coded:
+  SKYBLUE for children, ORANGE for elders, LIGHTGRAY for adults. lineCount bumped from 4→5 for
+  named NPCs; width calculation updated.
+
 - [x] **Inter-settlement rivalry** — `Settlement::relations` (std::map<entt::entity,float>)
   updated per hauler delivery in TransportSystem: exporter +0.04, importer -0.04. Drifts toward
   0 at 0.3%/game-hour (RandomEventSystem settlement loop). Trade effects: rival (score < -0.5) →
@@ -91,11 +97,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
-  add an age line: "Age: 23" (integer days). Read `AgentEntry::age` (already in the struct as a
-  float). For children, show "Age: 8 (child)". This gives the player immediate lifecycle context
-  without opening extra panels.
 
 - [ ] **Deathbed log with age** — In `DeathSystem.cpp`, the death log currently says "Died: Aldric
   Smith (old age) at Ashford". Append the NPC's age: "Died: Aldric Smith at age 72 (old age) at
@@ -198,6 +199,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
   `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
   AND identify with their profession.
+
+- [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
+  with `strikeDuration > 0`. In `HUD::DrawHoverTooltip`, if `onStrike`, append a line
+  "On strike" in RED below the behavior line. Helps player understand why workers are idle
+  despite it being a work shift.
+
+- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s settlement
+  loop, after the morale drift, check if `stockpile` has all three resources above `pop * 2`.
+  If so, nudge morale upward: `s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt)`.
+  This creates a positive feedback loop between good supply management and NPC happiness.
+
+- [ ] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
+  `relations`, log when a relation crosses a threshold for the first time: when score drops
+  below -0.5f add "Rivalry declared: Ashford vs Thornvale" to the event log, when it rises
+  above 0.5f add "Alliance formed: Ashford & Thornvale". Guard with a per-pair cooldown using
+  an `std::set<pair<entt::entity,entt::entity>> s_loggedRivalries` static set to avoid spam.
 
 - [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
   scatter slightly from the settlement centre rather than all heading to the same facility at once.

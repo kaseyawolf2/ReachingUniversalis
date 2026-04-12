@@ -494,7 +494,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool isHauler  = (best->role == RenderSnapshot::AgentRole::Hauler);
     bool showGold  = (best->balance > 0.f || isHauler);
 
-    char line1[128], line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[64] = {};
+    char line1[128], lineAge[32] = {}, line2[64], line3[64] = {}, line4[64] = {}, line5[64] = {}, line6[64] = {};
     // First line: name + profession + home settlement (if known)
     if (!best->npcName.empty()) {
         if (!best->homeSettlementName.empty())
@@ -527,6 +527,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     bool hasName = !best->npcName.empty();
+    if (hasName) {
+        int ageInt = (int)best->ageDays;
+        if (best->ageDays < 15.f)
+            std::snprintf(lineAge, sizeof(lineAge), "Age: %d (child)", ageInt);
+        else if (best->ageDays > 60.f)
+            std::snprintf(lineAge, sizeof(lineAge), "Age: %d (elder)", ageInt);
+        else
+            std::snprintf(lineAge, sizeof(lineAge), "Age: %d", ageInt);
+    }
     if (hasName)
         std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
     else
@@ -627,7 +636,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showSkill = true;
     }
 
-    int lineCount = hasName ? 4 : 3;
+    int lineCount = hasName ? 5 : 3;   // +1 for age line
     if (showGold)     lineCount++;
     if (showFollow)   lineCount++;
     if (showHelped)   lineCount++;
@@ -637,18 +646,19 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkill)    lineCount++;
     if (showCargo)    lineCount++;
 
-    int w1 = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
-    int w2 = MeasureText(line2, 11);
-    int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
-    int w5 = showGold   ? MeasureText(line5,                 11) : 0;
-    int wf = showFollow ? MeasureText(followLine,            11) : 0;
-    int w6 = showSkill  ? MeasureText(line6,                 11) : 0;
-    int wc = showCargo  ? MeasureText(cargoLine,             11) : 0;
-    int wh = showHelped   ? MeasureText("Fed by neighbour",      11) : 0;
-    int wg = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
-    int ww = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
-    int wb = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
-    int pw = std::max({w1, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb}) + 10;
+    int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
+    int wa  = hasName ? MeasureText(lineAge, 11) : 0;
+    int w2  = MeasureText(line2, 11);
+    int w3  = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
+    int w5  = showGold   ? MeasureText(line5,                 11) : 0;
+    int wf  = showFollow ? MeasureText(followLine,            11) : 0;
+    int w6  = showSkill  ? MeasureText(line6,                 11) : 0;
+    int wc  = showCargo  ? MeasureText(cargoLine,             11) : 0;
+    int wh  = showHelped   ? MeasureText("Fed by neighbour",      11) : 0;
+    int wg  = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
+    int ww  = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
+    int wb  = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -662,6 +672,11 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (best->recentlyStole)
         DrawText("  (thief)", tx + MeasureText(line1, 12), ly, 12, Fade(RED, 0.85f));
     ly += 16;
+    if (hasName) {
+        Color ageLineCol = (best->ageDays < 15.f) ? Fade(SKYBLUE, 0.85f) :
+                           (best->ageDays > 60.f) ? Fade(ORANGE, 0.80f)  : Fade(LIGHTGRAY, 0.85f);
+        DrawText(lineAge, tx, ly, 11, ageLineCol); ly += 16;
+    }
     DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
     DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
