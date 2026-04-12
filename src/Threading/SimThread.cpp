@@ -544,6 +544,21 @@ void SimThread::ProcessInput() {
                                 plog->Push(tm.day, (int)tm.hourOfDay, bbuf);
                             }
                         }
+                        // Morale boost: road-adjacent settlements gain +5% morale
+                        for (entt::entity se : { nearRoadFrom, nearRoadTo }) {
+                            if (se == entt::null || !m_registry.valid(se)) continue;
+                            auto* settl = m_registry.try_get<Settlement>(se);
+                            if (!settl) continue;
+                            float oldMorale = settl->morale;
+                            settl->morale = std::min(1.f, settl->morale + 0.05f);
+                            if (plog && settl->morale > oldMorale) {
+                                char mbuf[120];
+                                std::snprintf(mbuf, sizeof(mbuf),
+                                    "%s morale improved (+5%%) after bandit threat reduced",
+                                    settl->name.c_str());
+                                plog->Push(tm.day, (int)tm.hourOfDay, mbuf);
+                            }
+                        }
                     }
                     // Scatter gang members: other bandits with same gangName flee
                     {
