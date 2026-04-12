@@ -681,6 +681,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     // "On strike" line: shown when NPC has active strikeDuration
     bool showStrike   = best->onStrike;
 
+    // Elder will line: surfaces the inheritance mechanic
+    bool showWill = hasName && (best->ageDays > 60.f) && (best->balance > 0.f);
+
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
     const char* illLabel = nullptr;
     if (best->ill) {
@@ -718,6 +721,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     int lineCount = hasName ? 5 : 3;   // +1 for age line
     if (showGold)     lineCount++;
+    if (showWill)     lineCount++;
     if (showFollow)   lineCount++;
     if (showHelped)   lineCount++;
     if (showGrateful) lineCount++;
@@ -744,7 +748,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int ww  = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
     int wb  = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
     int wsk = showStrike   ? MeasureText("On strike", 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk}) + 10;
+    int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -783,6 +788,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)   { DrawText(line5,               tx, ly, 11, YELLOW);               ly += 16; }
+    if (showWill)   { DrawText("Will: 80% to treasury", tx, ly, 11, Fade(GOLD, 0.5f)); ly += 16; }
     if (showFollow) { DrawText(followLine,          tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }
     if (showHelped)   { DrawText("Fed by neighbour",            tx, ly, 11, Fade(LIME, 0.75f));     ly += 16; }
     if (showGrateful) { DrawText("Grateful to neighbour",       tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
