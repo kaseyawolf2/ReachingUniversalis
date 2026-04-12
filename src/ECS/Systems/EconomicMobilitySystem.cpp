@@ -104,8 +104,12 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
             if (const auto* n = registry.try_get<Name>(e)) who = n->value;
             std::string where = "?";
             if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
-            log->Push(tm.day, (int)tm.hourOfDay,
-                who + " went bankrupt — returned to labor at " + where);
+            float bal = 0.f;
+            if (const auto* m = registry.try_get<Money>(e)) bal = m->balance;
+            char buf[160];
+            std::snprintf(buf, sizeof(buf), "%s went bankrupt (%.0fg left) — returned to labor at %s",
+                          who.c_str(), bal, where.c_str());
+            log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
         s_bankruptTimer.erase(e);
         // Bankruptcy demoralises the home settlement
