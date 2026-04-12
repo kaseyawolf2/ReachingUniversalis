@@ -9,6 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Stockpile abundance log event** — Log "Prosperity: [settlement] has abundant stores —
+  morale rising." on first abundance trigger (all 3 stockpiles >= 80). One-shot per settlement
+  per abundance period.
+
 ## Recently Done
 
 - [x] **Hauler home morale penalty on bankruptcy** — Apply -0.03 morale to home settlement
