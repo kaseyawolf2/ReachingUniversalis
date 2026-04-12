@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler state label in tooltip** — Show hauler state ("Idle", "Loading", "Delivering",
+  "Returning") in hover tooltip. Add haulerState to AgentEntry, populate from Hauler::state.
+
 ## Recently Done
 
 - [x] **Production output shown in settlement tooltip** — Output rates per resource in tooltip.
