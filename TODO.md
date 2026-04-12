@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Festival NPC count in event log** — When the Festival event fires in
+  `RandomEventSystem`, include the number of celebrating NPCs in the log message. After counting
+  NPCs set to Celebrating (the loop already iterates them), store the count and replace the
+  `snprintf` format: "FESTIVAL at Ashford — 12 celebrating, treasury +120g, production +35% (16h)".
+  Read the count from the same view loop that sets `behavior = Celebrating`; no new component.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Festival NPC count in event log** — When the Festival event fires in
-  `RandomEventSystem`, include the number of celebrating NPCs in the log message. After counting
-  NPCs set to Celebrating (the loop already iterates them), store the count and replace the
-  `snprintf` format: "FESTIVAL at Ashford — 12 celebrating, treasury +120g, production +35% (16h)".
-  Read the count from the same view loop that sets `behavior = Celebrating`; no new component.
 
 - [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
   already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
