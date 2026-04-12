@@ -312,8 +312,10 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 }
                             }
                         };
-                        checkMilestone(0.5f, 0, "Journeyman");
-                        checkMilestone(0.9f, 1, "Master");
+                        checkMilestone(0.25f, 2, "Apprentice");
+                        checkMilestone(0.5f,  0, "Journeyman");
+                        checkMilestone(0.75f, 3, "Skilled");
+                        checkMilestone(0.9f,  1, "Master");
                     }
                 }
             }
