@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
+  at their skill-matched facility, check if their `Profession` type matches the facility output
+  (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
+  `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
+  AND identify with their profession.
+
 ---
 
 ## Done
@@ -167,12 +173,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   replaced single `snprintf`/`DrawText` per resident with three calls: name in NPC color,
   " [Fa]"/" [Wa]"/" [Lu]"/" [Me]" in `Fade(GRAY, 0.75f)`, then gold in NPC color.
   Profession mapped from full string to 2-letter abbr; no abbr shown for unmapped professions.
-
-- [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
-  at their skill-matched facility, check if their `Profession` type matches the facility output
-  (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
-  `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
-  AND identify with their profession.
 
 - [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
   `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
