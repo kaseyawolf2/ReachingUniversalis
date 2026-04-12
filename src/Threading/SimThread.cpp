@@ -565,6 +565,17 @@ void SimThread::ProcessInput() {
                                     gv.vy = (fdy / len) * gs.value * 1.5f;
                                     gdt.fleeTimer = 3.f;
                                 });
+                            // Check if gang is now empty (no remaining bandits with this name)
+                            bool gangSurvives = false;
+                            m_registry.view<BanditTag, DeprivationTimer>().each(
+                                [&](const DeprivationTimer& gdt) {
+                                    if (gdt.gangName == confrontedGang)
+                                        gangSurvives = true;
+                                });
+                            if (!gangSurvives && plog) {
+                                std::string msg = confrontedGang + " has been disbanded.";
+                                plog->Push(tm.day, (int)tm.hourOfDay, msg);
+                            }
                         }
                     }
                 }
