@@ -84,6 +84,7 @@ static void SpawnNPCs(entt::registry& registry,
         dt.personalEventTimer = evt_stagger(wg_rng);
         registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<Schedule>(npc);
+        registry.emplace<Relations>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);
         registry.emplace<Money>(npc, Money{ 10.f });   // small starting purse
         Age age;

@@ -153,6 +153,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
             registry.emplace<HomeSettlement>(npc, HomeSettlement{ settl });
             registry.emplace<DeprivationTimer>(npc, dt);
             registry.emplace<Schedule>(npc);
+            registry.emplace<Relations>(npc);
             registry.emplace<Renderable>(npc, WHITE, 6.f);
             // New NPC starts at age 0 with a random life expectancy
             static std::uniform_real_distribution<float> lifespan(60.f, 100.f);
@@ -290,6 +291,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 registry.emplace<HomeSettlement>(npc2, HomeSettlement{ settl });
                 registry.emplace<DeprivationTimer>(npc2, dt2);
                 registry.emplace<Schedule>(npc2);
+                registry.emplace<Relations>(npc2);
                 registry.emplace<Renderable>(npc2, WHITE, 6.f);
                 Age twinAge; twinAge.days = 0.f; twinAge.maxDays = lifespan(s_rng);
                 registry.emplace<Age>(npc2, twinAge);

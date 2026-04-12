@@ -424,6 +424,14 @@ struct FamilyTag {
 // above 20g or when the player confronts them (E key).
 struct BanditTag {};
 
+// ---- NPC social relations ----
+// Tracks pairwise affinity with other NPCs. Built up through evening
+// proximity (chat events). Friends (affinity > 0.5) receive preferential
+// charity and may follow each other during migration.
+struct Relations {
+    std::map<entt::entity, float> affinity;   // entity → score [0, 1]
+};
+
 // ---- Personal goals ----
 // Each NPC holds one active goal. When met, a celebration fires and a new
 // goal is assigned. Goals influence behaviour (SaveGold → hoard; BecomeHauler

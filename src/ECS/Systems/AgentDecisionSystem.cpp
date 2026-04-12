@@ -9,6 +9,8 @@
 static constexpr float FACILITY_RANGE = 35.0f;
 // Arrival threshold for reaching a settlement when migrating.
 static constexpr float SETTLE_RANGE   = 130.0f;
+// Affinity threshold above which two NPCs are considered friends.
+static constexpr float FRIEND_THRESHOLD = 0.5f;
 // Note: migration threshold is now per-NPC (DeprivationTimer::migrateThreshold)
 // so each NPC migrates at a different time, preventing mass simultaneous exodus.
 
@@ -455,6 +457,45 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             who + " migrating " + from + " → " + to);
                     }
                 }
+
+                // ---- Friend follows: 30% chance a close friend migrates together ----
+                static constexpr float FRIEND_FOLLOW_PROB  = 0.30f;
+                static std::uniform_real_distribution<float> s_friendDist(0.f, 1.f);
+                static std::mt19937 s_friendRng{ std::random_device{}() };
+                if (const auto* rel = registry.try_get<Relations>(entity)) {
+                    for (const auto& [friendEnt, affinity] : rel->affinity) {
+                        if (affinity < FRIEND_THRESHOLD) continue;
+                        if (!registry.valid(friendEnt)) continue;
+                        auto* fHome  = registry.try_get<HomeSettlement>(friendEnt);
+                        auto* fState = registry.try_get<AgentState>(friendEnt);
+                        if (!fHome || !fState) continue;
+                        if (fHome->settlement != home.settlement) continue;
+                        if (fState->behavior == AgentBehavior::Migrating) continue;
+                        if (s_friendDist(s_friendRng) >= FRIEND_FOLLOW_PROB) continue;
+                        // Friend follows!
+                        fState->behavior = AgentBehavior::Migrating;
+                        fState->target   = dest;
+                        if (auto* fTmr = registry.try_get<DeprivationTimer>(friendEnt))
+                            fTmr->stockpileEmpty = 0.f;
+                        auto lv2 = registry.view<EventLog>();
+                        if (lv2.begin() != lv2.end()) {
+                            const auto& tm3 = timeView.get<TimeManager>(*timeView.begin());
+                            std::string friendName = "A neighbour";
+                            if (const auto* fn = registry.try_get<Name>(friendEnt))
+                                friendName = fn->value;
+                            std::string entityName = "someone";
+                            if (const auto* en = registry.try_get<Name>(entity))
+                                entityName = en->value;
+                            std::string toName = "?";
+                            if (auto* s = registry.try_get<Settlement>(dest)) toName = s->name;
+                            lv2.get<EventLog>(*lv2.begin()).Push(
+                                tm3.day, (int)tm3.hourOfDay,
+                                friendName + " and " + entityName + " left together → " + toName);
+                        }
+                        break;  // one friend follows per migration event
+                    }
+                }
+
                 continue;
             }
         }
@@ -596,6 +637,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         float dur = s_chatDist(s_chatRng);
                         timer.chatTimer  = dur;
                         oTimer.chatTimer = dur;
+                        // Build affinity: proximity → friendship over time
+                        static constexpr float AFFINITY_GAIN = 0.02f;
+                        if (auto* rel = registry.try_get<Relations>(entity))
+                            rel->affinity[other] = std::min(1.f, rel->affinity[other] + AFFINITY_GAIN);
+                        if (auto* oRel = registry.try_get<Relations>(other))
+                            oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + AFFINITY_GAIN);
                     });
                 }
             } else {
@@ -700,6 +747,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     static constexpr float GOSSIP_NUDGE     = 0.05f;   // 5% nudge toward other's prices
     static constexpr float GOSSIP_COOLDOWN  = 6.f;     // game-hours between gossip events
     float gameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+
+    // ---- Affinity decay ----
+    // Relations not reinforced by chat drift back toward 0 at 0.001/game-hour.
+    // Also prune entries for destroyed entities to prevent map bloat.
+    static constexpr float AFFINITY_DECAY = 0.001f;
+    registry.view<Relations>().each([&](auto e, Relations& rel) {
+        for (auto it = rel.affinity.begin(); it != rel.affinity.end(); ) {
+            if (!registry.valid(it->first)) {
+                it = rel.affinity.erase(it);
+                continue;
+            }
+            it->second = std::max(0.f, it->second - AFFINITY_DECAY * gameHoursDt);
+            if (it->second <= 0.f)
+                it = rel.affinity.erase(it);
+            else
+                ++it;
+        }
+    });
 
     // Collect snapshot of NPC positions/home-settlements for the O(N²) check.
     // We use a simple vector to avoid re-querying inside nested loops.
@@ -891,12 +956,27 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         charityHour = (int)ctm.hourOfDay;
     }
 
-    for (auto& helper : charityAgents) {
-        if (!helper.canHelp) continue;
+    static constexpr float FRIEND_CHARITY_MIN = 1.f;  // friends help even with little gold
 
+    for (auto& helper : charityAgents) {
         for (auto& starving : charityAgents) {
             if (starving.entity == helper.entity) continue;
             if (!starving.isStarving) continue;
+
+            // Check if helper qualifies: normal canHelp OR friend with ≥1g and well-fed
+            bool isFriend = false;
+            if (const auto* rel = registry.try_get<Relations>(helper.entity)) {
+                auto it = rel->affinity.find(starving.entity);
+                if (it != rel->affinity.end() && it->second >= FRIEND_THRESHOLD)
+                    isFriend = true;
+            }
+            bool friendCanHelp = isFriend && helper.hunger >= HUNGER_HELPER
+                                 && helper.balance >= FRIEND_CHARITY_MIN;
+            if (!helper.canHelp && !friendCanHelp) continue;
+
+            // Check helper cooldown (both normal and friend paths respect it)
+            if (auto* helperTmrCheck = registry.try_get<DeprivationTimer>(helper.entity))
+                if (helperTmrCheck->charityTimer > 0.f) continue;
 
             float dx = starving.x - helper.x, dy = starving.y - helper.y;
             if (dx*dx + dy*dy > CHARITY_RADIUS * CHARITY_RADIUS) continue;
