@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
+#include <random>
 
 static constexpr float ARRIVE_RADIUS         = 130.f;
 static constexpr float MIN_TRIP_PROFIT       = 5.f;   // gold; ideal minimum to haul for
@@ -323,12 +324,46 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         taxCollected += tax;
                     }
                 }
+                // Rival hauler harassment: 20% chance of extra gate tax when
+                // destination is a rival of the cargo source settlement.
+                float gateTax = 0.f;
+                if (earned > 0.f && hauler.cargoSource != entt::null
+                    && registry.valid(hauler.cargoSource) && destSettl) {
+                    auto rit = destSettl->relations.find(hauler.cargoSource);
+                    if (rit != destSettl->relations.end() && rit->second < RIVAL_THRESHOLD) {
+                        static std::mt19937 s_gateRng{std::random_device{}()};
+                        std::uniform_int_distribution<int> chance(0, 4);  // 1/5 = 20%
+                        if (chance(s_gateRng) == 0) {
+                            gateTax = earned * 0.10f;  // extra 10% of earned
+                            earned -= gateTax;
+                            // Log at 1-in-5 frequency (every harassment is logged since
+                            // the 20% chance already limits frequency)
+                            auto logView = registry.view<EventLog>();
+                            EventLog* log = logView.empty() ? nullptr
+                                          : &logView.get<EventLog>(*logView.begin());
+                            auto tmView = registry.view<TimeManager>();
+                            if (log && !tmView.empty()) {
+                                const auto& tm = tmView.get<TimeManager>(*tmView.begin());
+                                auto* srcSettl = registry.try_get<Settlement>(hauler.cargoSource);
+                                std::string haulerName = "Hauler";
+                                if (auto* nm = registry.try_get<Name>(entity))
+                                    haulerName = nm->value;
+                                log->Push(tm.day, (int)tm.hourOfDay,
+                                    haulerName + " from " +
+                                    (srcSettl ? srcSettl->name : "???") +
+                                    " taxed at gate in " + destSettl->name +
+                                    " (rivalry tariff)");
+                            }
+                        }
+                    }
+                }
+
                 // Credit hauler's wallet with net profit
                 if (auto* money = registry.try_get<Money>(entity))
                     if (earned > 0.f) money->balance += earned;
-                // Tax goes to destination settlement treasury
-                if (taxCollected > 0.f && destSettl)
-                    destSettl->treasury += taxCollected;
+                // Tax goes to destination settlement treasury (includes gate tax)
+                if ((taxCollected + gateTax) > 0.f && destSettl)
+                    destSettl->treasury += taxCollected + gateTax;
 
                 // Update inter-settlement relations: exporter gains (+), importer loses (-)
                 if (hauler.cargoSource != entt::null && registry.valid(hauler.cargoSource)
