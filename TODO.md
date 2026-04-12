@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler state label in tooltip** — Show hauler state ("Idle", "Loading", "Delivering",
-  "Returning") in hover tooltip. Add haulerState to AgentEntry, populate from Hauler::state.
-
 ## Recently Done
+
+- [x] **Hauler state label in tooltip** — Hauler status shown in hover tooltip.
 
 - [x] **Production output shown in settlement tooltip** — Output rates per resource in tooltip.
 
@@ -741,7 +740,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `SettlementStatus` in `RenderSnapshot.h`, computed in SimThread by iterating
   `ProductionFacility` components with matching settlement.
 
-- [ ] **Hauler state label in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for haulers
+- [x] **Hauler state label in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for haulers
   show their current state as a label: "Idle — seeking route", "Loading at X", "Delivering to
   X", "Returning home". Map from `HaulerState` enum values. Add `int haulerState = 0` to
   `AgentEntry` in `RenderSnapshot.h`, populated from `Hauler::state` in SimThread. No gameplay
@@ -1957,3 +1956,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   own contentment 5% toward the average. This creates emergent mood clusters — prosperous
   settlements feel upbeat, struggling ones feel grim. Add a `moodContagionTimer` to
   `DeprivationTimer` in `Components.h` to rate-limit the check.
+
+- [ ] **Hauler wait timer shown in tooltip** — When a hauler is in `Idle` state (haulerState==0),
+  show "Wait: X.Xh" in the tooltip indicating how long they've been waiting for a profitable route.
+  Add `float haulerWaitTimer = 0.f` to `AgentEntry` in `RenderSnapshot.h`, populated from
+  `Hauler::waitTimer` in SimThread. In `HUD::DrawHoverTooltip`, append below the state line when
+  haulerState==0 and waitTimer > 0.5. Helps the player spot haulers stuck without good routes.
+
+- [ ] **NPC work shift fatigue** — NPCs who work consecutive shifts without rest gradually
+  lose productivity. Add `float shiftFatigue = 0.f` to `DeprivationTimer` in `Components.h`.
+  In `ProductionSystem.cpp`, increment fatigue by 0.02 per game-hour while Working; decay by
+  0.05 per game-hour while not Working. Apply a `(1.0 - shiftFatigue * 0.3)` multiplier to
+  production output. Cap fatigue at 1.0. Log "X is exhausted at Y" when fatigue exceeds 0.8
+  (rate-limited once per NPC). Creates a natural reason to rest and rotate workers.
