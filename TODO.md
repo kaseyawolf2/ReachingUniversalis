@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Idle NPC count in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), extend the "Treasury/Workers" line to also show idle NPCs:
-  "Treasury: 230g   Working: 4 / Idle: 3". Add `int idle = 0` to `StockpilePanel` in
-  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot by counting homed NPCs with
-  `AgentBehavior::Idle` (excluding Haulers, player). No visual layout change beyond the extended
-  string.
+(none)
 
 ## Recently Done
+
+- [x] **Idle NPC count in stockpile panel** — Shows "Working: N / Idle: N" in Treasury line.
 
 - [x] **Settlement specialty label in stockpile header** — Specialty label shown in stockpile panel header.
 
@@ -518,12 +515,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Settlement specialty label in stockpile header** — Specialty label shown in stockpile panel header.
 
-- [ ] **Idle NPC count in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), extend the "Treasury/Workers" line to also show idle NPCs:
-  "Treasury: 230g   Working: 4 / Idle: 3". Add `int idle = 0` to `StockpilePanel` in
-  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot by counting homed NPCs with
-  `AgentBehavior::Idle` (excluding Haulers, player). No visual layout change beyond the extended
-  string.
+- [x] **Idle NPC count in stockpile panel** — Shows "Working: N / Idle: N" in Treasury line.
 
 - [ ] **Profession vocation label in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp),
   when an NPC's `Profession::type` matches their highest-skill resource (i.e. they are working
@@ -1538,3 +1530,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   or symbol reflecting the NPC's contentment level: "☺" (>0.7), "😐" (0.3-0.7), "☹" (<0.3).
   Draw it next to the NPC's name line using the existing `contentment` field from `AgentEntry`.
   Color-code: green for happy, yellow for neutral, red for unhappy.
+
+- [ ] **Settlement resource deficit warning** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the per-resource lines, if any resource's `consRatePerHour` exceeds
+  `prodRatePerHour` by more than 50%, draw a small warning like "⚠ Food deficit" in `Fade(RED, 0.7f)`.
+  Uses existing `StockpilePanel::prodRatePerHour` and `consRatePerHour` maps — no new snapshot
+  data needed. Helps the player spot settlements heading toward shortage.
+
+- [ ] **NPC grudge after theft** — In `AgentDecisionSystem.cpp`, when an NPC steals from a
+  stockpile (the `recentlyStole` flag path), record the victim settlement entity in a new
+  `Grudge` component (`entt::entity target; float timer;`). While the grudge is active (e.g. 48
+  game-hours), the NPC avoids migrating to that settlement. In `Components.h`, add the `Grudge`
+  struct. Drain `timer` in `AgentDecisionSystem::Update` and remove the component when expired.
