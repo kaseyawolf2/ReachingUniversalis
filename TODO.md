@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Migrant welcome log at destination** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, after the profession update, push a second log entry from the destination settlement's
+  perspective: "Ashford welcomes Mira Reed (Farmer) — pop now 14." Read the new pop count by
+  iterating `HomeSettlement` views (as in other systems) or use the settlement's existing
+  `popCap`/current-pop from prior computation. Use `registry.view<EventLog>()` the same way
+  as the departure log.
+
 - [x] **Skill reset on profession change** — On profession change during migration, halve old
   skill and boost new by +0.1. Only when both professions are non-Idle.
 
