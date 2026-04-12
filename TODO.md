@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
-  when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
-  GRATITUDE block, after computing target position, check if within 25 units of the helper:
-  if so, set `vel = {0, 0}` (polite stop) but still decrement the timer and `continue`. This
-  makes NPCs stand near their helper for the remainder of the gratitude window rather than
-  endlessly bumping into them.
-
 ---
 
 ## Done
+
+- [x] **Gratitude approach stops at polite distance** — Distance check before `MoveToward` in GRATITUDE block; `vel = 0` when within 25 units of helper.
 
 - [x] **Event modifier label colour** — `ModifierColour()` helper in HUD.cpp; world status bar and settlements panel now tint by event type (Plague→RED, Festival→GOLD, etc.).
 
@@ -483,3 +478,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   target set `vel.vx = vel.vy = 0.f` (polite stop) but still decrement `gratitudeTimer` and
   `continue`. This prevents NPCs clipping through their helper — they stand nearby for the
   remainder of the gratitude window.
+
+- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, surface it in the NPC tooltip.
+  In `SimThread::WriteSnapshot`, add `bool isGrateful = false` to `AgentEntry` alongside
+  `recentlyHelped`; set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`, when
+  `isGrateful`, show a "Grateful to neighbour" line in `Fade(LIME, 0.75f)` (below "Fed by
+  neighbour" if also present). Add it to `lineCount` and the `pw` max-width calculation —
+  mirrors the existing `showHelped` pattern exactly.
+
+- [ ] **Charity cooldown shown in tooltip** — When an NPC has `charityTimer > 0` (recently gave
+  charity), add a "Gave charity (Xh ago)" line to the hover tooltip in `HUD::DrawHoverTooltip`.
+  Add `float charityTimerLeft = 0.f` to `AgentEntry` in `RenderSnapshot.h`; populate from
+  `dt->charityTimer` in `SimThread::WriteSnapshot`. In the tooltip, show the line only when
+  `charityTimerLeft > 0`; format hours remaining. Same `lineCount`/`pw` pattern as `showHelped`.
+
+- [ ] **Gratitude shown in world dot** — When `gratitudeTimer > 0`, give the NPC a subtle visual
+  cue on the world map. In `GameState.cpp`'s agent draw loop, add a small faint LIME ring around
+  the dot: after drawing the main dot, if `a.isGrateful` (add this field to `AgentEntry` via
+  the Gratitude tooltip task), call `DrawCircleLines` with radius `a.size + 2` in
+  `Fade(LIME, 0.5f)`. Only draw when role is NPC (not hauler, player, child).
