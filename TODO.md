@@ -9,15 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement morale** — Add a `morale` float (0–1) to `Settlement`. Morale rises when:
-  stockpiles are full, festivals fire, births happen. Falls when: NPCs die of hunger, thefts occur,
-  population drops. Morale above 0.7 gives +10% production. Below 0.3 triggers a "Unrest" modifier
-  (random chance of a work stoppage event). Update in relevant systems, display in stockpile panel
-  (replace or augment `stability`).
-
 ---
 
 ## Done
+
+- [x] **Settlement morale** — `Settlement::morale` float (0–1) in Components.h. Rises on birth
+  (+0.03), festival (+0.15). Falls on need-death (-0.08), old-age death (-0.02), theft (-0.05),
+  drought (-0.10), blight (-0.12), plague (-0.20). Drifts toward 0.5 at ±0.5%/game-hour.
+  ProductionSystem applies +10% when >0.7, -15% when <0.3 (unrest). Unrest crossing logged once
+  in RandomEventSystem settlement loop. Morale bar replaces stability bar in StockpilePanel
+  (RenderSystem); written via SimThread.
 
 - [x] **NPC personal events** — Per-NPC event tier in `RandomEventSystem::Update` fires every
   12–48 game-hours per NPC (staggered at spawn). Events: skill discovery (+0.08–0.12 to a random
@@ -264,6 +265,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loop via `try_get<DeprivationTimer>`. In `GameState.cpp`'s agent render loop, draw a small
   `Fade(GOLD, 0.4f)` ring (radius 10) around workers with the bonus active. This makes good
   personal events legible in the overworld view.
+
+- [ ] **Morale shown in world status bar** — Add `float morale` to `SettlementStatus` in
+  `RenderSnapshot.h`; populate it in SimThread's world-status loop with `s.morale`. In
+  `HUD::DrawWorldStatus` (HUD.cpp), after the food/water/wood numbers, render a small coloured
+  "M:XX%" label using the same green/yellow/red colour logic as the panel bar. Gives a per-
+  settlement morale glance without opening the stockpile panel.
+
+- [ ] **Morale impact from hauler trade success** — In `TransportSystem.cpp`, when a hauler
+  successfully delivers cargo to the destination settlement (the `GoingToDeposit → GoingHome`
+  transition), call `settl->morale = std::min(1.f, settl->morale + 0.01f)` on the *destination*
+  settlement. Trade arriving boosts community confidence. Use `registry.try_get<Settlement>` on
+  `hauler.targetSettlement`. Small per-delivery tick so active trade routes gradually lift morale.
+
+- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
+  loop (where morale drift already runs), add: if all three stockpiles (food, water, wood) are
+  above 80 units, apply an extra +0.002 morale per game-hour. This rewards players who maintain
+  supply surpluses and gives morale a meaningful second recovery path beyond just waiting for
+  the drift. Read `registry.try_get<Stockpile>(e)` in the same settlement loop.
 
 ---
 
