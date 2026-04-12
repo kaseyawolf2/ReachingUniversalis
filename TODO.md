@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC greeting interactions** — Idle NPCs within 40u greet each other occasionally.
-
 ## Recently Done
+
+- [x] **NPC greeting interactions** — Idle NPCs within 40u greet same-settlement neighbours. greetCooldown (2 real-sec) on DeprivationTimer. Logs to EventLog.
 
 - [x] **Gang disbands on last member removed** — After confrontation scatter, check remaining bandits with same gangName. If none, log "[gang] has been disbanded."
 
@@ -1249,7 +1249,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   log "[gang name] has been disbanded." in EventLog. Gives satisfying closure when the player clears
   a gang. Check via `registry.view<BanditTag, DeprivationTimer>` filtering by gangName match.
 
-- [ ] **NPC greeting interactions** — Idle NPCs within 40 units of each other occasionally exchange
+- [x] **NPC greeting interactions** — Idle NPCs within 40 units of each other occasionally exchange
   greetings. In `AgentDecisionSystem`, when an NPC is in Idle schedule state and hasn't greeted
   recently (add `float greetCooldown = 0.f` to `DeprivationTimer`), find the nearest idle NPC
   within 40 units. If found, log "[Name] greets [Other]" and set cooldown to 120 game-seconds.
@@ -1370,6 +1370,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlements. Rivalry reduces trade between them by 20% (apply penalty in TransportSystem's
   route scoring). Log "[A] and [B] are competing for regional dominance." Lasts 24 game-hours.
   Add `std::string rivalWith = ""` to Settlement.
+
+- [ ] **Greeting builds affinity** — In `AgentDecisionSystem`'s new greeting block, after logging
+  the greeting, gain +0.01 mutual affinity between the two NPCs (same pattern as evening chat's
+  `AFFINITY_GAIN`). Uses existing `Relations` component. Over many greetings, casual acquaintances
+  become friends — bridging daytime greetings and evening chat into a unified social fabric.
+
+- [ ] **NPC complains about need in greeting** — Extend the greeting log with need context. When
+  the greeting NPC has any need below 0.3, append " (complains about [need])" to the greeting
+  message. In `AgentDecisionSystem`'s greeting block, after building the base msg string, check
+  `needs.list[i].value < 0.3` and append the need name. Pure log flavour — no gameplay effect.
 
 ---
 
