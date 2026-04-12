@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
+  to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
+  morale. This models grievances being aired and partially resolved — the act of striking itself
+  slightly relieves tension. Check `dt->strikeDuration` transitioning from > 0 to 0 in the drain
+  block and call `registry.try_get<Settlement>(home.settlement)->morale += 0.05f`.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -217,12 +223,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s per-settlement
   loop, when all three stockpiles (food, water, wood) exceed 80 units, applies +0.002 morale per
   game-hour. Changed from population-relative threshold to fixed 80-unit minimum per the spec.
-
-- [ ] **Work stoppage morale recovery** — After a work stoppage completes (strikeDuration drains
-  to 0 in `ScheduleSystem.cpp`), give a small morale nudge: `+0.05` to the home settlement's
-  morale. This models grievances being aired and partially resolved — the act of striking itself
-  slightly relieves tension. Check `dt->strikeDuration` transitioning from > 0 to 0 in the drain
-  block and call `registry.try_get<Settlement>(home.settlement)->morale += 0.05f`.
 
 - [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
   add an age line: "Age: 23" (integer days). Read `AgentEntry::ageDays` cast to int. For children
