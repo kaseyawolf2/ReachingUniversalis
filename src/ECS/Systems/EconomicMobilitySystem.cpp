@@ -143,6 +143,14 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
         if (auto* rend = registry.try_get<Renderable>(e))
             rend->color = SKYBLUE;
 
+        // Celebrate graduation: 2 game-hours of celebration + morale boost
+        if (auto* as = registry.try_get<AgentState>(e))
+            as->behavior = AgentBehavior::Celebrating;
+        if (auto* goal = registry.try_get<Goal>(e))
+            goal->celebrateTimer = 2.f;
+        if (auto* settl = registry.try_get<Settlement>(hs.settlement))
+            settl->morale = std::min(1.f, settl->morale + 0.02f);
+
         ++haulerCount[hs.settlement];
 
         if (log) {
