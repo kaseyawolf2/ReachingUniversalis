@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Personal goal system** — Add a `Goal` component: `enum GoalType { SaveGold, ReachAge,
+  FindFamily, BecomeHauler }` with a `progress` float and `target` float. Each NPC gets one goal
+  at spawn. When met, log a small event ("Aldric reached his savings goal!"), give a 2-hour
+  `Celebrating` state boost, then assign a new goal. Goals affect behaviour: SaveGold NPCs spend
+  less on emergency purchases; BecomeHauler NPCs work harder (small production bonus).
+
 ---
 
 ## Done
@@ -52,12 +58,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "Bandit (press E to confront)" in tooltip.
 
 ### NPC Memory & Goals
-
-- [ ] **Personal goal system** — Add a `Goal` component: `enum GoalType { SaveGold, ReachAge,
-  FindFamily, BecomeHauler }` with a `progress` float and `target` float. Each NPC gets one goal
-  at spawn. When met, log a small event ("Aldric reached his savings goal!"), give a 2-hour
-  `Celebrating` state boost, then assign a new goal. Goals affect behaviour: SaveGold NPCs spend
-  less on emergency purchases; BecomeHauler NPCs work harder (small production bonus).
 
 - [ ] **Migration memory** — Add a `MigrationMemory` component: a small map of
   `{ settlement_name → last_known_price_snapshot }`. When an NPC migrates, they carry their old
