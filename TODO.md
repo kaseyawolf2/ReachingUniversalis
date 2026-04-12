@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Illness contagion between NPCs** — In gossip proximity loop, 10% chance to spread
+  illness from sick NPC to healthy one via DeprivationTimer fields.
 
 ## Recently Done
 
