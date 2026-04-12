@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Charity recipient log detail** — Extend charity log to "X helped [Name] at [Settlement]."
 
 ## Recently Done
 
@@ -1190,11 +1190,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Gratitude shown in world dot** — Faint LIME ring at `a.size + 2` when `a.isGrateful`
   and NPC role. Implemented in `GameState.cpp` agent draw loop.
 
-- [ ] **Warmth glow shown in tooltip** — Mirrors "Fed by neighbour". Add `bool recentWarmthGlow`
-  to `AgentEntry` in `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when
-  `needs.list[(int)NeedType::Heat].value > 0.9f` AND `dt->charityTimer > 0.f`. In
-  `HUD::DrawHoverTooltip`, when `recentWarmthGlow`, add a "Warm from giving" line in
-  `Fade(ORANGE, 0.75f)`. Add to `lineCount` and `pw` max — same pattern as `showHelped`.
+- [x] **Warmth glow shown in tooltip** — NOTE: Already implemented — `recentWarmthGlow` in
+  AgentEntry, "Warm from giving" in ORANGE in tooltip, full lineCount/pw pattern.
 
 - [ ] **Charity recipient log detail** — Extend the charity log in `AgentDecisionSystem`'s
   charity block: change "X helped a starving neighbour." to "X helped [Name] at [Settlement]."
