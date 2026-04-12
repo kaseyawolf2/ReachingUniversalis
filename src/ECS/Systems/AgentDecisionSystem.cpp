@@ -852,8 +852,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
     // ---- Stale rumour removal ----
     // Remove Rumour components whose hops have reached 0 (fully propagated).
-    // Also prune s_rumourDelivered entries whose origin or destination no longer exists.
-    static std::map<std::tuple<entt::entity, RumourType, entt::entity>, bool> s_rumourDelivered;
+    // Also drain/prune rumour immunity timers (48 game-hour cooldown per origin+type+settlement).
+    static std::map<std::tuple<entt::entity, RumourType, entt::entity>, float> s_rumourImmunity;
     {
         std::vector<entt::entity> staleRumours;
         registry.view<Rumour>().each([&](auto e, const Rumour& r) {
@@ -861,10 +861,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         });
         for (auto e : staleRumours) registry.remove<Rumour>(e);
 
-        for (auto it = s_rumourDelivered.begin(); it != s_rumourDelivered.end(); ) {
+        for (auto it = s_rumourImmunity.begin(); it != s_rumourImmunity.end(); ) {
             if (!registry.valid(std::get<0>(it->first)) ||
-                !registry.valid(std::get<2>(it->first)))
-                it = s_rumourDelivered.erase(it);
+                !registry.valid(std::get<2>(it->first)) ||
+                (it->second -= gameHoursDt) <= 0.f)
+                it = s_rumourImmunity.erase(it);
             else ++it;
         }
     }
@@ -969,11 +970,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 int newHops = rum->hops - 1;
                 registry.emplace<Rumour>(recipient, Rumour{rum->type, rum->origin, newHops});
 
-                // Apply market effect only the first time this rumour reaches this settlement.
+                // Apply market effect only if this settlement isn't immune to this rumour.
                 if (recipientSettl == rum->origin) return;  // same settlement — no fear effect
                 auto key = std::make_tuple(rum->origin, rum->type, recipientSettl);
-                if (s_rumourDelivered.count(key)) return;
-                s_rumourDelivered[key] = true;
+                if (s_rumourImmunity.count(key)) return;   // still immune from previous delivery
+                s_rumourImmunity[key] = 48.f;              // 48 game-hour immunity
 
                 auto* mkt = registry.try_get<Market>(recipientSettl);
                 auto* stt = registry.try_get<Settlement>(recipientSettl);
