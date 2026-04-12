@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reputation loss from theft** — Subtract 0.5 from thief's Reputation in ConsumptionSystem theft block.
-
 ## Recently Done
+
+- [x] **Reputation loss from theft** — -0.5 via get_or_emplace<Reputation> in both food and water theft blocks of ConsumptionSystem.
+
 
 - [x] **Reputation gain from charity** — +0.2 via get_or_emplace<Reputation> in AgentDecisionSystem charity block. Creates component if missing.
 
@@ -1373,7 +1374,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   if missing). Giving charity should build reputation, creating a positive feedback loop where
   generous NPCs are well-regarded and receive help when they need it themselves.
 
-- [ ] **Reputation loss from theft** — In `ConsumptionSystem`'s theft block (where NPCs steal
+- [x] **Reputation loss from theft** — In `ConsumptionSystem`'s theft block (where NPCs steal
   from stockpiles), subtract 0.5 from the thief's `Reputation::score`. If the Reputation component
   doesn't exist, emplace it with score = -0.5. Connects the existing theft mechanic to the
   reputation system so thieves gradually become social pariahs.
@@ -2773,3 +2774,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   >= 2.0`. If so, add +0.2 to the migration attractiveness score. Uses existing
   `registry.view<HomeSettlement, Reputation>` to find high-rep NPCs at each candidate settlement.
   Creates a "famous resident" pull effect — prestigious NPCs make their town a migration target.
+
+- [ ] **Thief shunned from work** — In `ScheduleSystem` (`src/ECS/Systems/ScheduleSystem.cpp`),
+  when assigning work during daytime, check `registry.try_get<Reputation>(entity)`. If
+  `rep->score < -1.0`, skip the work assignment and leave the NPC idle. Log once per day:
+  "[NPC] was turned away from work (bad reputation)." Add `bool shunnedLogged = false` to
+  `DeprivationTimer` to rate-limit. Resets when reputation rises above -0.5. Social consequence
+  that links reputation to economic participation.
+
+- [ ] **Reputation decay toward zero** — In `AgentDecisionSystem`'s per-NPC update (or a new
+  small block in the idle section), decay `Reputation::score` toward 0 by 0.01 per game-hour.
+  Use `registry.view<Reputation>` and multiply by `gameHoursDt`. Positive scores decrease,
+  negative scores increase — reputation fades over time unless maintained by actions. Prevents
+  permanent stigma and encourages ongoing prosocial behaviour.
