@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler profit margin in tooltip** — Show "Profit: ~Ng" for haulers with cargo. Add
-  `haulerBuyPrice` and `haulerCargoQty` to `AgentEntry`. Green if positive, red if negative.
-
 ## Recently Done
+
+- [x] **Hauler profit margin in tooltip** — Show "Profit: ~Ng" for haulers with cargo. Add
+  `haulerBuyPrice` and `haulerCargoQty` to `AgentEntry`. Green if positive, red if negative.
 
 - [x] **Scarcity morale penalty** — If any stockpile < 10 units, apply -0.003 morale/game-hour.
 
@@ -609,7 +609,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   rather than just neutral. Use the same `registry.try_get<Stockpile>(e)` already accessed.
   No new components needed.
 
-- [ ] **Hauler profit margin in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when hovering
+- [x] **Hauler profit margin in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when hovering
   a hauler with cargo, show "Profit: ~Ng" calculated as `money.balance - buyPrice * cargoQty`
   (approximate margin from last trade). Read `Hauler::buyPrice` and `Inventory::contents` from
   `AgentEntry` fields (add `float haulerBuyPrice` and `int haulerCargoQty` to `AgentEntry` in
@@ -641,6 +641,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block, multiply worker output by a morale factor: `1.0 + 0.3 * (morale - 0.5)`. At morale
   0.8 workers produce +9%, at 0.2 they produce -9%. Read morale from `try_get<Settlement>` via
   worker's `HomeSettlement`. Makes morale mechanically important beyond cosmetic display.
+
+- [ ] **Hauler route efficiency tooltip** — In `HUD::DrawHoverTooltip`, for haulers with an
+  active route (`hasRouteDest`), show "Route: Xkm" (Euclidean distance from current pos to
+  dest / 100). If the hauler also has a `homeSettlementName`, show round-trip distance. Helps
+  players evaluate trade route length. No new snapshot fields — compute from existing pos/dest.
+
+- [ ] **Settlement trade volume counter** — Add `int tradeVolume = 0` to `SettlementEntry` in
+  `RenderSnapshot.h`. In `TransportSystem.cpp`'s delivery block, increment a `static
+  std::map<entt::entity, int> s_tradeVolume` per destination. In SimThread's settlement
+  snapshot, read and write it to the entry. Display in settlement tooltip as "Trades: N"
+  showing total deliveries received. Reset counter every 24 game-hours.
 
 ---
 
