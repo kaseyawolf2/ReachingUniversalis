@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
+  copies plague from one settlement to a neighbour via roads), the current log message is
+  "PLAGUE spreads from X to Y — N died". Add `[pop N]` to the destination settlement using
+  `popCount` computed the same way as in `TriggerEvent` — quick local count on the destination
+  entity before the log push. Keeps spread events as informative as the initial eruption.
+
 - [x] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
   also look up the settlement's `popTrend` from `RenderSnapshot::SettlementStatus` — but that's
   render-side. Instead compute it locally: count NPCs at target (already in `popCount`), then
