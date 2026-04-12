@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler idle duration warning** — Log when hauler idle > 12h; clear on state change.
+
 ## Recently Done
 
 - [x] **Graduation log includes gold saved** — Shows "(125g)" in hauler graduation log.
