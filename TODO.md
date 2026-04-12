@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Trade hub badge in settlement tooltip** — Show "[Trade Hub]" after name when tradeVolume >= 5.
-
 ## Recently Done
+
+- [x] **Trade hub badge in settlement tooltip** — "[Trade Hub]" badge shown for settlements with ≥5 trades/day.
 
 - [x] **Low-morale NPC grumbling log** — Grumbling events logged during gossip at low-morale settlements.
 
@@ -756,7 +756,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   per 12 game-hours via `static std::map<entt::entity, float> s_grumbleCooldown`. Adds social
   texture to low-morale settlements.
 
-- [ ] **Trade hub badge in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp),
+- [x] **Trade hub badge in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp),
   when `tradeVolume >= 5`, show "[Trade Hub]" in `Fade(GOLD, 0.8f)` after the settlement name
   on line 1. Recognises settlements with high trade throughput. No new snapshot fields — read
   directly from `best->tradeVolume` already in `SettlementEntry`.
@@ -1986,3 +1986,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   facility as a younger worker, the younger NPC gains +50% skill XP. Add a tooltip line
   "Mentored by: Elder Name" when this is active. Add `std::string mentorName` to `AgentEntry`
   in `RenderSnapshot.h`, populated in SimThread when an elder shares the worker's facility.
+
+- [ ] **Settlement rivalry log events** — When two connected settlements have `relAtoB < -0.3`
+  (from `RoadEntry`), periodically log "Tensions rise between X and Y" once per 24 game-hours.
+  Check in `RandomEventSystem.cpp` alongside other periodic checks. Add `float rivalryLogTimer`
+  to `Road` component in `Components.h`. Drains by gameHoursDt; logs when timer <= 0 and
+  relation is hostile, then resets to 24. Adds narrative texture to inter-settlement conflict.
+
+- [ ] **Contentment sparkle on thriving NPCs** — In `GameState.cpp`'s agent render loop, when
+  an NPC's `contentment >= 0.9`, draw a small yellow dot that pulses using `sinf(GetTime()*3)`
+  offset by the agent's x position (so they don't all pulse in sync). Add `float contentment`
+  to `AgentEntry` in `RenderSnapshot.h` (already exists). Purely visual — makes prosperous
+  settlements visibly sparkle compared to struggling ones.
