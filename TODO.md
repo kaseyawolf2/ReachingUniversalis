@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reputation affects charity willingness** — Skip NPCs with Reputation < -0.5 when giving charity.
-
 ## Recently Done
+
+- [x] **Reputation affects charity willingness** — Starving NPCs with Reputation::score < -0.5 skipped in charity block. Log: "[Helper] refused to help [NPC] (bad reputation)."
+
 
 - [x] **Reputation shown in NPC tooltip** — Already implemented: "Rep: +X.X" in GREEN/RED, threshold 0.05, in HUD.cpp.
 
@@ -1197,7 +1198,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Reputation shown in NPC tooltip** — (already implemented) "Rep: +X.X" in GREEN/RED tooltip line.
 
-- [ ] **Reputation affects charity willingness** — NPCs with negative reputation should be less
+- [x] **Reputation affects charity willingness** — NPCs with negative reputation should be less
   likely to receive charity. In `AgentDecisionSystem`'s charity block, when checking if a neighbour
   qualifies for help, skip NPCs whose `Reputation::score < -0.5f`. Antisocial NPCs get cold-shouldered
   by the community. Log when charity is refused: "[Helper] refused to help [Thief] (bad reputation)."
@@ -1272,6 +1273,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after computing actual profit from selling cargo, if profit < 0, log: "[Hauler] completed a
   loss-making trip to [settlement] (-Xg)." Helps player identify failing trade routes. Uses
   existing EventLog and TimeManager access pattern from the nervous-travel log.
+
+- [ ] **Reputation gain from charity** — In `AgentDecisionSystem`'s charity block, after a
+  successful gift transfer, add +0.2 to the helper's `Reputation::score` (use `emplace_or_replace`
+  if missing). Giving charity should build reputation, creating a positive feedback loop where
+  generous NPCs are well-regarded and receive help when they need it themselves.
+
+- [ ] **Reputation loss from theft** — In `ConsumptionSystem`'s theft block (where NPCs steal
+  from stockpiles), subtract 0.5 from the thief's `Reputation::score`. If the Reputation component
+  doesn't exist, emplace it with score = -0.5. Connects the existing theft mechanic to the
+  reputation system so thieves gradually become social pariahs.
 
 ---
 
