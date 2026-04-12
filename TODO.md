@@ -9,11 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop (where relations
-  drift already runs), add threshold-crossing logs. When `A.relations[B]` crosses below -0.5 for
-  the first time, log "RIVALRY: X and Y relations deteriorate — tariffs imposed (+10%)". When it
-  rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
-  crossing approach as `Settlement::unrest`. This makes rivalry formation a visible story beat.
+- [ ] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
+  road's arbitrage rate in `PriceSystem.cpp`. In the per-road arbitrage loop, check
+  `sA->relations.find(road.to)` and `sB->relations.find(road.from)`; if both scores > 0.5, multiply
+  `convergeFrac` by 1.5 (prices converge 50% faster on allied trade routes). Add a tooltip note
+  "Allied: faster price convergence" in `HUD.cpp DrawRoadTooltip` when the alliance line is shown.
+
+- [x] **Rivalry log events**
 
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
