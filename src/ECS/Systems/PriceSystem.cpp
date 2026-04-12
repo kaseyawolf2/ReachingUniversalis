@@ -78,6 +78,17 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
         float condFactor = 0.25f + 0.75f * road.condition;
         float convergeFrac = std::min(1.f, ARBITRAGE_RATE * gameHoursDt * condFactor);
 
+        // Alliance bonus: allied settlements (both scores > 0.5) converge 50% faster
+        auto* sA = registry.try_get<Settlement>(road.from);
+        auto* sB = registry.try_get<Settlement>(road.to);
+        if (sA && sB) {
+            auto itAB = sA->relations.find(road.to);
+            auto itBA = sB->relations.find(road.from);
+            bool allied = (itAB != sA->relations.end() && itAB->second > 0.5f)
+                       && (itBA != sB->relations.end() && itBA->second > 0.5f);
+            if (allied) convergeFrac = std::min(1.f, convergeFrac * 1.5f);
+        }
+
         for (auto& [res, priceA] : mktA->price) {
             auto it = mktB->price.find(res);
             if (it == mktB->price.end()) continue;

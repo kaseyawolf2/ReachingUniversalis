@@ -1384,7 +1384,7 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
             std::snprintf(line7, sizeof(line7), "Relations: %s (+10%% tariff)", who);
             relColor = RED;
         } else if (aAlliedB && bAlliedA) {
-            std::snprintf(line7, sizeof(line7), "Relations: Allied (-5%% tax both ways)");
+            std::snprintf(line7, sizeof(line7), "Allied: -5%% tax, faster price convergence");
             relColor = GREEN;
         } else {
             // Show numeric scores when not yet at threshold
