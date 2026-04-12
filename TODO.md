@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement founding event log** — Log "Player founded [name] at (x, y)" when P key founds a settlement.
+
 ## Recently Done
 
 - [x] **Worker fatigue accumulation** — Fatigued workers (energy < 0.2) produce at 80%.
