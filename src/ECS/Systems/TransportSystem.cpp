@@ -370,16 +370,42 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             if (!InRange(pos, destPos, ARRIVE_RADIUS)) {
                 // Convoy check: nearby hauler headed to same destination → 25% speed bonus
                 static constexpr float CONVOY_RANGE = 60.f;
+                bool wasInConvoy = hauler.inConvoy;
                 hauler.inConvoy = false;
+                entt::entity convoyPartner = entt::null;
                 registry.view<Hauler, Position>(entt::exclude<PlayerTag>).each(
                     [&](auto other, const Hauler& oh, const Position& op) {
                         if (other == entity || hauler.inConvoy) return;
                         if (oh.state != HaulerState::GoingToDeposit) return;
                         if (oh.targetSettlement != hauler.targetSettlement) return;
                         float dx = op.x - pos.x, dy = op.y - pos.y;
-                        if (dx*dx + dy*dy < CONVOY_RANGE * CONVOY_RANGE)
+                        if (dx*dx + dy*dy < CONVOY_RANGE * CONVOY_RANGE) {
                             hauler.inConvoy = true;
+                            convoyPartner = other;
+                        }
                     });
+                // Log convoy formation on transition false → true
+                if (hauler.inConvoy && !wasInConvoy) {
+                    auto logV = registry.view<EventLog>();
+                    auto tmV  = registry.view<TimeManager>();
+                    if (!logV.empty() && !tmV.empty()) {
+                        const auto& tmRef = tmV.get<TimeManager>(*tmV.begin());
+                        std::string who = "A hauler";
+                        if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                        std::string partner = "another hauler";
+                        if (convoyPartner != entt::null) {
+                            if (const auto* pn = registry.try_get<Name>(convoyPartner))
+                                partner = pn->value;
+                        }
+                        std::string dest = "?";
+                        if (const auto* ds = registry.try_get<Settlement>(hauler.targetSettlement))
+                            dest = ds->name;
+                        char buf[200];
+                        std::snprintf(buf, sizeof(buf), "%s formed convoy with %s on the way to %s.",
+                                      who.c_str(), partner.c_str(), dest.c_str());
+                        logV.get<EventLog>(*logV.begin()).Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                    }
+                }
                 float convoySpeed = hauler.inConvoy ? speed * 1.25f : speed;
                 MoveToward(vel, pos, destPos.x, destPos.y, convoySpeed);
             } else {
