@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Reputation gain from charity** — Add +0.2 to helper's Reputation::score in AgentDecisionSystem's charity block.
+
 ## Recently Done
 
 - [x] **Hauler loss-making trip log** — Log "[Hauler] completed a loss-making trip to [settlement] (-Xg)" when tripProfit < 0 in TransportSystem.
