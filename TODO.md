@@ -9,9 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gratitude approach stops at polite distance** — Grateful NPCs stop within 25u of target instead of overlapping.
+(none)
 
 ## Recently Done
+
+- [x] **Fatigue count in settlement tooltip** — "Fatigued workers: N" in ORANGE in settlement tooltip.
+
+- [x] **Fatigue indicator in NPC tooltip** — "(fatigued)" in ORANGE appended to behavior line.
+
+- [x] **Gratitude shown in world dot** — Faint LIME ring around grateful NPCs on world map.
+
+- [x] **Charity cooldown shown in tooltip** — "Gave charity (X.Xh ago)" in faint LIME when timer > 0.
 
 - [x] **Event log entry colour coding** — Added "stole"→RED, "saw through"→ORANGE, "Ally trade"→GREEN.
 
@@ -1170,36 +1178,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Event log entry colour coding** — Extended existing keyword colour system with "stole"→RED,
   "saw through"→ORANGE, "Ally trade"→GREEN. Core system already had plague/festival/drought/died.
 
-- [ ] **Gratitude approach stops at polite distance** — In `AgentDecisionSystem`'s GRATITUDE
-  block, after computing the target position, if the NPC is within 25 units of the gratitude
-  target set `vel.vx = vel.vy = 0.f` (polite stop) but still decrement `gratitudeTimer` and
-  `continue`. This prevents NPCs clipping through their helper — they stand nearby for the
-  remainder of the gratitude window.
+- [x] **Gratitude approach stops at polite distance** — Already implemented: POLITE_DIST = 25.f
+  in AgentDecisionSystem gratitude block; NPC stops when within range.
 
-- [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, surface it in the NPC tooltip.
-  In `SimThread::WriteSnapshot`, add `bool isGrateful = false` to `AgentEntry` alongside
-  `recentlyHelped`; set from `dt->gratitudeTimer > 0.f`. In `HUD::DrawHoverTooltip`, when
-  `isGrateful`, show a "Grateful to neighbour" line in `Fade(LIME, 0.75f)` (below "Fed by
-  neighbour" if also present). Add it to `lineCount` and the `pw` max-width calculation —
-  mirrors the existing `showHelped` pattern exactly.
+- [x] **Gratitude shown in tooltip** — NOTE: Already implemented — `isGrateful` in AgentEntry,
+  "Grateful to neighbour" in LIME in tooltip, full pattern with lineCount/pw.
 
-- [ ] **Charity cooldown shown in tooltip** — When an NPC has `charityTimer > 0` (recently gave
-  charity), add a "Gave charity (Xh ago)" line to the hover tooltip in `HUD::DrawHoverTooltip`.
-  Add `float charityTimerLeft = 0.f` to `AgentEntry` in `RenderSnapshot.h`; populate from
-  `dt->charityTimer` in `SimThread::WriteSnapshot`. In the tooltip, show the line only when
-  `charityTimerLeft > 0`; format hours remaining. Same `lineCount`/`pw` pattern as `showHelped`.
+- [x] **Charity cooldown shown in tooltip** — `charityTimerLeft` in `AgentEntry`, populated from
+  `dt->charityTimer`. Tooltip shows "Gave charity (X.Xh ago)" in faint LIME when > 0.
 
-- [ ] **Gratitude shown in world dot** — When `gratitudeTimer > 0`, give the NPC a subtle visual
-  cue on the world map. In `GameState.cpp`'s agent draw loop, add a small faint LIME ring around
-  the dot: after drawing the main dot, if `a.isGrateful` (add this field to `AgentEntry` via
-  the Gratitude tooltip task), call `DrawCircleLines` with radius `a.size + 2` in
-  `Fade(LIME, 0.5f)`. Only draw when role is NPC (not hauler, player, child).
-
-- [ ] **Gratitude shown in world dot** — While `isGrateful` is true, draw a faint LIME ring
-  around the NPC's world-map dot. In `GameState.cpp`'s agent draw loop (where `Fade(GOLD, 0.85f)`
-  is used for Celebrating), after drawing the main dot, add: if `a.isGrateful && a.role ==
-  RenderSnapshot::AgentRole::NPC`, call `DrawCircleLines((int)wx, (int)wy, a.size + 2.f,
-  Fade(LIME, 0.5f))`. `isGrateful` is already in `AgentEntry` from this task.
+- [x] **Gratitude shown in world dot** — Faint LIME ring at `a.size + 2` when `a.isGrateful`
+  and NPC role. Implemented in `GameState.cpp` agent draw loop.
 
 - [ ] **Warmth glow shown in tooltip** — Mirrors "Fed by neighbour". Add `bool recentWarmthGlow`
   to `AgentEntry` in `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when
@@ -2280,17 +2269,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   a small "(+X.X)" or "(-X.X)" after each resident's name, colored green/red. No new ECS
   components — reuses existing `Reputation`.
 
-- [ ] **Fatigue indicator in NPC tooltip** — In `HUD::DrawHoverTooltip`, when the NPC has
-  `Schedule::fatigued == true`, append "(fatigued)" to the behavior line in orange. Expose
-  as `bool fatigued = false` in `AgentEntry` in `RenderSnapshot.h`, populated from
-  `registry.try_get<Schedule>(e)->fatigued` in `SimThread::WriteSnapshot`. Gives visual
-  feedback that sleep deprivation is affecting this worker.
+- [x] **Fatigue indicator in NPC tooltip** — Behavior line shows "(fatigued)" in ORANGE when
+  `Schedule::fatigued` is true. `bool fatigued` in AgentEntry, populated from Schedule.
 
-- [ ] **Fatigue count in settlement tooltip** — In `HUD::DrawSettlementTooltip`, show
-  "Fatigued workers: N" when any workers at the settlement are fatigued. Add
-  `int fatiguedWorkers = 0` to `SettlementStatus` in `RenderSnapshot.h`, counted in
-  `SimThread::WriteSnapshot`'s settlement status loop by checking `Schedule::fatigued` for
-  working NPCs homed at each settlement. Color orange when > 0.
+- [x] **Fatigue count in settlement tooltip** — `fatiguedWorkers` in SettlementStatus, counted
+  from Schedule::fatigued + AgentBehavior::Working. Shown in ORANGE in settlement tooltip.
 
 - [ ] **Elder mentorship bonus** — In `ProductionSystem.cpp`, when a facility has at least one
   elder worker (Age::days > 65) and at least one non-elder, give the non-elder a +5% production
