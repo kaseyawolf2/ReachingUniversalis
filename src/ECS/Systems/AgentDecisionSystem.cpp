@@ -836,6 +836,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             const auto* myName = registry.try_get<Name>(entity);
                             std::string msg = (myName ? myName->value : "NPC") +
                                               " greets " + oName.value;
+                            // Complain about low need
+                            for (int ni = 0; ni < 4; ++ni) {
+                                if (needs.list[ni].value < 0.3f) {
+                                    const char* nn = (ni == 0) ? "hunger" :
+                                                     (ni == 1) ? "thirst" :
+                                                     (ni == 2) ? "fatigue" : "the cold";
+                                    msg += " (complains about ";
+                                    msg += nn;
+                                    msg += ")";
+                                    break;
+                                }
+                            }
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm.day, (int)tm.hourOfDay, msg);
                         }
