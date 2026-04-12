@@ -165,8 +165,10 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     }
 
     // Residents list — NPCs homed at this settlement, richest highlighted in gold
+    int residentsHeaderY = -1;  // track for hover tooltip
     if (!panel.residents.empty()) {
         y += 2;
+        residentsHeaderY = y;
         char resBuf[32];
         std::snprintf(resBuf, sizeof(resBuf), "Residents (%d):", (int)panel.residents.size());
         DrawText(resBuf, PX + 8, y, 11, Fade(YELLOW, 0.7f));
@@ -219,6 +221,28 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             }
 
             y += LINE_H - 3;
+        }
+
+        // Wealth tooltip: when hovering the "Residents (N):" header, show richest & poorest
+        if (residentsHeaderY >= 0 && panel.residents.size() >= 2) {
+            Vector2 mouse = GetMousePosition();
+            if (mouse.x >= PX && mouse.x <= PX + PW
+                && mouse.y >= residentsHeaderY && mouse.y < residentsHeaderY + (LINE_H - 2)) {
+                const auto& richest = panel.residents.front();
+                const auto& poorest = panel.residents.back();
+                char tipA[64], tipB[64];
+                std::snprintf(tipA, sizeof(tipA), "Richest: %s  %.0fg",
+                              richest.name.c_str(), richest.balance);
+                std::snprintf(tipB, sizeof(tipB), "Poorest: %s  %.0fg",
+                              poorest.name.c_str(), poorest.balance);
+                int tw = std::max(MeasureText(tipA, 11), MeasureText(tipB, 11)) + 12;
+                int tx = PX + PW + 4;
+                int ty = residentsHeaderY;
+                DrawRectangle(tx, ty, tw, 28, Fade(BLACK, 0.85f));
+                DrawRectangleLines(tx, ty, tw, 28, Fade(LIGHTGRAY, 0.5f));
+                DrawText(tipA, tx + 4, ty + 2,  11, GOLD);
+                DrawText(tipB, tx + 4, ty + 15, 11, Fade(LIGHTGRAY, 0.8f));
+            }
         }
     }
 
