@@ -1345,6 +1345,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     EventLog* banditLog = (banditELV.begin() == banditELV.end())
                           ? nullptr : &banditELV.get<EventLog>(*banditELV.begin());
 
+    // Pre-count bandits per road for density cap (max 3 per road midpoint).
+    std::map<entt::entity, int> banditsPerRoad;
+    {
+        auto roadView = registry.view<Road>();
+        registry.view<Position, BanditTag>(entt::exclude<Hauler, PlayerTag>).each(
+            [&](auto /*be*/, const Position& bpos) {
+                entt::entity nearest = entt::null;
+                float bestD2 = std::numeric_limits<float>::max();
+                roadView.each([&](auto re, const Road& road) {
+                    if (road.blocked) return;
+                    const auto* pa = registry.try_get<Position>(road.from);
+                    const auto* pb = registry.try_get<Position>(road.to);
+                    if (!pa || !pb) return;
+                    float mx = (pa->x + pb->x) * 0.5f;
+                    float my = (pa->y + pb->y) * 0.5f;
+                    float dx = mx - bpos.x, dy = my - bpos.y;
+                    float d2 = dx*dx + dy*dy;
+                    if (d2 < bestD2) { bestD2 = d2; nearest = re; }
+                });
+                if (nearest != entt::null) banditsPerRoad[nearest]++;
+            });
+    }
+
     // Iterate all NPCs that could be bandits (includes current BanditTag entities).
     registry.view<Position, Velocity, MoveSpeed, Needs, AgentState,
                   HomeSettlement, DeprivationTimer, Money>(
@@ -1430,11 +1453,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             if (!isBanditNow) return;
 
-            // ---- Bandit movement: lurk near nearest road midpoint ----
+            // ---- Bandit movement: lurk near nearest road midpoint (max 3 per road) ----
+            static constexpr int BANDIT_CAP_PER_ROAD = 3;
             float bestRoadD2 = std::numeric_limits<float>::max();
             float lurk_x = pos.x, lurk_y = pos.y;
-            registry.view<Road>().each([&](const Road& road) {
+            entt::entity lurkRoad = entt::null;
+            registry.view<Road>().each([&](auto re, const Road& road) {
                 if (road.blocked) return;
+                if (banditsPerRoad[re] >= BANDIT_CAP_PER_ROAD) return;
                 const auto* pa = registry.try_get<Position>(road.from);
                 const auto* pb = registry.try_get<Position>(road.to);
                 if (!pa || !pb) return;
@@ -1442,8 +1468,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 float my = (pa->y + pb->y) * 0.5f;
                 float dx2 = mx - pos.x, dy2 = my - pos.y;
                 float d2  = dx2*dx2 + dy2*dy2;
-                if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = mx; lurk_y = my; }
+                if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = mx; lurk_y = my; lurkRoad = re; }
             });
+            if (lurkRoad != entt::null) banditsPerRoad[lurkRoad]++;
 
             // ---- Try to intercept a nearby hauler ----
             bool intercepted = false;
