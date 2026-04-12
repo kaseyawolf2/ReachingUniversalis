@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit flee visual indicator** — Speed trail for fleeing bandits.
-
 ## Recently Done
+
+- [x] **Bandit flee visual indicator** — fleeTimer + fleeVx/fleeVy piped through AgentEntry. Red/orange trail drawn behind fleeing bandits in GameState::Draw.
 
 - [x] **Settlement morale boost on bandit cleared** — +0.05 morale to road.from/road.to settlements after confrontation. Logged to EventLog.
 
@@ -1280,7 +1280,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   +0.05 morale to each `Settlement::morale` (clamped to 1.0). Log: "[Settlement] morale improved
   (+5%) after bandit threat reduced." Connects player action to settlement wellbeing.
 
-- [ ] **Bandit flee visual indicator** — In `GameState::Draw`'s agent loop, when an agent has
+- [x] **Bandit flee visual indicator** — In `GameState::Draw`'s agent loop, when an agent has
   `isBandit == true` and `fleeTimer > 0` (add `float fleeTimer = 0.f` to `RenderSnapshot::AgentEntry`),
   draw a brief speed trail: a fading line from (x, y) in the opposite direction of velocity.
   Pipe `DeprivationTimer::fleeTimer` through `SimThread::WriteSnapshot` into the new field.
@@ -1420,6 +1420,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `float worstLoss = 0.f` to `Hauler`. In `TransportSystem` delivery completion, track the worst
   loss. In `FindBestRoute`, penalize routes matching `worstRoute` by -20% score for 24 game-hours
   (add `float worstRouteTimer = 0.f`). Haulers learn from mistakes and avoid known bad trades.
+
+- [ ] **NPC remembers who helped them** — Add `entt::entity lastHelper = entt::null` to
+  `DeprivationTimer`. In `AgentDecisionSystem`'s charity block, when an NPC receives charity, set
+  `lastHelper` to the donor's entity. In the greeting block, if the greeter's `lastHelper` matches
+  the other NPC, log "[Name] thanks [Helper] for past kindness" instead of a plain greeting and
+  add +0.05 mutual affinity. Creates gratitude memory that reinforces social bonds.
+
+- [ ] **Bandit intimidation aura** — In `AgentDecisionSystem`'s main NPC loop, idle NPCs within
+  50 units of a bandit (check `registry.view<BanditTag, Position>`) get a -0.02 morale drain per
+  game-hour applied to their home `Settlement::morale`. Log: "[NPC] feels uneasy near bandits."
+  with a cooldown (add `float intimidationCooldown = 0.f` to `DeprivationTimer`, 60 game-sec).
+  Bandits' mere presence erodes settlement morale — incentivizes player to confront them.
 
 ---
 
