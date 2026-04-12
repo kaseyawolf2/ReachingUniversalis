@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s settlement
+- [x] **Morale recovery from full stockpiles** — In `RandomEventSystem::Update`'s settlement
   loop, after the morale drift, check if `stockpile` has all three resources above `pop * 2`.
   If so, nudge morale upward: `s.morale = std::min(1.f, s.morale + 0.002f * gameHoursDt)`.
   This creates a positive feedback loop between good supply management and NPC happiness.
@@ -634,6 +634,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   they steal. Haulers gain +0.05 rep per completed delivery. In `HUD::DrawHoverTooltip`, expose
   the score as a `float reputation` field in `AgentEntry` and display `"Rep: +3.2"` (or negative
   in RED) when non-zero. This creates visible social hierarchy without requiring new UI panels.
+
+- [ ] **Abundant-supply notification** — When the morale surplus bonus first activates for a
+  settlement (i.e., was NOT abundant last tick, now IS abundant), log a one-time message to
+  `EventLog`: `"Greenfield: plentiful supplies boost morale"`. Track this with a
+  `bool abundantLastTick` field on `Settlement` (Components.h). Prevents silent changes and
+  gives the player feedback that their supply investment is paying off.
+
+- [ ] **Worker fatigue accumulation** — In `NeedDrainSystem.cpp`, when an NPC with `Schedule` is
+  in `Working` state and energy need falls below 0.2, apply a 20% production penalty via a new
+  `bool fatigued` bool on the `Schedule` component. In `ProductionSystem.cpp`, multiply yield by
+  `0.8f` if `sched->fatigued`. `fatigued` is cleared when energy recovers above 0.5 (also in
+  `NeedDrainSystem`). This makes sleep deprivation have visible production consequences.
+
+- [ ] **Settlement founding event log** — In `SimThread::ProcessInput` (SimThread.cpp), when the
+  player successfully founds a settlement (P key, cost 1500g), log it to `EventLog`: `"Player
+  founded [settlement name] at (x, y)"`. Look up the newly created Settlement entity immediately
+  after `WorldGenerator::FoundSettlement` returns. This makes founding visible in the event log
+  alongside other major events.
 
 ---
 
