@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
+- [x] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
   also look up the settlement's `popTrend` from `RenderSnapshot::SettlementStatus` — but that's
   render-side. Instead compute it locally: count NPCs at target (already in `popCount`), then
   compare to a rolling previous count stored in a `std::map<entt::entity, int> m_prevPop` member
@@ -395,7 +395,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
   only if the NPC has a Name and HomeSettlement, and rate-limit per entity.
 
-- [ ] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
+- [x] **Event log pop trend** — In `RandomEventSystem::TriggerEvent`, after computing `popCount`,
   also look up the settlement's `popTrend` from `RenderSnapshot::SettlementStatus` — but that's
   render-side. Instead compute it locally: count NPCs at target (already in `popCount`), then
   compare to a rolling previous count stored in a `std::map<entt::entity, int> m_prevPop` member
@@ -1352,3 +1352,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   from `buyPrice * qty`). Expose this in `AgentEntry` as `haulerProfit` and populate it in
   `SimThread::WriteSnapshot()`. Display in the agent hover tooltip in `GameState.cpp`'s hauler
   tooltip section as "Profit: +X.Xg" (GREEN) or "Loss: -X.Xg" (RED).
+
+- [ ] **NPC memory of past settlements** — Add a `std::vector<std::string> pastHomes` (max 3) to
+  `DeprivationTimer` in `Components.h`. In `AgentDecisionSystem.cpp`'s migration block, when an
+  NPC changes `HomeSettlement`, push the old settlement name onto `pastHomes` (pop front if > 3).
+  In `SimThread::WriteSnapshot()`, expose as `std::string migrationHistory` on `AgentEntry`
+  (comma-separated). Display in the NPC hover tooltip in `GameState.cpp` as "Formerly: A, B".
+
+- [ ] **Plague survivor immunity** — In `RandomEventSystem::KillFraction`, NPCs that survive a
+  plague roll get a `bool plagueImmune = false` flag on `DeprivationTimer` in `Components.h`.
+  Set it true after surviving. In `KillFraction`, skip immune NPCs from the kill list entirely.
+  In `SimThread::WriteSnapshot()`, expose as `bool plagueImmune` on `AgentEntry` and render a
+  small blue circle behind immune NPCs in `GameState.cpp`'s agent draw loop.
+
+- [ ] **Pop trend in world status bar** — In `HUD.cpp`'s `DrawWorldStatus`, after the existing
+  population count for each settlement, append the `popTrend` char from `SettlementStatus`
+  (already populated as '+', '=', or '-'). Render '+' in GREEN, '-' in RED, '=' omitted. Uses
+  existing snapshot data — no sim changes needed, purely a HUD display addition.
