@@ -145,6 +145,7 @@ struct DeprivationTimer {
     int                  illnessNeedIdx     = 0;         // which need index (0=Hunger,1=Thirst,2=Energy) is ill
     float                harvestBonusTimer  = 0.f;       // game-hours remaining for good-harvest bonus (1.5× worker contribution)
     float                gossipNudgeTimer   = 0.f;       // game-seconds remaining for gossip drift animation (0 = eligible)
+    float                fleeTimer          = 0.f;       // real-seconds remaining for post-theft flee (sprint away from settlement)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

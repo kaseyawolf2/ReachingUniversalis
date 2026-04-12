@@ -263,6 +263,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (state.behavior == AgentBehavior::Sleeping) continue;
 
         // ============================================================
+        // POST-THEFT FLEE: sprint away from home settlement
+        // ============================================================
+        if (timer.fleeTimer > 0.f) {
+            timer.fleeTimer -= realDt;
+            if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                if (const auto* sp = registry.try_get<Position>(home.settlement)) {
+                    float dx = pos.x - sp->x;
+                    float dy = pos.y - sp->y;
+                    float len = std::sqrt(dx * dx + dy * dy);
+                    if (len > 1.f) {
+                        vel.vx = (dx / len) * speed;
+                        vel.vy = (dy / len) * speed;
+                    }
+                }
+            }
+            continue;  // skip all other decision-making while fleeing
+        }
+
+        // ============================================================
         // CELEBRATING: move toward settlement centre at half speed.
         // Stays active while the home settlement has the "Festival" modifier.
         // Reverts to Idle when the festival ends.

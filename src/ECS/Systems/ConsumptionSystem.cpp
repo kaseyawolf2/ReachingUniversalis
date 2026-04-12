@@ -193,6 +193,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 foodStock -= STEAL_AMOUNT;
                 // Don't refill need — they'll pick it up as consumption next tick
                 timer.stealCooldown = STEAL_COOLDOWN;
+                timer.fleeTimer     = 4.f;   // sprint away for ~4 real seconds
 
                 // Log it
                 auto lv3 = registry.view<EventLog>();
@@ -221,6 +222,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
                 waterStock -= STEAL_AMOUNT;
                 timer.stealCooldown = STEAL_COOLDOWN;
+                timer.fleeTimer     = 4.f;
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();
                 if (lv3.begin() != lv3.end() && tv3.begin() != tv3.end()) {
