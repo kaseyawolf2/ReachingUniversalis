@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Low-morale NPC grumbling log** — NPCs at low-morale settlements grumble during gossip.
+  Rate-limited per settlement via static cooldown map.
+
 ## Recently Done
 
 - [x] **Hauler state label in tooltip** — Hauler status shown in hover tooltip.
