@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reputation gain from charity** — Add +0.2 to helper's Reputation::score in AgentDecisionSystem's charity block.
-
 ## Recently Done
+
+- [x] **Reputation gain from charity** — +0.2 via get_or_emplace<Reputation> in AgentDecisionSystem charity block. Creates component if missing.
+
 
 - [x] **Hauler loss-making trip log** — Log "[Hauler] completed a loss-making trip to [settlement] (-Xg)" when tripProfit < 0 in TransportSystem.
 
@@ -1365,7 +1366,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loss-making trip to [settlement] (-Xg)." Helps player identify failing trade routes. Uses
   existing EventLog and TimeManager access pattern from the nervous-travel log.
 
-- [ ] **Reputation gain from charity** — In `AgentDecisionSystem`'s charity block, after a
+- [x] **Reputation gain from charity** — In `AgentDecisionSystem`'s charity block, after a
   successful gift transfer, add +0.2 to the helper's `Reputation::score` (use `emplace_or_replace`
   if missing). Giving charity should build reputation, creating a positive feedback loop where
   generous NPCs are well-regarded and receive help when they need it themselves.
@@ -2759,3 +2760,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   by [Hauler]'s bankruptcy." and apply -0.01 morale to the settlement. Uses existing
   `registry.view<HomeSettlement, Position, Name>` pattern. Rate-limit: only log for up to 3
   witnesses per bankruptcy event. Adds social consequence to economic failure.
+
+- [ ] **Reputation tooltip color** — In `HUD::DrawHoverTooltip` (`src/UI/HUD.cpp`), where the
+  reputation line is drawn, color it based on value: GREEN if `reputation >= 1.0`, YELLOW if
+  `>= 0`, RED if negative. Currently shows in a single color. Use the existing `best->reputation`
+  field. Simple visual improvement that makes reputation legible at a glance.
+
+- [ ] **High-reputation NPC attracts migrants** — In `AgentDecisionSystem`'s migration scoring
+  block, when evaluating a destination settlement, check if any NPC there has `Reputation::score
+  >= 2.0`. If so, add +0.2 to the migration attractiveness score. Uses existing
+  `registry.view<HomeSettlement, Reputation>` to find high-rep NPCs at each candidate settlement.
+  Creates a "famous resident" pull effect — prestigious NPCs make their town a migration target.
