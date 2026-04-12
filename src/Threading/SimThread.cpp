@@ -545,6 +545,28 @@ void SimThread::ProcessInput() {
                             }
                         }
                     }
+                    // Scatter gang members: other bandits with same gangName flee
+                    {
+                        std::string confrontedGang;
+                        if (const auto* cdt = m_registry.try_get<DeprivationTimer>(nearBandit))
+                            confrontedGang = cdt->gangName;
+                        if (!confrontedGang.empty()) {
+                            m_registry.view<BanditTag, Position, Velocity, MoveSpeed,
+                                            DeprivationTimer>().each(
+                                [&](auto ge, Position& gp, Velocity& gv,
+                                    const MoveSpeed& gs, DeprivationTimer& gdt) {
+                                    if (gdt.gangName != confrontedGang) return;
+                                    // Set flee velocity away from player
+                                    float fdx = gp.x - ppos3.x;
+                                    float fdy = gp.y - ppos3.y;
+                                    float len = std::sqrt(fdx*fdx + fdy*fdy);
+                                    if (len < 1.f) { fdx = 1.f; fdy = 0.f; len = 1.f; }
+                                    gv.vx = (fdx / len) * gs.value * 1.5f;
+                                    gv.vy = (fdy / len) * gs.value * 1.5f;
+                                    gdt.fleeTimer = 3.f;
+                                });
+                        }
+                    }
                 }
             } else if (pst3.behavior == AgentBehavior::Working) {
                 // Toggle off

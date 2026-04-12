@@ -1466,6 +1466,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             if (!isBanditNow) return;
 
+            // ---- Bandit flee: skip normal behavior while fleeing ----
+            if (timer.fleeTimer > 0.f) {
+                timer.fleeTimer -= realDt;
+                return;   // velocity was set on confrontation; just let it play out
+            }
+
             // ---- Bandit movement: lurk near nearest road midpoint (max 3 per road) ----
             static constexpr int BANDIT_CAP_PER_ROAD = 3;
             float bestRoadD2 = std::numeric_limits<float>::max();
