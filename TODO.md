@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
-  windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
-  "Aldric Smith found 12g on the road near Greenfield" instead of without context. Use
-  `registry.try_get<HomeSettlement>(e)` and `registry.try_get<Settlement>(hs->settlement)` to
-  get the name. Requires no new components.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -200,6 +194,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DeprivationTimer` in SimThread's agent snapshot loop. `HUD::DrawHoverTooltip` draws a faint
   red "(ill: hunger)" / "(ill: thirst)" / "(ill: fatigue)" suffix inline on the needs line.
   Width calculation updated so the tooltip box fits the extended line.
+
+- [x] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop (case 1),
+  windfall log now reads "Aldric Smith found 12g on the road near Greenfield" using
+  `try_get<HomeSettlement>` → `try_get<Settlement>` to get the name. Falls back to the original
+  format if the NPC has no home settlement.
 
 - [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
   `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
@@ -491,6 +490,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `illnessTimer = ILLNESS_DURATION` and `illnessNeedIdx` to the same index. Gate it behind a 
   check that the target's own `illnessTimer <= 0` (no stacking). Log "X caught illness from Y."
   This requires no new components — just reads/writes `DeprivationTimer` fields already present.
+
+- [ ] **Skill discovery location in log** — In `RandomEventSystem`'s per-NPC event loop (case 0:
+  skill discovery), extend the log from "X had a skill insight in farming" to "X had a skill
+  insight in farming at Greenfield" using the same `try_get<HomeSettlement>` → `try_get<Settlement>`
+  pattern now used in the windfall case. No new components needed.
+
+- [ ] **Illness source context in log** — In `RandomEventSystem`'s per-NPC event loop (case 2:
+  minor illness), extend the log from "X fell ill (hunger)" to "X fell ill (hunger) at Greenfield"
+  using `try_get<HomeSettlement>` → `try_get<Settlement>`. Same pattern as the windfall log fix.
+  No new components needed.
 
 ---
 
