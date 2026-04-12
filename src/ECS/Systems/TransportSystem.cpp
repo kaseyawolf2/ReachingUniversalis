@@ -574,6 +574,23 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     float tripProfit = earned - tripCost;
                     hauler.lifetimeTrips++;
                     hauler.lifetimeProfit += tripProfit;
+                    // Log loss-making trips
+                    if (tripProfit < 0.f) {
+                        auto logV3 = registry.view<EventLog>();
+                        auto tmV3  = registry.view<TimeManager>();
+                        if (!logV3.empty() && !tmV3.empty()) {
+                            const auto& tm4 = tmV3.get<TimeManager>(*tmV3.begin());
+                            std::string who = "Hauler";
+                            if (const auto* nm = registry.try_get<Name>(entity))
+                                who = nm->value;
+                            std::string dest = destSettl ? destSettl->name : "???";
+                            char lbuf[160];
+                            std::snprintf(lbuf, sizeof(lbuf),
+                                "%s completed a loss-making trip to %s (%.1fg)",
+                                who.c_str(), dest.c_str(), tripProfit);
+                            logV3.get<EventLog>(*logV3.begin()).Push(tm4.day, (int)tm4.hourOfDay, lbuf);
+                        }
+                    }
                     if (tripProfit > hauler.bestProfit) {
                         hauler.bestProfit = tripProfit;
                         std::string src = cargoSourceName.empty() ? "???" : cargoSourceName;
