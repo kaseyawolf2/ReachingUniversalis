@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC migration considers bandit danger** — -5% migration score per bandit near road midpoint (100u radius, min 20%). Added in FindMigrationTarget after memory bonus.
+
 - [x] **Bounty pool shown in settlement tooltip** — "Bounty: Xg" in faint GOLD in settlement hover tooltip when bountyPool > 0.5. Added to SettlementStatus, piped from Settlement.
 
 - [x] **Bounty pool shown in stockpile panel** — "Bounty: Xg" in faint GOLD below treasury line when bountyPool > 0. Added to StockpilePanel, piped from Settlement in WriteSnapshot.
@@ -1233,7 +1235,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Settlement::bountyPool`. In `HUD::DrawWorldStatus` settlement tooltip, show "Bounty: Xg" in
   faint GOLD when bountyPool > 0.5. Quick glance at which towns are offering bounties.
 
-- [ ] **NPC migration considers bandit danger** — In `AgentDecisionSystem`'s `FindMigrationTarget`
+- [x] **NPC migration considers bandit danger** — In `AgentDecisionSystem`'s `FindMigrationTarget`
   (or migration trigger block), penalize settlements connected by bandit-heavy roads. For each
   candidate settlement, sum `banditCount` on its connecting roads; apply a -5% migration score
   penalty per bandit. NPCs prefer safer destinations. Affects the `MigrationMemory`-based scoring.
@@ -1342,6 +1344,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   when `panel.popHistory` has 2+ entries, draw a simple line graph (60px tall, spanning panel
   width) showing population over time. Use GREEN for growth segments, RED for decline. Already
   have `popHistory` in StockpilePanel — just need the rendering code. Draw below the resident list.
+
+- [ ] **NPC morale comment in tooltip** — When hovering an NPC, show a one-line mood comment
+  based on contentment: >0.8 "Content", 0.5-0.8 "Getting by", 0.3-0.5 "Struggling", <0.3
+  "Desperate". Add to the tooltip line sequence in `HUD.cpp`'s agent tooltip section. Use matching
+  colors (GREEN/YELLOW/ORANGE/RED). No new data needed — contentment already in AgentEntry.
+
+- [ ] **Bandit threat radius visual** — When hovering a bandit NPC, draw a faint RED circle
+  showing the 80-unit intercept range where they can attack haulers. In `GameState::Draw`'s agent
+  loop (where charity radius is drawn for helpers), add a parallel check: if hovered agent is
+  `isBandit`, draw `DrawCircleLinesV` at 80u radius in `Fade(RED, 0.2f)`. Helps player gauge danger.
 
 ---
 
