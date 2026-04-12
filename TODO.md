@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Rivalry log events** — In `RandomEventSystem::Update`'s settlement loop, after updating
-  `relations`, log when a relation crosses a threshold for the first time: when score drops
-  below -0.5f add "Rivalry declared: Ashford vs Thornvale" to the event log, when it rises
-  above 0.5f add "Alliance formed: Ashford & Thornvale". Guard with a per-pair cooldown using
-  an `std::set<pair<entt::entity,entt::entity>> s_loggedRivalries` static set to avoid spam.
+- [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
+  scatter slightly from the settlement centre rather than all heading to the same facility at once.
+  In `AgentDecisionSystem` (or `ScheduleSystem`), when transitioning from Sleeping to Idle at
+  wake time, nudge the NPC's position by a small random offset (±30 units) so they don't
+  all path-find from the exact same spot. No new component needed.
 
 ---
 
@@ -177,12 +177,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
-  scatter slightly from the settlement centre rather than all heading to the same facility at once.
-  In `AgentDecisionSystem` (or `ScheduleSystem`), when transitioning from Sleeping to Idle at
-  wake time, nudge the NPC's position by a small random offset (±30 units) so they don't
-  all path-find from the exact same spot. No new component needed.
 
 - [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
   within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
