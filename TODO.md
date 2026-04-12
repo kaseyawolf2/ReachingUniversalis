@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Road condition overlay toggle** — 'O' key toggles road colour between safety and condition modes.
-
 ## Recently Done
+
+- [x] **Road condition overlay toggle** — O key toggles m_showRoadCondition: Safety mode (bandits override) vs Condition mode (pure condition palette). Label in bottom-left.
+
 
 - [x] **Reputation affects charity willingness** — Starving NPCs with Reputation::score < -0.5 skipped in charity block. Log: "[Helper] refused to help [NPC] (bad reputation)."
 
@@ -1205,7 +1206,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   qualifies for help, skip NPCs whose `Reputation::score < -0.5f`. Antisocial NPCs get cold-shouldered
   by the community. Log when charity is refused: "[Helper] refused to help [Thief] (bad reputation)."
 
-- [ ] **Road condition overlay toggle** — Pressing 'O' toggles between two road colour modes:
+- [x] **Road condition overlay toggle** — Pressing 'O' toggles between two road colour modes:
   the default bandit/condition mode and a pure condition view (ignoring bandits). Add `bool
   m_showRoadCondition = false` to `GameState`. When toggled, road colours use condition-only
   palette. Small "Road: Safety / Condition" label in corner shows active mode.
@@ -1235,6 +1236,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block, after removing the BanditTag, check if any other bandit still has the same gangName. If not,
   log "[gang name] has been disbanded." in EventLog. Gives satisfying closure when the player clears
   a gang. Check via `registry.view<BanditTag, DeprivationTimer>` filtering by gangName match.
+
+- [ ] **NPC greeting interactions** — Idle NPCs within 40 units of each other occasionally exchange
+  greetings. In `AgentDecisionSystem`, when an NPC is in Idle schedule state and hasn't greeted
+  recently (add `float greetCooldown = 0.f` to `DeprivationTimer`), find the nearest idle NPC
+  within 40 units. If found, log "[Name] greets [Other]" and set cooldown to 120 game-seconds.
+  Adds ambient social texture to settlements without gameplay impact.
+
+- [ ] **Hauler route memory** — Haulers remember their most profitable completed trip. Add
+  `float bestProfit = 0.f` and `std::string bestRoute = ""` to `Hauler`. On delivery completion
+  in `TransportSystem`, if profit exceeds bestProfit, update both fields and log "[Hauler] sets
+  new personal record: +Xg on [A]→[B]". Pipe bestRoute through RenderSnapshot and show in tooltip
+  as "Best: [A]→[B] +Xg" in faint GOLD.
+
+- [ ] **Settlement mood indicator** — Settlements where average NPC need satisfaction is high
+  (all needs > 0.6 for 80%+ of residents) display a faint green glow, while struggling settlements
+  (any need < 0.3 for 50%+ of residents) show faint red. In `SimThread::WriteSnapshot`, compute
+  per-settlement mood score from NPC needs. Add `float moodScore = 0.5f` to `RenderSnapshot::SettlementEntry`.
+  In `GameState::Draw`, tint the settlement circle border based on mood.
 
 - [ ] **Settlement morale boost on bandit cleared** — In `SimThread::ProcessInput`'s confrontation
   block, after removing a bandit, find road-adjacent settlements (road.from / road.to) and add
