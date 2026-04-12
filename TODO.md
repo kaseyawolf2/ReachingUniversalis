@@ -180,7 +180,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
 
-- [ ] **NPC rumour propagation via gossip** — Extend the existing gossip system
+- [x] **NPC rumour propagation via gossip** — Extend the existing gossip system
   (`AgentDecisionSystem.cpp`). Add a `Rumour` component: `enum RumourType { PlagueNearby,
   GoodHarvest, BanditRoads }` with a `hops` int (decrements per gossip exchange) and an `origin`
   settlement entity. When `RandomEventSystem` fires a plague or drought, attach a `Rumour` to 1–2
@@ -450,6 +450,27 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   draw a small additional ring dot (radius 5, `Fade(GOLD, 0.5f)`) centred on the NPC. This makes
   vocation-aligned workers visually distinct on the map. Requires the `inVocation` field from the
   tooltip vocation task above.
+
+- [ ] **Rumour carrier visible in tooltip** — Add `bool hasRumour = false` and
+  `std::string rumourLabel` to `AgentEntry` in `RenderSnapshot.h`. In SimThread's agent snapshot
+  loop, check `registry.try_get<Rumour>(e)` and if present set `hasRumour = true` and
+  `rumourLabel = "plague" / "drought" / "bandits"`. In `HUD::DrawHoverTooltip`, when `hasRumour`,
+  draw a faint yellow "(spreading: plague)" line below the needs line. Makes rumour-carrying NPCs
+  identifiable to the player as they wander between settlements.
+
+- [ ] **Rumour immunity after delivery** — After a rumour's price effect is applied at a
+  settlement, mark that settlement "rumour-immune" for 48 game-hours against the same RumourType
+  from the same origin. Implement via a `static std::map<key, float> s_rumourImmunity` timer in
+  `AgentDecisionSystem.cpp` alongside `s_rumourDelivered`. Drain by `gameHoursDt` each frame;
+  prune expired entries. Prevents a flood of price nudges if many carriers arrive from the same
+  event before immunity expires.
+
+- [ ] **GoodHarvest rumour seeding** — In `RandomEventSystem.cpp`'s Harvest Bounty event (case 8
+  or the harvest windfall event), after boosting stockpile, attach `Rumour{RumourType::GoodHarvest,
+  target, 3}` to up to 2 NPCs at that settlement (same pattern as plague/drought seeding). In
+  `AgentDecisionSystem.cpp`'s `spreadRumour` lambda, add a case for `GoodHarvest`: when the rumour
+  arrives at a new settlement, boost food price by -5% (discount from expected abundance) and log
+  "Rumour of good harvest reached X." Completes the three-rumour-type system.
 
 ---
 
