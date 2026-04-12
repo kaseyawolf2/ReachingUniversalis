@@ -1625,10 +1625,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             bool intercepted = false;
             registry.view<Position, Hauler, Inventory, Money>(
                 entt::exclude<PlayerTag>).each(
-                [&](auto haulerE, const Position& hpos, const Hauler&,
+                [&](auto haulerE, const Position& hpos, const Hauler& h,
                     Inventory& haulerInv, Money& /*haulerMoney*/)
                 {
                     if (intercepted) return;
+                    if (h.inConvoy) return;  // bandits won't attack a convoy
                     float dx3 = hpos.x - pos.x, dy3 = hpos.y - pos.y;
                     if (dx3*dx3 + dy3*dy3 > BANDIT_INTERCEPT_RANGE * BANDIT_INTERCEPT_RANGE)
                         return;
