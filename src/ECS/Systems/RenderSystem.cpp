@@ -172,16 +172,33 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         DrawText(resBuf, PX + 8, y, 11, Fade(YELLOW, 0.7f));
         y += LINE_H - 2;
         for (const auto& r : panel.residents) {
-            char rbuf[72];
-            if (!r.profession.empty())
-                std::snprintf(rbuf, sizeof(rbuf), "  %s [%s]  %.0fg",
-                              r.name.c_str(), r.profession.c_str(), r.balance);
-            else
-                std::snprintf(rbuf, sizeof(rbuf), "  %s  %.0fg",
-                              r.name.c_str(), r.balance);
             // First entry is richest (sorted descending); highlight in gold
             Color rc = (&r == &panel.residents.front()) ? GOLD : Fade(LIGHTGRAY, 0.85f);
-            DrawText(rbuf, PX + 8, y, 11, rc);
+
+            // Map full profession string to 2-letter abbreviation
+            const char* abbr = nullptr;
+            if      (r.profession == "Farmer")       abbr = "Fa";
+            else if (r.profession == "Water Carrier") abbr = "Wa";
+            else if (r.profession == "Woodcutter")   abbr = "Lu";
+            else if (r.profession == "Merchant")     abbr = "Me";
+
+            // Draw: "  Name" in NPC colour, then " [Fa]" in grey, then "  45g" in NPC colour
+            char nameBuf[48], goldBuf[16];
+            std::snprintf(nameBuf, sizeof(nameBuf), "  %s", r.name.c_str());
+            std::snprintf(goldBuf, sizeof(goldBuf), "  %.0fg", r.balance);
+
+            int rx = PX + 8;
+            DrawText(nameBuf, rx, y, 11, rc);
+            rx += MeasureText(nameBuf, 11);
+
+            if (abbr) {
+                char abbrBuf[8];
+                std::snprintf(abbrBuf, sizeof(abbrBuf), " [%s]", abbr);
+                DrawText(abbrBuf, rx, y, 11, Fade(GRAY, 0.75f));
+                rx += MeasureText(abbrBuf, 11);
+            }
+
+            DrawText(goldBuf, rx, y, 11, rc);
             y += LINE_H - 3;
         }
     }
