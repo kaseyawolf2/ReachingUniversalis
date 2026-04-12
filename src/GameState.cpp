@@ -372,6 +372,10 @@ void GameState::Draw() {
             hovered->charityReady) {
             DrawCircleLinesV({ hovered->x, hovered->y }, 80.f, Fade(LIME, 0.2f));
         }
+        // Bandit threat radius: show intercept range when hovering a bandit
+        if (hovered && hovered->isBandit) {
+            DrawCircleLinesV({ hovered->x, hovered->y }, 80.f, Fade(RED, 0.2f));
+        }
     }
 
     // Agents
