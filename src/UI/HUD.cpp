@@ -1157,7 +1157,7 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     if (!best) return;
 
     // Format: show settlement names + price table + condition + status
-    char line1[80], line2[48], line3[48], line4[48], line5[48], line6[48];
+    char line1[80], line2[48], line3[48], line4[48], line5[48], line6[48], line7[64] = {};
     std::snprintf(line1, sizeof(line1), "%s ←→ %s%s",
                   best->nameA.c_str(), best->nameB.c_str(),
                   best->blocked ? "  [BLOCKED]" : "");
@@ -1183,15 +1183,45 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     std::snprintf(line6, sizeof(line6), "← %s prices / %s prices →",
                   best->nameA.c_str(), best->nameB.c_str());
 
+    // Relationship line: show rivalry/alliance status based on each side's view
+    // relAtoB = A's opinion of B (how much A benefits); relBtoA = B's opinion of A
+    bool hasRelInfo = (best->relAtoB != 0.f || best->relBtoA != 0.f);
+    Color relColor = LIGHTGRAY;
+    if (hasRelInfo) {
+        // Determine status from importer's perspective (who resents whom)
+        bool aRivalsB = (best->relAtoB < -0.5f);   // A resents B's exports
+        bool bRivalsA = (best->relBtoA < -0.5f);   // B resents A's exports
+        bool aAlliedB = (best->relAtoB > 0.5f);
+        bool bAlliedA = (best->relBtoA > 0.5f);
+        if (aRivalsB || bRivalsA) {
+            const char* who = (aRivalsB && bRivalsA) ? "Mutual rivals"
+                            : aRivalsB ? (std::string(best->nameA) + " resents " + best->nameB).c_str()
+                            :            (std::string(best->nameB) + " resents " + best->nameA).c_str();
+            std::snprintf(line7, sizeof(line7), "Relations: %s (+10%% tariff)", who);
+            relColor = RED;
+        } else if (aAlliedB && bAlliedA) {
+            std::snprintf(line7, sizeof(line7), "Relations: Allied (-5%% tax both ways)");
+            relColor = GREEN;
+        } else {
+            // Show numeric scores when not yet at threshold
+            std::snprintf(line7, sizeof(line7), "Relations: %s→%s %.2f  %s→%s %.2f",
+                best->nameA.c_str(), best->nameB.c_str(), best->relAtoB,
+                best->nameB.c_str(), best->nameA.c_str(), best->relBtoA);
+            relColor = Fade(LIGHTGRAY, 0.7f);
+        }
+    }
+
     // Position tooltip at midpoint of road
     float midWX = (best->x1 + best->x2) * 0.5f;
     float midWY = (best->y1 + best->y2) * 0.5f;
     Vector2 screen = GetWorldToScreen2D({ midWX, midWY }, cam);
 
+    int extraLine = (line7[0] != '\0') ? 1 : 0;
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11), MeasureText(line4, 11),
-                       MeasureText(line5, 11), MeasureText(line6, 10) }) + 12;
-    int h = 6 * 16 + 4;
+                       MeasureText(line5, 11), MeasureText(line6, 10),
+                       extraLine ? MeasureText(line7, 11) : 0 }) + 12;
+    int h = (6 + extraLine) * 16 + 4;
     int tx = (int)screen.x - w / 2, ty = (int)screen.y - h - 8;
     if (tx < 4) tx = 4;
     if (tx + w > SCREEN_W - 4) tx = SCREEN_W - 4 - w;
@@ -1210,6 +1240,8 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
     DrawText(line4, tx, ty + 48,  11, BROWN);
     DrawText(line5, tx, ty + 64,  11, condCol);
     DrawText(line6, tx, ty + 80,  10, Fade(LIGHTGRAY, 0.5f));
+    if (line7[0] != '\0')
+        DrawText(line7, tx, ty + 96, 11, relColor);
 }
 
 // ---- DrawNeedBar ----

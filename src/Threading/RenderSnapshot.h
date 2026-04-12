@@ -90,6 +90,8 @@ struct RenderSnapshot {
         std::string nameA, nameB;
         float foodA  = 0.f, waterA = 0.f, woodA = 0.f;
         float foodB  = 0.f, waterB = 0.f, woodB = 0.f;
+        // Inter-settlement relations: A's view of B and B's view of A (-1=rival, 0=neutral, +1=ally)
+        float relAtoB = 0.f, relBtoA = 0.f;
     };
 
     struct FacilityEntry {

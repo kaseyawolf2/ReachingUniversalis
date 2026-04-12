@@ -11,6 +11,13 @@ static constexpr float MIN_TRIP_PROFIT_FLOOR = 0.5f;  // hauler will accept this
 static constexpr float WAIT_INTERVAL         = 1.f;   // game-hours to wait if no profitable route
 static constexpr int   MAX_WAIT_CYCLES       = 5;     // after this many waits, accept any positive margin
 
+// Inter-settlement rivalry/alliance
+static constexpr float RIVAL_THRESHOLD   = -0.5f;   // below this → importer sees exporter as rival
+static constexpr float ALLY_THRESHOLD    =  0.5f;   // above this → importer sees exporter as ally
+static constexpr float TRADE_DELTA       =  0.04f;  // per delivery: exporter gains, importer loses
+static constexpr float RIVAL_SURCHARGE   =  0.10f;  // extra tax fraction when rival (20%→30%)
+static constexpr float ALLY_DISCOUNT     =  0.05f;  // tax reduction when allied (20%→15%)
+
 static void MoveToward(Velocity& vel, const Position& from,
                         float tx, float ty, float speed) {
     float dx = tx - from.x, dy = ty - from.y;
@@ -241,6 +248,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 if (money) money->balance   -= totalCost;
                 if (settl) settl->treasury  += totalCost;
                 hauler.targetSettlement = best.dest;
+                hauler.cargoSource      = home.settlement;   // track where goods came from
                 hauler.state            = HaulerState::GoingToDeposit;
                 hauler.waitCycles       = 0;
             } else {
@@ -284,10 +292,23 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             } else {
                 vel.vx = vel.vy = 0.f;
-                auto* destSp  = registry.try_get<Stockpile>(hauler.targetSettlement);
-                auto* destMkt = registry.try_get<Market>(hauler.targetSettlement);
+                auto* destSp   = registry.try_get<Stockpile>(hauler.targetSettlement);
+                auto* destMkt  = registry.try_get<Market>(hauler.targetSettlement);
+                auto* destSettl = registry.try_get<Settlement>(hauler.targetSettlement);
 
-                static constexpr float TRADE_TAX = 0.20f;  // 20% of gross sale to settlement
+                static constexpr float TRADE_TAX = 0.20f;  // base 20% of gross sale to settlement
+
+                // Determine effective tax based on destination's view of the cargo source.
+                // Rival surcharge: destination imposes a tariff on an undercutting exporter (+10%).
+                // Ally discount: destination rewards trusted trading partner (-5%).
+                float effectiveTax = TRADE_TAX;
+                if (hauler.cargoSource != entt::null && registry.valid(hauler.cargoSource) && destSettl) {
+                    auto it = destSettl->relations.find(hauler.cargoSource);
+                    if (it != destSettl->relations.end()) {
+                        if (it->second < RIVAL_THRESHOLD) effectiveTax = TRADE_TAX + RIVAL_SURCHARGE;
+                        if (it->second > ALLY_THRESHOLD)  effectiveTax = TRADE_TAX - ALLY_DISCOUNT;
+                    }
+                }
 
                 float earned = 0.f;
                 float taxCollected = 0.f;
@@ -296,7 +317,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         destSp->quantities[type] += qty;
                         float sellPrice = destMkt ? destMkt->GetPrice(type) : hauler.buyPrice;
                         float gross = sellPrice * qty;
-                        float tax   = gross * TRADE_TAX;
+                        float tax   = gross * effectiveTax;
                         // Buying cost was paid at source — earn full revenue minus tax
                         earned       += gross - tax;
                         taxCollected += tax;
@@ -306,10 +327,21 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 if (auto* money = registry.try_get<Money>(entity))
                     if (earned > 0.f) money->balance += earned;
                 // Tax goes to destination settlement treasury
-                if (taxCollected > 0.f) {
-                    if (auto* destSettl = registry.try_get<Settlement>(hauler.targetSettlement))
-                        destSettl->treasury += taxCollected;
+                if (taxCollected > 0.f && destSettl)
+                    destSettl->treasury += taxCollected;
+
+                // Update inter-settlement relations: exporter gains (+), importer loses (-)
+                if (hauler.cargoSource != entt::null && registry.valid(hauler.cargoSource)
+                    && hauler.cargoSource != hauler.targetSettlement) {
+                    auto* exporterSettl = registry.try_get<Settlement>(hauler.cargoSource);
+                    if (exporterSettl && destSettl) {
+                        auto& relExp = exporterSettl->relations[hauler.targetSettlement];
+                        relExp = std::min(1.f, relExp + TRADE_DELTA);
+                        auto& relImp = destSettl->relations[hauler.cargoSource];
+                        relImp = std::max(-1.f, relImp - TRADE_DELTA);
+                    }
                 }
+                hauler.cargoSource = entt::null;
 
                 inv.contents.clear();
 
@@ -337,6 +369,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                             // Purchase return goods from current settlement
                             if (retMoney) retMoney->balance    -= retCost;
                             if (curSettl) curSettl->treasury   += retCost;
+                            hauler.cargoSource      = curSettlEnt;  // return trip: goods came from here
                             hauler.targetSettlement = returnTrip.dest;  // = home
                             // Stay in GoingToDeposit state — home is the new destination
                             break;

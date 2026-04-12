@@ -61,6 +61,19 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         if (s.strikeCooldown > 0.f)
             s.strikeCooldown = std::max(0.f, s.strikeCooldown - gameHoursDt);
 
+        // Drift inter-settlement relations toward neutral (0) at 0.3% per game-hour.
+        // Also prune entries pointing to destroyed settlement entities.
+        static constexpr float RELATION_DRIFT = 0.003f;
+        for (auto it = s.relations.begin(); it != s.relations.end(); ) {
+            if (!registry.valid(it->first)) {
+                it = s.relations.erase(it);
+                continue;
+            }
+            if (it->second > 0.f) it->second = std::max(0.f, it->second - RELATION_DRIFT * gameHoursDt);
+            else                  it->second = std::min(0.f, it->second + RELATION_DRIFT * gameHoursDt);
+            ++it;
+        }
+
         // Work stoppage: 5% chance per game-day when morale is critical
         static constexpr float STRIKE_PROB_PER_DAY  = 0.05f;
         static constexpr float STRIKE_DURATION_HOURS = 6.f;

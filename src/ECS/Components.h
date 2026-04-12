@@ -89,6 +89,9 @@ struct Settlement {
     float       morale        = 0.5f;      // 0-1: NPC happiness/social trust; >0.7 = +10% prod; <0.3 = unrest
     bool        unrest        = false;     // true while morale < 0.3 (logged once on crossing)
     float       strikeCooldown = 0.f;     // game-hours until next work-stoppage can fire (0 = eligible)
+    // Inter-settlement relations: entity → score (-1 = rival, 0 = neutral, +1 = ally)
+    // Updated when haulers complete deliveries. Rival → +10% trade surcharge; Ally → -5% tax.
+    std::map<entt::entity, float> relations;
 };
 
 struct Stockpile {
@@ -157,6 +160,7 @@ struct Hauler {
     float        waitTimer        = 0.f;   // game-hours before re-evaluating trade
     float        buyPrice         = 0.f;   // price per unit paid at pickup
     int          waitCycles       = 0;     // consecutive evaluations with no good route
+    entt::entity cargoSource      = entt::null;  // settlement where current cargo was loaded (for rivalry tracking)
 };
 
 // ---- Economy ----

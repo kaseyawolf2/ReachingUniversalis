@@ -1365,8 +1365,16 @@ void SimThread::WriteSnapshot() {
         };
         fillRoadEnd(road.from, nA, fA, wA, dA);
         fillRoadEnd(road.to,   nB, fB, wB, dB);
+        // Look up inter-settlement relations for road tooltip
+        float relAB = 0.f, relBA = 0.f;
+        {
+            const auto* sA = m_registry.try_get<Settlement>(road.from);
+            const auto* sB = m_registry.try_get<Settlement>(road.to);
+            if (sA) { auto it = sA->relations.find(road.to);   if (it != sA->relations.end()) relAB = it->second; }
+            if (sB) { auto it = sB->relations.find(road.from); if (it != sB->relations.end()) relBA = it->second; }
+        }
         roads.push_back({ fp.x, fp.y, tp.x, tp.y, road.blocked, road.condition,
-                          nA, nB, fA, wA, dA, fB, wB, dB });
+                          nA, nB, fA, wA, dA, fB, wB, dB, relAB, relBA });
     });
 
     // ---- Facilities ----
