@@ -237,6 +237,9 @@ void GameState::Draw() {
             // Plague override — ring pulses purple
             if (s.modifierName == "Plague")
                 ring = s.selected ? YELLOW : Color{ 180, 60, 220, 200 };
+            // Festival override — ring glows gold
+            if (s.modifierName == "Festival")
+                ring = s.selected ? YELLOW : Fade(GOLD, 0.85f);
         }
         DrawCircleV({ s.x, s.y }, s.radius, fill);
         // During plague, also draw a second outer ring to make it more visible
