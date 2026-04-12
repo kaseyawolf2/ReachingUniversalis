@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement morale** — Add a `morale` float (0–1) to `Settlement`. Morale rises when:
+  stockpiles are full, festivals fire, births happen. Falls when: NPCs die of hunger, thefts occur,
+  population drops. Morale above 0.7 gives +10% production. Below 0.3 triggers a "Unrest" modifier
+  (random chance of a work stoppage event). Update in relevant systems, display in stockpile panel
+  (replace or augment `stability`).
+
 ---
 
 ## Done
@@ -72,12 +78,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Settlement morale** — Add a `morale` float (0–1) to `Settlement`. Morale rises when:
-  stockpiles are full, festivals fire, births happen. Falls when: NPCs die of hunger, thefts occur,
-  population drops. Morale above 0.7 gives +10% production. Below 0.3 triggers a "Unrest" modifier
-  (random chance of a work stoppage event). Update in relevant systems, display in stockpile panel
-  (replace or augment `stability`).
 
 - [ ] **Work stoppage event** — New random event type in `RandomEventSystem`: when settlement morale
   < 0.3, there is a 5% chance per day of a Work Stoppage. All `Schedule`-following NPCs at that
