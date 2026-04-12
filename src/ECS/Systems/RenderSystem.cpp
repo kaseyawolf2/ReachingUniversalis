@@ -16,7 +16,9 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     int eventLines  = (int)panel.recentEvents.size();
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
-    int ph          = totalLines * LINE_H + 14 + sparklineH;
+    int residentH   = panel.residents.empty() ? 0
+                        : 2 + (LINE_H - 2) + (int)panel.residents.size() * (LINE_H - 3);
+    int ph          = totalLines * LINE_H + 14 + sparklineH + residentH;
 
     DrawRectangle(PX, PY, PW, ph, Fade(BLACK, 0.75f));
     DrawRectangleLines(PX, PY, PW, ph, LIGHTGRAY);
@@ -151,6 +153,28 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                            e.message.find("CRISIS")     != std::string::npos);
             Color ec = isGood ? Fade(GREEN, 0.8f) : isBad ? Fade(RED, 0.8f) : Fade(LIGHTGRAY, 0.7f);
             DrawText(ebuf, PX + 8, y, 11, ec);
+            y += LINE_H - 3;
+        }
+    }
+
+    // Residents list — NPCs homed at this settlement, richest highlighted in gold
+    if (!panel.residents.empty()) {
+        y += 2;
+        char resBuf[32];
+        std::snprintf(resBuf, sizeof(resBuf), "Residents (%d):", (int)panel.residents.size());
+        DrawText(resBuf, PX + 8, y, 11, Fade(YELLOW, 0.7f));
+        y += LINE_H - 2;
+        for (const auto& r : panel.residents) {
+            char rbuf[72];
+            if (!r.profession.empty())
+                std::snprintf(rbuf, sizeof(rbuf), "  %s [%s]  %.0fg",
+                              r.name.c_str(), r.profession.c_str(), r.balance);
+            else
+                std::snprintf(rbuf, sizeof(rbuf), "  %s  %.0fg",
+                              r.name.c_str(), r.balance);
+            // First entry is richest (sorted descending); highlight in gold
+            Color rc = (&r == &panel.residents.front()) ? GOLD : Fade(LIGHTGRAY, 0.85f);
+            DrawText(rbuf, PX + 8, y, 11, rc);
             y += LINE_H - 3;
         }
     }

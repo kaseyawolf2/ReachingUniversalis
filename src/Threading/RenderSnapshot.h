@@ -145,6 +145,13 @@ struct RenderSnapshot {
         std::vector<EventLog::Entry>  recentEvents;      // last 5 events mentioning this settlement
         // Population history — one entry per sample day, newest last (up to 30 points)
         std::vector<int>              popHistory;
+        // Residents list — homed NPCs sorted by gold balance descending, max 12
+        struct AgentInfo {
+            std::string name;
+            float       balance    = 0.f;
+            std::string profession;
+        };
+        std::vector<AgentInfo>        residents;
     };
 
     // ---- Data fields ----

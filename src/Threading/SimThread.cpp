@@ -1668,6 +1668,23 @@ void SimThread::WriteSnapshot() {
             // Population history sparkline
             if (m_popHistory.count(e))
                 panel.popHistory = m_popHistory.at(e);
+
+            // Residents list — homed NPCs sorted by balance descending, max 12
+            panel.residents.clear();
+            m_registry.view<Name, HomeSettlement, Money>(entt::exclude<PlayerTag, Hauler>).each(
+                [&](auto npc, const Name& nm, const HomeSettlement& hs, const Money& mn) {
+                    if (hs.settlement != e) return;
+                    RenderSnapshot::StockpilePanel::AgentInfo ai;
+                    ai.name    = nm.value;
+                    ai.balance = mn.balance;
+                    if (const auto* pr = m_registry.try_get<Profession>(npc))
+                        ai.profession = ProfessionLabel(pr->type);
+                    panel.residents.push_back(std::move(ai));
+                });
+            std::sort(panel.residents.begin(), panel.residents.end(),
+                [](const auto& a, const auto& b) { return a.balance > b.balance; });
+            if (panel.residents.size() > 12)
+                panel.residents.resize(12);
         }
     });
 
