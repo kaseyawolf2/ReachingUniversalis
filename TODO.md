@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Route line colour by cargo type** — Colour hauler route lines by cargo type instead
+  of always SKYBLUE. Uses existing `cargoDotColor` and `hasCargoDot` from AgentEntry.
+
 ## Recently Done
 
 - [x] **Hauler loyalty bonus** — 5% extra earned on home settlement deliveries.
