@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Warmth glow shown in tooltip** — Mirrors the "Fed by neighbour" pattern. Add a
+  `bool recentWarmthGlow = false` to `AgentEntry` in `RenderSnapshot.h`. In
+  `SimThread::WriteSnapshot`, set it when `needs.list[(int)NeedType::Heat].value > 0.9f`
+  AND the NPC's `charityTimer > 0.f` (they recently gave charity and are warm). In
+  `HUD::DrawHoverTooltip`, show a faint `ORANGE`-coloured "Warm from giving" line (same
+  lineCount/pw pattern as `showHelped`). Makes the warmth buff legible to the player.
+
 ---
 
 ## Done
@@ -32,13 +39,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Warmth glow shown in tooltip** — Mirrors the "Fed by neighbour" pattern. Add a
-  `bool recentWarmthGlow = false` to `AgentEntry` in `RenderSnapshot.h`. In
-  `SimThread::WriteSnapshot`, set it when `needs.list[(int)NeedType::Heat].value > 0.9f`
-  AND the NPC's `charityTimer > 0.f` (they recently gave charity and are warm). In
-  `HUD::DrawHoverTooltip`, show a faint `ORANGE`-coloured "Warm from giving" line (same
-  lineCount/pw pattern as `showHelped`). Makes the warmth buff legible to the player.
 
 - [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
   (Hunger > 0.8, Money > 20g, charityTimer == 0), draw a faint dim circle of radius 80 around
