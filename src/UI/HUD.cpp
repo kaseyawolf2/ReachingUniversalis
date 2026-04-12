@@ -1592,7 +1592,7 @@ void HUD::DrawMinimap(const RenderSnapshot& snap) const {
         DrawCircleV(p, dotR + 1.f, Fade(s.selected ? WHITE : BLACK, 0.7f));
         DrawCircleV(p, dotR,       dotCol);
         if (!s.modifierName.empty())
-            DrawCircleLines((int)p.x, (int)p.y, dotR + 2.f, Fade(YELLOW, 0.8f));
+            DrawCircleLines((int)p.x, (int)p.y, dotR + 2.f, Fade(ModifierColour(s.modifierName), 0.8f));
     }
 
     // Player position — small white dot
