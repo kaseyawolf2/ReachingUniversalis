@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Illness visible in tooltip** — When an NPC has `depTimer->illnessTimer > 0`, add
-  `bool ill = true` and `int illNeedIdx` to `AgentEntry` in `RenderSnapshot.h`, populated in
-  SimThread's agent snapshot loop. In `HUD::DrawHoverTooltip`, draw a faint red "(ill: hunger)"
-  / "(ill: thirst)" / "(ill: fatigue)" suffix on the needs line. This makes personal events
-  player-visible without requiring any new components.
-
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -194,6 +188,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement doesn't already have it and `hops > 0`). When a rumour arrives at a settlement,
   nudge that settlement's relevant stockpile fear: plague → food hoarding (+10% Food price at
   Market), drought → water scarcity (+15% Water price). Log "Rumour of plague reached Thornvale."
+
+- [x] **Illness visible in tooltip** — When an NPC has `depTimer->illnessTimer > 0`, added
+  `bool ill` and `int illNeedIdx` to `AgentEntry` in `RenderSnapshot.h`, populated from
+  `DeprivationTimer` in SimThread's agent snapshot loop. `HUD::DrawHoverTooltip` draws a faint
+  red "(ill: hunger)" / "(ill: thirst)" / "(ill: fatigue)" suffix inline on the needs line.
+  Width calculation updated so the tooltip box fits the extended line.
 
 - [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
   windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
@@ -471,6 +471,26 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentDecisionSystem.cpp`'s `spreadRumour` lambda, add a case for `GoodHarvest`: when the rumour
   arrives at a new settlement, boost food price by -5% (discount from expected abundance) and log
   "Rumour of good harvest reached X." Completes the three-rumour-type system.
+
+- [ ] **Illness recovery log** — In `RandomEventSystem::Update`'s per-NPC event loop (which
+  already drains `illnessTimer`), when `illnessTimer` transitions from `> 0` to `0` (i.e. it was
+  positive last tick and now hits zero), log "X recovered from illness at Y." using `try_get<Name>`
+  and `try_get<HomeSettlement>`. Track the transition with a `static std::set<entt::entity>
+  s_currentlyIll` that inserts on illness start and erases on recovery — the erase fires the log.
+  Rate-limited naturally since illness can only start every `personalEventTimer` interval.
+
+- [ ] **Illness NPC dot tint** — When an NPC has `ill = true` in `AgentEntry` (already added),
+  apply a subtle visual tint in `GameState.cpp`'s agent render loop: blend the existing `drawColor`
+  toward `Fade(PURPLE, 0.5f)` using `ColorLerp` or manual component averaging. Only apply for
+  `AgentRole::NPC` and `AgentRole::Child`; leave haulers and player unchanged. Makes sick NPCs
+  subtly visible on the map without reading their tooltip.
+
+- [ ] **Illness contagion between NPCs** — In `AgentDecisionSystem.cpp`'s gossip proximity check
+  (the same `GOSSIP_RADIUS` loop), when two NPCs are close and one has `illnessTimer > 0` while
+  the other doesn't, apply a 10% chance to copy the illness to the healthy NPC: set their
+  `illnessTimer = ILLNESS_DURATION` and `illnessNeedIdx` to the same index. Gate it behind a 
+  check that the target's own `illnessTimer <= 0` (no stacking). Log "X caught illness from Y."
+  This requires no new components — just reads/writes `DeprivationTimer` fields already present.
 
 ---
 
