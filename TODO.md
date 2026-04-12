@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Skill milestone log** — In `ScheduleSystem.cpp`'s skill-at-worksite block, after
+  `skills->Advance(...)`, check if the skill just crossed 0.5 (journeyman) or 0.9 (master)
+  for the first time. Use a `static std::set<std::pair<entt::entity,int>> s_milestones` to
+  prevent repeat fires. Log "Aldric Smith reached Journeyman Farming." or "Master Water." via
+  `registry.view<EventLog>()`. Levels: 0.5 = Journeyman, 0.9 = Master.
 
 ## Recently Done
 
