@@ -353,6 +353,10 @@ void GameState::Draw() {
             drawColor.g = (unsigned char)((drawColor.g + sick.g) / 2);
             drawColor.b = (unsigned char)((drawColor.b + sick.b) / 2);
         }
+        // Idle haulers with no cargo drawn at half opacity
+        if (a.role == RenderSnapshot::AgentRole::Hauler
+            && a.behavior == AgentBehavior::Idle && a.haulerCargoQty == 0)
+            drawColor = Fade(drawColor, 0.5f);
         DrawCircleV({ a.x, a.y }, a.size, drawColor);
         // Children have no ring — keeps them visually distinct from working adults
         if (a.role != RenderSnapshot::AgentRole::Child)
