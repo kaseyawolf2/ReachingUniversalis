@@ -17,7 +17,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
     int residentH   = panel.residents.empty() ? 0
-                        : 2 + (LINE_H - 2) + (LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
+                        : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int ph          = totalLines * LINE_H + 14 + sparklineH + residentH;
 
     DrawRectangle(PX, PY, PW, ph, Fade(BLACK, 0.75f));
@@ -193,6 +193,25 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                 DrawText(profBuf, PX + 8, y, 10, Fade(LIGHTGRAY, 0.55f));
                 y += LINE_H - 3;
             }
+        }
+
+        // Family dynasty line: count surnames appearing 2+ times
+        {
+            std::map<std::string, int> dynCount;
+            for (const auto& r : panel.residents)
+                if (!r.familyName.empty())
+                    dynCount[r.familyName]++;
+            int dynasties = 0;
+            for (const auto& [name, cnt] : dynCount)
+                if (cnt >= 2) ++dynasties;
+            char dynBuf[48];
+            if (dynasties > 0)
+                std::snprintf(dynBuf, sizeof(dynBuf), "Families: %d dynast%s",
+                              dynasties, dynasties == 1 ? "y" : "ies");
+            else
+                std::snprintf(dynBuf, sizeof(dynBuf), "No established families");
+            DrawText(dynBuf, PX + 8, y, 10, Fade(LIGHTGRAY, 0.5f));
+            y += LINE_H - 3;
         }
 
         // Count family members among visible residents for the " ×N" suffix
