@@ -1037,16 +1037,24 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showMorale)
         std::snprintf(line7, sizeof(line7), "Morale: %d%%", (int)(morale * 100));
 
+    // Line 9: trade volume
+    char lineTrade[32] = {};
+    bool showTrade = (best->tradeVolume > 0);
+    if (showTrade)
+        std::snprintf(lineTrade, sizeof(lineTrade), "Trades: %d/day", best->tradeVolume);
+
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
                       + (showEstates ? 1 : 0)
-                      + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0);
+                      + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
+                      + (showTrade ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
                        showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
-                       showMorale   ? MeasureText(line7, 11) : 0 }) + 12;
+                       showMorale   ? MeasureText(line7, 11) : 0,
+                       showTrade    ? MeasureText(lineTrade, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
@@ -1075,7 +1083,10 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showMorale) {
         Color moraleCol = (morale >= 0.7f) ? GREEN : (morale >= 0.4f) ? YELLOW : RED;
-        DrawText(line7, tx, ty,  11, moraleCol);
+        DrawText(line7, tx, ty,  11, moraleCol);            ty += 16;
+    }
+    if (showTrade) {
+        DrawText(lineTrade, tx, ty, 11, Fade(SKYBLUE, 0.8f));
     }
 }
 

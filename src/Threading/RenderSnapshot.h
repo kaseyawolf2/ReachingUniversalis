@@ -100,6 +100,7 @@ struct RenderSnapshot {
         std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
         float        ruinTimer  = 0.f;   // > 0 while settlement is in post-collapse ruin state
         float        morale    = 0.5f;  // settlement morale (0-1) for ring colour
+        int          tradeVolume = 0;   // deliveries received in current 24h period
     };
 
     struct RoadEntry {

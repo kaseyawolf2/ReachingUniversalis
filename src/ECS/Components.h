@@ -93,6 +93,8 @@ struct Settlement {
     // Inter-settlement relations: entity → score (-1 = rival, 0 = neutral, +1 = ally)
     // Updated when haulers complete deliveries. Rival → +10% trade surcharge; Ally → -5% tax.
     std::map<entt::entity, float> relations;
+    int   tradeVolume      = 0;    // deliveries received; reset every 24 game-hours
+    float tradeVolumeTimer = 0.f;  // game-hours until next reset
 };
 
 struct Stockpile {

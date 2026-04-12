@@ -379,8 +379,10 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 hauler.cargoSource = entt::null;
 
                 // Successful trade delivery lifts destination settlement morale slightly.
-                if (destSettl)
+                if (destSettl) {
                     destSettl->morale = std::min(1.f, destSettl->morale + 0.01f);
+                    destSettl->tradeVolume++;
+                }
 
                 // Log the delivery (cargo summary + morale bump)
                 if (destSettl && !inv.contents.empty()) {

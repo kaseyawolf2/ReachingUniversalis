@@ -47,6 +47,13 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         float drift = (0.5f - s.morale) * 0.005f * gameHoursDt;
         s.morale = std::max(0.f, std::min(1.f, s.morale + drift));
 
+        // Trade volume counter: reset every 24 game-hours
+        s.tradeVolumeTimer += gameHoursDt;
+        if (s.tradeVolumeTimer >= 24.f) {
+            s.tradeVolume = 0;
+            s.tradeVolumeTimer -= 24.f;
+        }
+
         // Bonus morale recovery when all three stockpiles are above 80 units.
         // Rewards players who maintain surpluses; gives morale a second recovery path.
         static constexpr float STOCKPILE_ABUNDANCE = 80.f;
