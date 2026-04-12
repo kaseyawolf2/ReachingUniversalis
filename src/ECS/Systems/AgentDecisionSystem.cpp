@@ -840,6 +840,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 tm.day, (int)tm.hourOfDay, msg);
                         }
                     }
+                    // Build affinity: casual greetings slowly build familiarity
+                    static constexpr float GREET_AFFINITY = 0.01f;
+                    if (auto* rel = registry.try_get<Relations>(entity))
+                        rel->affinity[other] = std::min(1.f, rel->affinity[other] + GREET_AFFINITY);
+                    if (auto* oRel = registry.try_get<Relations>(other))
+                        oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + GREET_AFFINITY);
                     greeted = true;
                 });
             }
