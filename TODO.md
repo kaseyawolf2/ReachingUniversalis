@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC greeting interactions** — Idle NPCs within 40u greet each other occasionally.
+
 ## Recently Done
 
 - [x] **Gang disbands on last member removed** — After confrontation scatter, check remaining bandits with same gangName. If none, log "[gang] has been disbanded."
