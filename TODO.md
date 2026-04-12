@@ -9,14 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Child count in stockpile tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp, the tooltip
-  shown when hovering a settlement dot), add a "Children: N" line when `childCount > 0`. Read
-  `SettlementStatus::childCount` from the `worldStatus` entry that matches the hovered settlement
-  name. Display it in faded LIGHTGRAY below the population line. No new components needed.
-
 ---
 
 ## Done
+
+- [x] **Child count in stockpile tooltip** — New `HUD::DrawSettlementTooltip` (HUD.cpp + HUD.h)
+  triggered when mouse hovers inside a settlement's world-radius. Shows name/pop/cap, resource
+  stocks, treasury+haulers, and a faded-LIGHTGRAY "Children: N" line when `childCount > 0`.
+  Matches `SettlementEntry` to `SettlementStatus` by name. Called from `HUD::Draw` between
+  `DrawFacilityTooltip` and `DrawRoadTooltip`.
 
 - [x] **Settlement name in event log** — `TriggerEvent` in `RandomEventSystem.cpp`: computes
   `popCount` once (HomeSettlement view, excluding player/haulers) after picking the target
@@ -426,6 +427,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
   production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
   Same for "Tensions ease" recovery log.
+
+- [ ] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
+  show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
+  (2) "Morale: XX%" from `StockpilePanel::morale` — but that's only available when the settlement
+  is selected. Instead add `float morale` to `SettlementStatus` in `RenderSnapshot.h`, populate
+  it in SimThread's world-status loop with `s.morale`, and read it in the tooltip. Display it
+  in the same green/yellow/red colour scheme as the panel bar.
+
+- [ ] **NPC birth log** — In `BirthSystem.cpp`, the birth event currently only logs if there's an
+  `EventLog`. Extend the log message from "Born: Aldric Smith at Ashford" to also include the
+  parent's name if the `ChildTag` has a `followTarget` (the entity following at birth). Use
+  `registry.try_get<Name>(childTag.followTarget)` to get the parent's name and append
+  "raised by Brom Cooper". Requires no new components.
+
+- [ ] **Settlement tooltip: pop trend arrow** — In `DrawSettlementTooltip` (HUD.cpp), append the
+  popTrend character ('+', '-', '=') to the pop line using `SettlementStatus::popTrend`. Already
+  available in `SettlementStatus`. Format: "[12/35 pop ↑]" or "[12/35 pop ↓]". Use plain '+'
+  and '-' ASCII since raylib's default font may not render arrow glyphs.
 
 ---
 
