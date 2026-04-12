@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession shown in stockpile panel NPC list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), the NPC list currently shows name, state, and gold. After the name, append
-  a short profession abbreviation in grey: "Fa" = Farmer, "Wa" = Water Carrier, "Lu" = Lumberjack,
-  "Me" = Merchant. Read from `AgentEntry::profession` (already populated from the Profession
-  component). No new fields needed.
-
 ---
 
 ## Done
@@ -168,6 +162,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after memory update, views `ProductionFacility` to find the settlement's primary facility
   (highest `baseRate`), then sets `Profession::type = ProfessionForResource(pf.output)`.
   Guarded by `try_get<Profession>` so NPCs without the component are skipped.
+
+- [x] **Profession shown in stockpile panel NPC list** — `RenderSystem::DrawStockpilePanel`:
+  replaced single `snprintf`/`DrawText` per resident with three calls: name in NPC color,
+  " [Fa]"/" [Wa]"/" [Lu]"/" [Me]" in `Fade(GRAY, 0.75f)`, then gold in NPC color.
+  Profession mapped from full string to 2-letter abbr; no abbr shown for unmapped professions.
 
 - [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
   at their skill-matched facility, check if their `Profession` type matches the facility output
@@ -470,6 +469,26 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   iterating `HomeSettlement` views (as in other systems) or use the settlement's existing
   `popCap`/current-pop from prior computation. Use `registry.view<EventLog>()` the same way
   as the departure log.
+
+- [ ] **Profession colour in residents list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), colour the profession abbreviation by type instead of uniform grey:
+  Fa = `Fade(GREEN, 0.6f)` (farming), Wa = `Fade(SKYBLUE, 0.6f)` (water), Lu = `Fade(BROWN, 0.7f)`
+  (wood), Me = `Fade(GOLD, 0.5f)` (merchant). Change the single `Fade(GRAY, 0.75f)` colour to
+  a per-abbreviation lookup. No new fields or components needed.
+
+- [ ] **Settlement specialty label in stockpile header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the existing header line, add a small `specialty` label if non-empty.
+  `StockpilePanel` doesn't currently carry specialty — add `std::string specialty` to it in
+  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot (same as `SettlementEntry`
+  specialty). Draw "Specialty: Farming" in dim colour under the header line. Occupies one extra
+  row (adjust `totalLines` accordingly).
+
+- [ ] **Idle NPC count in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), extend the "Treasury/Workers" line to also show idle NPCs:
+  "Treasury: 230g   Working: 4 / Idle: 3". Add `int idle = 0` to `StockpilePanel` in
+  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot by counting homed NPCs with
+  `AgentBehavior::Idle` (excluding Haulers, player). No visual layout change beyond the extended
+  string.
 
 ---
 
