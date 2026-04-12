@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Morning departure scatter** — Between hours 7–8 (work start), NPCs leaving sleep should
-  scatter slightly from the settlement centre rather than all heading to the same facility at once.
-  In `AgentDecisionSystem` (or `ScheduleSystem`), when transitioning from Sleeping to Idle at
-  wake time, nudge the NPC's position by a small random offset (±30 units) so they don't
-  all path-find from the exact same spot. No new component needed.
+- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
+  within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
+  (`vel = 0`) for 30–60 game-seconds to simulate chatting. Track with a `chatTimer` float on
+  `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
+  movement. Implement in `AgentDecisionSystem` after the evening gathering block.
 
 ---
 
@@ -177,12 +177,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
-  within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
-  (`vel = 0`) for 30–60 game-seconds to simulate chatting. Track with a `chatTimer` float on
-  `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
-  movement. Implement in `AgentDecisionSystem` after the evening gathering block.
 
 - [ ] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
   check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
