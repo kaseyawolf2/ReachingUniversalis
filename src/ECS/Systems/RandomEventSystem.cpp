@@ -316,8 +316,22 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         entt::exclude<PlayerTag, BanditTag>)
         .each([&](auto e, DeprivationTimer& dt, Skills& skills, Money& money, const Name& name) {
             // Drain timers regardless of whether an event fires
-            if (dt.illnessTimer > 0.f)
+            static std::set<entt::entity> s_currentlyIll;
+            if (dt.illnessTimer > 0.f) {
+                s_currentlyIll.insert(e);
                 dt.illnessTimer = std::max(0.f, dt.illnessTimer - gameHoursDt);
+                if (dt.illnessTimer <= 0.f && s_currentlyIll.erase(e) && log) {
+                    const auto* hs = registry.try_get<HomeSettlement>(e);
+                    const char* settName = "the wilds";
+                    if (hs && hs->settlement != entt::null && registry.valid(hs->settlement))
+                        if (const auto* stt = registry.try_get<Settlement>(hs->settlement))
+                            settName = stt->name.c_str();
+                    char buf[120];
+                    std::snprintf(buf, sizeof(buf), "%s recovered from illness at %s",
+                        name.value.c_str(), settName);
+                    log->Push(tm.day, (int)tm.hourOfDay, buf);
+                }
+            }
             if (dt.harvestBonusTimer > 0.f)
                 dt.harvestBonusTimer = std::max(0.f, dt.harvestBonusTimer - gameHoursDt);
 
