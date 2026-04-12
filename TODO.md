@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement trade volume counter** — Track deliveries per settlement, show in tooltip.
-
 ## Recently Done
+
+- [x] **Settlement trade volume counter** — Track deliveries per settlement, show "Trades: N/day" in tooltip.
 
 - [x] **Hauler route efficiency tooltip** — Show "Route: Xkm" in tooltip for haulers en route.
 
@@ -664,7 +664,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   dest / 100). If the hauler also has a `homeSettlementName`, show round-trip distance. Helps
   players evaluate trade route length. No new snapshot fields — compute from existing pos/dest.
 
-- [ ] **Settlement trade volume counter** — Add `int tradeVolume = 0` to `SettlementEntry` in
+- [x] **Settlement trade volume counter** — Add `int tradeVolume = 0` to `SettlementEntry` in
   `RenderSnapshot.h`. In `TransportSystem.cpp`'s delivery block, increment a `static
   std::map<entt::entity, int> s_tradeVolume` per destination. In SimThread's settlement
   snapshot, read and write it to the entry. Display in settlement tooltip as "Trades: N"
@@ -734,6 +734,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   conditions at Z." Use the existing gossip proximity check. Rate-limit per settlement to once
   per 12 game-hours via `static std::map<entt::entity, float> s_grumbleCooldown`. Adds social
   texture to low-morale settlements.
+
+- [ ] **Trade hub badge in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp),
+  when `tradeVolume >= 5`, show "[Trade Hub]" in `Fade(GOLD, 0.8f)` after the settlement name
+  on line 1. Recognises settlements with high trade throughput. No new snapshot fields — read
+  directly from `best->tradeVolume` already in `SettlementEntry`.
+
+- [ ] **Hauler loyalty bonus** — In `TransportSystem.cpp`'s delivery block, if the hauler's
+  `HomeSettlement` matches the destination settlement, add a 5% bonus to `earned` (loyalty
+  discount from the local merchant). Log "X received local loyalty bonus at Y." once per
+  delivery. Credits the hauler's balance. No new components — use existing `HomeSettlement`
+  and `Money` checks.
 
 ---
 
