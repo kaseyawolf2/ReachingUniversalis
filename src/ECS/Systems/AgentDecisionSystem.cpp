@@ -1040,6 +1040,39 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 trySpread(B.entity, A.entity);
             }
 
+            // ---- Low-morale grumbling ----
+            // When either NPC lives at a low-morale settlement, 20% chance to log grumbling.
+            // Rate-limited per settlement to once per 12 game-hours.
+            {
+                static std::map<entt::entity, float> s_grumbleCooldown;
+                // Drain cooldowns
+                for (auto it = s_grumbleCooldown.begin(); it != s_grumbleCooldown.end(); ) {
+                    it->second -= gameHoursDt;
+                    if (it->second <= 0.f) it = s_grumbleCooldown.erase(it);
+                    else ++it;
+                }
+                auto checkGrumble = [&](entt::entity npcA, entt::entity npcB,
+                                        entt::entity settl) {
+                    if (s_grumbleCooldown.count(settl)) return;
+                    auto* stt = registry.try_get<Settlement>(settl);
+                    if (!stt || stt->morale >= 0.3f) return;
+                    static std::mt19937 s_grumbleRng{ std::random_device{}() };
+                    static std::uniform_real_distribution<float> s_grumbleDist(0.f, 1.f);
+                    if (s_grumbleDist(s_grumbleRng) > 0.20f) return;
+                    s_grumbleCooldown[settl] = 12.f;
+                    std::string nameA = "An NPC", nameB = "An NPC";
+                    if (const auto* n = registry.try_get<Name>(npcA)) nameA = n->value;
+                    if (const auto* n = registry.try_get<Name>(npcB)) nameB = n->value;
+                    auto lv = registry.view<EventLog>();
+                    if (lv.begin() != lv.end())
+                        lv.get<EventLog>(*lv.begin()).Push(
+                            tm.day, (int)tm.hourOfDay,
+                            nameA + " and " + nameB + " grumble about conditions at " + stt->name + ".");
+                };
+                checkGrumble(A.entity, B.entity, A.homeSettl);
+                checkGrumble(A.entity, B.entity, B.homeSettl);
+            }
+
             break;  // A gossips with at most one NPC per cooldown window
         }
     }
