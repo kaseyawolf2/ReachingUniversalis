@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC contentment affects work output** — Contentment-based production multiplier in ProductionSystem: ≥0.7 = 1.0×, 0.4–0.7 = 0.85×, <0.4 = 0.65×.
+
 
 ## Recently Done
+
+- [x] **NPC contentment affects work output** — Worker contribution in ProductionSystem multiplied by contentment factor from avg Needs: ≥0.7 = 1.0×, 0.4–0.7 = 0.85×, <0.4 = 0.65×.
+
 
 - [x] **Mood score shown in settlement tooltip** — "Mood: X%" line in settlement tooltip, color-coded GREEN/YELLOW/RED. Uses SettlementEntry::moodScore.
 
@@ -1473,7 +1476,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   colour coding (GREEN ≥0.7, YELLOW ≥0.4, RED below). Uses data already piped through
   `RenderSnapshot::SettlementEntry::moodScore` — only needs tooltip rendering.
 
-- [ ] **NPC contentment affects work output** — In `ProductionSystem`, when computing worker
+- [x] **NPC contentment affects work output** — In `ProductionSystem`, when computing worker
   contribution, multiply by a contentment factor: contentment ≥ 0.7 gives 1.0×, 0.4–0.7 gives
   0.85×, < 0.4 gives 0.65×. Read contentment from `Needs` (weighted average). Unhappy NPCs
   produce less, creating pressure on settlements to maintain quality of life.
@@ -2964,3 +2967,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   drift, set velocity to a random direction at 0.3x speed for 2 game-seconds (add `float wanderTimer`
   to `DeprivationTimer`). Log nothing. Creates visible restlessness when NPCs are struggling —
   they pace instead of standing still. Reset wander on need recovery above 0.4.
+
+- [ ] **Contentment shown in NPC tooltip** — In `HUD::DrawHoverTooltip`, add a "Content: X%"
+  line for non-hauler NPCs. Pipe `float contentment` through `AgentEntry` in `RenderSnapshot.h`
+  (compute as avg of 4 needs in `SimThread::WriteSnapshot`). Color-code GREEN ≥0.7, YELLOW ≥0.4,
+  RED below. Place after the mood line. Makes the contentment→production link visible to player.
+
+- [ ] **Discontented NPC complains to settlement leader** — In `AgentDecisionSystem`'s idle block,
+  when an NPC's contentment < 0.3 and `timer.greetCooldown <= 0`, find the highest-reputation NPC
+  at the same settlement via `registry.view<Reputation, HomeSettlement, Name>`. Log "[NPC]
+  complains to [Leader] about conditions." Set greetCooldown = 5.f to rate-limit. Gives settlements
+  a sense of social hierarchy where discontented citizens voice grievances to respected members.
