@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
+- [x] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
   copies plague from one settlement to a neighbour via roads), the current log message is
   "PLAGUE spreads from X to Y — N died". Add `[pop N]` to the destination settlement using
   `popCount` computed the same way as in `TriggerEvent` — quick local count on the destination
@@ -408,7 +408,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   on `RandomEventSystem`. Append "(↑)" or "(↓)" to `[pop N]` when trend changes by ≥ 2 between
   samples taken every 24 game-hours. Update sample in `Update()` via a `m_popSampleTimer`.
 
-- [ ] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
+- [x] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
   copies plague from one settlement to a neighbour via roads), the current log message is
   "PLAGUE spreads from X to Y — N died". Add `[pop N]` to the destination settlement using
   `popCount` computed the same way as in `TriggerEvent` — quick local count on the destination
@@ -1375,3 +1375,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   population count for each settlement, append the `popTrend` char from `SettlementStatus`
   (already populated as '+', '=', or '-'). Render '+' in GREEN, '-' in RED, '=' omitted. Uses
   existing snapshot data — no sim changes needed, purely a HUD display addition.
+
+- [ ] **Plague death log names victims** — In `RandomEventSystem::KillFraction`, before
+  destroying each NPC, check if they have a `Name` component and collect up to 3 victim names.
+  Return them via a new `std::vector<std::string>` out-parameter (or change return type to a
+  struct). In both the initial plague eruption (case 3) and spread block log messages, append
+  "victims: Alice, Bob, ..." after the death count. Makes plague events feel personal.
+
+- [ ] **Morale recovery log** — In `RandomEventSystem::Update`'s settlement loop, the unrest
+  recovery message currently says "Tensions ease in X — morale recovering". Add the current
+  morale percentage: "Tensions ease in X — morale recovering (42%)". Use
+  `(int)(s.morale * 100)` inline in the existing `log->Push` call. One-line change, no new
+  fields needed.
