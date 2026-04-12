@@ -9,14 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
-  12–48 game-hours per NPC (jittered per entity). Small events: skill discovery (+0.1 to a random
-  skill), windfall (find 5–15g on the road), minor illness (one need drains 2× for 6 hours),
-  good harvest (worker produces 1.5× for 4 hours). Log the interesting ones.
-
 ---
 
 ## Done
+
+- [x] **NPC personal events** — Per-NPC event tier in `RandomEventSystem::Update` fires every
+  12–48 game-hours per NPC (staggered at spawn). Events: skill discovery (+0.08–0.12 to a random
+  skill), windfall (find 5–15g), minor illness (affected need drains 2× for 6h via `illnessTimer`
+  + `illnessNeedIdx` on `DeprivationTimer`, applied in `NeedDrainSystem`), good harvest (1.5×
+  worker contribution for 4h via `harvestBonusTimer` in `ProductionSystem`). Interesting events
+  logged; illness and harvest timers drained in the per-NPC loop.
 
 - [x] **Charity frequency counter in event log** — `static s_charityCount` map in `AgentDecisionSystem::Update`; pruned for dead entities; appends " (xN)" when N > 1.
 
@@ -244,6 +246,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement doesn't already have it and `hops > 0`). When a rumour arrives at a settlement,
   nudge that settlement's relevant stockpile fear: plague → food hoarding (+10% Food price at
   Market), drought → water scarcity (+15% Water price). Log "Rumour of plague reached Thornvale."
+
+- [ ] **Illness visible in tooltip** — When an NPC has `depTimer->illnessTimer > 0`, add
+  `bool ill = true` and `int illNeedIdx` to `AgentEntry` in `RenderSnapshot.h`, populated in
+  SimThread's agent snapshot loop. In `HUD::DrawHoverTooltip`, draw a faint red "(ill: hunger)"
+  / "(ill: thirst)" / "(ill: fatigue)" suffix on the needs line. This makes personal events
+  player-visible without requiring any new components.
+
+- [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
+  windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
+  "Aldric Smith found 12g on the road near Greenfield" instead of without context. Use
+  `registry.try_get<HomeSettlement>(e)` and `registry.try_get<Settlement>(hs->settlement)` to
+  get the name. Requires no new components.
+
+- [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
+  `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
+  loop via `try_get<DeprivationTimer>`. In `GameState.cpp`'s agent render loop, draw a small
+  `Fade(GOLD, 0.4f)` ring (radius 10) around workers with the bonus active. This makes good
+  personal events legible in the overworld view.
 
 ---
 

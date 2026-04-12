@@ -76,6 +76,12 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
             if (const auto* g = registry.try_get<Goal>(e))
                 hasBecomeHaulerGoal = (g->type == GoalType::BecomeHauler);
             float workerContrib = isApprentice ? 0.2f : (hasBecomeHaulerGoal ? 1.1f : 1.0f);
+            // Good-harvest personal event: worker is "on fire" — 1.5× contribution
+            if (!isApprentice) {
+                if (const auto* dt = registry.try_get<DeprivationTimer>(e))
+                    if (dt->harvestBonusTimer > 0.f)
+                        workerContrib = 1.5f;
+            }
             workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];

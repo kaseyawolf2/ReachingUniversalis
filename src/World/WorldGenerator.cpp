@@ -77,8 +77,11 @@ static void SpawnNPCs(entt::registry& registry,
         registry.emplace<AgentState>(npc);
         registry.emplace<HomeSettlement>(npc, HomeSettlement{ settlement });
         // Randomise migration threshold: NPCs flee at different times (1–10 game-hours)
+        // Stagger personal event timers (0–48h offset) so events don't cluster on tick 0.
+        static std::uniform_real_distribution<float> evt_stagger(0.f, 48.f);
         DeprivationTimer dt;
-        dt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
+        dt.migrateThreshold   = migrate_dist(wg_rng) * 60.f;
+        dt.personalEventTimer = evt_stagger(wg_rng);
         registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<Schedule>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);

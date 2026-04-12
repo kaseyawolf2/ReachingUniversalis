@@ -112,13 +112,103 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
 
     // Count down to next event
     m_nextEvent -= gameHoursDt;
-    if (m_nextEvent > 0.f) return;
+    if (m_nextEvent <= 0.f) {
+        // Schedule next
+        std::uniform_real_distribution<float> jitter(-EVENT_JITTER, EVENT_JITTER);
+        m_nextEvent = std::max(12.f, EVENT_MEAN_HOURS + jitter(m_rng));
+        TriggerEvent(registry, tm.day, (int)tm.hourOfDay);
+    }
 
-    // Schedule next
-    std::uniform_real_distribution<float> jitter(-EVENT_JITTER, EVENT_JITTER);
-    m_nextEvent = std::max(12.f, EVENT_MEAN_HOURS + jitter(m_rng));
+    // ---- Per-NPC personal events ----
+    // Each NPC rolls a small event every 12–48 game-hours (timer staggered at spawn).
+    // Events: skill discovery, windfall, minor illness, good harvest.
+    static constexpr float NPC_EVT_MIN = 12.f;
+    static constexpr float NPC_EVT_MAX = 48.f;
+    static constexpr float ILLNESS_DURATION = 6.f;     // game-hours
+    static constexpr float HARVEST_DURATION = 4.f;     // game-hours
 
-    TriggerEvent(registry, tm.day, (int)tm.hourOfDay);
+    std::uniform_real_distribution<float> nextEvtDist(NPC_EVT_MIN, NPC_EVT_MAX);
+    std::uniform_int_distribution<int>    evtTypeDist(0, 3);
+    std::uniform_real_distribution<float> windfall_dist(5.f, 15.f);
+    std::uniform_real_distribution<float> skillGain_dist(0.08f, 0.12f);
+    std::uniform_int_distribution<int>    needIdxDist(0, 2);   // Hunger/Thirst/Energy only
+    std::uniform_int_distribution<int>    skillIdxDist(0, 2);
+
+    registry.view<DeprivationTimer, Skills, Money, Name>(
+        entt::exclude<PlayerTag, BanditTag>)
+        .each([&](auto e, DeprivationTimer& dt, Skills& skills, Money& money, const Name& name) {
+            // Drain timers regardless of whether an event fires
+            if (dt.illnessTimer > 0.f)
+                dt.illnessTimer = std::max(0.f, dt.illnessTimer - gameHoursDt);
+            if (dt.harvestBonusTimer > 0.f)
+                dt.harvestBonusTimer = std::max(0.f, dt.harvestBonusTimer - gameHoursDt);
+
+            dt.personalEventTimer -= gameHoursDt;
+            if (dt.personalEventTimer > 0.f) return;
+
+            // Schedule next event
+            dt.personalEventTimer = nextEvtDist(m_rng);
+
+            switch (evtTypeDist(m_rng)) {
+                case 0: {   // Skill discovery — +0.1 to a random skill
+                    int idx = skillIdxDist(m_rng);
+                    float gain = skillGain_dist(m_rng);
+                    ResourceType rt = (idx == 0) ? ResourceType::Food :
+                                      (idx == 1) ? ResourceType::Water : ResourceType::Wood;
+                    skills.Advance(rt, gain);
+                    if (log) {
+                        const char* skillName = (idx == 0) ? "farming" :
+                                                (idx == 1) ? "water drawing" : "woodcutting";
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf), "%s had a skill insight in %s",
+                            name.value.c_str(), skillName);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                    break;
+                }
+                case 1: {   // Windfall — find 5–15g on the road (exogenous injection)
+                    float found = windfall_dist(m_rng);
+                    money.balance += found;
+                    if (log) {
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf), "%s found %.0fg on the road",
+                            name.value.c_str(), found);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                    break;
+                }
+                case 2: {   // Minor illness — one need drains 2× for 6 hours
+                    if (dt.illnessTimer <= 0.f) {   // don't stack illnesses
+                        dt.illnessTimer    = ILLNESS_DURATION;
+                        dt.illnessNeedIdx  = needIdxDist(m_rng);
+                        if (log) {
+                            const char* needName =
+                                (dt.illnessNeedIdx == 0) ? "hunger" :
+                                (dt.illnessNeedIdx == 1) ? "thirst" : "fatigue";
+                            char buf[100];
+                            std::snprintf(buf, sizeof(buf),
+                                "%s fell ill (%s doubled for %dh)",
+                                name.value.c_str(), needName, (int)ILLNESS_DURATION);
+                            log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        }
+                    }
+                    break;
+                }
+                case 3: {   // Good harvest — worker produces 1.5× for 4 hours
+                    dt.harvestBonusTimer = HARVEST_DURATION;
+                    // Only log occasionally to avoid spam (log ~1 in 3)
+                    std::uniform_int_distribution<int> logChance(0, 2);
+                    if (log && logChance(m_rng) == 0) {
+                        char buf[100];
+                        std::snprintf(buf, sizeof(buf),
+                            "%s is having a great work day (+50%% for %dh)",
+                            name.value.c_str(), (int)HARVEST_DURATION);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                    break;
+                }
+            }
+        });
 }
 
 void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour) {
