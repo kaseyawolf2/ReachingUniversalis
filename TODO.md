@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Migration memory** — Add a `MigrationMemory` component: a small map of
+  `{ settlement_name → last_known_price_snapshot }`. When an NPC migrates, they carry their old
+  settlement's prices. In `AgentDecisionSystem`, migrating NPCs prefer destinations where their
+  remembered prices suggest a better life (food cheaper, wages higher). Update memory on arrival.
+  Also used by the gossip system above.
+
 ---
 
 ## Done
@@ -58,12 +64,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "Bandit (press E to confront)" in tooltip.
 
 ### NPC Memory & Goals
-
-- [ ] **Migration memory** — Add a `MigrationMemory` component: a small map of
-  `{ settlement_name → last_known_price_snapshot }`. When an NPC migrates, they carry their old
-  settlement's prices. In `AgentDecisionSystem`, migrating NPCs prefer destinations where their
-  remembered prices suggest a better life (food cheaper, wages higher). Update memory on arrival.
-  Also used by the gossip system above.
 
 - [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
   12–48 game-hours per NPC (jittered per entity). Small events: skill discovery (+0.1 to a random
