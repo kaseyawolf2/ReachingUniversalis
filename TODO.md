@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler graduation celebration** — New haulers celebrate 2h and home morale +0.02.
-
 ## Recently Done
+
+- [x] **Hauler graduation celebration** — New haulers celebrate 2h and home morale +0.02.
 
 - [x] **Abundance end log** — Log "Abundance fading at X — stores declining." when settlement
   exits abundance.
@@ -634,9 +634,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   below the scarcity reset), log "Abundance fading at [settlement] — stores declining." before
   erasing from the set. Gives a narrative arc: prosperity → warning → scarcity.
 
-- [ ] **Hauler graduation celebration** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler
+- [x] **Hauler graduation celebration** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler
   graduation block, set the new hauler's `AgentState::behavior = Celebrating` for 2 game-hours
-  (set `celebrateTimer = 2.f` on `DeprivationTimer`). Also bump home settlement morale by +0.02.
+  (set `celebrateTimer = 2.f` on `Goal`). Also bump home settlement morale by +0.02.
   Becoming a hauler is a proud moment for the community.
 
 - [ ] **Scarcity log event** — In `RandomEventSystem::Update`'s scarcity check, log "Shortage:
@@ -680,6 +680,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   existing treasury line, draw a small horizontal morale bar (width 100px, height 8px). Fill
   proportional to `panel.morale` (already in `StockpilePanel`). Colour: green ≥0.7, yellow
   ≥0.3, red <0.3. Label "Morale" to the left. Visual complement to the M:XX% in status bar.
+
+- [ ] **Graduation log includes gold saved** — In `EconomicMobilitySystem.cpp`'s hauler
+  graduation log, append the NPC's balance: "X saved enough (125g) to become a hauler at Y".
+  Gives the player a sense of how much wealth is involved in the career transition.
+
+- [ ] **Hauler idle duration warning** — In `TransportSystem.cpp`, when a hauler has been in
+  `HaulerState::Idle` for more than 12 game-hours (`waitTimer > 12.f`), log "Hauler X idle
+  for 12h at Y — no profitable routes." once per idle period using a `static
+  std::set<entt::entity> s_loggedIdle`. Clear on state transition away from Idle. Surfaces
+  stuck haulers that may need player attention.
 
 ---
 
