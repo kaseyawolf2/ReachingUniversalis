@@ -16,6 +16,7 @@ static constexpr float SKILL_DECAY_PER_HOUR = 0.005f / 24.f;
 static std::mt19937                          s_rng{std::random_device{}()};
 static std::uniform_real_distribution<float> s_angle(0.f, 6.28318f);
 static std::uniform_real_distribution<float> s_radius(10.f, LEISURE_RADIUS);
+static std::uniform_real_distribution<float> s_scatter(5.f, 30.f);
 
 static void MoveToward(Velocity& vel, const Position& from,
                         float tx, float ty, float speed) {
@@ -186,6 +187,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             state.behavior = AgentBehavior::Idle;
             state.target   = entt::null;
             vel.vx = vel.vy = 0.f;
+            // Scatter waking NPCs so they don't all path-find from the exact same spot
+            float ang = s_angle(s_rng);
+            float rad = s_scatter(s_rng);
+            pos.x += std::cos(ang) * rad;
+            pos.y += std::sin(ang) * rad;
         }
 
         // ---- Drain work-stoppage strike timer ----
