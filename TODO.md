@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Reputation shown in NPC tooltip** — Show reputation score in tooltip, GREEN/RED, omit when 0.
+
 ## Recently Done
 
 - [x] **Hauler profit summary in tooltip** — estimatedProfit computed from dest market price in WriteSnapshot. Shows "Est. profit: +Ng" in GREEN/RED during delivery.
