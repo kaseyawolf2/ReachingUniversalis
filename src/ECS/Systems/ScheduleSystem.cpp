@@ -2,8 +2,10 @@
 #include "ECS/Components.h"
 #include <cmath>
 #include <cstdio>
+#include <cstdint>
 #include <limits>
 #include <random>
+#include <set>
 
 static constexpr float SLEEP_ARRIVE  = 25.f;   // distance at which NPC is "at settlement"
 static constexpr float LEISURE_RADIUS = 80.f;  // wander radius around home settlement center
@@ -282,7 +284,36 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         if (const auto* prof = registry.try_get<Profession>(entity))
                             if (prof->type == ProfessionForResource(facType))
                                 gainMult = 1.1f;
+                        float before = skills->ForResource(facType);
                         skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt * gainMult);
+                        float after = skills->ForResource(facType);
+
+                        // Skill milestone log: Journeyman (0.5) and Master (0.9)
+                        // Key: entity id * 10 + milestone index (0=Journeyman, 1=Master)
+                        static std::set<uint64_t> s_milestones;
+                        auto checkMilestone = [&](float threshold, int idx, const char* title) {
+                            if (before < threshold && after >= threshold) {
+                                uint64_t key = (uint64_t)entt::to_integral(entity) * 10 + idx;
+                                if (s_milestones.insert(key).second) {
+                                    auto lv = registry.view<EventLog>();
+                                    if (!lv.empty()) {
+                                        std::string who = "An NPC";
+                                        if (const auto* n = registry.try_get<Name>(entity))
+                                            who = n->value;
+                                        const char* skName =
+                                            (facType == ResourceType::Food)  ? "Farming" :
+                                            (facType == ResourceType::Water) ? "Water"   : "Woodcutting";
+                                        char buf[128];
+                                        std::snprintf(buf, sizeof(buf),
+                                            "%s reached %s %s.", who.c_str(), title, skName);
+                                        lv.get<EventLog>(*lv.begin()).Push(
+                                            tm.day, (int)tm.hourOfDay, buf);
+                                    }
+                                }
+                            }
+                        };
+                        checkMilestone(0.5f, 0, "Journeyman");
+                        checkMilestone(0.9f, 1, "Master");
                     }
                 }
             }
