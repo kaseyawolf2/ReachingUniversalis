@@ -75,6 +75,13 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                 if (belowReset)
                     s_loggedAbundance.erase(e);
             }
+            // Scarcity: any stockpile below 10 drains morale
+            static constexpr float SCARCITY_THRESHOLD = 10.f;
+            bool scarce = (foodIt  == sp->quantities.end() || foodIt->second  < SCARCITY_THRESHOLD) ||
+                          (waterIt == sp->quantities.end() || waterIt->second < SCARCITY_THRESHOLD) ||
+                          (woodIt  == sp->quantities.end() || woodIt->second  < SCARCITY_THRESHOLD);
+            if (scarce)
+                s.morale = std::max(0.f, s.morale - 0.003f * gameHoursDt);
         }
 
         // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
