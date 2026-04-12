@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
+- [x] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
   currently reads "UNREST in Ashford — morale critical, production suffering". Extend it to
   include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
   production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
@@ -420,7 +420,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `popCount` computed the same way as in `TriggerEvent` — quick local count on the destination
   entity before the log push. Keeps spread events as informative as the initial eruption.
 
-- [ ] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
+- [x] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
   currently reads "UNREST in Ashford — morale critical, production suffering". Extend it to
   include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
   production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
@@ -1388,8 +1388,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   struct). In both the initial plague eruption (case 3) and spread block log messages, append
   "victims: Alice, Bob, ..." after the death count. Makes plague events feel personal.
 
-- [ ] **Morale recovery log** — In `RandomEventSystem::Update`'s settlement loop, the unrest
+- [x] **Morale recovery log** — In `RandomEventSystem::Update`'s settlement loop, the unrest
   recovery message currently says "Tensions ease in X — morale recovering". Add the current
   morale percentage: "Tensions ease in X — morale recovering (42%)". Use
   `(int)(s.morale * 100)` inline in the existing `log->Push` call. One-line change, no new
-  fields needed.
+  fields needed. *(Implemented as part of Unrest pop context task.)*
+
+- [ ] **NPC flee from plague** — In `AgentDecisionSystem.cpp`, when an NPC's home settlement has
+  `modifierName == "Plague"` and the NPC's contentment < 0.4, trigger migration to the nearest
+  non-plague settlement. Use the existing migration logic but bypass the normal migration cooldown.
+  Log "X flees plague at Y" via `EventLog`. Makes plague events create visible refugee movement.
+
+- [ ] **Settlement founding log with founder name** — In `ConstructionSystem.cpp`'s settlement
+  founding block (the P-key handler), the log currently says "New settlement founded: X". Add the
+  player's name from the `Name` component: "X founds new settlement: Y". If the founder has no
+  Name component, fall back to "New settlement founded: Y". One-line snprintf change.
+
+- [ ] **Hauler route tooltip in HUD** — In `GameState.cpp`'s hauler hover tooltip section, when
+  a hauler has `hasRouteDest == true` in `AgentEntry`, append a line "Route: → Wellsworth (3 food,
+  2 wood)" showing `destSettlName` and cargo contents from `AgentEntry::cargo`. Format each
+  resource type as "N type" comma-separated. No new snapshot fields needed — all data already
+  in `AgentEntry`.
