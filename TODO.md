@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC complains about need in greeting** — Append " (complains about [need])" when greeting NPC has any need below 0.3.
+
 
 ## Recently Done
+
+- [x] **NPC complains about need in greeting** — Greeting log appends " (complains about hunger/thirst/fatigue/the cold)" when any need < 0.3. Priority order, first low need only.
+
 
 - [x] **Greeting builds affinity** — After logging a greeting in AgentDecisionSystem, +0.01 mutual affinity via Relations. Casual greetings slowly build familiarity into friendship.
 
@@ -1440,7 +1443,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AFFINITY_GAIN`). Uses existing `Relations` component. Over many greetings, casual acquaintances
   become friends — bridging daytime greetings and evening chat into a unified social fabric.
 
-- [ ] **NPC complains about need in greeting** — Extend the greeting log with need context. When
+- [x] **NPC complains about need in greeting** — Extend the greeting log with need context. When
   the greeting NPC has any need below 0.3, append " (complains about [need])" to the greeting
   message. In `AgentDecisionSystem`'s greeting block, after building the base msg string, check
   `needs.list[i].value < 0.3` and append the need name. Pure log flavour — no gameplay effect.
@@ -2904,3 +2907,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   who has zero affinity with the chat partner, set both strangers' mutual affinity to 0.05 and log
   "[A] introduces [B] to [C]." Check `Relations::affinity` on both the friend and the chat partner.
   Social networks grow organically through introductions rather than random encounters alone.
+
+- [ ] **Greeting complaint spreads morale impact** — In `AgentDecisionSystem`'s greeting block,
+  when the greeter complains about a need (the new complaint branch), reduce the listener's
+  `contentment` by 0.01 (in `DeprivationTimer::contentment`). Hearing complaints makes neighbours
+  slightly less content. Conversely, if neither NPC has any need below 0.3, boost both by +0.005.
+  Creates emotional contagion: struggling NPCs drag down community mood, thriving ones lift it.
+
+- [ ] **NPC shares food with hungry friend** — In `AgentDecisionSystem`'s greeting block, when
+  the greeter complains about hunger (need[0] < 0.3) and the listener has `money.balance > 20`,
+  the listener buys 1 unit of food from the local stockpile at market price and gives it to the
+  greeter (greeter's hunger need += 0.3, listener's money -= price, settlement treasury += price).
+  Log "[Listener] shares a meal with [Greeter]." Follows Gold Flow Rule — money goes to treasury.
+  Check `Stockpile` has food > 1 before proceeding. Max once per greeting cooldown cycle.
