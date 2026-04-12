@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
+- [x] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
   draw a small 3-row legend in the bottom-right corner: a green dot + "Thriving (>70%)", a yellow
   dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
   + `DrawText` at fixed screen coordinates. Helps the player decode the contentment colour system.
@@ -371,7 +371,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   In `HUD::DrawWorldStatus` (HUD.cpp), after the existing pop count, append a small coloured
   "❤XX%" or plain "C:XX%" indicator using GREEN/YELLOW/RED thresholds matching the dot colours.
 
-- [ ] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
+- [x] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
   draw a small 3-row legend in the bottom-right corner: a green dot + "Thriving (>70%)", a yellow
   dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
   + `DrawText` at fixed screen coordinates. Helps the player decode the contentment colour system.
@@ -1310,3 +1310,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   from the stockpile (same logic as existing theft in `AgentDecisionSystem` but triggered by
   settlement-wide suffering rather than individual need). Log "Desperation theft at [Settlement]."
   This connects the contentment metric to emergent behavior.
+
+- [ ] **Celebration visual on high contentment** — In `GameState.cpp`'s agent render loop, when
+  an NPC's contentment (average of 4 needs from `AgentEntry`) exceeds 0.9, draw a small gold
+  sparkle: `DrawCircleV({ a.x + 4, a.y - 6 }, 2.f, Fade(GOLD, 0.5f + 0.3f * sinf(time * 5)))`.
+  Use `GetTime()` for the sine pulse. No new snapshot fields needed — compute contentment inline
+  from existing `hungerPct`, `thirstPct`, `energyPct`, `heatPct` on `AgentEntry`.
+
+- [ ] **Contentment-based idle behavior** — In `AgentDecisionSystem.cpp`'s idle block (the
+  `critIdx == -1` branch), when NPC contentment (avg of 4 needs) > 0.85, instead of standing
+  still, apply a gentle random walk: `vel.vx = speed * 0.2f * (rng() % 3 - 1)`. This makes
+  content NPCs visually "wander happily" while stressed NPCs stay still. Use the existing
+  `s_chatRng` for randomness. Check once per 5 game-seconds using `chatTimer` as guard.
