@@ -612,6 +612,33 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 continue;
             }
 
+            // ---- Gossip idle animation (hours 20–22) ----
+            // Idle NPCs visually gravitate toward a nearby same-settlement NPC.
+            if (timer.gossipNudgeTimer > 0.f)
+                timer.gossipNudgeTimer = std::max(0.f, timer.gossipNudgeTimer - dt);
+            if (currentHour >= 20 && currentHour < 22 && timer.gossipNudgeTimer <= 0.f
+                && home.settlement != entt::null && registry.valid(home.settlement)) {
+                static constexpr float GOSSIP_ANIM_RADIUS = 30.f;
+                bool found = false;
+                registry.view<AgentState, Position, HomeSettlement, DeprivationTimer>(
+                    entt::exclude<Hauler, PlayerTag, BanditTag>)
+                    .each([&](auto other, const AgentState& oState, const Position& oPos,
+                              const HomeSettlement& oHome, DeprivationTimer& oTimer) {
+                    if (found) return;
+                    if (other == entity) return;
+                    if (oHome.settlement != home.settlement) return;
+                    if (oState.behavior != AgentBehavior::Idle) return;
+                    float gdx = oPos.x - pos.x, gdy = oPos.y - pos.y;
+                    float gd2 = gdx*gdx + gdy*gdy;
+                    if (gd2 > GOSSIP_ANIM_RADIUS * GOSSIP_ANIM_RADIUS || gd2 < 1.f) return;
+                    float gdist = std::sqrt(gd2);
+                    vel.vx += gdx * 0.1f / gdist;
+                    vel.vy += gdy * 0.1f / gdist;
+                    timer.gossipNudgeTimer = 3.f;  // cooldown: 3 game-seconds
+                    found = true;
+                });
+            }
+
             // ---- Evening gathering (hours 18–21) ----
             // Idle NPCs drift toward their home settlement centre at dusk,
             // making the world visually alive: people return home in the evening.

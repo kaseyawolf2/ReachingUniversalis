@@ -139,6 +139,7 @@ struct DeprivationTimer {
     float                illnessTimer       = 0.f;       // game-hours remaining for minor illness (2× drain on one need)
     int                  illnessNeedIdx     = 0;         // which need index (0=Hunger,1=Thirst,2=Energy) is ill
     float                harvestBonusTimer  = 0.f;       // game-hours remaining for good-harvest bonus (1.5× worker contribution)
+    float                gossipNudgeTimer   = 0.f;       // game-seconds remaining for gossip drift animation (0 = eligible)
 };
 
 // ---- Inventory / Transport ----
