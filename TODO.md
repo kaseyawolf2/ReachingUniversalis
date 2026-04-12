@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Scarcity log event** — Log "Shortage: X running low on food, water" once per scarcity
+  period per resource, using bitmask tracking in RandomEventSystem.cpp.
+
 ## Recently Done
 
 - [x] **Hauler graduation celebration** — New haulers celebrate 2h and home morale +0.02.
