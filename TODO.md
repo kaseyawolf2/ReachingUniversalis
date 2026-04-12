@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
+  loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
+  to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
+  with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
+
 - [x] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
   are both `Idle` and within 30 units during off-work hours (20–22h), briefly nudge their
   velocity ±5 units toward each other (`vel.x += dx * 0.1f / dist`) for 2–3 game-seconds so
