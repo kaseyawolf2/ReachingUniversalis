@@ -104,6 +104,9 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
                 who + " went bankrupt — returned to labor at " + where);
         }
         s_bankruptTimer.erase(e);
+        // Bankruptcy demoralises the home settlement
+        if (auto* settl = registry.try_get<Settlement>(home.settlement))
+            settl->morale = std::max(0.f, settl->morale - 0.03f);
         if (home.settlement != entt::null && haulerCount.count(home.settlement))
             --haulerCount[home.settlement];
     }
