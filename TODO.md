@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession shown in migration log** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
+  block, after setting the new profession, append it to the existing migration log message.
+  Currently the log reads "Mira moved to Thornvale". Change it to "Mira (Farmer) moved to
+  Thornvale" by reading `ProfessionLabel(prof->type)` after updating `prof->type`. If the NPC
+  has no Profession component, omit the suffix. No new fields or components needed.
+
 - [x] **Estate size shown in settlement tooltip** — Added `pendingEstates` to SettlementStatus,
   populated in SimThread, displayed as "Estates: ~Ng" in Fade(GOLD, 0.5f) in settlement tooltip.
 
