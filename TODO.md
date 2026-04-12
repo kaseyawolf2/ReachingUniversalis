@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill milestone log** — In `ScheduleSystem.cpp`'s skill-at-worksite block, after
-  `skills->Advance(...)`, check if the skill just crossed 0.5 (journeyman) or 0.9 (master)
-  for the first time. Use a `static std::set<std::pair<entt::entity,int>> s_milestones` to
-  prevent repeat fires. Log "Aldric Smith reached Journeyman Farming." or "Master Water." via
-  `registry.view<EventLog>()`. Levels: 0.5 = Journeyman, 0.9 = Master.
+(none)
 
 ## Recently Done
+
+- [x] **Skill milestone log** — Logs "X reached Journeyman/Master Farming/Water/Woodcutting" on 0.5/0.9 crossings.
 
 - [x] **Profession vocation label in NPC tooltip** — Shows "[vocation]" in gold when profession matches best skill.
 
@@ -525,11 +523,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Profession vocation label in NPC tooltip** — Shows "[vocation]" in gold when profession matches best skill.
 
-- [ ] **Skill milestone log** — In `ScheduleSystem.cpp`'s skill-at-worksite block, after
-  `skills->Advance(...)`, check if the skill just crossed 0.5 (journeyman) or 0.9 (master)
-  for the first time. Use a `static std::set<std::pair<entt::entity,int>> s_milestones` to
-  prevent repeat fires. Log "Aldric Smith reached Journeyman Farming." or "Master Water." via
-  `registry.view<EventLog>()`. Levels: 0.5 = Journeyman, 0.9 = Master.
+- [x] **Skill milestone log** — Logs Journeyman/Master crossings at worksite.
 
 - [ ] **Profession match indicator on world dot** — In `GameState.cpp`'s agent draw loop,
   when an NPC is Working and their `AgentEntry::inVocation` is true (to be added per task above),
@@ -1556,3 +1550,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   friend_; float bond = 0.f; }` to `Components.h`. Bond grows by 0.01 per game-hour of shared
   work, capped at 1.0. When an NPC considers migrating, penalise destinations that would separate
   them from friends with bond > 0.5.
+
+- [ ] **Master skill production bonus** — In `ProductionSystem.cpp`'s per-worker contribution
+  calculation, if `try_get<Skills>` returns a skill >= 0.9 for the facility's output resource,
+  apply a 15% production bonus to that worker's contribution. This makes reaching Master rank
+  mechanically meaningful beyond the log message. Check via `skills->ForResource(fac.output)`.
+
+- [ ] **Skill regression log on profession change** — In `AgentDecisionSystem.cpp`'s MIGRATING
+  arrival block, where skill reset halves the old skill (the `sk->Advance(oldRes, -(oldVal * 0.5f))`
+  line), if `oldVal >= 0.5` (was at least Journeyman), log "X lost Journeyman Farming (career
+  change to Water Carrier)." via `registry.view<EventLog>()`. Also remove the entity from
+  `ScheduleSystem`'s `s_milestones` static set — but since it's static, instead just note in the
+  log that the milestone was lost; the static set prevents re-firing anyway when the NPC re-earns it.
