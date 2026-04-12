@@ -294,6 +294,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (state.behavior == AgentBehavior::Sleeping) continue;
 
         // ============================================================
+        // PANIC: flee from bandits — skip normal decisions while active
+        // ============================================================
+        if (timer.panicTimer > 0.f) {
+            timer.panicTimer -= realDt;
+            if (timer.panicTimer <= 0.f) {
+                timer.panicTimer = 0.f;
+                vel.vx = vel.vy = 0.f;
+            }
+            continue;
+        }
+
+        // ============================================================
         // POST-THEFT FLEE: sprint away from home settlement
         // ============================================================
         if (timer.fleeTimer > 0.f) {
@@ -1662,6 +1674,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                 });
+
+            // Nearby non-bandit NPCs panic-flee from the bandit
+            if (intercepted) {
+                static constexpr float PANIC_RANGE = 60.f;
+                registry.view<Position, Velocity, MoveSpeed, DeprivationTimer>(
+                    entt::exclude<BanditTag, PlayerTag, Hauler>).each(
+                    [&](auto npcE, const Position& npos, Velocity& nvel,
+                        const MoveSpeed& nspd, DeprivationTimer& ntmr) {
+                        float pdx = npos.x - pos.x, pdy = npos.y - pos.y;
+                        float d2 = pdx * pdx + pdy * pdy;
+                        if (d2 > PANIC_RANGE * PANIC_RANGE || d2 < 0.01f) return;
+                        float dist = std::sqrt(d2);
+                        nvel.vx = (pdx / dist) * nspd.value * 1.5f;
+                        nvel.vy = (pdy / dist) * nspd.value * 1.5f;
+                        ntmr.panicTimer = 2.f;
+                    });
+            }
 
             if (!intercepted) {
                 // Drift toward road lurk point
