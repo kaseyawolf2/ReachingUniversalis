@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC mood emoji in residents list** — Add contentment to AgentInfo, show colored dot
-  per resident in stockpile panel.
-
 ## Recently Done
+
+- [x] **NPC mood emoji in residents list** — Colored mood dot per resident in stockpile panel.
 
 - [x] **Stockpile bar chart in panel** — 3 horizontal bars showing food/water/wood levels.
 
@@ -810,7 +809,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   whose width is proportional to `qty / 200.f` (capped at 100px). Background in dark gray.
   Gives a visual at-a-glance read of relative stockpile levels. No new snapshot fields.
 
-- [ ] **NPC mood emoji in residents list** — In `RenderSystem::DrawStockpilePanel`'s residents
+- [x] **NPC mood emoji in residents list** — In `RenderSystem::DrawStockpilePanel`'s residents
   loop, after the profession abbreviation and gold amount, append a tiny mood indicator based
   on the resident's contentment stored in `StockpilePanel::AgentInfo`. Add `float contentment`
   to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`, populate in SimThread. Show a green
@@ -2082,3 +2081,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   resource's bar chart bar, draw a tiny arrow (▲/▼/—) based on `netRatePerHour`: green ▲ if
   net > 0.5, red ▼ if net < -0.5, gray — otherwise. Position at `barX + BAR_MAX_W + 4`.
   Uses existing `netRatePerHour` from `StockpilePanel`. No new snapshot fields.
+
+- [ ] **NPC apprentice skill gain** — In `ProductionSystem.cpp`, children aged 12–15 working
+  at a facility gain skill XP at 50% of the adult rate. Currently children are excluded from
+  production bonuses. Find the skill increment block and add a branch for child workers using
+  `Age` component check (`age->days >= 12 && age->days < 15`). The skill gained should match
+  the facility's output type. Log "X begins apprenticeship at Y" once per child via `static
+  std::set<entt::entity> s_loggedApprentice`.
+
+- [ ] **Settlement founding celebration** — In `ConstructionSystem.cpp`'s settlement founding
+  block (triggered by player pressing P), after the new settlement is created, set all NPCs
+  within 100px to `AgentBehavior::Celebrating` for 2 game-hours and give the settlement +0.1
+  morale. Log "Settlement X founded — locals celebrate!" Uses existing `AgentState` and
+  `Settlement::morale`. No new components needed.
