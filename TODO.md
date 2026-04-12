@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC reputation score** — Reputation component: +0.1 charity, -0.2 theft, +0.05 delivery.
+
 - [x] **Settlement morale shown in NPC tooltip** — "Home morale: X%" faint line in NPC tooltip.
 
 - [x] **Strike duration shown in tooltip** — "On strike (Xh left)" with remaining hours.
@@ -1029,7 +1031,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   In `HUD::DrawHoverTooltip`, if `homeMorale >= 0`, add the line coloured GREEN/YELLOW/RED
   using the same thresholds as the morale bar in `DrawStockpilePanel`.
 
-- [ ] **NPC reputation score** — Add a `Reputation` component (float `score`, initially 0) to
+- [x] **NPC reputation score** — Add a `Reputation` component (float `score`, initially 0) to
   each NPC. Increase it when the NPC gives charity (`charityTimer` resets), decrease it when
   they steal. Haulers gain +0.05 rep per completed delivery. In `HUD::DrawHoverTooltip`, expose
   the score as a `float reputation` field in `AgentEntry` and display `"Rep: +3.2"` (or negative
@@ -2244,3 +2246,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Fade(RED, 0.15f)`) around the NPC dot. Visual cue that the NPC lives in a low-morale
   settlement. Skip for haulers and player. No new snapshot fields — `homeMorale` already in
   `AgentEntry`.
+
+- [ ] **Reputation influences charity priority** — In `AgentDecisionSystem.cpp`'s charity
+  matching block, when selecting which starving NPC to help, prefer NPCs with higher
+  `Reputation::score`. Sort the candidate list by reputation descending before picking the
+  first match. Models community trust: well-regarded NPCs receive help first. Uses existing
+  `registry.try_get<Reputation>` — no new components needed.
+
+- [ ] **Reputation shown in stockpile panel residents** — Add `float reputation = 0.f` to
+  `StockpilePanel::AgentInfo` in `RenderSnapshot.h`. Populate from `Reputation::score` in the
+  residents loop of `SimThread::WriteSnapshot`. In `RenderSystem::DrawStockpilePanel`, append
+  a small "(+X.X)" or "(-X.X)" after each resident's name, colored green/red. No new ECS
+  components — reuses existing `Reputation`.
