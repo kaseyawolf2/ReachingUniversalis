@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Idle hauler dimming** — Draw idle haulers with empty cargo at 50% opacity.
+
 ## Recently Done
 
 - [x] **Bankruptcy log includes gold balance** — Shows "(Xg left)" in bankruptcy log.
