@@ -630,10 +630,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
             std::snprintf(lineAge, sizeof(lineAge), "Age: %d", ageInt);
     }
     if (hasName) {
-        if (best->fatigued)
-            std::snprintf(line2, sizeof(line2), "%s (fatigued)", BehaviorLabel(best->behavior));
+        const char* bLabel = BehaviorLabel(best->behavior);
+        if (best->isExiled && best->fatigued)
+            std::snprintf(line2, sizeof(line2), "%s (fatigued) [Exiled]", bLabel);
+        else if (best->isExiled)
+            std::snprintf(line2, sizeof(line2), "%s [Exiled]", bLabel);
+        else if (best->fatigued)
+            std::snprintf(line2, sizeof(line2), "%s (fatigued)", bLabel);
         else
-            std::snprintf(line2, sizeof(line2), "%s", BehaviorLabel(best->behavior));
+            std::snprintf(line2, sizeof(line2), "%s", bLabel);
     } else
         std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
                       best->hungerPct*100.f, best->thirstPct*100.f,
@@ -919,7 +924,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         ly += 16;
     }
     {
-        DrawText(line2, tx, ly, 11, best->fatigued ? ORANGE : LIGHTGRAY);
+        Color line2Col = best->isExiled ? Fade(RED, 0.8f) : best->fatigued ? ORANGE : LIGHTGRAY;
+        DrawText(line2, tx, ly, 11, line2Col);
         if (!hasName && illLabel)
             DrawText(illLabel, tx + MeasureText(line2, 11) + 4, ly, 11, Fade(RED, 0.75f));
         ly += 16;

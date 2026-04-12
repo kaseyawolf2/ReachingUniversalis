@@ -1283,6 +1283,16 @@ void SimThread::WriteSnapshot() {
         if (const auto* sched = m_registry.try_get<Schedule>(e))
             isFatigued = sched->fatigued;
 
+        // Exile snapshot: homeless + theftCount >= 3
+        bool isExiled = false;
+        {
+            const auto* hs = m_registry.try_get<HomeSettlement>(e);
+            const auto* dt2 = m_registry.try_get<DeprivationTimer>(e);
+            if (hs && dt2 && (hs->settlement == entt::null || !m_registry.valid(hs->settlement))
+                && dt2->theftCount >= 3)
+                isExiled = true;
+        }
+
         // Scale visual size by life stage so children are visibly smaller.
         // Children (<15 days): 60% size; youth (15-25): 80%; adult: 100%; elderly (>65): 105%
         float drawSize = rend.size;
@@ -1379,7 +1389,8 @@ void SimThread::WriteSnapshot() {
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
                            nearBankrupt, bankruptProgress, haulerState,
-                           homeMorale, wagePerHour, reputationScore, isFatigued });
+                           homeMorale, wagePerHour, reputationScore, isFatigued,
+                           isExiled });
     });
 
     // ---- Settlements ----

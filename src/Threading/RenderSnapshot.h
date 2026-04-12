@@ -101,6 +101,8 @@ struct RenderSnapshot {
         float reputation = 0.f;
         // True if this NPC is fatigued (energy < 0.2 while working → 80% prod)
         bool fatigued = false;
+        // True if this NPC is exiled (homeless, theftCount >= 3)
+        bool isExiled = false;
     };
 
     struct SettlementEntry {
