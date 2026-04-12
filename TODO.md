@@ -9,12 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
-  count how many other agents at that settlement share the same `familyName` and append " ×N" in
-  dim color (DARKGRAY) when N ≥ 2. E.g. "Aldric Smith ×3" shows there are 3 members of the Smith
-  family. Requires adding `familyName` to `StockpilePanel::AgentInfo` — check the existing struct
-  and populate it in SimThread's WriteSnapshot near the StockpilePanel block.
+- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
+  an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
+  (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
+  (elders retain some tacit knowledge). No new component needed — `Skills` and `Age` already
+  exist. This creates an economic lifecycle: NPCs peak in middle age, then their output contribution
+  falls as the elder bonus fades and their skill degrades.
 
 ---
 
@@ -178,13 +178,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp` (or `ScheduleSystem.cpp`), when
-  an NPC's age passes 65, slowly degrade all three `Skills` values at 0.0002 per game-hour
-  (`farming`, `water_drawing`, `woodcutting`). Cap the decay so skills can't fall below 0.1
-  (elders retain some tacit knowledge). No new component needed — `Skills` and `Age` already
-  exist. This creates an economic lifecycle: NPCs peak in middle age, then their output contribution
-  falls as the elder bonus fades and their skill degrades.
 
 - [ ] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
