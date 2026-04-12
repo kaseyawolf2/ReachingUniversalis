@@ -9,6 +9,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder will tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for elders (ageDays >
+  60 and hasName), append a faint line "Will: 80% to treasury" in `Fade(GOLD, 0.5f)` below the
+  gold balance line. This surfaces the inheritance mechanic to the player via the UI. Read
+  `ageDays` from `AgentEntry` (already present). No new snapshot fields needed.
+
+- [x] **Estate log on need-death too** — Already works: the inheritance block iterates all
+  `toRemove` entities (both old-age and need-deprivation deaths). Verified.
+
+- [x] **Contentment milestone log** — Already implemented as "Suffering NPC log event" using
+  `s_desperateLogged` static set in RandomEventSystem.cpp (0.2 onset, 0.5 recovery).
+
 - [x] **Elder deathbed savings inheritance** — Elder 0.8 fraction and isElder check were already
   implemented. Added "(elder)" tag to estate log message for visual distinction.
 
@@ -462,18 +473,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Elder deathbed savings inheritance** — Elder 0.8 fraction and isElder check were already
   implemented. Added "(elder)" tag to estate log message for visual distinction.
 
-- [ ] **Contentment milestone log** — In `RandomEventSystem`'s per-NPC event loop, track a
-  `contentmentMilestone` bool in a static per-entity `std::set<entt::entity> s_lowLogged`. When
-  NPC contentment drops below 0.2 for the first time (not in set), log "X is desperate at Y"
-  and insert into set. When contentment recovers above 0.5, remove from set (so the message can
-  fire again later). This avoids log spam while ensuring desperate NPCs are surfaced once.
+- [x] **Contentment milestone log** — Already implemented as "Suffering NPC log event".
 
-- [ ] **Estate log on need-death too** — `DeathSystem.cpp`: the estate log ("X left an estate of
-  Ng to Y") currently only fires in the inheritance block (after the morale/cargo blocks), but
-  the name retrieval uses `try_get<Name>` which works for both old-age and need-death. Verify the
-  log fires for need-death by confirming the inheritance block is reached for all `toRemove`
-  entities, not just old-age ones. If `money->balance >= MIN_INHERITANCE` is always evaluated,
-  no code change is needed — just a test/verification pass with a log trace.
+- [x] **Estate log on need-death too** — Already works: inheritance block iterates all `toRemove`.
 
 - [ ] **Elder will tooltip line** — In `HUD::DrawHoverTooltip` (HUD.cpp), for elders (ageDays >
   60 and hasName), append a faint line "Will: 80% to treasury" in `Fade(GOLD, 0.5f)` below the
