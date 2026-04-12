@@ -9,6 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity recipient log detail** — Extend the charity log message to name both parties:
+  change "X helped a starving neighbour." to "X helped [Recipient Name] at [Settlement]."
+  In `AgentDecisionSystem`'s charity block, after finding the starving NPC, read their `Name`
+  component and their home settlement's `Settlement::name`. Format: "Aldric helped Mira Reed
+  at Ashford." No new components — just expand the `charityLog->Push` format string using
+  `registry.try_get<Name>` on `starving.entity` and `registry.try_get<Settlement>` on
+  `starving.homeSettl`.
+
 ---
 
 ## Done
@@ -40,14 +48,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 ### NPC Crime & Consequence
-
-- [ ] **Charity recipient log detail** — Extend the charity log message to name both parties:
-  change "X helped a starving neighbour." to "X helped [Recipient Name] at [Settlement]."
-  In `AgentDecisionSystem`'s charity block, after finding the starving NPC, read their `Name`
-  component and their home settlement's `Settlement::name`. Format: "Aldric helped Mira Reed
-  at Ashford." No new components — just expand the `charityLog->Push` format string using
-  `registry.try_get<Name>` on `starving.entity` and `registry.try_get<Settlement>` on
-  `starving.homeSettl`.
 
 - [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity a
   second (or Nth) time, change the log message to: "Aldric helped a starving neighbour (×2)."
