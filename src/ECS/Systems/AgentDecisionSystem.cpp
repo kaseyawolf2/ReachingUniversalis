@@ -1470,7 +1470,52 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 float d2  = dx2*dx2 + dy2*dy2;
                 if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = mx; lurk_y = my; lurkRoad = re; }
             });
-            if (lurkRoad != entt::null) banditsPerRoad[lurkRoad]++;
+            if (lurkRoad != entt::null) {
+                banditsPerRoad[lurkRoad]++;
+                // Assign gang name when 2+ bandits share a road
+                if (banditsPerRoad[lurkRoad] >= 2) {
+                    // Try to copy an existing gang name from another bandit at this road
+                    std::string existingGang;
+                    registry.view<Position, BanditTag, DeprivationTimer>(
+                        entt::exclude<Hauler, PlayerTag>).each(
+                        [&](auto other, const Position& op, const DeprivationTimer& odt) {
+                            if (other == e || !existingGang.empty()) return;
+                            if (odt.gangName.empty()) return;
+                            // Check if this bandit is also targeting the same road
+                            float bestD = std::numeric_limits<float>::max();
+                            entt::entity otherRoad = entt::null;
+                            registry.view<Road>().each([&](auto re2, const Road& rd2) {
+                                if (rd2.blocked) return;
+                                const auto* a2 = registry.try_get<Position>(rd2.from);
+                                const auto* b2 = registry.try_get<Position>(rd2.to);
+                                if (!a2 || !b2) return;
+                                float mx2 = (a2->x + b2->x) * 0.5f;
+                                float my2 = (a2->y + b2->y) * 0.5f;
+                                float d2 = (mx2 - op.x)*(mx2 - op.x) + (my2 - op.y)*(my2 - op.y);
+                                if (d2 < bestD) { bestD = d2; otherRoad = re2; }
+                            });
+                            if (otherRoad == lurkRoad) existingGang = odt.gangName;
+                        });
+                    if (!existingGang.empty()) {
+                        timer.gangName = existingGang;
+                    } else {
+                        // Generate gang name from road endpoint settlements
+                        std::string nA, nB;
+                        if (const auto* rd = registry.try_get<Road>(lurkRoad)) {
+                            if (const auto* sa = registry.try_get<Settlement>(rd->from)) nA = sa->name;
+                            if (const auto* sb = registry.try_get<Settlement>(rd->to))   nB = sb->name;
+                        }
+                        if (!nA.empty() && !nB.empty())
+                            timer.gangName = "The " + nA + "-" + nB + " Wolves";
+                        else
+                            timer.gangName = "Road Wolves";
+                    }
+                } else {
+                    timer.gangName.clear();
+                }
+            } else {
+                timer.gangName.clear();
+            }
 
             // ---- Try to intercept a nearby hauler ----
             bool intercepted = false;

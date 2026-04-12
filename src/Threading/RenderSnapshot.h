@@ -69,6 +69,8 @@ struct RenderSnapshot {
         float charityTimerLeft = 0.f;
         // True if this NPC has the BanditTag (exiled, desperate, lurking on roads)
         bool isBandit = false;
+        // Bandit gang name (non-empty when 2+ bandits share the same road)
+        std::string gangName;
         // True if this NPC is currently on strike (DeprivationTimer::strikeDuration > 0)
         bool onStrike = false;
         // Remaining strike duration in game-hours (0 when not striking)

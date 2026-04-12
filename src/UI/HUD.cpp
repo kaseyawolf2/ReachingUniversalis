@@ -714,6 +714,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         std::snprintf(charityLine, sizeof(charityLine), "Gave charity (%.1fh ago)", best->charityTimerLeft);
     // "Bandit" line: shown for BanditTag entities
     bool showBandit   = best->isBandit;
+    char banditLine[128] = {};
+    if (showBandit) {
+        if (!best->gangName.empty())
+            std::snprintf(banditLine, sizeof(banditLine), "Bandit [%s] (press E)", best->gangName.c_str());
+        else
+            std::snprintf(banditLine, sizeof(banditLine), "Bandit (press E to confront)");
+    }
     // "On strike" line: shown when NPC has active strikeDuration
     bool showStrike   = best->onStrike;
     char strikeLine[48] = {};
@@ -880,7 +887,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wg  = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
     int ww  = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
     int wch = showCharity  ? MeasureText(charityLine,            11) : 0;
-    int wb  = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
+    int wb  = showBandit   ? MeasureText(banditLine, 11) : 0;
     int wsk = showStrike   ? MeasureText(strikeLine, 11) : 0;
     int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
     int wr  = showRumour  ? MeasureText(rumourLine,              11) : 0;
@@ -946,7 +953,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGrateful) { DrawText("Grateful to neighbour",       tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
     if (showWarmth)   { DrawText("Warm from giving",            tx, ly, 11, Fade(ORANGE, 0.75f));  ly += 16; }
     if (showCharity)  { DrawText(charityLine,                   tx, ly, 11, Fade(LIME, 0.5f));     ly += 16; }
-    if (showBandit)   { DrawText("Bandit (press E to confront)",tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
+    if (showBandit)   { DrawText(banditLine, tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
     if (showStrike)   { DrawText(strikeLine,                    tx, ly, 11, RED);                    ly += 16; }
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }

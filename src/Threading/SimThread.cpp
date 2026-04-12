@@ -1370,6 +1370,11 @@ void SimThread::WriteSnapshot() {
         }
 
         bool isBandit = m_registry.all_of<BanditTag>(e);
+        std::string gangName;
+        if (isBandit) {
+            if (const auto* dt2 = m_registry.try_get<DeprivationTimer>(e))
+                gangName = dt2->gangName;
+        }
         // Bandits render as dark maroon regardless of need state
         if (isBandit && !isPlayer)
             drawColor = Color{ 140, 30, 30, 255 };
@@ -1412,7 +1417,7 @@ void SimThread::WriteSnapshot() {
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady, charityTimerLeft,
-                           isBandit, onStrike, strikeHoursLeft, ill, illNeedIdx,
+                           isBandit, std::move(gangName), onStrike, strikeHoursLeft, ill, illNeedIdx,
                            harvestBonus, inVocation,
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
