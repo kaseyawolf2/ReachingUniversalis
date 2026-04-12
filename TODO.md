@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **GoodHarvest rumour seeding** — Add `RumourType::GoodHarvest` to Components.h, seed
+  rumour on Harvest Bounty event in RandomEventSystem.cpp, handle arrival price effect (-5%
+  food) and log in AgentDecisionSystem.cpp's spreadRumour lambda.
 
 ## Recently Done
 
