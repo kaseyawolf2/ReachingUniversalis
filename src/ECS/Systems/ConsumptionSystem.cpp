@@ -197,6 +197,20 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 timer.fleeTimer     = 4.f;   // sprint away for ~4 real seconds
                 justStole = true;
 
+                // Theft costs reputation
+                if (auto* rep = registry.try_get<Reputation>(entity))
+                    rep->score -= 0.2f;
+                if (settl) settl->theftCount++;
+                // Social ostracism: theft erodes skills slightly
+                std::string skillSuffix;
+                if (auto* sk = registry.try_get<Skills>(entity)) {
+                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
+                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
+                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (farming %d%%)", (int)(sk->farming * 100));
+                    skillSuffix = sb;
+                }
                 // Log it
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();
@@ -208,17 +222,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     if (settl) where = settl->name;
                     lv3.get<EventLog>(*lv3.begin()).Push(
                         tm3.day, (int)tm3.hourOfDay,
-                        who + " stole food at " + where + " (desperate)");
-                }
-                // Theft costs reputation
-                if (auto* rep = registry.try_get<Reputation>(entity))
-                    rep->score -= 0.2f;
-                if (settl) settl->theftCount++;
-                // Social ostracism: theft erodes skills slightly
-                if (auto* sk = registry.try_get<Skills>(entity)) {
-                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                        who + " stole food at " + where + skillSuffix);
                 }
             }
             // Steal water if close to dying of thirst
@@ -227,6 +231,18 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 timer.stealCooldown = STEAL_COOLDOWN;
                 timer.fleeTimer     = 4.f;
                 justStole = true;
+                if (auto* rep = registry.try_get<Reputation>(entity))
+                    rep->score -= 0.2f;
+                if (settl) settl->theftCount++;
+                std::string skillSuffix2;
+                if (auto* sk = registry.try_get<Skills>(entity)) {
+                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
+                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
+                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (water %d%%)", (int)(sk->water_drawing * 100));
+                    skillSuffix2 = sb;
+                }
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();
                 if (lv3.begin() != lv3.end() && tv3.begin() != tv3.end()) {
@@ -237,15 +253,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     if (settl) where = settl->name;
                     lv3.get<EventLog>(*lv3.begin()).Push(
                         tm3.day, (int)tm3.hourOfDay,
-                        who + " stole water at " + where + " (desperate)");
-                }
-                if (auto* rep = registry.try_get<Reputation>(entity))
-                    rep->score -= 0.2f;
-                if (settl) settl->theftCount++;
-                if (auto* sk = registry.try_get<Skills>(entity)) {
-                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                        who + " stole water at " + where + skillSuffix2);
                 }
             }
         }
