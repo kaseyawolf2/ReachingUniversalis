@@ -735,6 +735,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showRoute = true;
     }
 
+    // Near-bankrupt warning
+    bool showNearBankrupt = best->nearBankrupt;
+
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
     const char* illLabel = nullptr;
     if (best->ill) {
@@ -784,7 +787,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
     if (showProfit)   lineCount++;
-    if (showRoute)    lineCount++;
+    if (showRoute)        lineCount++;
+    if (showNearBankrupt) lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -808,7 +812,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
     int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt}) + 10;
+    int wnb = showNearBankrupt ? MeasureText("!! Near bankruptcy !!", 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -864,7 +869,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
-    if (showRoute)  { DrawText(routeLine,           tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); }
+    if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
+    if (showNearBankrupt) { DrawText("!! Near bankruptcy !!", tx, ly, 11, Fade(RED, 0.9f));       }
 }
 
 // ---- Facility hover tooltip ----
