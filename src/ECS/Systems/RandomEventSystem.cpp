@@ -63,12 +63,28 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         // Unrest: log once when morale crosses below 0.3, and again on recovery above 0.4
         if (!s.unrest && s.morale < 0.3f) {
             s.unrest = true;
-            if (log) log->Push(tm.day, (int)tm.hourOfDay,
-                "UNREST in " + s.name + " — morale critical, production suffering");
+            if (log) {
+                int pop = 0;
+                registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                    [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "UNREST in %s [pop %d] — morale %d%%, production suffering",
+                    s.name.c_str(), pop, (int)(s.morale * 100));
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
         } else if (s.unrest && s.morale >= 0.4f) {
             s.unrest = false;
-            if (log) log->Push(tm.day, (int)tm.hourOfDay,
-                "Tensions ease in " + s.name + " — morale recovering");
+            if (log) {
+                int pop = 0;
+                registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                    [&](const HomeSettlement& hs) { if (hs.settlement == e) ++pop; });
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "Tensions ease in %s [pop %d] — morale recovering (%d%%)",
+                    s.name.c_str(), pop, (int)(s.morale * 100));
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
         }
 
         // Drain work-stoppage cooldown
