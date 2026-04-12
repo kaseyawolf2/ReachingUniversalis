@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit scatter on confrontation** — Gang members flee when player confronts one of them.
-
 ## Recently Done
+
+- [x] **Bandit scatter on confrontation** — Gang members with matching gangName get fleeTimer=3s + velocity away from player at 1.5x speed. Flee check added to bandit section of AgentDecisionSystem.
+
 
 - [x] **Gang log announcement** — Logs "[Name] joined [gang] on the A-B road." when gangName transitions from empty to non-empty.
 
@@ -1166,7 +1167,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   bandit lurk block, compare old gangName with new before overwriting. If old was empty and new is
   not, push an EventLog entry.
 
-- [ ] **Bandit scatter on confrontation** — When the player confronts a bandit, other bandits in
+- [x] **Bandit scatter on confrontation** — When the player confronts a bandit, other bandits in
   the same gang (same gangName) should flee briefly. In `SimThread::ProcessInput`'s confrontation
   block, after removing BanditTag from the confronted bandit, iterate nearby BanditTag entities
   with matching gangName; set their `fleeTimer = 3.f` and velocity away from the player. Makes
@@ -1227,6 +1228,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block, after removing a bandit, find road-adjacent settlements (road.from / road.to) and add
   +0.05 morale to each `Settlement::morale` (clamped to 1.0). Log: "[Settlement] morale improved
   (+5%) after bandit threat reduced." Connects player action to settlement wellbeing.
+
+- [ ] **Bandit flee visual indicator** — In `GameState::Draw`'s agent loop, when an agent has
+  `isBandit == true` and `fleeTimer > 0` (add `float fleeTimer = 0.f` to `RenderSnapshot::AgentEntry`),
+  draw a brief speed trail: a fading line from (x, y) in the opposite direction of velocity.
+  Pipe `DeprivationTimer::fleeTimer` through `SimThread::WriteSnapshot` into the new field.
+
+- [ ] **NPC witness bandit confrontation** — In `SimThread::ProcessInput`'s confrontation block,
+  after the scatter, find non-bandit NPCs within 120 units. For each witness, add +0.1 to their
+  `Reputation::score` (they saw justice done) and log: "[NPC] witnessed [player] confront [bandit]."
+  Uses existing `Reputation` component; creates social memory of player's actions.
 
 ---
 
