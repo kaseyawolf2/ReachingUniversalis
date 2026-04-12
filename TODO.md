@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Child count in stockpile tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp, the tooltip
+  shown when hovering a settlement dot), add a "Children: N" line when `childCount > 0`. Read
+  `SettlementStatus::childCount` from the `worldStatus` entry that matches the hovered settlement
+  name. Display it in faded LIGHTGRAY below the population line. No new components needed.
+
 ---
 
 ## Done
@@ -124,11 +129,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Child count in stockpile tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp, the tooltip
-  shown when hovering a settlement dot), add a "Children: N" line when `childCount > 0`. Read
-  `SettlementStatus::childCount` from the `worldStatus` entry that matches the hovered settlement
-  name. Display it in faded LIGHTGRAY below the population line. No new components needed.
 
 - [ ] **Hunger crisis indicator in world status** — In `DrawWorldStatus` (HUD.cpp), if any NPC at
   a settlement has `hungerPct < 0.15f` (near starvation), add a small "!" warning after the food
