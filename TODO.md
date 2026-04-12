@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Facility morale included in est. output** — estOutput now includes morale production modifier.
+
 - [x] **Market price spike log** — Logs "Price spike: X at Y now Zg (+N%)" rate-limited per 12h.
 
 - [x] **Desperation count in settlement tooltip** — "Desperation buys: N/day" in red when > 0.
@@ -876,7 +878,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   std::map<std::pair<entt::entity,int>, float> s_priceSpikeCooldown` (entity + resource type
   as key). Surfaces sudden price changes that might trigger migration or trade shifts.
 
-- [ ] **Facility morale included in est. output** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
+- [x] **Facility morale included in est. output** — In `HUD::DrawFacilityTooltip` (HUD.cpp),
   multiply `estOutput` by the morale factor `1.0 + 0.3*(morale - 0.5)` so the estimated
   output reflects the actual production speed. Currently the estimate ignores morale.
   No new snapshot fields — `best->morale` already available.
@@ -2191,3 +2193,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `waterPriceTrend`, `woodPriceTrend` chars from `SettlementStatus`. Display as colored arrows:
   "+" → green up-arrow text, "-" → red down-arrow, "=" → nothing. Append to the stocks line
   like "Food: 50 ^  Water: 30  Wood: 10 v". No new snapshot fields needed.
+
+- [ ] **Facility health decay warning** — In `HUD::DrawFacilityTooltip` (HUD.cpp), when
+  facility health drops below 50%, change the health line color from WHITE to RED and append
+  " — needs repair" to the text. Visual cue that a facility is degraded. No new snapshot fields
+  — `best->baseRate / 4.0f` already computed as `healthPct`.
+
+- [ ] **Seasonal output forecast in facility tooltip** — In `HUD::DrawFacilityTooltip`, add a
+  line showing next season's expected output modifier. Use `SeasonProductionModifier(nextSeason)`
+  where `nextSeason` is `(curSeason + 1) % 4`. Display as "Next season: X% output". Helps
+  players plan ahead for seasonal production shifts. No new snapshot fields needed.
