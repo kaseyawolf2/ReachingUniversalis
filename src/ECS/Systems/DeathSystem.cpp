@@ -154,6 +154,53 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
         }
+
+        // ---- Family dissolution ----
+        // When the last adult FamilyTag-holder with a given name dies, dissolve the family:
+        // remove FamilyTag from surviving children so they can form new families later.
+        if (const auto* ft = registry.try_get<FamilyTag>(e)) {
+            std::string familyName = ft->name;
+            entt::entity homeSettl = (hs && hs->settlement != entt::null) ? hs->settlement : entt::null;
+
+            // Count surviving adults with the same family name at the same settlement
+            // (exclude all entities in toRemove, since they're also dying this tick)
+            int survivingAdults = 0;
+            registry.view<FamilyTag, HomeSettlement, Age>(entt::exclude<ChildTag>).each(
+                [&](auto other, const FamilyTag& oFt, const HomeSettlement& oHs, const Age& oAge) {
+                    if (other == e) return;
+                    // Skip other entities dying this tick
+                    for (auto dead : toRemove) if (dead == other) return;
+                    if (oFt.name != familyName) return;
+                    if (oHs.settlement != homeSettl) return;
+                    ++survivingAdults;
+                });
+
+            if (survivingAdults == 0) {
+                // No adult family members left — dissolve: remove FamilyTag from children
+                std::vector<entt::entity> orphanedChildren;
+                registry.view<FamilyTag, ChildTag, HomeSettlement>().each(
+                    [&](auto child, const FamilyTag& cFt, const HomeSettlement& cHs) {
+                        if (cFt.name != familyName) return;
+                        if (cHs.settlement != homeSettl) return;
+                        orphanedChildren.push_back(child);
+                    });
+                for (auto child : orphanedChildren)
+                    if (registry.valid(child)) registry.remove<FamilyTag>(child);
+
+                // Log the family line ending
+                auto logView4 = registry.view<EventLog>();
+                if (!logView4.empty()) {
+                    auto& tm4 = timeView.get<TimeManager>(*timeView.begin());
+                    std::string settlName = "the world";
+                    if (homeSettl != entt::null && registry.valid(homeSettl))
+                        if (const auto* s = registry.try_get<Settlement>(homeSettl))
+                            settlName = s->name;
+                    logView4.get<EventLog>(*logView4.begin()).Push(
+                        tm4.day, (int)tm4.hourOfDay,
+                        "The " + familyName + " family line has ended at " + settlName + ".");
+                }
+            }
+        }
     }
 
     for (auto e : toRemove) {
