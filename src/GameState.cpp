@@ -339,6 +339,8 @@ void GameState::Draw() {
         Color drawColor;
         if (a.behavior == AgentBehavior::Celebrating) {
             drawColor = Fade(GOLD, 0.85f);
+        } else if (a.recentlyStole) {
+            drawColor = Fade(MAROON, 0.9f);
         } else if (a.role == RenderSnapshot::AgentRole::NPC) {
             drawColor = (a.contentment >= 0.7f) ? Fade(GREEN,  0.85f) :
                         (a.contentment >= 0.4f) ? YELLOW          : Fade(RED, 0.85f);
