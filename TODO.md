@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession match indicator on world dot** — In `GameState.cpp`'s agent draw loop,
-  when an NPC is Working and their `AgentEntry::inVocation` is true, draw a small additional
-  ring dot (radius 5, `Fade(GOLD, 0.5f)`) centred on the NPC.
+(none)
 
 ## Recently Done
+
+- [x] **Profession match indicator on world dot** — Gold ring (radius 5) on working NPCs in vocation.
 
 - [x] **Skill milestone log** — Logs "X reached Journeyman/Master Farming/Water/Woodcutting" on 0.5/0.9 crossings.
 
@@ -527,11 +527,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Skill milestone log** — Logs Journeyman/Master crossings at worksite.
 
-- [ ] **Profession match indicator on world dot** — In `GameState.cpp`'s agent draw loop,
-  when an NPC is Working and their `AgentEntry::inVocation` is true (to be added per task above),
-  draw a small additional ring dot (radius 5, `Fade(GOLD, 0.5f)`) centred on the NPC. This makes
-  vocation-aligned workers visually distinct on the map. Requires the `inVocation` field from the
-  tooltip vocation task above.
+- [x] **Profession match indicator on world dot** — Gold ring on working NPCs in vocation.
 
 - [ ] **Rumour carrier visible in tooltip** — Add `bool hasRumour = false` and
   `std::string rumourLabel` to `AgentEntry` in `RenderSnapshot.h`. In SimThread's agent snapshot
@@ -1564,3 +1560,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   change to Water Carrier)." via `registry.view<EventLog>()`. Also remove the entity from
   `ScheduleSystem`'s `s_milestones` static set — but since it's static, instead just note in the
   log that the milestone was lost; the static set prevents re-firing anyway when the NPC re-earns it.
+
+- [ ] **Sleeping NPC visual dim** — In `GameState.cpp`'s agent draw loop (line ~332), when
+  `a.behavior == AgentBehavior::Sleeping`, apply `Fade(drawColor, 0.4f)` to make sleeping NPCs
+  visually muted on the map. Also skip the outer ring draw for sleeping NPCs (like children).
+  This creates a visual day/night rhythm as NPCs dim and brighten.
+
+- [ ] **NPC mentorship at worksite** — In `ScheduleSystem.cpp`'s skill-at-worksite block
+  (around line 279), when two NPCs are working at the same facility and one has skill >= 0.8
+  while the other has skill < 0.4, boost the learner's `SKILL_GAIN_PER_GAME_HOUR` by 50%.
+  Requires iterating nearby Working NPCs at the same `ProductionFacility` entity. Add a log
+  via `EventLog` when mentorship begins: "Master X is mentoring Y in Farming."
