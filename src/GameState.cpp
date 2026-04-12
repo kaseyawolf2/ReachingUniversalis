@@ -164,11 +164,15 @@ void GameState::Draw() {
     // World drawing
     BeginMode2D(m_camera);
 
-    // Roads — color-coded by condition: green→yellow→orange→red as condition falls
+    // Roads — color-coded by condition and bandit presence
     for (const auto& r : roads) {
         Color col;
         if (r.blocked) {
             col = RED;
+        } else if (r.banditCount >= 3) {
+            col = Fade(RED, 0.6f);
+        } else if (r.banditCount > 0) {
+            col = Fade(ORANGE, 0.5f);
         } else {
             float c = r.condition;
             if      (c >= 0.75f) col = Fade(BEIGE, 0.6f);
