@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler loss-making trip log** — Log when tripProfit < 0 in TransportSystem's GoingToDeposit arrival block.
-
 ## Recently Done
+
+- [x] **Hauler loss-making trip log** — Log "[Hauler] completed a loss-making trip to [settlement] (-Xg)" when tripProfit < 0 in TransportSystem.
+
 
 - [x] **Hauler trip history summary** — lifetimeTrips/lifetimeProfit on Hauler, piped through AgentEntry, shown as "Trips: N (total +Xg)" in tooltip.
 
@@ -1357,7 +1358,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   increment `lifetimeTrips` and add actual profit to `lifetimeProfit`. Pipe both through
   `RenderSnapshot::AgentEntry` and show "Trips: N (total +Xg)" in faint LIGHTGRAY in tooltip.
 
-- [ ] **Hauler loss-making trip log** — In `TransportSystem`'s GoingToDeposit arrival block,
+- [x] **Hauler loss-making trip log** — In `TransportSystem`'s GoingToDeposit arrival block,
   after computing actual profit from selling cargo, if profit < 0, log: "[Hauler] completed a
   loss-making trip to [settlement] (-Xg)." Helps player identify failing trade routes. Uses
   existing EventLog and TimeManager access pattern from the nervous-travel log.
@@ -2744,3 +2745,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   history line, compute and show "Avg profit: +X.Xg/trip" when `lifetimeTrips >= 3` (avoid noisy
   early data). Use `best->lifetimeProfit / best->lifetimeTrips`. Color: GREEN if > 5g, YELLOW
   if > 0g, RED if negative. No new snapshot fields needed — computed from existing data.
+
+- [ ] **Hauler route abandonment** — In `TransportSystem`'s GoingToDeposit section, after a
+  loss-making trip (tripProfit < 0), add the route to a `std::set<std::string> avoidedRoutes`
+  on the `Hauler` component. In the Idle state's route selection, skip routes matching any entry
+  in `avoidedRoutes`. Clear `avoidedRoutes` after 48 game-hours (add `float avoidTimer = 0.f`).
+  Log: "[Hauler] avoids the [A]→[B] route after losing money." Creates learning behaviour.
+
+- [ ] **NPC mourns loss-making hauler** — In `EconomicMobilitySystem`'s bankruptcy demotion
+  block, find homed NPCs at the same settlement within 100u. For each, log: "[NPC] is saddened
+  by [Hauler]'s bankruptcy." and apply -0.01 morale to the settlement. Uses existing
+  `registry.view<HomeSettlement, Position, Name>` pattern. Rate-limit: only log for up to 3
+  witnesses per bankruptcy event. Adds social consequence to economic failure.
