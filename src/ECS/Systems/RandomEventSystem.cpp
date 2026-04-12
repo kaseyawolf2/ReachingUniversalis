@@ -57,6 +57,33 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
             s.tradeVolumeTimer -= 24.f;
         }
 
+        // Bounty pool: settlements accumulate 0.5g per adjacent-road bandit per game-hour.
+        // Gold is drawn from treasury; pool is paid to the player on bandit confrontation.
+        {
+            int adjBandits = 0;
+            registry.view<Road>().each([&](const Road& road) {
+                if (road.blocked) return;
+                if (road.from != e && road.to != e) return;
+                // Count bandits near this road midpoint
+                const auto* pa = registry.try_get<Position>(road.from);
+                const auto* pb = registry.try_get<Position>(road.to);
+                if (!pa || !pb) return;
+                float mx = (pa->x + pb->x) * 0.5f;
+                float my = (pa->y + pb->y) * 0.5f;
+                registry.view<Position, BanditTag>().each(
+                    [&](const Position& bp) {
+                        float dx = bp.x - mx, dy = bp.y - my;
+                        if (dx*dx + dy*dy < 100.f * 100.f) ++adjBandits;
+                    });
+            });
+            if (adjBandits > 0) {
+                float bountyAdd = 0.5f * adjBandits * gameHoursDt;
+                float fromTreasury = std::min(bountyAdd, s.treasury);
+                s.treasury   -= fromTreasury;
+                s.bountyPool += fromTreasury;
+            }
+        }
+
         // Bonus morale recovery when all three stockpiles are above 80 units.
         // Rewards players who maintain surpluses; gives morale a second recovery path.
         static constexpr float STOCKPILE_ABUNDANCE = 80.f;

@@ -474,12 +474,12 @@ void SimThread::ProcessInput() {
                     bMoney->balance -= recover;
                     m_registry.remove<BanditTag>(nearBandit);
                     m_playerReputation += 10;
+                    const auto* bpos = m_registry.try_get<Position>(nearBandit);
                     if (plog) {
                         std::string bandName = "a bandit";
                         if (const auto* n = m_registry.try_get<Name>(nearBandit))
                             bandName = n->value;
                         // Find nearest road to bandit for log detail
-                        const auto* bpos = m_registry.try_get<Position>(nearBandit);
                         std::string roadLabel;
                         if (bpos) {
                             float bestD2 = std::numeric_limits<float>::max();
@@ -511,6 +511,39 @@ void SimThread::ProcessInput() {
                             "Player confronted %s%s, recovered %.1fg (+10 rep)",
                             bandName.c_str(), roadLabel.c_str(), recover);
                         plog->Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                    // Collect bounty from adjacent settlements
+                    if (bpos) {
+                        // Find the nearest road to the bandit
+                        entt::entity nearRoadFrom = entt::null, nearRoadTo = entt::null;
+                        float bestRD2 = std::numeric_limits<float>::max();
+                        m_registry.view<Road>().each([&](const Road& road) {
+                            if (road.blocked) return;
+                            const auto* pa = m_registry.try_get<Position>(road.from);
+                            const auto* pb = m_registry.try_get<Position>(road.to);
+                            if (!pa || !pb) return;
+                            float mx = (pa->x + pb->x) * 0.5f;
+                            float my = (pa->y + pb->y) * 0.5f;
+                            float rdx = mx - bpos->x, rdy = my - bpos->y;
+                            float d2 = rdx*rdx + rdy*rdy;
+                            if (d2 < bestRD2) { bestRD2 = d2; nearRoadFrom = road.from; nearRoadTo = road.to; }
+                        });
+                        // Pay out bountyPool from each endpoint settlement
+                        auto* pMoney2 = m_registry.try_get<Money>(pe3);
+                        for (entt::entity se : { nearRoadFrom, nearRoadTo }) {
+                            if (se == entt::null || !m_registry.valid(se)) continue;
+                            auto* settl = m_registry.try_get<Settlement>(se);
+                            if (!settl || settl->bountyPool <= 0.f) continue;
+                            float bounty = settl->bountyPool;
+                            settl->bountyPool = 0.f;
+                            if (pMoney2) pMoney2->balance += bounty;
+                            if (plog) {
+                                char bbuf[160];
+                                std::snprintf(bbuf, sizeof(bbuf),
+                                    "Collected %.1fg bounty from %s", bounty, settl->name.c_str());
+                                plog->Push(tm.day, (int)tm.hourOfDay, bbuf);
+                            }
+                        }
                     }
                 }
             } else if (pst3.behavior == AgentBehavior::Working) {

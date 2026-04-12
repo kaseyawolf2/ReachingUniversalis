@@ -99,6 +99,7 @@ struct Settlement {
     int   desperatePurchases = 0;  // emergency market purchases this 24h cycle
     int   theftCount        = 0;   // cumulative NPC theft events at this settlement
     float tradeVolumeTimer = 0.f;  // game-hours until next reset
+    float bountyPool       = 0.f;  // gold accumulated from adjacent-road bandits; paid to player on confrontation
 };
 
 struct Stockpile {
