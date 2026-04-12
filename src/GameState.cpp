@@ -370,6 +370,11 @@ void GameState::Draw() {
             float alpha = 0.4f + 0.2f * sinf((float)GetTime() * 3.f);
             DrawCircleLinesV({ a.x, a.y }, 12.f, Fade(GOLD, alpha));
         }
+        // Near-bankrupt hauler warning: pulsating red ring
+        if (a.nearBankrupt) {
+            float alpha = 0.3f + 0.3f * sinf((float)GetTime() * 4.f);
+            DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(RED, alpha));
+        }
     }
 
     EndMode2D();

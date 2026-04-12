@@ -61,13 +61,15 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
 
     std::vector<entt::entity> toDegrade;
     registry.view<Hauler, Money, HomeSettlement>(entt::exclude<PlayerTag>).each(
-        [&](auto e, const Hauler&, const Money& money, const HomeSettlement&) {
+        [&](auto e, Hauler& hauler, const Money& money, const HomeSettlement&) {
         if (money.balance < BANKRUPTCY_THRESHOLD) {
             s_bankruptTimer[e] += CHECK_INTERVAL;
+            hauler.nearBankrupt = (s_bankruptTimer[e] >= BANKRUPTCY_HOURS * 0.75f);
             if (s_bankruptTimer[e] >= BANKRUPTCY_HOURS)
                 toDegrade.push_back(e);
         } else {
             s_bankruptTimer.erase(e);
+            hauler.nearBankrupt = false;
         }
     });
 

@@ -80,6 +80,8 @@ struct RenderSnapshot {
         // Hauler profit estimation: buyPrice * cargoQty vs current balance
         float haulerBuyPrice = 0.f;
         int   haulerCargoQty = 0;
+        // True when a hauler's bankruptcy timer exceeds 75% of threshold
+        bool  nearBankrupt = false;
     };
 
     struct SettlementEntry {

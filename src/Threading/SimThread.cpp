@@ -1222,9 +1222,12 @@ void SimThread::WriteSnapshot() {
         // Hauler profit estimation fields
         float haulerBuyPrice = 0.f;
         int   haulerCargoQty = 0;
+        bool  nearBankrupt   = false;
         if (isHauler) {
-            if (const auto* h = m_registry.try_get<Hauler>(e))
+            if (const auto* h = m_registry.try_get<Hauler>(e)) {
                 haulerBuyPrice = h->buyPrice;
+                nearBankrupt   = h->nearBankrupt;
+            }
             if (const auto* inv = m_registry.try_get<Inventory>(e)) {
                 for (const auto& [res, qty] : inv->contents)
                     haulerCargoQty += qty;
@@ -1339,7 +1342,8 @@ void SimThread::WriteSnapshot() {
                            isBandit, onStrike, ill, illNeedIdx,
                            harvestBonus, inVocation,
                            hasRumour, std::move(rumourLabel),
-                           haulerBuyPrice, haulerCargoQty });
+                           haulerBuyPrice, haulerCargoQty,
+                           nearBankrupt });
     });
 
     // ---- Settlements ----

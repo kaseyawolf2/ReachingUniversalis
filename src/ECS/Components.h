@@ -164,6 +164,7 @@ struct Hauler {
     float        buyPrice         = 0.f;   // price per unit paid at pickup
     int          waitCycles       = 0;     // consecutive evaluations with no good route
     entt::entity cargoSource      = entt::null;  // settlement where current cargo was loaded (for rivalry tracking)
+    bool         nearBankrupt    = false;       // true when bankruptcy timer > 75% threshold
 };
 
 // ---- Economy ----
