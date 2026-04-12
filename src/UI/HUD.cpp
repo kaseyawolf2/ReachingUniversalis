@@ -729,6 +729,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showWage)
         std::snprintf(wageLine, sizeof(wageLine), "Wage: ~%.1fg/hr", best->wage);
 
+    // Home morale line: shown for NPCs with a home settlement
+    bool showHomeMorale = (best->homeMorale >= 0.f);
+    char homeMoraleLine[32] = {};
+    if (showHomeMorale)
+        std::snprintf(homeMoraleLine, sizeof(homeMoraleLine), "Home morale: %d%%", (int)(best->homeMorale * 100));
+
     // Rumour carrier line
     bool showRumour = best->hasRumour;
     char rumourLine[64] = {};
@@ -832,6 +838,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHaulerState)   lineCount++;
     if (showGraduation)    lineCount++;
     if (showWage)          lineCount++;
+    if (showHomeMorale)    lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -859,7 +866,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
     int wgr = showGraduation ? MeasureText(gradLine, 11) : 0;
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg}) + 10;
+    int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg, whm}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -919,7 +927,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHaulerState) { DrawText(haulerStateLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
-    if (showNearBankrupt) { DrawText(bankruptLine, tx, ly, 11, Fade(RED, 0.9f)); }
+    if (showNearBankrupt) { DrawText(bankruptLine, tx, ly, 11, Fade(RED, 0.9f)); ly += 16; }
+    if (showHomeMorale) {
+        Color hmCol = (best->homeMorale >= 0.7f) ? Fade(GREEN, 0.5f)
+                    : (best->homeMorale >= 0.4f) ? Fade(YELLOW, 0.5f) : Fade(RED, 0.5f);
+        DrawText(homeMoraleLine, tx, ly, 11, hmCol);
+    }
 }
 
 // ---- Facility hover tooltip ----

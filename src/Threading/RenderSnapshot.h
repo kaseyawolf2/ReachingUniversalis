@@ -91,6 +91,8 @@ struct RenderSnapshot {
         float bankruptProgress = 0.f;
         // Hauler state: 0=Idle, 1=GoingToDeposit, 2=GoingHome
         int   haulerState = 0;
+        // Home settlement morale (-1 if no home)
+        float homeMorale = -1.f;
         // Estimated wage for working NPCs (game gold per game-hour)
         float wage = 0.f;
     };
