@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC age affects move speed** — Children 80%, elders 70%, prime adults 100% in MovementSystem. Exclude haulers/player.
+
 
 ## Recently Done
+
+- [x] **NPC age affects move speed** — Children (< 15 days) 80%, elders (> 55 days) 70%, prime adults 100%. Applied in MovementSystem as velocity multiplier, excludes haulers/player.
+
 
 - [x] **Hauler preferred route bias** — +10% score bonus in FindBestRoute when candidate route matches hauler.bestRoute string. Experienced haulers specialize on profitable corridors.
 
@@ -1457,7 +1460,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   specialization: experienced haulers stick to known profitable corridors. Needs to pass the
   hauler entity into the route evaluation function.
 
-- [ ] **NPC age affects move speed** — In `MovementSystem`, scale NPC speed by age bracket.
+- [x] **NPC age affects move speed** — In `MovementSystem`, scale NPC speed by age bracket.
   Children (age < 15) move at 80% speed, elders (age > 55) at 70%, prime adults at 100%. Read
   `Age::days` from the entity, compute bracket, multiply `MoveSpeed::value` by the factor. Exclude
   haulers and player (already have separate speed logic). Adds visible age-based behaviour.
@@ -2935,3 +2938,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (set to "") so the hauler stops preferring its old route and explores alternatives. Log
   "[Hauler] abandons familiar route after losses." This creates dynamic route adaptation:
   haulers stuck in unprofitable patterns break free when facing bankruptcy.
+
+- [ ] **Elder NPC mentors young worker** — In `AgentDecisionSystem`'s idle block, when an elder
+  NPC (age > 55 days) is near a working young NPC (age < 25 days) at the same settlement, 3%
+  chance per game-hour to boost the young NPC's highest skill by +0.02 (in `Skills` component).
+  Log "[Elder] mentors [Young] in [skill]." Check `try_get<Skills>` on both. Creates
+  intergenerational knowledge transfer — elders slow down but pass on expertise.
+
+- [ ] **Child NPC follows parent** — In `AgentDecisionSystem`'s idle block, when a child NPC
+  (age < 15 days) has a `FamilyTag`, find the nearest adult (age > 15) with matching
+  `FamilyTag::name` at the same settlement. If within 80u, move toward parent at 0.5x speed
+  (same `MoveToward` pattern). If parent is absent (different settlement), child stays near home
+  settlement centre. Log nothing — purely visual behaviour. Adds visible family structure.
