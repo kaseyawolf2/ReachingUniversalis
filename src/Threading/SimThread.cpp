@@ -860,6 +860,7 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<Age>(npc, age);
                         m_registry.emplace<Name>(npc, Name{std::string(FN[fn(frng)])+" "+LN[ln(frng)]});
                         m_registry.emplace<Skills>(npc, Skills{sk(frng),sk(frng),sk(frng)});
+                        m_registry.emplace<Reputation>(npc);
                     }
 
                     // Spawn 1 hauler
@@ -880,6 +881,7 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<DeprivationTimer>(h, hdtt);
                         m_registry.emplace<Inventory>(h, Inventory{{}, 15});
                         m_registry.emplace<Hauler>(h, Hauler{});
+                        m_registry.emplace<Reputation>(h);
                         m_registry.emplace<Money>(h, Money{50.f});
                         m_registry.emplace<Renderable>(h, SKYBLUE, 7.f);
                         Age ha; ha.days = ad(frng); ha.maxDays = ld(frng);
@@ -1271,6 +1273,11 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Reputation snapshot
+        float reputationScore = 0.f;
+        if (const auto* rep = m_registry.try_get<Reputation>(e))
+            reputationScore = rep->score;
+
         // Scale visual size by life stage so children are visibly smaller.
         // Children (<15 days): 60% size; youth (15-25): 80%; adult: 100%; elderly (>65): 105%
         float drawSize = rend.size;
@@ -1365,7 +1372,7 @@ void SimThread::WriteSnapshot() {
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
                            nearBankrupt, bankruptProgress, haulerState,
-                           homeMorale, wagePerHour });
+                           homeMorale, wagePerHour, reputationScore });
     });
 
     // ---- Settlements ----

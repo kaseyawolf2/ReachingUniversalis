@@ -95,6 +95,7 @@ static void SpawnNPCs(entt::registry& registry,
         // Starting skills: vary ±0.15 around 0.5 baseline
         static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
         registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
+        registry.emplace<Reputation>(npc);
         registry.emplace<Profession>(npc, Profession{ profession });
 
         // Assign a random initial personal goal
@@ -154,6 +155,7 @@ static void SpawnHaulers(entt::registry& registry,
         Hauler haulerComp;
         haulerComp.waitTimer = wait_dist(wg_rng);
         registry.emplace<Hauler>(h, haulerComp);
+        registry.emplace<Reputation>(h);
         registry.emplace<Money>(h);   // starting wallet: 50 gold
         registry.emplace<Renderable>(h, SKYBLUE, 7.f);
         Age hage;

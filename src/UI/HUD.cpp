@@ -729,6 +729,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showWage)
         std::snprintf(wageLine, sizeof(wageLine), "Wage: ~%.1fg/hr", best->wage);
 
+    // Reputation line: shown when non-zero
+    bool showRep = (std::abs(best->reputation) >= 0.05f);
+    char repLine[32] = {};
+    if (showRep)
+        std::snprintf(repLine, sizeof(repLine), "Rep: %+.1f", best->reputation);
+
     // Home morale line: shown for NPCs with a home settlement
     bool showHomeMorale = (best->homeMorale >= 0.f);
     char homeMoraleLine[32] = {};
@@ -838,6 +844,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHaulerState)   lineCount++;
     if (showGraduation)    lineCount++;
     if (showWage)          lineCount++;
+    if (showRep)           lineCount++;
     if (showHomeMorale)    lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
@@ -867,7 +874,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wgr = showGraduation ? MeasureText(gradLine, 11) : 0;
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg, whm}) + 10;
+    int wrp = showRep ? MeasureText(repLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -923,6 +931,10 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
+    if (showRep) {
+        Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);
+        DrawText(repLine, tx, ly, 11, repCol); ly += 16;
+    }
     if (showCargo)       { DrawText(cargoLine,        tx, ly, 11, Fade(SKYBLUE, 0.9f));    ly += 16; }
     if (showHaulerState) { DrawText(haulerStateLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }

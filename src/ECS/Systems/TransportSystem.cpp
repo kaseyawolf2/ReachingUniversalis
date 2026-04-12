@@ -408,6 +408,10 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 }
                 hauler.cargoSource = entt::null;
 
+                // Hauler gains reputation for each successful delivery
+                if (auto* rep = registry.try_get<Reputation>(entity))
+                    rep->score += 0.05f;
+
                 // Successful trade delivery lifts destination settlement morale slightly.
                 if (destSettl) {
                     destSettl->morale = std::min(1.f, destSettl->morale + 0.01f);

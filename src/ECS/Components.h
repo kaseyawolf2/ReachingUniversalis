@@ -147,6 +147,11 @@ struct DeprivationTimer {
     float                gossipNudgeTimer   = 0.f;       // game-seconds remaining for gossip drift animation (0 = eligible)
 };
 
+// Social standing; accrued by charity & trade deliveries, lost by theft.
+struct Reputation {
+    float score = 0.f;
+};
+
 // ---- Inventory / Transport ----
 
 struct Inventory {

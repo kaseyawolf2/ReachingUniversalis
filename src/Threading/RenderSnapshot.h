@@ -95,6 +95,8 @@ struct RenderSnapshot {
         float homeMorale = -1.f;
         // Estimated wage for working NPCs (game gold per game-hour)
         float wage = 0.f;
+        // NPC reputation score (positive = good, negative = bad)
+        float reputation = 0.f;
     };
 
     struct SettlementEntry {

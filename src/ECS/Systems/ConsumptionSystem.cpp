@@ -207,6 +207,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         tm3.day, (int)tm3.hourOfDay,
                         who + " stole food at " + where + " (desperate)");
                 }
+                // Theft costs reputation
+                if (auto* rep = registry.try_get<Reputation>(entity))
+                    rep->score -= 0.2f;
             }
             // Steal water if close to dying of thirst
             else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
@@ -224,6 +227,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         tm3.day, (int)tm3.hourOfDay,
                         who + " stole water at " + where + " (desperate)");
                 }
+                if (auto* rep = registry.try_get<Reputation>(entity))
+                    rep->score -= 0.2f;
             }
         }
 
