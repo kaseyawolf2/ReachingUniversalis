@@ -134,6 +134,7 @@ struct RenderSnapshot {
         int          imports    = 0;   // goods units imported (24h window)
         int          exports    = 0;   // goods units exported (24h window)
         int          desperatePurchases = 0; // emergency market purchases this 24h cycle
+        float        moodScore = 0.5f;     // 0-1 average NPC need satisfaction
     };
 
     struct RoadEntry {

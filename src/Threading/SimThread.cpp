@@ -1553,13 +1553,30 @@ void SimThread::WriteSnapshot() {
                             (primary == ResourceType::Water) ? "Water"   : "Lumber";
         }
 
+        // Compute mood score: average NPC need satisfaction (0–1)
+        float moodScore = 0.5f;
+        {
+            float needSum = 0.f;
+            int npcCount = 0;
+            m_registry.view<HomeSettlement, Needs>(entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                [&](const HomeSettlement& nh, const Needs& nn) {
+                    if (nh.settlement != e) return;
+                    float avg = 0.f;
+                    for (int i = 0; i < 4; ++i) avg += nn.list[i].value;
+                    avg *= 0.25f;
+                    needSum += avg;
+                    ++npcCount;
+                });
+            if (npcCount > 0) moodScore = needSum / npcCount;
+        }
+
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
             food, water, wood, spop, s.popCap, snapSeason, specialty,
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
-            s.importCount, s.exportCount, s.desperatePurchases
+            s.importCount, s.exportCount, s.desperatePurchases, moodScore
         });
     });
 

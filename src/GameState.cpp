@@ -260,6 +260,13 @@ void GameState::Draw() {
         if (s.pop > 0 && s.modifierName == "Plague")
             DrawCircleLinesV({ s.x, s.y }, s.radius + 4.f, Fade(Color{180,60,220,255}, 0.5f));
         DrawCircleLinesV({ s.x, s.y }, s.radius, ring);
+        // Mood glow: faint green for thriving, faint red for struggling
+        if (s.pop > 0 && s.modifierName.empty()) {
+            if (s.moodScore >= 0.7f)
+                DrawCircleV({ s.x, s.y }, s.radius - 2.f, Fade(GREEN, 0.08f));
+            else if (s.moodScore < 0.3f)
+                DrawCircleV({ s.x, s.y }, s.radius - 2.f, Fade(RED, 0.10f));
+        }
         // Pop cap warning: inner dashed ring (orange) when pop >= 90% of cap
         if (s.pop > 0 && s.popCap > 0 && s.pop >= (int)(s.popCap * 0.9f)) {
             float pulse = 0.5f + 0.4f * std::sin(GetTime() * 3.f);
