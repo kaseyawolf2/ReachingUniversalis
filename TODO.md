@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Richest NPC highlighted in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), the agent list already renders NPC names. After building the list, find the
+  agent with the highest `money` field in `StockpilePanel::agents` and render their name in gold
+  `GOLD` colour instead of white. No new component needed — use the existing `money` float in
+  `AgentEntry`. Makes wealth inequality immediately legible.
+
 ---
 
 ## Done
@@ -102,12 +108,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Richest NPC highlighted in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), the agent list already renders NPC names. After building the list, find the
-  agent with the highest `money` field in `StockpilePanel::agents` and render their name in gold
-  `GOLD` colour instead of white. No new component needed — use the existing `money` float in
-  `AgentEntry`. Makes wealth inequality immediately legible.
 
 - [ ] **Family size in tooltip** — Extend the `(Family: X)` suffix added in `DrawHoverTooltip`
   (HUD.cpp) to include the family size: change to "(Family: X ×N)" where N is the `surnameCount`
