@@ -321,8 +321,17 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             }
 
             // Eldest resident badge — settlement patriarch/matriarch
-            if (r.isEldest)
+            if (r.isEldest) {
                 DrawText(" [Elder]", rx, y, 11, Fade(ORANGE, 0.8f));
+                rx += MeasureText(" [Elder]", 11);
+            }
+
+            // Mood dot: green (happy), yellow (neutral), red (struggling)
+            {
+                Color moodCol = (r.contentment > 0.7f) ? GREEN :
+                                (r.contentment > 0.4f) ? YELLOW : RED;
+                DrawCircleV({ (float)(rx + 6), (float)(y + 5) }, 3.f, Fade(moodCol, 0.7f));
+            }
 
             y += LINE_H - 3;
         }

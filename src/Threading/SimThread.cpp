@@ -1820,6 +1820,11 @@ void SimThread::WriteSnapshot() {
                         ai.profession = ProfessionLabel(pr->type);
                     if (const auto* ft = m_registry.try_get<FamilyTag>(npc))
                         ai.familyName = ft->name;
+                    if (const auto* needs = m_registry.try_get<Needs>(npc)) {
+                        float h = needs->list[0].value, t = needs->list[1].value;
+                        float e2 = needs->list[2].value, ht = needs->list[3].value;
+                        ai.contentment = h * 0.3f + t * 0.3f + e2 * 0.2f + ht * 0.2f;
+                    }
                     if (const auto* age = m_registry.try_get<Age>(npc)) {
                         if (age->days > eldestAge) {
                             eldestAge  = age->days;

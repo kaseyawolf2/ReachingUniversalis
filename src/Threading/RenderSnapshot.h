@@ -192,6 +192,7 @@ struct RenderSnapshot {
             std::string profession;
             std::string familyName;   // FamilyTag::name, empty if no family
             bool        isEldest   = false;  // oldest NPC at this settlement
+            float       contentment = 1.f;  // weighted need average (0–1)
         };
         std::vector<AgentInfo>        residents;
     };
