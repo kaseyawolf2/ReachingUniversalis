@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession colour in residents list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), colour the profession abbreviation by type instead of uniform grey:
+  Fa = `Fade(GREEN, 0.6f)` (farming), Wa = `Fade(SKYBLUE, 0.6f)` (water), Lu = `Fade(BROWN, 0.7f)`
+  (wood), Me = `Fade(GOLD, 0.5f)` (merchant). Change the single `Fade(GRAY, 0.75f)` colour to
+  a per-abbreviation lookup. No new fields or components needed.
+
 - [x] **Migrant welcome log at destination** — Added "Ashford welcomes X (Farmer) — pop now N"
   log after arrival, counting current HomeSettlement population.
 
