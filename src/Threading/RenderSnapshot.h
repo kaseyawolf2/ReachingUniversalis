@@ -64,6 +64,8 @@ struct RenderSnapshot {
         bool charityReady = false;
         // True if this NPC has the BanditTag (exiled, desperate, lurking on roads)
         bool isBandit = false;
+        // True if this NPC is currently on strike (DeprivationTimer::strikeDuration > 0)
+        bool onStrike = false;
     };
 
     struct SettlementEntry {

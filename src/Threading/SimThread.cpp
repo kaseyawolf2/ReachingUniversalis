@@ -1266,12 +1266,14 @@ void SimThread::WriteSnapshot() {
         bool isGrateful      = false;
         bool recentWarmthGlow = false;
         bool charityReady    = false;
+        bool onStrike        = false;
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
             recentlyHelped   = (dt->helpedTimer > 0.f);
             recentlyStole    = (dt->stealCooldown > 46.f);
             isGrateful       = (dt->gratitudeTimer > 0.f);
             recentWarmthGlow = (htp > 0.9f && dt->charityTimer > 0.f);
             charityReady     = (dt->charityTimer <= 0.f);
+            onStrike         = (dt->strikeDuration > 0.f);
         }
 
         bool isBandit = m_registry.all_of<BanditTag>(e);
@@ -1290,7 +1292,7 @@ void SimThread::WriteSnapshot() {
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady,
-                           isBandit });
+                           isBandit, onStrike });
     });
 
     // ---- Settlements ----

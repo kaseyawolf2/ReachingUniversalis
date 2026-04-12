@@ -625,6 +625,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showWarmth   = best->recentWarmthGlow;
     // "Bandit" line: shown for BanditTag entities
     bool showBandit   = best->isBandit;
+    // "On strike" line: shown when NPC has active strikeDuration
+    bool showStrike   = best->onStrike;
 
     // Skill line: show the relevant skill for this agent's profession
     bool showSkill = false;
@@ -660,6 +662,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGrateful) lineCount++;
     if (showWarmth)   lineCount++;
     if (showBandit)   lineCount++;
+    if (showStrike)   lineCount++;
     if (showSkill)    lineCount++;
     if (showCargo)    lineCount++;
 
@@ -676,7 +679,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wg  = showGrateful ? MeasureText("Grateful to neighbour", 11) : 0;
     int ww  = showWarmth   ? MeasureText("Warm from giving",      11) : 0;
     int wb  = showBandit   ? MeasureText("Bandit (press E to confront)", 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb}) + 10;
+    int wsk = showStrike   ? MeasureText("On strike", 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -710,6 +714,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGrateful) { DrawText("Grateful to neighbour",       tx, ly, 11, Fade(LIME, 0.55f));    ly += 16; }
     if (showWarmth)   { DrawText("Warm from giving",            tx, ly, 11, Fade(ORANGE, 0.75f));  ly += 16; }
     if (showBandit)   { DrawText("Bandit (press E to confront)",tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
+    if (showStrike)   { DrawText("On strike",                   tx, ly, 11, RED);                    ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
