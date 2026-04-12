@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
+  world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
+  text. Colour-code it: "Plague" → RED, "Drought" → ORANGE, "Festival" → GOLD, "Bounty" → GREEN,
+  others → YELLOW. Find the `modifierName` draw calls in HUD.cpp (search for `modifierName` or
+  `modifierHoursLeft`), wrap in a helper that maps the string to a colour, and pass it to
+  `DrawText`. No new fields needed — `modifierName` is already in the snapshot.
+
 ---
 
 ## Done
@@ -26,13 +33,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
-  world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
-  text. Colour-code it: "Plague" → RED, "Drought" → ORANGE, "Festival" → GOLD, "Bounty" → GREEN,
-  others → YELLOW. Find the `modifierName` draw calls in HUD.cpp (search for `modifierName` or
-  `modifierHoursLeft`), wrap in a helper that maps the string to a colour, and pass it to
-  `DrawText`. No new fields needed — `modifierName` is already in the snapshot.
 
 - [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
   when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
