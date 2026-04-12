@@ -681,6 +681,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showBandit   = best->isBandit;
     // "On strike" line: shown when NPC has active strikeDuration
     bool showStrike   = best->onStrike;
+    // "Good harvest" line: shown when NPC has active harvest bonus
+    bool showHarvest  = best->harvestBonus;
 
     // Elder will line: surfaces the inheritance mechanic
     bool showWill = hasName && (best->ageDays > 60.f) && (best->balance > 0.f);
@@ -738,6 +740,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkill)    lineCount++;
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
+    if (showHarvest)  lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -758,7 +761,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wsk = showStrike   ? MeasureText("On strike", 11) : 0;
     int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
     int wr  = showRumour  ? MeasureText(rumourLine,              11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr}) + 10;
+    int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -810,6 +814,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showBandit)   { DrawText("Bandit (press E to confront)",tx, ly, 11, Color{220, 60, 60, 220}); ly += 16; }
     if (showStrike)   { DrawText("On strike",                   tx, ly, 11, RED);                    ly += 16; }
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
+    if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showCargo)  { DrawText(cargoLine,           tx, ly, 11, Fade(SKYBLUE, 0.9f)); }
 }
