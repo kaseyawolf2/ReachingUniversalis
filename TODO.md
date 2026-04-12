@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit threat radius visual** — Draw faint RED circle at 80u radius when hovering a bandit NPC in GameState::Draw.
+
 ## Recently Done
 
 - [x] **NPC morale comment in tooltip** — "Mood: Content/Getting by/Struggling/Desperate" line in HUD tooltip, color-coded GREEN/YELLOW/ORANGE/RED by contentment.
