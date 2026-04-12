@@ -1585,12 +1585,28 @@ void SimThread::WriteSnapshot() {
         });
 
         float elderBonus = std::min(0.05f, elderPop * 0.005f);
+
+        // Average contentment of homed NPCs (same exclusions as hunger crisis)
+        float contentSum = 0.f;
+        int   contentN   = 0;
+        m_registry.view<HomeSettlement, Needs>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs, const Needs& nd) {
+            if (hs.settlement != e) return;
+            float avg = 0.f;
+            for (int i = 0; i < 4; ++i) avg += nd.list[i].value;
+            avg *= 0.25f;
+            contentSum += avg;
+            ++contentN;
+        });
+        float avgContentment = (contentN > 0) ? contentSum / contentN : 1.f;
+
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
-                                 hungerCrisis, elderPop, elderBonus, s.morale });
+                                 hungerCrisis, elderPop, elderBonus, s.morale,
+                                 avgContentment });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {

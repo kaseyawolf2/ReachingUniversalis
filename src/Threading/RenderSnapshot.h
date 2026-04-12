@@ -135,6 +135,7 @@ struct RenderSnapshot {
         int         elderCount     = 0;     // NPCs over age 60
         float       elderBonus     = 0.f;   // production bonus from elders (0–5%)
         float       morale         = 0.5f;  // settlement morale (0–1)
+        float       avgContentment = 1.f;   // average NPC contentment (0–1)
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----
