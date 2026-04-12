@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale colour on settlement ring** — Add `float morale` to `SettlementEntry`, populate
-  in SimThread, tint ring by morale when no event modifier is active.
+(none)
 
 ## Recently Done
+
+- [x] **Morale colour on settlement ring** — Ring tinted green/yellow/red by morale when no event active.
 
 - [x] **Celebrating NPC glow ring** — Pulsating gold ring (radius 12) on celebrating NPCs.
 
@@ -570,12 +571,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Celebrating NPC glow ring** — Pulsating gold ring on celebrating NPCs.
 
-- [ ] **Morale colour on settlement ring** — In `GameState.cpp`'s settlement render loop,
-  when no event modifier is active, tint the settlement ring outline by morale: add `float morale`
-  to `SettlementEntry` in `RenderSnapshot.h`, populated from `Settlement::morale` in SimThread's
-  settlement snapshot loop. In the render loop, when `!s.modifierName.empty()` is false, set
-  `ringColor = (morale >= 0.7f) ? GREEN : (morale >= 0.3f) ? YELLOW : RED`. This gives players
-  spatial awareness of which settlements are struggling without hovering.
+- [x] **Morale colour on settlement ring** — Ring tinted by morale when no event active.
 
 - [ ] **Morale trend arrow in world status bar** — In `HUD::DrawWorldStatus` (HUD.cpp), track
   previous morale per settlement using a `static std::map<std::string, float> s_prevMorale`.
@@ -1664,3 +1660,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   units at the same `HomeSettlement`. With 30% probability each, set their behavior to
   `Celebrating` for a shorter duration (half the normal celebration time). Log "X joined Y's
   celebration at Z." This creates spontaneous community festivities from individual achievements.
+
+- [ ] **Low morale triggers emigration** — In `AgentDecisionSystem.cpp`'s migration evaluation,
+  when an NPC's home settlement has `Settlement::morale < 0.2`, increase migration probability
+  by 2× (double the base migration chance). Read morale via `try_get<Settlement>` on the NPC's
+  `HomeSettlement::settlement` entity. This creates a feedback loop where low morale causes
+  population loss, making morale a key settlement health indicator.
+
+- [ ] **Morale boost from trade delivery** — In `TransportSystem.cpp`'s GoingToDeposit arrival
+  block (where hauler cargo is deposited into a settlement's `Stockpile`), add a small morale
+  boost: `settl->morale = std::min(1.f, settl->morale + 0.02f)` per delivery. This rewards
+  well-connected trade networks with happier settlements, reinforcing the value of hauler routes.
