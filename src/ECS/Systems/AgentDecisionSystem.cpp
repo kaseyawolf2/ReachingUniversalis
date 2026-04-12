@@ -410,6 +410,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                     timer.stealCooldown = STEAL_COOLDOWN_HOURS;
 
+                    // Social shame penalty: reduce all skills by 0.02 (ostracism effect)
+                    if (auto* sk = registry.try_get<Skills>(entity)) {
+                        sk->farming       = std::max(0.f, sk->farming       - 0.02f);
+                        sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
+                        sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                    }
+
                     // Log the theft
                     auto lv = registry.view<EventLog>();
                     if (lv.begin() != lv.end()) {
