@@ -379,9 +379,14 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                     if (log) {
                         const char* skillName = (idx == 0) ? "farming" :
                                                 (idx == 1) ? "water drawing" : "woodcutting";
-                        char buf[100];
-                        std::snprintf(buf, sizeof(buf), "%s had a skill insight in %s",
-                            name.value.c_str(), skillName);
+                        const char* settName = "the wilds";
+                        if (const auto* hs = registry.try_get<HomeSettlement>(e))
+                            if (hs->settlement != entt::null && registry.valid(hs->settlement))
+                                if (const auto* stt = registry.try_get<Settlement>(hs->settlement))
+                                    settName = stt->name.c_str();
+                        char buf[120];
+                        std::snprintf(buf, sizeof(buf), "%s had a skill insight in %s at %s",
+                            name.value.c_str(), skillName, settName);
                         log->Push(tm.day, (int)tm.hourOfDay, buf);
                     }
                     break;
