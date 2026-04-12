@@ -1725,10 +1725,16 @@ void SimThread::WriteSnapshot() {
 
         // Count fatigued workers
         int fatiguedWorkers = 0;
+        int recentGivers = 0;
         m_registry.view<HomeSettlement, Schedule, AgentState>(entt::exclude<PlayerTag, Hauler>).each(
             [&](const HomeSettlement& hs, const Schedule& sc, const AgentState& as) {
                 if (hs.settlement == e && sc.fatigued && as.behavior == AgentBehavior::Working)
                     ++fatiguedWorkers;
+            });
+        m_registry.view<HomeSettlement, DeprivationTimer>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs, const DeprivationTimer& dt) {
+                if (hs.settlement == e && dt.charityTimer > 0.f)
+                    ++recentGivers;
             });
 
         worldStatus.push_back({ s.name, food, water, wood,
@@ -1738,7 +1744,8 @@ void SimThread::WriteSnapshot() {
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
                                  hungerCrisis, elderPop, elderBonus, s.morale,
                                  avgContentment, pendingEstates,
-                                 foodRate2, waterRate2, woodRate2, fatiguedWorkers });
+                                 foodRate2, waterRate2, woodRate2, fatiguedWorkers,
+                                 recentGivers });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
