@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Convoy log announcement** — In `TransportSystem`'s GoingToDeposit convoy check, log when `inConvoy` transitions false→true.
+
 ## Recently Done
 
 - [x] **Convoy visual on world map** — Faint green lines between convoy haulers (inConvoy && haulerState==1) within 60u in GameState::Draw.
