@@ -17,7 +17,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0);
     int residentH   = panel.residents.empty() ? 0
-                        : 2 + (LINE_H - 2) + (int)panel.residents.size() * (LINE_H - 3);
+                        : 2 + (LINE_H - 2) + (LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int ph          = totalLines * LINE_H + 14 + sparklineH + residentH;
 
     DrawRectangle(PX, PY, PW, ph, Fade(BLACK, 0.75f));
@@ -173,6 +173,27 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         std::snprintf(resBuf, sizeof(resBuf), "Residents (%d):", (int)panel.residents.size());
         DrawText(resBuf, PX + 8, y, 11, Fade(YELLOW, 0.7f));
         y += LINE_H - 2;
+
+        // Profession distribution: compact "Fa:4 Wa:3 Lu:2" line
+        {
+            int nFa = 0, nWa = 0, nLu = 0, nOther = 0;
+            for (const auto& r : panel.residents) {
+                if      (r.profession == "Farmer")       ++nFa;
+                else if (r.profession == "Water Carrier") ++nWa;
+                else if (r.profession == "Woodcutter")   ++nLu;
+                else                                      ++nOther;
+            }
+            char profBuf[64];
+            int pos = 0;
+            if (nFa > 0)    pos += std::snprintf(profBuf + pos, sizeof(profBuf) - pos, "Fa:%d ", nFa);
+            if (nWa > 0)    pos += std::snprintf(profBuf + pos, sizeof(profBuf) - pos, "Wa:%d ", nWa);
+            if (nLu > 0)    pos += std::snprintf(profBuf + pos, sizeof(profBuf) - pos, "Lu:%d ", nLu);
+            if (nOther > 0) pos += std::snprintf(profBuf + pos, sizeof(profBuf) - pos, "?:%d",   nOther);
+            if (pos > 0) {
+                DrawText(profBuf, PX + 8, y, 10, Fade(LIGHTGRAY, 0.55f));
+                y += LINE_H - 3;
+            }
+        }
 
         // Count family members among visible residents for the " ×N" suffix
         std::map<std::string, int> familyCount;
