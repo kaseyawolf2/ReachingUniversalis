@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
+  currently reads "UNREST in Ashford — morale critical, production suffering". Extend it to
+  include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
+  production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
+  Same for "Tensions ease" recovery log.
+
 - [x] **Plague spread log** — In `RandomEventSystem`'s plague spread block (the section that
   copies plague from one settlement to a neighbour via roads), the current log message is
   "PLAGUE spreads from X to Y — N died". Add `[pop N]` to the destination settlement using
