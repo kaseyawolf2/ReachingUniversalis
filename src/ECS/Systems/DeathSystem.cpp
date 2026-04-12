@@ -126,12 +126,30 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
         }
 
         if (const auto* money = registry.try_get<Money>(e)) {
-            static constexpr float INHERITANCE_FRACTION = 0.5f;
-            static constexpr float MIN_INHERITANCE      = 10.f;   // only meaningful estates
+            static constexpr float INHERITANCE_FRACTION       = 0.5f;
+            static constexpr float ELDER_INHERITANCE_FRACTION = 0.8f;
+            static constexpr float MIN_INHERITANCE            = 10.f;
             if (money->balance >= MIN_INHERITANCE) {
                 if (hs && hs->settlement != entt::null && registry.valid(hs->settlement)) {
                     if (auto* settl = registry.try_get<Settlement>(hs->settlement)) {
-                        settl->treasury += money->balance * INHERITANCE_FRACTION;
+                        const auto* agePtr = registry.try_get<Age>(e);
+                        bool isElder = agePtr && (agePtr->days > 60.f);
+                        float fraction = isElder ? ELDER_INHERITANCE_FRACTION : INHERITANCE_FRACTION;
+                        float estate = money->balance * fraction;
+                        settl->treasury += estate;
+
+                        // Log the estate transfer
+                        auto logView3 = registry.view<EventLog>();
+                        if (!logView3.empty()) {
+                            auto& tm3 = timeView.get<TimeManager>(*timeView.begin());
+                            std::string who = "Someone";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            char ebuf[128];
+                            std::snprintf(ebuf, sizeof(ebuf), "%s left an estate of %.0fg to %s.",
+                                          who.c_str(), estate, settl->name.c_str());
+                            logView3.get<EventLog>(*logView3.begin()).Push(
+                                tm3.day, (int)tm3.hourOfDay, ebuf);
+                        }
                     }
                 }
             }
