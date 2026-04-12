@@ -716,6 +716,12 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showGraduation = true;
     }
 
+    // Wage line: shown for working NPCs
+    bool showWage = (best->wage > 0.f);
+    char wageLine[48] = {};
+    if (showWage)
+        std::snprintf(wageLine, sizeof(wageLine), "Wage: ~%.1fg/hr", best->wage);
+
     // Rumour carrier line
     bool showRumour = best->hasRumour;
     char rumourLine[64] = {};
@@ -818,6 +824,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showNearBankrupt)  lineCount++;
     if (showHaulerState)   lineCount++;
     if (showGraduation)    lineCount++;
+    if (showWage)          lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -844,7 +851,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wnb = showNearBankrupt ? MeasureText(bankruptLine, 11) : 0;
     int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
     int wgr = showGraduation ? MeasureText(gradLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr}) + 10;
+    int wwg = showWage ? MeasureText(wageLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs, wgr, wwg}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -888,6 +896,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)       { DrawText(line5,               tx, ly, 11, YELLOW);               ly += 16; }
+    if (showWage)       { DrawText(wageLine,            tx, ly, 11, Fade(GOLD, 0.7f));    ly += 16; }
     if (showGraduation) { DrawText(gradLine,            tx, ly, 11, Fade(SKYBLUE, 0.6f)); ly += 16; }
     if (showWill)       { DrawText("Will: 80% to treasury", tx, ly, 11, Fade(GOLD, 0.5f)); ly += 16; }
     if (showFollow) { DrawText(followLine,          tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }

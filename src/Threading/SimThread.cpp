@@ -1256,10 +1256,16 @@ void SimThread::WriteSnapshot() {
 
         // Skills snapshot
         float farmSkill = -1.f, waterSkill = -1.f, woodSkill = -1.f;
+        float wagePerHour = 0.f;
         if (const auto* sk = m_registry.try_get<Skills>(e)) {
             farmSkill  = sk->farming;
             waterSkill = sk->water_drawing;
             woodSkill  = sk->woodcutting;
+            // Compute wage estimate for working NPCs (same formula as ConsumptionSystem)
+            if (!isHauler && !isPlayer && astate.behavior == AgentBehavior::Working) {
+                float bestSkill = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                wagePerHour = 0.3f * (0.5f + bestSkill);  // WAGE_RATE * skillMult
+            }
         }
 
         // Scale visual size by life stage so children are visibly smaller.
@@ -1353,7 +1359,8 @@ void SimThread::WriteSnapshot() {
                            harvestBonus, inVocation,
                            hasRumour, std::move(rumourLabel),
                            haulerBuyPrice, haulerCargoQty,
-                           nearBankrupt, bankruptProgress, haulerState });
+                           nearBankrupt, bankruptProgress, haulerState,
+                           wagePerHour });
     });
 
     // ---- Settlements ----
