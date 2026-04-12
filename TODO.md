@@ -9,15 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity a
-  second (or Nth) time, change the log message to: "Aldric helped a starving neighbour (×2)."
-  Track a `std::map<entt::entity, int> s_charityCount` static inside `AgentDecisionSystem::Update`
-  (like `s_bankruptTimer` in EconomicMobilitySystem). Prune entries for destroyed entities each
-  check. Use the counter in the `charityLog->Push` format: if count > 1, append " (×N)".
-
 ---
 
 ## Done
+
+- [x] **Charity frequency counter in event log** — `static s_charityCount` map in `AgentDecisionSystem::Update`; pruned for dead entities; appends " (xN)" when N > 1.
 
 - [x] **Charity recipient log detail** — Log now reads "X helped [Name] at [Settlement]." using `try_get<Name>` on recipient and `sett->name`. No new components.
 
@@ -537,11 +533,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `HUD::DrawHoverTooltip`, when `isExiled`, append " [Exiled]" in `Fade(RED, 0.8f)` to line2
   (the behavior line), or show it as a separate faint red line below the role line.
 
-- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity
-  again, append "(×N)" to the log. Add a `static std::map<entt::entity, int> s_charityCount`
-  inside `AgentDecisionSystem::Update`; increment on each successful help; prune destroyed
-  entities. In the `charityLog->Push` call, append " (×N)" when count > 1.
-
 - [ ] **Wanderer re-settlement** — Exiled NPCs (`home.settlement == entt::null`,
   `theftCount >= 3`) with `balance >= 30g` can re-settle. In `AgentDecisionSystem`'s
   IDLE/SEEKING block, when `home.settlement == entt::null`, find nearest settlement with
@@ -552,3 +543,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when home entity is `entt::null` AND
   `dt->theftCount >= 3`. In `HUD::DrawHoverTooltip`, when `isExiled`, show a faint red
   "[Exiled]" line below the role/behavior lines — same `lineCount`/`pw` pattern as `showHelped`.
+
+- [ ] **Gratitude world dot ring** — While `isGrateful` is true, draw a faint LIME ring
+  around the NPC's world dot in `GameState::Draw`. After `DrawCircleV` for the agent dot,
+  add: if `a.isGrateful && a.role == RenderSnapshot::AgentRole::NPC`, call
+  `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(LIME, 0.45f))`. `isGrateful` is already
+  in `AgentEntry`.
+
+- [ ] **Charity giver count in settlement tooltip** — In `SimThread::WriteSnapshot`, when
+  building `worldStatus`, count how many NPCs at this settlement have `charityTimer > 0`
+  (i.e. gave charity recently). Add `int recentGivers = 0` to `SettlementStatus` in
+  `RenderSnapshot.h`. In `HUD`'s settlement list panel (`DrawWorldStatus`), append
+  a faint `(Ng)` suffix (in LIME) when `recentGivers > 0` — like the existing `(Nc)` child suffix.
+
+- [ ] **Theft frequency shown in stockpile panel** — Add `int theftCount = 0` (total thefts
+  since settlement founding) to `Settlement` in `Components.h`. Increment in
+  `AgentDecisionSystem`'s theft block alongside `timer.theftCount`. In `SimThread::WriteSnapshot`,
+  populate `StockpilePanel::theftCount` (add field). In `RenderSystem::DrawStockpilePanel`,
+  show "Thefts: N" in faint RED below the treasury line when `theftCount > 0`.
