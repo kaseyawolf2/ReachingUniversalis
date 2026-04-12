@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Settlement morale boost on bandit cleared** — +0.05 morale to road.from/road.to settlements after confrontation. Logged to EventLog.
+
 - [x] **Settlement mood indicator** — moodScore (avg NPC need satisfaction) on SettlementEntry. Green inner glow ≥0.7, red <0.3. Skipped during active events.
 
 - [x] **Hauler route memory** — bestProfit/bestRoute on Hauler, logged on new record, shown in tooltip as "Best: A→B +Xg" in faint GOLD.
@@ -1271,7 +1273,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   per-settlement mood score from NPC needs. Add `float moodScore = 0.5f` to `RenderSnapshot::SettlementEntry`.
   In `GameState::Draw`, tint the settlement circle border based on mood.
 
-- [ ] **Settlement morale boost on bandit cleared** — In `SimThread::ProcessInput`'s confrontation
+- [x] **Settlement morale boost on bandit cleared** — In `SimThread::ProcessInput`'s confrontation
   block, after removing a bandit, find road-adjacent settlements (road.from / road.to) and add
   +0.05 morale to each `Settlement::morale` (clamped to 1.0). Log: "[Settlement] morale improved
   (+5%) after bandit threat reduced." Connects player action to settlement wellbeing.
@@ -1405,6 +1407,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   contribution, multiply by a contentment factor: contentment ≥ 0.7 gives 1.0×, 0.4–0.7 gives
   0.85×, < 0.4 gives 0.65×. Read contentment from `Needs` (weighted average). Unhappy NPCs
   produce less, creating pressure on settlements to maintain quality of life.
+
+- [ ] **Player reputation affects trade prices** — In `SimThread::ProcessInput`'s player trade
+  blocks (T and Q keys), apply a discount/markup based on `m_playerReputation`. At 50+ rep, 5%
+  discount on purchases; at 100+, 10%. At -20 rep, 10% markup. Multiply the purchase price by
+  `(1.0 - repDiscount)`. Gold flow: discount reduces gold paid to settlement treasury. Log when
+  discount is first applied: "Your reputation earns you a discount at [Settlement]."
+
+- [ ] **Hauler avoids recently unprofitable routes** — Add `std::string worstRoute = ""` and
+  `float worstLoss = 0.f` to `Hauler`. In `TransportSystem` delivery completion, track the worst
+  loss. In `FindBestRoute`, penalize routes matching `worstRoute` by -20% score for 24 game-hours
+  (add `float worstRouteTimer = 0.f`). Haulers learn from mistakes and avoid known bad trades.
 
 ---
 
