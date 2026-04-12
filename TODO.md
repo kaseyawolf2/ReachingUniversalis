@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
+- [x] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
   within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
   (`vel = 0`) for 30–60 game-seconds to simulate chatting. Track with a `chatTimer` float on
   `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
@@ -922,3 +922,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `registry.view<Position, AgentState, HomeSettlement>`). When the worker count for a facility
   exceeds 3 for the first time this game-day, push the log. Track last-logged day with a
   `static std::map<entt::entity, int> s_lastCrowdLog` keyed by facility entity.
+
+- [ ] **Chat indicator on world dot** — When an NPC has `chatTimer > 0`, draw a small pulsing
+  ring around their world-map dot to signal that they're in conversation. In `GameState::Draw`,
+  after the main `DrawCircleV`, add: if `a.chatting && a.role == RenderSnapshot::AgentRole::NPC`,
+  call `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(YELLOW, 0.45f))`. Add `bool chatting = false`
+  to `AgentEntry` in `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when
+  `dt->chatTimer > 0.f`. Makes evening social clusters visible on the map.
+
+- [ ] **Chat log entry** — When a chat pair forms (chatTimer is set > 0 in `AgentDecisionSystem`),
+  log a brief flavour message: `"Aldric and Mira chat near Greenfield."`. After setting both
+  `timer.chatTimer` and `oTimer.chatTimer`, push to `EventLog` using names from `registry.try_get<Name>`.
+  Only log ~10% of chats (gate with `std::uniform_real_distribution<float>(0,1)(s_chatRng) < 0.1f`)
+  to avoid log spam. Gives the event log some social flavour.
+
+- [ ] **Evening gathering density ring** — During hours 18–21, draw a faint translucent circle
+  around each settlement on the world map showing how many NPCs are gathered there. In
+  `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
+  agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
+  in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
