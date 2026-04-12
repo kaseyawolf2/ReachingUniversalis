@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Trade hub badge in settlement tooltip** — Show "[Trade Hub]" after name when tradeVolume >= 5.
+
 ## Recently Done
 
 - [x] **Low-morale NPC grumbling log** — Grumbling events logged during gossip at low-morale settlements.
