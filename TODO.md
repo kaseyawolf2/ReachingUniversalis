@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Scarcity recovery log** — Log "Recovery: X food stores recovering." when resource rises above 20.
+
 ## Recently Done
 
 - [x] **Hauler idle duration warning** — Logs "idle for 12h — no profitable routes." once per idle period.
