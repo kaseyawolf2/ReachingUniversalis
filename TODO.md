@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Estate size shown in settlement tooltip** — Add `float pendingEstates = 0.f` to
+  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, sum `money->balance`
+  for all elders (age > 60) homed at each settlement multiplied by 0.8f. In
+  `DrawSettlementTooltip` (HUD.cpp), show "Estates: ~Ng" in dim gold when > 0. Gives the player
+  a forward-looking economic signal — how much will flow into treasury when elders die.
+
 - [x] **Elder will tooltip line** — Added "Will: 80% to treasury" in Fade(GOLD, 0.5f) for
   elders with gold in the NPC hover tooltip.
 
