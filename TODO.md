@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Profession match indicator on world dot** — In `GameState.cpp`'s agent draw loop,
+  when an NPC is Working and their `AgentEntry::inVocation` is true, draw a small additional
+  ring dot (radius 5, `Fade(GOLD, 0.5f)`) centred on the NPC.
 
 ## Recently Done
 
