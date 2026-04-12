@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Gang log announcement** — Log when a bandit first gets a gangName in AgentDecisionSystem.
+
 ## Recently Done
 
 - [x] **Bandit bounty board** — Settlement::bountyPool accumulates 0.5g/hr per adjacent bandit (from treasury). Paid to player on confrontation with log.
