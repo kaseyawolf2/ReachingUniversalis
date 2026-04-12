@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit flee visual indicator** — Speed trail for fleeing bandits.
+
 ## Recently Done
 
 - [x] **Settlement morale boost on bandit cleared** — +0.05 morale to road.from/road.to settlements after confrontation. Logged to EventLog.
