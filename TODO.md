@@ -9,12 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migrant welcome log at destination** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, after the profession update, push a second log entry from the destination settlement's
-  perspective: "Ashford welcomes Mira Reed (Farmer) — pop now 14." Read the new pop count by
-  iterating `HomeSettlement` views (as in other systems) or use the settlement's existing
-  `popCap`/current-pop from prior computation. Use `registry.view<EventLog>()` the same way
-  as the departure log.
+- [x] **Migrant welcome log at destination** — Added "Ashford welcomes X (Farmer) — pop now N"
+  log after arrival, counting current HomeSettlement population.
 
 - [x] **Skill reset on profession change** — On profession change during migration, halve old
   skill and boost new by +0.1. Only when both professions are non-Idle.
@@ -502,12 +498,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Skill reset on profession change** — On profession change during migration, halve old
   skill and boost new by +0.1.
 
-- [ ] **Migrant welcome log at destination** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
-  block, after the profession update, push a second log entry from the destination settlement's
-  perspective: "Ashford welcomes Mira Reed (Farmer) — pop now 14." Read the new pop count by
-  iterating `HomeSettlement` views (as in other systems) or use the settlement's existing
-  `popCap`/current-pop from prior computation. Use `registry.view<EventLog>()` the same way
-  as the departure log.
+- [x] **Migrant welcome log at destination** — Added welcome log with pop count on arrival.
 
 - [ ] **Profession colour in residents list** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), colour the profession abbreviation by type instead of uniform grey:
@@ -1508,3 +1499,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   when the skill reset fires (old profession != new), log "X retrained: Farmer → Woodcutter
   (farming 45%→22%, woodcutting 38%→48%)" showing both old and new skill values. Use the
   skill values captured before and after the adjustment. Surfaces the retraining mechanic.
+
+- [ ] **Settlement population cap warning** — In `RandomEventSystem::Update`'s settlement loop,
+  when a settlement's pop reaches 90% of `popCap` (from `Settlement::popCap`), log once:
+  "Ashford approaching capacity (32/35)". Track with a `std::set<entt::entity> m_capWarned`
+  member on `RandomEventSystem`. Clear when pop drops below 80%. Count pop via the same
+  `HomeSettlement` view pattern. No new components needed.
+
+- [ ] **NPC nostalgia for birthplace** — In `AgentDecisionSystem.cpp`'s migration scoring
+  (`FindMigrationTarget`), if an NPC's birthplace (stored as `entt::entity birthSettlement` on
+  a new field in `DeprivationTimer` in `Components.h`) differs from current home, apply a
+  +0.15 bonus to the birthplace score. Set `birthSettlement` in `BirthSystem.cpp` at NPC
+  creation to `settl` (the settlement entity). Creates pull toward hometown after migrating away.
