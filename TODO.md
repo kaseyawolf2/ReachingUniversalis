@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
+  already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
+  home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
+  the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
+  in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Theft from stockpile** — NPCs with `money.balance < 5g` and `stealCooldown == 0` (field
-  already exists in `DeprivationTimer`) can steal 1 unit of their most-needed resource from their
-  home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
-  the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
-  in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
 
 - [ ] **Theft indicator in tooltip** — After the Theft task above lands, surface the fact that an
   NPC recently stole something. Add `bool recentlyStole = false` to `AgentEntry` in
