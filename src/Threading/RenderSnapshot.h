@@ -54,6 +54,8 @@ struct RenderSnapshot {
         std::string familyName;
         // True if this NPC received charity within the last game-hour
         bool recentlyHelped = false;
+        // True if this NPC stole from a stockpile within the last 2 game-hours
+        bool recentlyStole = false;
     };
 
     struct SettlementEntry {

@@ -615,7 +615,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkill)  lineCount++;
     if (showCargo)  lineCount++;
 
-    int w1 = MeasureText(line1, 12), w2 = MeasureText(line2, 11);
+    int w1 = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
+    int w2 = MeasureText(line2, 11);
     int w3 = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
     int w5 = showGold   ? MeasureText(line5,                 11) : 0;
     int wf = showFollow ? MeasureText(followLine,            11) : 0;
@@ -632,7 +633,10 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     DrawRectangle(tx - 4, ty - 2, pw, ph, Fade(BLACK, 0.75f));
 
     int ly = ty;
-    DrawText(line1, tx, ly, 12, WHITE);  ly += 16;
+    DrawText(line1, tx, ly, 12, WHITE);
+    if (best->recentlyStole)
+        DrawText("  (thief)", tx + MeasureText(line1, 12), ly, 12, Fade(RED, 0.85f));
+    ly += 16;
     DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
     DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
