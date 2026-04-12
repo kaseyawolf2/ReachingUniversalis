@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
+- [x] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
   `contentment < 0.2f` for an NPC, log "X is desperate at Y" (once per 12 game-hours using the
   existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
   snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
@@ -382,7 +382,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
   + `DrawText` at fixed screen coordinates. Helps the player decode the contentment colour system.
 
-- [ ] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
+- [x] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
   `contentment < 0.2f` for an NPC, log "X is desperate at Y" (once per 12 game-hours using the
   existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
   snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
@@ -1328,3 +1328,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   still, apply a gentle random walk: `vel.vx = speed * 0.2f * (rng() % 3 - 1)`. This makes
   content NPCs visually "wander happily" while stressed NPCs stay still. Use the existing
   `s_chatRng` for randomness. Check once per 5 game-seconds using `chatTimer` as guard.
+
+- [ ] **NPC recovery log event** — In `RandomEventSystem::Update`'s per-NPC loop, complement
+  the suffering log: when an NPC's contentment rises back above 0.5 after being desperate
+  (tracked in the existing `s_desperateLogged` static set), log "X recovers at Y" before
+  erasing from the set. Gives the player closure on suffering events and shows the world healing.
+
+- [ ] **Settlement specialisation tooltip** — In `HUD.cpp`'s settlement hover tooltip (the
+  `DrawSettlementTooltip` section), after the existing modifier line, append a line showing
+  the settlement's `specialty` from `SettlementEntry` (already populated). Format: "Specialty:
+  Farming" in WHITE. If `specialty` is empty, skip the line. No new snapshot fields needed.
+
+- [ ] **Hauler profit/loss tracker** — Add a `float lifetimeProfit = 0.f` field to the `Hauler`
+  component in `Components.h`. In `TransportSystem.cpp`, when a hauler sells cargo at the
+  destination gate, accumulate `lifetimeProfit += saleRevenue - buyCost` (where buyCost comes
+  from `buyPrice * qty`). Expose this in `AgentEntry` as `haulerProfit` and populate it in
+  `SimThread::WriteSnapshot()`. Display in the agent hover tooltip in `GameState.cpp`'s hauler
+  tooltip section as "Profit: +X.Xg" (GREEN) or "Loss: -X.Xg" (RED).
