@@ -11,6 +11,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Settlement danger indicator** — Pulsing red "!" next to settlement name when connected roads have 3+ total bandits. Sums banditCount from RoadEntry by nameA/nameB match.
+
 - [x] **Road condition overlay toggle** — O key toggles m_showRoadCondition: Safety mode (bandits override) vs Condition mode (pure condition palette). Label in bottom-left.
 
 
@@ -1211,7 +1213,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   m_showRoadCondition = false` to `GameState`. When toggled, road colours use condition-only
   palette. Small "Road: Safety / Condition" label in corner shows active mode.
 
-- [ ] **Settlement danger indicator** — Settlements adjacent to bandit-heavy roads (3+ bandits
+- [x] **Settlement danger indicator** — Settlements adjacent to bandit-heavy roads (3+ bandits
   total on connected roads) show a faint red exclamation mark above the settlement name on the
   world map. In `GameState::Draw`'s settlement loop, sum `banditCount` from all roads where
   `nameA == settlement.name || nameB == settlement.name`; if total >= 3, draw the indicator.
@@ -1264,6 +1266,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `isBandit == true` and `fleeTimer > 0` (add `float fleeTimer = 0.f` to `RenderSnapshot::AgentEntry`),
   draw a brief speed trail: a fading line from (x, y) in the opposite direction of velocity.
   Pipe `DeprivationTimer::fleeTimer` through `SimThread::WriteSnapshot` into the new field.
+
+- [ ] **NPC skill-up notification** — When an NPC's skill (farming/water/woodcutting) crosses a
+  0.25 threshold (0.25, 0.50, 0.75), log "[Name] is becoming skilled at [type]" in EventLog. In
+  `ProductionSystem`, after applying skill gain, check if the new value crossed a threshold while
+  the old didn't. Brief faint GOLD text particle above the NPC would be a bonus but the log alone
+  is the core feature.
+
+- [ ] **Hauler bankruptcy warning log** — When a hauler's `bankruptProgress` crosses 0.5 for the
+  first time, log "[Hauler] is struggling financially" in EventLog. Add `bool bankruptWarned = false`
+  to `Hauler`. In `EconomicMobilitySystem`, when bankruptProgress >= 0.5 and !bankruptWarned, log
+  and set flag. Gives players advance notice before a hauler actually goes bankrupt.
 
 - [ ] **NPC witness bandit confrontation** — In `SimThread::ProcessInput`'s confrontation block,
   after the scatter, find non-bandit NPCs within 120 units. For each witness, add +0.1 to their
