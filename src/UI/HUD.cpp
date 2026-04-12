@@ -866,6 +866,21 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showSkill = true;
     }
 
+    // Mood comment based on contentment
+    char moodLine[32] = {};
+    Color moodColor = WHITE;
+    bool showMood = false;
+    if (best->role != RenderSnapshot::AgentRole::Player) {
+        const char* moodText = (best->contentment > 0.8f)  ? "Content"    :
+                               (best->contentment > 0.5f)  ? "Getting by" :
+                               (best->contentment > 0.3f)  ? "Struggling" : "Desperate";
+        moodColor = (best->contentment > 0.8f)  ? GREEN  :
+                    (best->contentment > 0.5f)  ? YELLOW :
+                    (best->contentment > 0.3f)  ? ORANGE : RED;
+        std::snprintf(moodLine, sizeof(moodLine), "Mood: %s", moodText);
+        showMood = true;
+    }
+
     int lineCount = hasName ? 5 : 3;   // +1 for age line
     if (showGold)     lineCount++;
     if (showWill)     lineCount++;
@@ -877,6 +892,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showBandit)   lineCount++;
     if (showStrike)   lineCount++;
     if (showSkill)    lineCount++;
+    if (showMood)     lineCount++;
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
@@ -922,7 +938,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp}) + 10;
+    int wmd = showMood ? MeasureText(moodLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -980,6 +997,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
+    if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);
         DrawText(repLine, tx, ly, 11, repCol); ly += 16;
