@@ -20,7 +20,8 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                       + (hasSpecialty ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
-    int ph          = totalLines * LINE_H + 14 + sparklineH + residentH;
+    int barChartH   = 4 + 3 * (6 + 3);  // stockpile bar chart (3 bars + gaps)
+    int ph          = totalLines * LINE_H + 14 + barChartH + sparklineH + residentH;
 
     DrawRectangle(PX, PY, PW, ph, Fade(BLACK, 0.75f));
     DrawRectangleLines(PX, PY, PW, ph, LIGHTGRAY);
@@ -146,6 +147,33 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         Color prodCol = Fade(col, 0.7f);
         DrawText(buf2, PX + 8, y, 11, prodCol);
         y += LINE_H;
+    }
+
+    // Stockpile bar chart — visual at-a-glance resource levels
+    {
+        static constexpr float BAR_MAX_QTY = 200.f;
+        static constexpr int   BAR_MAX_W   = 100;
+        static constexpr int   BAR_H       = 6;
+        static constexpr int   BAR_GAP     = 3;
+        struct BarDef { ResourceType type; const char* label; Color col; };
+        BarDef bars[] = {
+            { ResourceType::Food,  "F", GREEN },
+            { ResourceType::Water, "W", SKYBLUE },
+            { ResourceType::Wood,  "Wd", BROWN },
+        };
+        y += 2;
+        int labelX = PX + 8;
+        int barX   = PX + 28;
+        for (const auto& b : bars) {
+            auto it = panel.quantities.find(b.type);
+            float qty = (it != panel.quantities.end()) ? it->second : 0.f;
+            int fillW = (int)(std::min(qty / BAR_MAX_QTY, 1.f) * BAR_MAX_W);
+            DrawText(b.label, labelX, y, 10, Fade(b.col, 0.7f));
+            DrawRectangle(barX, y + 1, BAR_MAX_W, BAR_H, Fade(DARKGRAY, 0.4f));
+            DrawRectangle(barX, y + 1, fillW, BAR_H, Fade(b.col, 0.6f));
+            y += BAR_H + BAR_GAP;
+        }
+        y += 2;
     }
 
     // Recent events filtered to this settlement
