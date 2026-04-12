@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
+- [x] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
   after the "Residents (N):" header, count how many distinct `familyName` values appear in
   `panel.residents` and how many surnames appear ≥ 2 times. Add a compact line below the header:
   "Families: 3 dynasties" or "No established families" if all residents have unique surnames.
@@ -326,7 +326,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   below the existing economy stats. Read directly from `snap.econRichestName` and
   `snap.econRichestWealth`. No new fields or SimThread changes needed.
 
-- [ ] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
+- [x] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
   after the "Residents (N):" header, count how many distinct `familyName` values appear in
   `panel.residents` and how many surnames appear ≥ 2 times. Add a compact line below the header:
   "Families: 3 dynasties" or "No established families" if all residents have unique surnames.
@@ -1238,3 +1238,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   lumberjacks. Read from a new `int farmers, waterCarriers, lumberjacks` triple in `SettlementStatus`
   (RenderSnapshot.h), populated in SimThread's world-status loop by counting `Profession::type`
   for NPCs homed at each settlement. Gives at-a-glance workforce composition per settlement.
+
+- [ ] **Dynasty wealth tooltip** — In `RenderSystem::DrawStockpilePanel`'s dynasty line, when
+  hovering the "Families: N dynasties" text (mouse Y detection like the residents header tooltip),
+  show a tooltip listing each dynasty name and combined wealth. Iterate `panel.residents`, group
+  by `familyName`, sum `balance` per family. Show top 3 families sorted by total wealth in GOLD.
+  No new snapshot fields needed — computed from existing residents data at render time.
+
+- [ ] **Dynasty founding log** — In `BirthSystem.cpp`, when a birth results in a second NPC
+  sharing the same `FamilyTag::name` at a settlement (checking the `FamilyTag` view), log
+  "[Family] dynasty established at [Settlement] — 2 members." Use a static
+  `std::set<std::string>` to fire once per family name. This makes family growth a visible
+  narrative event, connecting births to the dynasty mechanic.
