@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Abundance end log** — Log "Abundance fading at X — stores declining." when settlement
-  exits abundance before scarcity reset.
-
 ## Recently Done
+
+- [x] **Abundance end log** — Log "Abundance fading at X — stores declining." when settlement
+  exits abundance.
 
 - [x] **Bankrupt hauler flash before demotion** — Red pulsating ring on haulers near bankruptcy
   (timer > 75% of BANKRUPTCY_HOURS). Add `nearBankrupt` bool to AgentEntry.
@@ -627,7 +627,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   pulsating ring (like celebrating but red) around near-bankrupt haulers. Gives visual warning
   before demotion. Add `bool nearBankrupt` to `AgentEntry` in `RenderSnapshot.h`.
 
-- [ ] **Abundance end log** — In `RandomEventSystem::Update`'s abundance block, when a
+- [x] **Abundance end log** — In `RandomEventSystem::Update`'s abundance block, when a
   settlement exits abundance (was in `s_loggedAbundance` but `abundant` is now false and not yet
   below the scarcity reset), log "Abundance fading at [settlement] — stores declining." before
   erasing from the set. Gives a narrative arc: prosperity → warning → scarcity.
@@ -667,6 +667,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Near-bankrupt tooltip warning** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
   `best->nearBankrupt` is true, show a "!! Near bankruptcy !!" line in `Fade(RED, 0.9f)`.
   Add to lineCount and width calc. Complements the red ring with textual detail.
+
+- [ ] **Scarcity resource label in log** — When the scarcity morale penalty fires, log which
+  specific resource(s) are low: "Shortage: X running low on food, water" (once per scarcity
+  period per settlement). Use `static std::map<entt::entity, int> s_loggedScarcity` with a
+  bitmask (bit 0=food, 1=water, 2=wood). Set bit on first trigger per resource, clear when
+  that resource rises above 20. Keeps scarcity visible without spam.
+
+- [ ] **Morale bar in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the
+  existing treasury line, draw a small horizontal morale bar (width 100px, height 8px). Fill
+  proportional to `panel.morale` (already in `StockpilePanel`). Colour: green ≥0.7, yellow
+  ≥0.3, red <0.3. Label "Morale" to the left. Visual complement to the M:XX% in status bar.
 
 ---
 
