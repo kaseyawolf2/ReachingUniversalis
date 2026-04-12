@@ -199,6 +199,7 @@ struct RenderSnapshot {
         std::map<ResourceType, float> prodRatePerHour; // gross production rate estimate
         std::map<ResourceType, float> consRatePerHour; // gross consumption rate estimate
         float                         treasury  = 0.f;
+        float                         bountyPool = 0.f;
         int                           pop       = 0;
         int                           childCount = 0;   // NPCs under age 15
         int                           popCap    = 35;   // max pop from BirthSystem

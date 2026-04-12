@@ -74,6 +74,14 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
 
+    // Bounty pool (only shown when > 0)
+    if (panel.bountyPool > 0.f) {
+        char bountyBuf[48];
+        std::snprintf(bountyBuf, sizeof(bountyBuf), "Bounty: %.0fg", panel.bountyPool);
+        DrawText(bountyBuf, PX + 8, y, 11, Fade(GOLD, 0.7f));
+        y += LINE_H;
+    }
+
     // Theft count (only shown when > 0)
     if (panel.theftCount > 0) {
         char theftBuf[32];

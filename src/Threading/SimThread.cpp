@@ -1955,6 +1955,7 @@ void SimThread::WriteSnapshot() {
             panel.prodRatePerHour = prodRate;
             panel.consRatePerHour = consRate;
             panel.treasury         = s.treasury;
+            panel.bountyPool       = s.bountyPool;
             panel.pop              = pop;
             panel.childCount       = childPop;
             panel.popCap           = s.popCap;
