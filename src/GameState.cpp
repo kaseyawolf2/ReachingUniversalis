@@ -387,6 +387,13 @@ void GameState::Draw() {
         // Wealthy NPC: faint gold outer ring for NPCs with balance > 80g
         if (a.role == RenderSnapshot::AgentRole::NPC && a.balance > 80.f)
             DrawCircleLinesV({ a.x, a.y }, 8.f, Fade(GOLD, 0.25f));
+        // Charity radius: draw 80u LIME circle when hovering a charity-ready NPC
+        if (a.charityReady && a.role == RenderSnapshot::AgentRole::NPC) {
+            Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), m_camera);
+            float hdx = mouseWorld.x - a.x, hdy = mouseWorld.y - a.y;
+            if (hdx*hdx + hdy*hdy <= (a.size + 8.f) * (a.size + 8.f))
+                DrawCircleLinesV({ a.x, a.y }, 80.f, Fade(LIME, 0.2f));
+        }
         // Hauler route line: faint line from hauler to destination, coloured by cargo type
         if (a.hasRouteDest) {
             Color routeCol = a.hasCargoDot ? Fade(a.cargoDotColor, 0.3f) : Fade(SKYBLUE, 0.3f);
