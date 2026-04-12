@@ -74,6 +74,9 @@ struct RenderSnapshot {
         bool harvestBonus = false;
         // True if this NPC's profession matches their highest skill (working in vocation)
         bool inVocation = false;
+        // Rumour propagation: true if NPC carries an active rumour
+        bool hasRumour = false;
+        std::string rumourLabel;   // e.g. "plague", "drought", "bandits"
     };
 
     struct SettlementEntry {

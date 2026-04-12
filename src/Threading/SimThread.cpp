@@ -1300,6 +1300,18 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Rumour carrier info
+        bool hasRumour = false;
+        std::string rumourLabel;
+        if (const auto* rum = m_registry.try_get<Rumour>(e)) {
+            hasRumour = true;
+            switch (rum->type) {
+                case RumourType::PlagueNearby:  rumourLabel = "plague";  break;
+                case RumourType::DroughtNearby: rumourLabel = "drought"; break;
+                case RumourType::BanditRoads:   rumourLabel = "bandits"; break;
+            }
+        }
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1312,7 +1324,8 @@ void SimThread::WriteSnapshot() {
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady,
                            isBandit, onStrike, ill, illNeedIdx,
-                           harvestBonus, inVocation });
+                           harvestBonus, inVocation,
+                           hasRumour, std::move(rumourLabel) });
     });
 
     // ---- Settlements ----
