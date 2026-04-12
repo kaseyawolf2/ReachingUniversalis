@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
+  windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
+  "Aldric Smith found 12g on the road near Greenfield" instead of without context. Use
+  `registry.try_get<HomeSettlement>(e)` and `registry.try_get<Settlement>(hs->settlement)` to
+  get the name. Requires no new components.
+
 - [x] **Relationship pair memory** — Add a lightweight `Relations` component: `struct Relations {
   std::map<entt::entity, float> affinity; }`. In `AgentDecisionSystem`, when two idle same-settlement
   NPCs are within 25 units (evening gathering), increment their mutual affinity by 0.02 per tick
@@ -194,12 +200,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DeprivationTimer` in SimThread's agent snapshot loop. `HUD::DrawHoverTooltip` draws a faint
   red "(ill: hunger)" / "(ill: thirst)" / "(ill: fatigue)" suffix inline on the needs line.
   Width calculation updated so the tooltip box fits the extended line.
-
-- [ ] **Windfall source context in log** — In `RandomEventSystem`'s per-NPC event loop, when a
-  windfall fires (case 1), also log the NPC's current `HomeSettlement` name so the log reads
-  "Aldric Smith found 12g on the road near Greenfield" instead of without context. Use
-  `registry.try_get<HomeSettlement>(e)` and `registry.try_get<Settlement>(hs->settlement)` to
-  get the name. Requires no new components.
 
 - [ ] **Harvest bonus glow on worker dot** — When an NPC has `harvestBonusTimer > 0`, set a
   `bool harvestBonus` flag in `AgentEntry` (RenderSnapshot.h), populated in SimThread's snapshot
