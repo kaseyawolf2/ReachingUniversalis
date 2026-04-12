@@ -1204,7 +1204,13 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showMorale)
         std::snprintf(line7, sizeof(line7), "Morale: %d%%", (int)(morale * 100));
 
-    // Line 9: trade volume
+    // Line 9: mood score (always shown)
+    char lineMood[32] = {};
+    float moodScore = best->moodScore;
+    bool showMood = true;
+    std::snprintf(lineMood, sizeof(lineMood), "Mood: %d%%", (int)(moodScore * 100));
+
+    // Line 10: trade volume
     char lineTrade[32] = {};
     bool showTrade = (best->tradeVolume > 0);
     if (showTrade)
@@ -1261,6 +1267,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
                       + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
+                      + (showMood ? 1 : 0)
                       + (showTrade ? 1 : 0) + (showImpExp ? 1 : 0)
                       + (showDesp ? 1 : 0) + (showFatigue ? 1 : 0)
                       + (showGivers ? 1 : 0) + (showBounty ? 1 : 0)
@@ -1273,6 +1280,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0,
+                       showMood     ? MeasureText(lineMood, 11) : 0,
                        showTrade    ? MeasureText(lineTrade, 11) : 0,
                        showImpExp   ? MeasureText(lineImpExp, 11) : 0,
                        showDesp     ? MeasureText(lineDesp, 11) : 0,
@@ -1312,6 +1320,10 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showMorale) {
         Color moraleCol = (morale >= 0.7f) ? GREEN : (morale >= 0.4f) ? YELLOW : RED;
         DrawText(line7, tx, ty,  11, moraleCol);            ty += 16;
+    }
+    if (showMood) {
+        Color moodCol = (moodScore >= 0.7f) ? GREEN : (moodScore >= 0.4f) ? YELLOW : RED;
+        DrawText(lineMood, tx, ty, 11, moodCol);            ty += 16;
     }
     if (showTrade) {
         DrawText(lineTrade, tx, ty, 11, Fade(SKYBLUE, 0.8f)); ty += 16;
