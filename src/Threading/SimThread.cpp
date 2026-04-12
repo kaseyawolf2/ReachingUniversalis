@@ -1306,9 +1306,10 @@ void SimThread::WriteSnapshot() {
         if (const auto* rum = m_registry.try_get<Rumour>(e)) {
             hasRumour = true;
             switch (rum->type) {
-                case RumourType::PlagueNearby:  rumourLabel = "plague";  break;
-                case RumourType::DroughtNearby: rumourLabel = "drought"; break;
-                case RumourType::BanditRoads:   rumourLabel = "bandits"; break;
+                case RumourType::PlagueNearby:  rumourLabel = "plague";       break;
+                case RumourType::DroughtNearby: rumourLabel = "drought";      break;
+                case RumourType::BanditRoads:   rumourLabel = "bandits";      break;
+                case RumourType::GoodHarvest:   rumourLabel = "good harvest"; break;
             }
         }
 

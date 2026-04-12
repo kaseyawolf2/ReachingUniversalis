@@ -437,7 +437,7 @@ struct Relations {
 // Attached to an NPC who has heard a rumour about a distant settlement event.
 // Spreads via gossip exchanges; hops decrements on each transfer.
 // When a rumour reaches a new settlement, its Market price is nudged (fear/hope).
-enum class RumourType { PlagueNearby, DroughtNearby, BanditRoads };
+enum class RumourType { PlagueNearby, DroughtNearby, BanditRoads, GoodHarvest };
 
 struct Rumour {
     RumourType   type;

@@ -991,6 +991,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     rumourLabel = "drought";
                 } else if (rum->type == RumourType::BanditRoads) {
                     rumourLabel = "bandits";
+                } else if (rum->type == RumourType::GoodHarvest) {
+                    mkt->price[ResourceType::Food] =
+                        std::max(mkt->price[ResourceType::Food] * 0.95f, 0.5f);
+                    rumourLabel = "good harvest";
                 }
                 if (rumourLabel) {
                     auto lv = registry.view<EventLog>();

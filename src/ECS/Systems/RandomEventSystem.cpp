@@ -619,6 +619,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) log->Push(day, hour,
             "HARVEST BOUNTY at " + settl->name + " " + popTag
             + " (+50% production, " + std::to_string((int)BOUNTY_DURATION) + "h)");
+        // Seed GoodHarvest rumour on up to 2 NPCs at this settlement
+        {
+            std::vector<entt::entity> residents;
+            registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                [&](auto e, const HomeSettlement& hs) {
+                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
+                        residents.push_back(e);
+                });
+            std::shuffle(residents.begin(), residents.end(), m_rng);
+            int seedCount = std::min((int)residents.size(), 2);
+            for (int k = 0; k < seedCount; ++k)
+                registry.emplace<Rumour>(residents[k], Rumour{RumourType::GoodHarvest, target, 3});
+        }
         break;
     }
 
