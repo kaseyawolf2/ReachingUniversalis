@@ -1009,6 +1009,37 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (bWasReady)
                 spreadRumour(B.entity, A.entity, A.homeSettl);
 
+            // ---- Illness contagion ----
+            // 10% chance per gossip encounter to spread illness from sick to healthy NPC.
+            {
+                static std::mt19937 s_illRng{ std::random_device{}() };
+                static std::uniform_real_distribution<float> s_illDist(0.f, 1.f);
+                static constexpr float CONTAGION_CHANCE = 0.10f;
+                static constexpr float CONTAGION_ILLNESS_DUR = 6.f; // game-hours
+
+                auto trySpread = [&](entt::entity sick, entt::entity healthy) {
+                    auto* dtSick    = registry.try_get<DeprivationTimer>(sick);
+                    auto* dtHealthy = registry.try_get<DeprivationTimer>(healthy);
+                    if (!dtSick || !dtHealthy) return;
+                    if (dtSick->illnessTimer <= 0.f || dtHealthy->illnessTimer > 0.f) return;
+                    if (s_illDist(s_illRng) > CONTAGION_CHANCE) return;
+                    dtHealthy->illnessTimer   = CONTAGION_ILLNESS_DUR;
+                    dtHealthy->illnessNeedIdx = dtSick->illnessNeedIdx;
+                    auto lv = registry.view<EventLog>();
+                    if (lv.begin() != lv.end()) {
+                        std::string sickName = "An NPC", healthyName = "An NPC";
+                        if (const auto* n = registry.try_get<Name>(sick))    sickName = n->value;
+                        if (const auto* n = registry.try_get<Name>(healthy)) healthyName = n->value;
+                        char buf[128];
+                        std::snprintf(buf, sizeof(buf), "%s caught illness from %s",
+                            healthyName.c_str(), sickName.c_str());
+                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                    }
+                };
+                trySpread(A.entity, B.entity);
+                trySpread(B.entity, A.entity);
+            }
+
             break;  // A gossips with at most one NPC per cooldown window
         }
     }
