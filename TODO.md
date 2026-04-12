@@ -9,15 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Richest NPC highlighted in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), the agent list already renders NPC names. After building the list, find the
-  agent with the highest `money` field in `StockpilePanel::agents` and render their name in gold
-  `GOLD` colour instead of white. No new component needed — use the existing `money` float in
-  `AgentEntry`. Makes wealth inequality immediately legible.
-
 ---
 
 ## Done
+
+- [x] **Richest NPC highlighted in stockpile panel** — Added `StockpilePanel::AgentInfo` struct
+  (name, balance, profession) and `residents` vector to `RenderSnapshot.h`. SimThread collects
+  homed NPCs (excluding player/haulers) in the selected-settlement block, sorts by balance
+  descending, caps at 12. `DrawStockpilePanel` renders a "Residents (N):" section — richest
+  first entry is drawn in `GOLD`, others in `Fade(LIGHTGRAY, 0.85f)`. Panel height updated.
 
 - [x] **Deathbed log with age** — `DeathSystem.cpp`: old-age path uses `age.days` already in scope;
   need-death path adds `try_get<Age>`. Both look up `HomeSettlement→Settlement` for location.
@@ -355,6 +355,24 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Read the season from `TimeManager` (already in registry view). This creates organic population
   flow away from winter-hit settlements toward warmer-season regions, making seasonal population
   patterns emergent rather than purely price-driven.
+
+- [ ] **Resident wealth tooltip on panel click** — When hovering the "Residents (N):" header line
+  in the stockpile panel (detect mouse Y within the section), show a small 2-line tooltip with
+  the richest NPC's name and balance, and the poorest's. Use `panel.residents.front()` and
+  `panel.residents.back()` already in the snapshot. Draw it in `RenderSystem::DrawStockpilePanel`
+  using `GetMousePosition()` comparison against the section Y range. No new fields needed.
+
+- [ ] **Profession distribution in stockpile panel** — Below the residents list header in
+  `DrawStockpilePanel` (RenderSystem.cpp), add a single compact line showing profession counts,
+  e.g. "Fa:4 Wa:3 Lu:2". Build the counts by iterating `panel.residents` (already populated).
+  Render in dim LIGHTGRAY after the header line. Replaces no existing line — just one extra row.
+  No new snapshot fields needed.
+
+- [ ] **Richest NPC name in world economy bar** — In `HUD::DrawWorldStatus` (HUD.cpp), the
+  economy debug overlay already shows `econRichestName` and `econRichestWealth` (both in
+  `RenderSnapshot`). If `debugOverlay` is on, render a line "Richest: [Name] — 123g" in GOLD
+  below the existing economy stats. Read directly from `snap.econRichestName` and
+  `snap.econRichestWealth`. No new fields or SimThread changes needed.
 
 ---
 
