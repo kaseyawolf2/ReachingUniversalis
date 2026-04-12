@@ -9,14 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family size in tooltip** — Extend the `(Family: X)` suffix added in `DrawHoverTooltip`
-  (HUD.cpp) to include the family size: change to "(Family: X ×N)" where N is the `surnameCount`
-  value for that surname. This tells the player at a glance how large a dynasty has grown without
-  needing extra UI. Just pass the count integer into the snprintf format string.
-
 ---
 
 ## Done
+
+- [x] **Family size in tooltip** — `DrawHoverTooltip` (HUD.cpp): added `familyNameCount` map
+  built alongside `surnameCount` in the same agent loop. FamilyTag path looks up the count;
+  surname-heuristic path uses `it->second`. Both format strings changed to
+  `"  (Family: %s x%d)"`. Shows e.g. "(Family: Smith x3)".
 
 - [x] **Richest NPC highlighted in stockpile panel** — Added `StockpilePanel::AgentInfo` struct
   (name, balance, profession) and `residents` vector to `RenderSnapshot.h`. SimThread collects
@@ -373,6 +373,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot`). If `debugOverlay` is on, render a line "Richest: [Name] — 123g" in GOLD
   below the existing economy stats. Read directly from `snap.econRichestName` and
   `snap.econRichestWealth`. No new fields or SimThread changes needed.
+
+- [ ] **Family dynasty count in stockpile panel** — In `DrawStockpilePanel` (RenderSystem.cpp),
+  after the "Residents (N):" header, count how many distinct `familyName` values appear in
+  `panel.residents` and how many surnames appear ≥ 2 times. Add a compact line below the header:
+  "Families: 3 dynasties" or "No established families" if all residents have unique surnames.
+  Build counts by iterating `panel.residents` — no new snapshot fields needed.
+
+- [ ] **Gossip idle animation** — In `AgentDecisionSystem`, when two NPCs from the same settlement
+  are both `Idle` and within 30 units during off-work hours (20–22h), briefly nudge their
+  velocity ±5 units toward each other (`vel.x += dx * 0.1f / dist`) for 2–3 game-seconds so
+  they visually gravitate together. Track with a `gossipTimer` float on `DeprivationTimer`
+  (already exists); set 3.f when gossip fires, skip new gossip while > 0. No new components.
+
+- [ ] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
+  loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
+  to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
+  with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
 
 ---
 
