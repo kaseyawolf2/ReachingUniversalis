@@ -9,15 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Deathbed log with age** — In `DeathSystem.cpp`, the death log currently says "Died: Aldric
-  Smith (old age) at Ashford". Append the NPC's age: "Died: Aldric Smith at age 72 (old age) at
-  Ashford". Find where `maxDays` is checked, read `age->days` cast to int, and include it in the
-  `log->Push` call. Also apply to hunger/thirst/heat deaths: "Died: Mira Reed (hunger) age 31 at
-  Ashford".
-
 ---
 
 ## Done
+
+- [x] **Deathbed log with age** — `DeathSystem.cpp`: old-age path uses `age.days` already in scope;
+  need-death path adds `try_get<Age>`. Both look up `HomeSettlement→Settlement` for location.
+  Formats: "Aldric Smith died at age 72 (old age) at Ashford" / "Mira Reed died of hunger, age 31,
+  at Ashford". `printf` debug line also updated.
 
 - [x] **NPC age display in tooltip** — `lineAge[32]` in `DrawHoverTooltip` (HUD.cpp). For named
   NPCs, inserted immediately after the name/role line (line1). Format: "Age: 8 (child)" for
@@ -337,6 +336,25 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the gate": reduce the hauler's `earned` by an extra 10% and credit B's treasury. Track this in
   `TransportSystem.cpp` right after the `effectiveTax` block. Log "Hauler from X taxed at gate
   in Y (rivalry tariff)." at low probability to avoid log spam (1 in 5 deliveries).
+
+- [ ] **Population history chart in stockpile panel** — `StockpilePanel::popHistory` (vector<int>)
+  is already written by SimThread (up to 30 daily samples). In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), below the population line, draw a small sparkline: 30 thin bars, each
+  proportional to the population max across all samples, width 4px, height scaled to 30px.
+  Color GREEN when trend is up, RED when down, GRAY flat. Gives an at-a-glance population
+  trajectory without opening any extra panel.
+
+- [ ] **Elder knowledge bonus in production** — In `ProductionSystem.cpp`, after the existing
+  `moraleBonus` block, add: for each Working NPC at a facility whose `Age::days > 60`, add a
+  flat `+0.05` worker contribution (elders provide tacit knowledge). Use `registry.try_get<Age>(e)`.
+  Cap contribution per-elder at 2.0x to prevent outliers. Log nothing — the effect is subtle
+  and best discovered by the player through observation.
+
+- [ ] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
+  subtract 0.2 from the score of any destination that is currently in Winter (`Season::Winter`).
+  Read the season from `TimeManager` (already in registry view). This creates organic population
+  flow away from winter-hit settlements toward warmer-season regions, making seasonal population
+  patterns emergent rather than purely price-driven.
 
 ---
 
