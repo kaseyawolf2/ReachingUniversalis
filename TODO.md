@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Production output shown in settlement tooltip** — Add "Output: food X/h, water Y/h"
-  line to settlement tooltip. Add rates to SettlementStatus, compute in SimThread.
-
 ## Recently Done
+
+- [x] **Production output shown in settlement tooltip** — Output rates per resource in tooltip.
 
 - [x] **Morale factor shown in production tooltip** — Morale +/-% shown in facility tooltip.
 
@@ -733,7 +732,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Settlement::morale` via facility's `settlement` field in SimThread. Green when positive,
   red when negative.
 
-- [ ] **Production output shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`
+- [x] **Production output shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`
   (HUD.cpp), add a line "Output: food X/h, water Y/h" showing the sum of `baseRate * scale`
   for each facility type at this settlement. Add `float foodRate, waterRate, woodRate` to
   `SettlementStatus` in `RenderSnapshot.h`, computed in SimThread by iterating
@@ -1941,3 +1940,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Money::balance` delta since last delivery (requires adding `float prevBalance = 0.f` to the
   `Hauler` component in `Components.h`, updated on each delivery in `TransportSystem.cpp`).
   Show "Last trip: +N.Ng" in `HUD::DrawHoverTooltip` for hauler tooltips.
+
+- [ ] **NPC friendship formation** — NPCs working at the same facility develop friendships over
+  time. Add a `FriendTag` component (`Components.h`) with `entt::entity friend = entt::null`
+  and `float bond = 0.f` (0–1). In `ProductionSystem.cpp`, when two NPCs share a facility
+  for multiple consecutive work shifts, increment bond. Friends who lose their friend to death
+  get a morale penalty (in `DeathSystem.cpp`). Show "Friend: Name" in the NPC hover tooltip
+  (`HUD.cpp`). Populate `friendName` in `AgentEntry` of `RenderSnapshot.h`.
+
+- [ ] **NPC mood contagion** — Happy NPCs spread contentment to nearby NPCs; miserable NPCs
+  drag neighbours down. In `AgentDecisionSystem.cpp`, once per game-hour, each NPC checks
+  nearby NPCs (within 40px). If average neighbour contentment differs by >0.1 from own, nudge
+  own contentment 5% toward the average. This creates emergent mood clusters — prosperous
+  settlements feel upbeat, struggling ones feel grim. Add a `moodContagionTimer` to
+  `DeprivationTimer` in `Components.h` to rate-limit the check.
