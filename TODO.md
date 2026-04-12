@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
+- [x] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
   subtract 0.2 from the score of any destination that is currently in Winter (`Season::Winter`).
   Read the season from `TimeManager` (already in registry view). This creates organic population
   flow away from winter-hit settlements toward warmer-season regions, making seasonal population
@@ -284,7 +284,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Cap contribution per-elder at 2.0x to prevent outliers. Log nothing — the effect is subtle
   and best discovered by the player through observation.
 
-- [ ] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
+- [x] **Seasonal migration preference** — In `AgentDecisionSystem`'s `FindMigrationTarget` scoring,
   subtract 0.2 from the score of any destination that is currently in Winter (`Season::Winter`).
   Read the season from `TimeManager` (already in registry view). This creates organic population
   flow away from winter-hit settlements toward warmer-season regions, making seasonal population
@@ -1183,3 +1183,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   with `ageDays > 60` who are Working (check `AgentEntry::behavior`), show "Elder worker (+5%
   knowledge)" in `Fade(GOLD, 0.6f)` below the age line. No new snapshot fields needed — `ageDays`
   and behavior are already in `AgentEntry`. Surfaces the elder knowledge bonus to the player.
+
+- [ ] **Spring migration surge** — In `AgentDecisionSystem::Update`'s migration trigger block,
+  add a Spring bonus: when `Season::Spring`, multiply the migration chance by 1.5 (NPCs are more
+  likely to seek new settlements after winter). This pairs with the Winter penalty to create a
+  seasonal migration rhythm: hunker down in Winter, move in Spring. Read season from `TimeManager`
+  already in scope at the top of `Update`.
+
+- [ ] **Migration log with season context** — In `AgentDecisionSystem::Update`'s MIGRATING arrival
+  block (where the NPC settles at the new home), append the current season to the existing migration
+  log message. Change from "Mira moved to Thornvale" to "Mira moved to Thornvale (Spring)". Read
+  season from `TimeManager` already accessible in the Update scope. No new components needed —
+  purely enriches the event log narrative.
