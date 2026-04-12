@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Scarcity recovery log** — Log "Recovery: X food stores recovering." when resource rises above 20.
-
 ## Recently Done
+
+- [x] **Scarcity recovery log** — Logs "Recovery: X food stores recovering." on resource recovery.
 
 - [x] **Hauler idle duration warning** — Logs "idle for 12h — no profitable routes." once per idle period.
 
@@ -709,7 +709,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   std::set<entt::entity> s_loggedIdle`. Clear on state transition away from Idle. Surfaces
   stuck haulers that may need player attention.
 
-- [ ] **Scarcity recovery log** — In `RandomEventSystem::Update`'s scarcity bitmask block,
+- [x] **Scarcity recovery log** — In `RandomEventSystem::Update`'s scarcity bitmask block,
   when a resource bit is cleared (rises above 20), log "Recovery: X food stores recovering."
   per resource. Use the existing `s_loggedScarcity` map — detect clearing before `mask &= ~bit`.
   Completes the scarcity narrative arc: shortage → recovery.
@@ -810,6 +810,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `int imports = 0, exports = 0` to `SettlementEntry` in `RenderSnapshot.h`. Display in
   settlement tooltip as "Trade: +N imports / -N exports". Reset every 24 game-hours alongside
   `tradeVolume`.
+
+- [ ] **Scarcity causes NPC migration nudge** — In `AgentDecisionSystem.cpp`'s
+  `FindMigrationTarget` scoring, when the NPC's home settlement has any stockpile below 10
+  (read from `Stockpile` component), add +0.3 to the migration score of all other settlements.
+  Makes NPCs more likely to migrate away from scarce settlements. Use
+  `registry.try_get<Stockpile>(home)` with the same threshold as `SCARCITY_THRESHOLD` (10).
+
+- [ ] **Recovery morale bump** — In `RandomEventSystem::Update`'s new recovery detection block,
+  when a resource recovers (bit cleared from `s_loggedScarcity`), bump settlement morale by
+  +0.01 per recovered resource. Model: recovery from scarcity is a small community boost.
+  Use `registry.try_get<Settlement>(e)->morale` already in scope.
 
 ---
 
