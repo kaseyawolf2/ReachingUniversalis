@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
-  world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
-  text. Colour-code it: "Plague" → RED, "Drought" → ORANGE, "Festival" → GOLD, "Bounty" → GREEN,
-  others → YELLOW. Find the `modifierName` draw calls in HUD.cpp (search for `modifierName` or
-  `modifierHoursLeft`), wrap in a helper that maps the string to a colour, and pass it to
-  `DrawText`. No new fields needed — `modifierName` is already in the snapshot.
-
 ---
 
 ## Done
+
+- [x] **Event modifier label colour** — `ModifierColour()` helper in HUD.cpp; world status bar and settlements panel now tint by event type (Plague→RED, Festival→GOLD, etc.).
 
 - [x] **Settlement anger on theft** — Skills penalty -0.02 per theft in `AgentDecisionSystem`; treasury deduction was already present. No new components.
 
@@ -469,3 +464,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   within 25 units during hours 18–21, briefly stop both (`vel = 0`) for 30–60 game-seconds.
   Track with a `chatTimer` float on `DeprivationTimer`. After the timer expires, resume normal
   gathering movement. Implement in `AgentDecisionSystem` after the evening gathering block.
+
+- [ ] **Event colour in minimap ring** — The minimap (`HUD::DrawMinimap` in HUD.cpp) draws a
+  `Fade(YELLOW, 0.8f)` ring around settlements with active modifiers (line ~1087). Use
+  `ModifierColour(s.modifierName)` instead so the ring colour matches the event type
+  (Plague→RED ring, Festival→GOLD ring, etc.). One-line change; requires including the already-
+  defined `ModifierColour` helper (already in the same file).
+
+- [ ] **Event log entry colour coding** — In `HUD::DrawEventLog` (HUD.cpp), all log entries are
+  currently drawn in `WHITE`. Scan each entry's `text` field for known modifier keywords and tint
+  accordingly: entries containing "plague" or "PLAGUE" → `Fade(RED, 0.9f)`, "festival" or
+  "FESTIVAL" → `Fade(GOLD, 0.85f)`, "drought" or "DROUGHT" → `Fade(ORANGE, 0.85f)`, "stole" →
+  `Fade(RED, 0.7f)`, "died" or "Died" → `Fade(GRAY, 0.8f)`, others → WHITE. No new fields; use
+  `entry.text` which is already in `EventLog::Entry`.
+
+- [ ] **Gratitude approach stops at polite distance** — In `AgentDecisionSystem`'s GRATITUDE
+  block, after computing the target position, if the NPC is within 25 units of the gratitude
+  target set `vel.vx = vel.vy = 0.f` (polite stop) but still decrement `gratitudeTimer` and
+  `continue`. This prevents NPCs clipping through their helper — they stand nearby for the
+  remainder of the gratitude window.
