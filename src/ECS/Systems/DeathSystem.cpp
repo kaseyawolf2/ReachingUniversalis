@@ -33,9 +33,17 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 auto& tm2 = timeView.get<TimeManager>(*timeView.begin());
                 std::string who = "NPC";
                 if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                std::string settlStr;
+                if (const auto* hs = registry.try_get<HomeSettlement>(entity))
+                    if (hs->settlement != entt::null && registry.valid(hs->settlement))
+                        if (const auto* s = registry.try_get<Settlement>(hs->settlement))
+                            settlStr = " at " + s->name;
+                char ageBuf[64];
+                std::snprintf(ageBuf, sizeof(ageBuf), " died at age %d (old age)%s",
+                              (int)age.days, settlStr.c_str());
                 logView.get<EventLog>(*logView.begin()).Push(
                     tm2.day, (int)tm2.hourOfDay,
-                    who + " died of old age");
+                    who + ageBuf);
             }
         }
     });
@@ -62,13 +70,23 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                         (i == 2) ? "exhaustion" : "cold";
                     std::string who = "NPC";
                     if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
-                    std::printf("[DEATH] %s died of %s\n", who.c_str(), cause);
+                    int ageInt = 0;
+                    if (const auto* ag = registry.try_get<Age>(entity)) ageInt = (int)ag->days;
+                    std::string settlStr;
+                    if (const auto* hs = registry.try_get<HomeSettlement>(entity))
+                        if (hs->settlement != entt::null && registry.valid(hs->settlement))
+                            if (const auto* s = registry.try_get<Settlement>(hs->settlement))
+                                settlStr = " at " + s->name;
+                    std::printf("[DEATH] %s died of %s, age %d\n", who.c_str(), cause, ageInt);
                     auto logView = registry.view<EventLog>();
                     if (!logView.empty()) {
                         auto& tm2 = timeView.get<TimeManager>(*timeView.begin());
+                        char deathBuf[96];
+                        std::snprintf(deathBuf, sizeof(deathBuf), " died of %s, age %d%s",
+                                      cause, ageInt, settlStr.c_str());
                         logView.get<EventLog>(*logView.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
-                            who + " died of " + cause);
+                            who + deathBuf);
                     }
                     break;
                 }
