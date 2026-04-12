@@ -178,6 +178,14 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 // ---- Main update ----
 
 void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
+    // Charity frequency counter: counts lifetime charity acts per helper entity.
+    // Pruned each frame for destroyed entities so it doesn't leak memory.
+    static std::map<entt::entity, int> s_charityCount;
+    for (auto it = s_charityCount.begin(); it != s_charityCount.end(); ) {
+        if (!registry.valid(it->first)) it = s_charityCount.erase(it);
+        else ++it;
+    }
+
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -757,16 +765,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 heat = std::min(1.f, heat + 0.15f);
             }
 
-            // Log — name both helper and recipient, and the settlement
+            // Increment charity counter for this helper
+            int charityN = ++s_charityCount[helper.entity];
+
+            // Log — name both helper and recipient, settlement, and frequency
             if (charityLog) {
                 std::string who      = "An NPC";
                 std::string whom     = "a neighbour";
                 std::string at       = "";
-                if (const auto* n = registry.try_get<Name>(helper.entity))  who  = n->value;
+                if (const auto* n = registry.try_get<Name>(helper.entity))   who  = n->value;
                 if (const auto* n = registry.try_get<Name>(starving.entity)) whom = n->value;
                 if (sett) at = " at " + sett->name;
+                std::string suffix = (charityN > 1)
+                    ? " (x" + std::to_string(charityN) + ")" : "";
                 charityLog->Push(charityDay, charityHour,
-                    who + " helped " + whom + at + ".");
+                    who + " helped " + whom + at + "." + suffix);
             }
             break;   // helper gives to at most one starving NPC per cooldown window
         }
