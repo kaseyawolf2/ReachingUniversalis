@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route efficiency tooltip** — Show "Route: Xkm" in tooltip for haulers en route.
-
 ## Recently Done
+
+- [x] **Hauler route efficiency tooltip** — Show "Route: Xkm" in tooltip for haulers en route.
 
 - [x] **Morale-dependent work speed** — Continuous morale factor in ProductionSystem: 1.0 + 0.3*(morale - 0.5).
 
@@ -657,7 +657,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   0.8 workers produce +9%, at 0.2 they produce -9%. Read morale from `try_get<Settlement>` via
   worker's `HomeSettlement`. Makes morale mechanically important beyond cosmetic display.
 
-- [ ] **Hauler route efficiency tooltip** — In `HUD::DrawHoverTooltip`, for haulers with an
+- [x] **Hauler route efficiency tooltip** — In `HUD::DrawHoverTooltip`, for haulers with an
   active route (`hasRouteDest`), show "Route: Xkm" (Euclidean distance from current pos to
   dest / 100). If the hauler also has a `homeSettlementName`, show round-trip distance. Helps
   players evaluate trade route length. No new snapshot fields — compute from existing pos/dest.
@@ -720,6 +720,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   for each facility type at this settlement. Add `float foodRate, waterRate, woodRate` to
   `SettlementStatus` in `RenderSnapshot.h`, computed in SimThread by iterating
   `ProductionFacility` components with matching settlement.
+
+- [ ] **Hauler state label in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), for haulers
+  show their current state as a label: "Idle — seeking route", "Loading at X", "Delivering to
+  X", "Returning home". Map from `HaulerState` enum values. Add `int haulerState = 0` to
+  `AgentEntry` in `RenderSnapshot.h`, populated from `Hauler::state` in SimThread. No gameplay
+  changes — purely informational.
+
+- [ ] **Low-morale NPC grumbling log** — In `AgentDecisionSystem.cpp`'s gossip block, when
+  two NPCs at a settlement with morale < 0.3 gossip, 20% chance to log "X and Y grumble about
+  conditions at Z." Use the existing gossip proximity check. Rate-limit per settlement to once
+  per 12 game-hours via `static std::map<entt::entity, float> s_grumbleCooldown`. Adds social
+  texture to low-morale settlements.
 
 ---
 
