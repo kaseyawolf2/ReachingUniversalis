@@ -233,12 +233,28 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
 
         int killed = KillFraction(registry, target2, 0.10f);
 
+        // Count destination population for log context
+        int destPop = 0;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs) { if (hs.settlement == target2) ++destPop; });
+        // Build trend indicator from last sample
+        const char* destTrend = "";
+        {
+            auto prev = m_prevPop.find(target2);
+            if (prev != m_prevPop.end()) {
+                int d = destPop - prev->second;
+                if (d >= 2) destTrend = " \xe2\x86\x91";
+                else if (d <= -2) destTrend = " \xe2\x86\x93";
+            }
+        }
+
         const auto* src = registry.try_get<Settlement>(plagueSettl);
         if (log) {
-            char buf[120];
+            char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "PLAGUE spreads from %s to %s — %d died",
-                src ? src->name.c_str() : "?", ts->name.c_str(), killed);
+                "PLAGUE spreads from %s to %s [pop %d%s] — %d died",
+                src ? src->name.c_str() : "?", ts->name.c_str(),
+                destPop, destTrend, killed);
             log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
     }
