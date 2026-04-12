@@ -108,6 +108,8 @@ struct RenderSnapshot {
         float        ruinTimer  = 0.f;   // > 0 while settlement is in post-collapse ruin state
         float        morale    = 0.5f;  // settlement morale (0-1) for ring colour
         int          tradeVolume = 0;   // deliveries received in current 24h period
+        int          imports    = 0;   // goods units imported (24h window)
+        int          exports    = 0;   // goods units exported (24h window)
     };
 
     struct RoadEntry {

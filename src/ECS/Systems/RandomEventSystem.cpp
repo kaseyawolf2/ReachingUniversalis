@@ -51,6 +51,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         s.tradeVolumeTimer += gameHoursDt;
         if (s.tradeVolumeTimer >= 24.f) {
             s.tradeVolume = 0;
+            s.importCount = 0;
+            s.exportCount = 0;
             s.tradeVolumeTimer -= 24.f;
         }
 

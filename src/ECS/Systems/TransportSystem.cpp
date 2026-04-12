@@ -252,6 +252,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 if (settl) settl->treasury  += totalCost;
                 hauler.targetSettlement = best.dest;
                 hauler.cargoSource      = home.settlement;   // track where goods came from
+                if (settl) settl->exportCount += best.qty;
                 hauler.state            = HaulerState::GoingToDeposit;
                 hauler.waitCycles       = 0;
                 s_loggedIdle.erase(entity);
@@ -411,6 +412,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 if (destSettl) {
                     destSettl->morale = std::min(1.f, destSettl->morale + 0.01f);
                     destSettl->tradeVolume++;
+                    for (const auto& [type, qty] : inv.contents)
+                        destSettl->importCount += qty;
                 }
 
                 // Log the delivery (cargo summary + morale bump)

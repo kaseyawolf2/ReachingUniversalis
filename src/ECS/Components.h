@@ -94,6 +94,8 @@ struct Settlement {
     // Updated when haulers complete deliveries. Rival → +10% trade surcharge; Ally → -5% tax.
     std::map<entt::entity, float> relations;
     int   tradeVolume      = 0;    // deliveries received; reset every 24 game-hours
+    int   importCount      = 0;    // goods units received via hauler delivery (24h window)
+    int   exportCount      = 0;    // goods units shipped out by haulers (24h window)
     float tradeVolumeTimer = 0.f;  // game-hours until next reset
 };
 

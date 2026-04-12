@@ -1402,7 +1402,8 @@ void SimThread::WriteSnapshot() {
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
             food, water, wood, spop, s.popCap, snapSeason, specialty,
-            s.modifierName, s.ruinTimer, s.morale, s.tradeVolume
+            s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
+            s.importCount, s.exportCount
         });
     });
 

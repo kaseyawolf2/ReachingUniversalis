@@ -1098,7 +1098,14 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showTrade)
         std::snprintf(lineTrade, sizeof(lineTrade), "Trades: %d/day", best->tradeVolume);
 
-    // Line 10: production output
+    // Line 10: import/export balance
+    char lineImpExp[48] = {};
+    bool showImpExp = (best->imports > 0 || best->exports > 0);
+    if (showImpExp)
+        std::snprintf(lineImpExp, sizeof(lineImpExp), "Trade: +%d imports / -%d exports",
+                      best->imports, best->exports);
+
+    // Line 11: production output
     char lineOutput[80] = {};
     bool showOutput = false;
     if (status && (status->foodRate > 0.f || status->waterRate > 0.f || status->woodRate > 0.f)) {
@@ -1115,7 +1122,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
                       + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
-                      + (showTrade ? 1 : 0) + (showOutput ? 1 : 0);
+                      + (showTrade ? 1 : 0) + (showImpExp ? 1 : 0) + (showOutput ? 1 : 0);
     int hubW = isTradeHub ? MeasureText("  [Trade Hub]", 12) : 0;
     int w = std::max({ MeasureText(line1, 12) + hubW, MeasureText(line2, 11),
                        MeasureText(line3, 11),
@@ -1125,6 +1132,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0,
                        showTrade    ? MeasureText(lineTrade, 11) : 0,
+                       showImpExp   ? MeasureText(lineImpExp, 11) : 0,
                        showOutput   ? MeasureText(lineOutput, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
@@ -1161,6 +1169,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showTrade) {
         DrawText(lineTrade, tx, ty, 11, Fade(SKYBLUE, 0.8f)); ty += 16;
+    }
+    if (showImpExp) {
+        DrawText(lineImpExp, tx, ty, 11, Fade(LIGHTGRAY, 0.7f)); ty += 16;
     }
     if (showOutput) {
         DrawText(lineOutput, tx, ty, 11, Fade(GREEN, 0.7f));
