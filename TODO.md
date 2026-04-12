@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC desperation purchase log** — Log "X desperate — bought food from Y at Ng."
+
 ## Recently Done
 
 - [x] **Scarcity recovery log** — Logs "Recovery: X food stores recovering." on resource recovery.
