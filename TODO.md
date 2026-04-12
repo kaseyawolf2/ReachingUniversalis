@@ -9,11 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [x] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
-  within 25 units of each other during hours 18–21 (evening gathering), briefly stop both
-  (`vel = 0`) for 30–60 game-seconds to simulate chatting. Track with a `chatTimer` float on
-  `DeprivationTimer` (already has spare fields). After the timer expires, resume normal gathering
-  movement. Implement in `AgentDecisionSystem` after the evening gathering block.
+- [ ] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
+  check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
+  is still alive. If not (both partners gone), remove `FamilyTag` from all surviving children
+  (age < 15 `ChildTag` entities with the same family name at that settlement) so they can form
+  new families later. Log "The [name] family line has ended at [settlement]." when the last adult
+  member dies. Implement in the existing death-cleanup block.
 
 ---
 
@@ -177,13 +178,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
   `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
   `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
-
-- [ ] **Family dissolution on death** — In `DeathSystem.cpp`, when an NPC with `FamilyTag` dies,
-  check if their partner (the other `FamilyTag`-holder with the same name at the same settlement)
-  is still alive. If not (both partners gone), remove `FamilyTag` from all surviving children
-  (age < 15 `ChildTag` entities with the same family name at that settlement) so they can form
-  new families later. Log "The [name] family line has ended at [settlement]." when the last adult
-  member dies. Implement in the existing death-cleanup block.
 
 - [ ] **Family size in HUD stockpile list** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), after drawing each NPC name, if their `AgentEntry::familyName` is non-empty,
