@@ -87,7 +87,8 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement,
                                                         const Skills* skills,
-                                                        const Profession* profession) {
+                                                        const Profession* profession,
+                                                        const MigrationMemory* memory) {
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -168,6 +169,24 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                 if (fac.settlement == dest && fac.output == profAffinityType && fac.baseRate > 0.f)
                     total *= 1.15f;
             });
+        }
+
+        // Migration memory bonus: prefer destinations remembered as having
+        // cheaper food / water than the NPC's current home.
+        // +20% if food was cheaper there; +10% if water was cheaper there.
+        if (memory) {
+            const auto* homeSett = registry.try_get<Settlement>(homeSettlement);
+            const auto* destSett = registry.try_get<Settlement>(dest);
+            if (homeSett && destSett) {
+                const auto* homeSnap = memory->Get(homeSett->name);
+                const auto* destSnap = memory->Get(destSett->name);
+                if (homeSnap && destSnap) {
+                    float memBonus = 1.f;
+                    if (destSnap->food  < homeSnap->food)  memBonus += 0.20f;
+                    if (destSnap->water < homeSnap->water) memBonus += 0.10f;
+                    total *= memBonus;
+                }
+            }
         }
 
         if (total > bestScore) { bestScore = total; best = dest; }
@@ -289,6 +308,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 state.behavior        = AgentBehavior::Idle;
                 state.target          = entt::null;
                 vel.vx = vel.vy       = 0.f;
+
+                // Record new settlement's prices in migration memory on arrival.
+                if (auto* mem = registry.try_get<MigrationMemory>(entity)) {
+                    if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                        if (const auto* mkt = registry.try_get<Market>(home.settlement))
+                            if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                mem->Record(stt->name,
+                                    mkt->GetPrice(ResourceType::Food),
+                                    mkt->GetPrice(ResourceType::Water),
+                                    mkt->GetPrice(ResourceType::Wood));
+                    }
+                }
             } else {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             }
@@ -369,7 +400,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (timer.stockpileEmpty >= effectiveMigrateThreshold) {
             const auto* skills     = registry.try_get<Skills>(entity);
             const auto* profession = registry.try_get<Profession>(entity);
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession);
+            auto*       memory     = registry.try_get<MigrationMemory>(entity);
+
+            // Record current home prices before departing so the NPC can compare later.
+            if (memory && home.settlement != entt::null && registry.valid(home.settlement)) {
+                if (const auto* mkt  = registry.try_get<Market>(home.settlement))
+                    if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                        memory->Record(stt->name,
+                            mkt->GetPrice(ResourceType::Food),
+                            mkt->GetPrice(ResourceType::Water),
+                            mkt->GetPrice(ResourceType::Wood));
+            }
+
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;
@@ -585,10 +628,26 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 float priceB = mktB->GetPrice(res);
                 priceA += (priceB - priceA) * GOSSIP_NUDGE;
             }
+            // A learns B's settlement prices (for migration decision-making)
+            if (auto* memA = registry.try_get<MigrationMemory>(A.entity)) {
+                if (const auto* sttB = registry.try_get<Settlement>(B.homeSettl))
+                    memA->Record(sttB->name,
+                        mktB->GetPrice(ResourceType::Food),
+                        mktB->GetPrice(ResourceType::Water),
+                        mktB->GetPrice(ResourceType::Wood));
+            }
             if (tmrB && tmrB->gossipCooldown <= 0.f) {
                 for (auto& [res, priceB] : mktB->price) {
                     float priceA = mktA->GetPrice(res);
                     priceB += (priceA - priceB) * GOSSIP_NUDGE;
+                }
+                // B learns A's settlement prices
+                if (auto* memB = registry.try_get<MigrationMemory>(B.entity)) {
+                    if (const auto* sttA = registry.try_get<Settlement>(A.homeSettl))
+                        memB->Record(sttA->name,
+                            mktA->GetPrice(ResourceType::Food),
+                            mktA->GetPrice(ResourceType::Water),
+                            mktA->GetPrice(ResourceType::Wood));
                 }
                 tmrB->gossipCooldown = GOSSIP_COOLDOWN;
             }

@@ -166,6 +166,35 @@ struct Market {
     }
 };
 
+// ---- Migration memory ----
+// Carried by each NPC. Records the last-known market prices at each
+// settlement they have visited (home, destinations, and settlements
+// learned about through gossip). Updated on departure, on arrival,
+// and during gossip exchanges. Used by FindMigrationTarget to bias
+// NPCs toward historically cheaper destinations (better life signal).
+
+struct MigrationMemory {
+    struct PriceSnapshot {
+        float food  = 1.f;
+        float water = 1.f;
+        float wood  = 1.f;
+    };
+    // settlement_name → last-known prices (capped to MAX_KNOWN entries)
+    std::map<std::string, PriceSnapshot> known;
+    static constexpr int MAX_KNOWN = 12;
+
+    void Record(const std::string& name, float food, float water, float wood) {
+        if ((int)known.size() >= MAX_KNOWN && known.find(name) == known.end())
+            known.erase(known.begin());  // evict one entry to stay bounded
+        known[name] = { food, water, wood };
+    }
+
+    const PriceSnapshot* Get(const std::string& name) const {
+        auto it = known.find(name);
+        return (it != known.end()) ? &it->second : nullptr;
+    }
+};
+
 // ---- Schedule ----
 
 struct Schedule {

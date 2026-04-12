@@ -110,6 +110,19 @@ static void SpawnNPCs(entt::registry& registry,
                 break;
         }
         registry.emplace<Goal>(npc, initialGoal);
+
+        // Assign migration memory pre-seeded with the home settlement's initial prices.
+        // This gives NPCs "local knowledge" so their first migration uses remembered data.
+        {
+            MigrationMemory mm;
+            if (const auto* mkt = registry.try_get<Market>(settlement))
+                if (const auto* stt = registry.try_get<Settlement>(settlement))
+                    mm.Record(stt->name,
+                        mkt->GetPrice(ResourceType::Food),
+                        mkt->GetPrice(ResourceType::Water),
+                        mkt->GetPrice(ResourceType::Wood));
+            registry.emplace<MigrationMemory>(npc, mm);
+        }
     }
 }
 
