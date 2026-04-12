@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC mood emoji in residents list** — Add contentment to AgentInfo, show colored dot
+  per resident in stockpile panel.
+
 ## Recently Done
 
 - [x] **Stockpile bar chart in panel** — 3 horizontal bars showing food/water/wood levels.
