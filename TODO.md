@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Production output shown in settlement tooltip** — Add "Output: food X/h, water Y/h"
+  line to settlement tooltip. Add rates to SettlementStatus, compute in SimThread.
+
 ## Recently Done
 
 - [x] **Morale factor shown in production tooltip** — Morale +/-% shown in facility tooltip.
