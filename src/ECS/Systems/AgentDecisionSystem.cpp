@@ -325,6 +325,31 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
 
         // ============================================================
+        // FAMILY VISIT: NPC is travelling to visit family at another settlement
+        // ============================================================
+        if (timer.visitTimer > 0.f) {
+            float gameMinDt = dt * GAME_MINS_PER_REAL_SEC;
+            timer.visitTimer -= gameMinDt;
+            if (timer.visitTimer <= 0.f) {
+                // Visit over — return home
+                timer.visitTimer  = 0.f;
+                timer.visitTarget = entt::null;
+                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                    const auto& homePos = registry.get<Position>(home.settlement);
+                    MoveToward(vel, pos, homePos.x, homePos.y, speed);
+                }
+            } else if (timer.visitTarget != entt::null && registry.valid(timer.visitTarget)) {
+                const auto& tgtPos = registry.get<Position>(timer.visitTarget);
+                float vdx = tgtPos.x - pos.x, vdy = tgtPos.y - pos.y;
+                if (vdx*vdx + vdy*vdy > 30.f * 30.f)
+                    MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.8f);
+                else
+                    vel.vx = vel.vy = 0.f;  // arrived — wait out the timer
+            }
+            continue;
+        }
+
+        // ============================================================
         // CELEBRATING: move toward settlement centre at half speed.
         // Stays active while the home settlement has the "Festival" modifier.
         // Reverts to Idle when the festival ends.
@@ -817,6 +842,49 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                     greeted = true;
                 });
+            }
+
+            // ---- Family visit: idle NPC may visit family at another settlement ----
+            if (auto* ft = registry.try_get<FamilyTag>(entity); ft) {
+                static std::mt19937 s_visitRng{ std::random_device{}() };
+                static std::uniform_real_distribution<float> s_visitChance(0.f, 1.f);
+                // 5% chance per game-hour
+                float visitGameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                if (s_visitChance(s_visitRng) < 0.05f * visitGameHoursDt) {
+                    // Find a family member at a different settlement
+                    entt::entity visitSettl = entt::null;
+                    std::string visitSettlName;
+                    registry.view<FamilyTag, HomeSettlement, Position>(
+                        entt::exclude<PlayerTag, BanditTag>)
+                        .each([&](auto other, const FamilyTag& oFt,
+                                  const HomeSettlement& oHome, const Position&) {
+                        if (visitSettl != entt::null) return;
+                        if (other == entity) return;
+                        if (oFt.name != ft->name) return;
+                        if (oHome.settlement == home.settlement) return;
+                        if (oHome.settlement == entt::null || !registry.valid(oHome.settlement)) return;
+                        visitSettl = oHome.settlement;
+                        if (auto* sn = registry.try_get<Name>(oHome.settlement))
+                            visitSettlName = sn->value;
+                    });
+                    if (visitSettl != entt::null) {
+                        timer.visitTimer  = 30.f;  // 30 game-minutes
+                        timer.visitTarget = visitSettl;
+                        const auto& tgtPos = registry.get<Position>(visitSettl);
+                        MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.8f);
+                        // Log the visit
+                        auto lv = registry.view<EventLog>();
+                        if (lv.begin() != lv.end()) {
+                            const auto* myName = registry.try_get<Name>(entity);
+                            std::string msg = (myName ? myName->value : "NPC") +
+                                " is visiting family in " +
+                                (visitSettlName.empty() ? "a settlement" : visitSettlName);
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm.day, (int)tm.hourOfDay, msg);
+                        }
+                        continue;
+                    }
+                }
             }
 
             // ---- Evening gathering (hours 18–21) ----
