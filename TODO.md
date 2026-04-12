@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Road danger colour on world map** — Orange for 1-2 bandits, red for 3+. Overrides condition-based colouring.
+
+
 - [x] **NPC reputation decay** — 0.01/game-hour toward zero for all Reputation entities.
 
 
@@ -1140,7 +1143,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   down, negative decay up). This prevents permanent reputation from a single act and encourages
   ongoing good/bad behavior. Add `reputationDecayRate` constant near other reputation constants.
 
-- [ ] **Road danger colour on world map** — In `GameState::Draw`, colour road lines based on
+- [x] **Road danger colour on world map** — In `GameState::Draw`, colour road lines based on
   bandit presence. Use `RoadEntry::banditCount`: 0 = normal grey, 1-2 = Fade(ORANGE, 0.5f),
   3+ = Fade(RED, 0.6f). Gives immediate visual feedback about road safety without hovering.
 
@@ -1180,6 +1183,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   likely to receive charity. In `AgentDecisionSystem`'s charity block, when checking if a neighbour
   qualifies for help, skip NPCs whose `Reputation::score < -0.5f`. Antisocial NPCs get cold-shouldered
   by the community. Log when charity is refused: "[Helper] refused to help [Thief] (bad reputation)."
+
+- [ ] **Road condition overlay toggle** — Pressing 'O' toggles between two road colour modes:
+  the default bandit/condition mode and a pure condition view (ignoring bandits). Add `bool
+  m_showRoadCondition = false` to `GameState`. When toggled, road colours use condition-only
+  palette. Small "Road: Safety / Condition" label in corner shows active mode.
+
+- [ ] **Settlement danger indicator** — Settlements adjacent to bandit-heavy roads (3+ bandits
+  total on connected roads) show a faint red exclamation mark above the settlement name on the
+  world map. In `GameState::Draw`'s settlement loop, sum `banditCount` from all roads where
+  `nameA == settlement.name || nameB == settlement.name`; if total >= 3, draw the indicator.
 
 ---
 
