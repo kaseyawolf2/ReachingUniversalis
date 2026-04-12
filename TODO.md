@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bankruptcy log includes gold balance** — Show remaining gold in bankruptcy log message.
+
 ## Recently Done
 
 - [x] **Hauler graduation gold threshold shown in tooltip** — Shows "Hauler at: 100g" for NPCs approaching graduation.
