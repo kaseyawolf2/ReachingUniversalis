@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Morale trend arrow in world status bar** — Track previous morale per settlement,
+  show +/- trend after M:XX% in HUD::DrawWorldStatus.
 
 ## Recently Done
 
