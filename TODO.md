@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-(none)
+- [ ] **Rumour immunity after delivery** — After a rumour's price effect is applied at a
+  settlement, mark that settlement "rumour-immune" for 48 game-hours against the same RumourType
+  from the same origin. Implement via a `static std::map<key, float> s_rumourImmunity` timer in
+  `AgentDecisionSystem.cpp` alongside `s_rumourDelivered`. Drain by `gameHoursDt` each frame;
+  prune expired entries.
 
 ## Recently Done
 
