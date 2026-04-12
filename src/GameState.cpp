@@ -329,9 +329,16 @@ void GameState::Draw() {
 
     // Agents
     for (const auto& a : agents) {
-        // Celebrating NPCs glow gold for the duration of the festival
-        Color drawColor = (a.behavior == AgentBehavior::Celebrating)
-                          ? Fade(GOLD, 0.85f) : a.color;
+        // Colour priority: Celebrating → gold; plain NPC → contentment tint; others → snapshot colour
+        Color drawColor;
+        if (a.behavior == AgentBehavior::Celebrating) {
+            drawColor = Fade(GOLD, 0.85f);
+        } else if (a.role == RenderSnapshot::AgentRole::NPC) {
+            drawColor = (a.contentment >= 0.7f) ? Fade(GREEN,  0.85f) :
+                        (a.contentment >= 0.4f) ? YELLOW          : Fade(RED, 0.85f);
+        } else {
+            drawColor = a.color;
+        }
         DrawCircleV({ a.x, a.y }, a.size, drawColor);
         // Children have no ring — keeps them visually distinct from working adults
         if (a.role != RenderSnapshot::AgentRole::Child)
