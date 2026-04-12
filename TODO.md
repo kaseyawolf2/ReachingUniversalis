@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Strike duration shown in tooltip** — Show remaining strike hours in NPC hover tooltip.
+
 ## Recently Done
 
 - [x] **NPC wage shown in tooltip** — "Wage: ~X.Xg/hr" for working NPCs based on skill.
