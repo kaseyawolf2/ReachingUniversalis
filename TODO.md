@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Near-bankrupt tooltip warning** — Show "!! Near bankruptcy !!" in red in hauler tooltip.
-
 ## Recently Done
+
+- [x] **Near-bankrupt tooltip warning** — Show "!! Near bankruptcy !!" in red in hauler tooltip.
 
 - [x] **Hauler route line on world map** — Faint sky-blue line from hauler to destination.
 
@@ -679,7 +679,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `(destX, destY)` using `DrawLineV` with `Fade(SKYBLUE, 0.3f)`. This makes active trade
   routes visible on the world map without needing to hover the hauler. No new snapshot fields.
 
-- [ ] **Near-bankrupt tooltip warning** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
+- [x] **Near-bankrupt tooltip warning** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
   `best->nearBankrupt` is true, show a "!! Near bankruptcy !!" line in `Fade(RED, 0.9f)`.
   Add to lineCount and width calc. Complements the red ring with textual detail.
 
@@ -760,6 +760,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   home. Requires adding `float homeX, homeY` to `AgentEntry` in `RenderSnapshot.h` (populated
   from `HomeSettlement` position in SimThread). Shows both outbound (coloured) and return
   (gray) trade flow.
+
+- [ ] **Bankruptcy countdown in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
+  `best->nearBankrupt` is true, also show "Bankrupt in: ~Xh" estimating remaining time.
+  Add `float bankruptTimer = 0.f` to `AgentEntry` in `RenderSnapshot.h`, populated from
+  `Hauler::nearBankrupt` flag plus the static timer in EconomicMobilitySystem. Since the timer
+  is static in EconomicMobilitySystem, add a `float bankruptProgress` field to `Hauler` struct
+  that gets set alongside `nearBankrupt`. Display as `24 - bankruptProgress` hours remaining.
+
+- [ ] **Wealthy NPC golden ring** — In `GameState.cpp`'s agent render loop, when an NPC
+  (non-hauler, non-player) has `balance > 80`, draw a faint `Fade(GOLD, 0.25f)` outer ring
+  (radius 8). Makes wealthy NPCs visually distinct and highlights economic stratification.
+  No new snapshot fields — `balance` is already in `AgentEntry`.
 
 ---
 
