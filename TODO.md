@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
+  (Hunger > 0.8, Money > 20g, charityTimer == 0), draw a faint dim circle of radius 80 around
+  them in `GameState.cpp` (the render loop that draws agent dots). Check `AgentEntry::balance`
+  and `AgentEntry::hungerPct` to decide if `canHelp` applies. Draw using Raylib's
+  `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only draw when no other overlay is active (e.g.
+  no road or facility hovered). This gives the player spatial awareness of charity coverage.
+
 ---
 
 ## Done
@@ -34,13 +41,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Charity radius shown on hover** — When the player hovers an NPC who `canHelp`
-  (Hunger > 0.8, Money > 20g, charityTimer == 0), draw a faint dim circle of radius 80 around
-  them in `GameState.cpp` (the render loop that draws agent dots). Check `AgentEntry::balance`
-  and `AgentEntry::hungerPct` to decide if `canHelp` applies. Draw using Raylib's
-  `DrawCircleLinesV` in `Fade(LIME, 0.2f)`. Only draw when no other overlay is active (e.g.
-  no road or facility hovered). This gives the player spatial awareness of charity coverage.
 
 ### NPC Crime & Consequence
 
