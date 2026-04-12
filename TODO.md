@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Convoy bandit deterrence** — Skip haulers with `inConvoy == true` in bandit intercept block of `AgentDecisionSystem`.
-
 ## Recently Done
+
+- [x] **Convoy bandit deterrence** — `if (h.inConvoy) return;` in AgentDecisionSystem bandit intercept lambda. Bandits skip convoy haulers.
+
 
 - [x] **Convoy log announcement** — Track wasInConvoy + convoyPartner in TransportSystem convoy check. Log "[A] formed convoy with [B] on the way to [settlement]." on false→true transition.
 
@@ -1341,7 +1342,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the way to [settlement]." Add a `bool wasInConvoy` local to compare before/after. Use the same
   EventLog pattern as the nervous-travel log. Only log once per formation (check old state).
 
-- [ ] **Convoy bandit deterrence** — In `AgentDecisionSystem`'s bandit intercept block, skip
+- [x] **Convoy bandit deterrence** — In `AgentDecisionSystem`'s bandit intercept block, skip
   haulers with `Hauler::inConvoy == true`. Bandits won't attack a convoy — too risky. This gives
   convoys a gameplay purpose beyond speed: safety. Already have the `inConvoy` field on the Hauler
   component; just add an `if (h.inConvoy) return;` check in the intercept lambda.
@@ -2715,3 +2716,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   In the GoingToDeposit arrival block (where cargo is sold), if `lastConvoyPartner` is non-empty,
   log: "[Hauler] and [Partner] completed a successful trade run to [settlement]." Clear after
   logging. Pipe `lastConvoyPartner` through `RenderSnapshot::AgentEntry` for tooltip display.
+
+- [ ] **Bandit frustrated by convoy log** — In `AgentDecisionSystem`'s bandit intercept lambda,
+  when `h.inConvoy` causes the bandit to skip a hauler, log: "[Bandit] eyes the convoy but
+  doesn't dare attack." Rate-limit with a `float convoyFrustrationCd = 0.f` on `DeprivationTimer`
+  (decrement by `gameHoursDt`, reset to 4.f on log). Uses existing `Name` component for bandit
+  name. Adds narrative tension — players see bandits being deterred.
+
+- [ ] **Bandit targets solo haulers preferentially** — In `AgentDecisionSystem`'s bandit intercept
+  lambda, after the `inConvoy` skip, add a secondary preference: sort candidate haulers by cargo
+  value (sum of `qty * 3.f` for each resource). Instead of taking the first in range, track the
+  best target and intercept only the richest solo hauler. Replace the `intercepted` early-return
+  with a `bestTarget` entity + `bestValue` float. Makes bandits smarter predators.
