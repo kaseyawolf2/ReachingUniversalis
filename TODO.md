@@ -9,17 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity recipient log detail** — Extend the charity log message to name both parties:
-  change "X helped a starving neighbour." to "X helped [Recipient Name] at [Settlement]."
-  In `AgentDecisionSystem`'s charity block, after finding the starving NPC, read their `Name`
-  component and their home settlement's `Settlement::name`. Format: "Aldric helped Mira Reed
-  at Ashford." No new components — just expand the `charityLog->Push` format string using
-  `registry.try_get<Name>` on `starving.entity` and `registry.try_get<Settlement>` on
-  `starving.homeSettl`.
-
 ---
 
 ## Done
+
+- [x] **Charity recipient log detail** — Log now reads "X helped [Name] at [Settlement]." using `try_get<Name>` on recipient and `sett->name`. No new components.
 
 - [x] **Exile on repeat theft** — `theftCount` int on `DeprivationTimer`; incremented each theft. At 3, `HomeSettlement` cleared. Logs "X exiled from Y for repeated theft."
 
@@ -543,8 +537,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `HUD::DrawHoverTooltip`, when `isExiled`, append " [Exiled]" in `Fade(RED, 0.8f)` to line2
   (the behavior line), or show it as a separate faint red line below the role line.
 
-- [ ] **Charity recipient log detail** — In `AgentDecisionSystem`'s charity block, expand the log
-  from "X helped a starving neighbour." to "X helped [Name] at [Settlement]." Read
-  `registry.try_get<Name>(starving.entity)` for the recipient name and
-  `registry.try_get<Settlement>` on `starving.homeSettl` for the settlement name. No new
-  components — just expand the `charityLog->Push` format string.
+- [ ] **Charity frequency counter in event log** — When the same helper NPC gives charity
+  again, append "(×N)" to the log. Add a `static std::map<entt::entity, int> s_charityCount`
+  inside `AgentDecisionSystem::Update`; increment on each successful help; prune destroyed
+  entities. In the `charityLog->Push` call, append " (×N)" when count > 1.
+
+- [ ] **Wanderer re-settlement** — Exiled NPCs (`home.settlement == entt::null`,
+  `theftCount >= 3`) with `balance >= 30g` can re-settle. In `AgentDecisionSystem`'s
+  IDLE/SEEKING block, when `home.settlement == entt::null`, find nearest settlement with
+  `pop < popCap - 2`, deduct 30g from `Money::balance`, credit to that `Settlement::treasury`,
+  set as new `home.settlement`, reset `theftCount = 0`. Log "X settled at Y (fresh start)."
+
+- [ ] **Exile indicator in tooltip** — Add `bool isExiled = false` to `AgentEntry` in
+  `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when home entity is `entt::null` AND
+  `dt->theftCount >= 3`. In `HUD::DrawHoverTooltip`, when `isExiled`, show a faint red
+  "[Exiled]" line below the role/behavior lines — same `lineCount`/`pw` pattern as `showHelped`.
