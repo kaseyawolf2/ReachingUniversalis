@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession-based work speed bonus** — In `ScheduleSystem.cpp`, when a Working NPC is
-  at their skill-matched facility, check if their `Profession` type matches the facility output
-  (via `ProfessionForResource`). If so, apply a 10% skill gain bonus: multiply
-  `SKILL_GAIN_PER_GAME_HOUR` by 1.1f for that tick. This rewards NPCs who are both skilled
-  AND identify with their profession.
-
 ---
 
 ## Done
@@ -173,6 +167,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   replaced single `snprintf`/`DrawText` per resident with three calls: name in NPC color,
   " [Fa]"/" [Wa]"/" [Lu]"/" [Me]" in `Fade(GRAY, 0.75f)`, then gold in NPC color.
   Profession mapped from full string to 2-letter abbr; no abbr shown for unmapped professions.
+
+- [x] **Profession-based work speed bonus** — `ScheduleSystem.cpp` skill-at-worksite block:
+  `try_get<Profession>` then compare `prof->type == ProfessionForResource(facType)`.
+  `gainMult = 1.1f` when matched, else 1.0f. Multiplied into `SKILL_GAIN_PER_GAME_HOUR`.
 
 - [ ] **Strike indicator in NPC tooltip** — Add `bool onStrike = false` to `AgentEntry` in
   `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set it when the entity has `DeprivationTimer`
@@ -489,6 +487,25 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot by counting homed NPCs with
   `AgentBehavior::Idle` (excluding Haulers, player). No visual layout change beyond the extended
   string.
+
+- [ ] **Profession vocation label in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp),
+  when an NPC's `Profession::type` matches their highest-skill resource (i.e. they are working
+  in their vocation), append " [vocation]" in `Fade(GOLD, 0.6f)` to the role line. The match
+  check mirrors the ScheduleSystem bonus: `ProfessionForResource` of the aptitude resource ==
+  `prof->type`. Add `bool inVocation = false` to `AgentEntry` in `RenderSnapshot.h`; populate
+  in SimThread's agent snapshot loop via `try_get<Profession>` + `try_get<Skills>`.
+
+- [ ] **Skill milestone log** — In `ScheduleSystem.cpp`'s skill-at-worksite block, after
+  `skills->Advance(...)`, check if the skill just crossed 0.5 (journeyman) or 0.9 (master)
+  for the first time. Use a `static std::set<std::pair<entt::entity,int>> s_milestones` to
+  prevent repeat fires. Log "Aldric Smith reached Journeyman Farming." or "Master Water." via
+  `registry.view<EventLog>()`. Levels: 0.5 = Journeyman, 0.9 = Master.
+
+- [ ] **Profession match indicator on world dot** — In `GameState.cpp`'s agent draw loop,
+  when an NPC is Working and their `AgentEntry::inVocation` is true (to be added per task above),
+  draw a small additional ring dot (radius 5, `Fade(GOLD, 0.5f)`) centred on the NPC. This makes
+  vocation-aligned workers visually distinct on the map. Requires the `inVocation` field from the
+  tooltip vocation task above.
 
 ---
 
