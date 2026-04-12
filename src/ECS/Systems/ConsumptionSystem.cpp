@@ -105,8 +105,13 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         // ---- Emergency market purchase ----
         // When stockpile is empty, an NPC with money can buy goods at market price.
         // Gold flows to the settlement treasury; need is refilled.
+        // SaveGold goal: NPCs hoarding gold buy less frequently (4h interval instead of 2h).
         timer.purchaseTimer += gameHoursDt;
-        if (timer.purchaseTimer >= PURCHASE_INTERVAL && settl && money && money->balance > 0.f) {
+        float effectivePurchaseInterval = PURCHASE_INTERVAL;
+        if (const auto* g = registry.try_get<Goal>(entity))
+            if (g->type == GoalType::SaveGold)
+                effectivePurchaseInterval *= 2.f;   // hoarders delay emergency purchases
+        if (timer.purchaseTimer >= effectivePurchaseInterval && settl && money && money->balance > 0.f) {
             auto* mkt = registry.try_get<Market>(home.settlement);
             if (mkt) {
                 // Buy 1 unit of food if empty
@@ -120,7 +125,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
                 // Buy 1 unit of water if empty (separate check)
-                if (!hadWater && timer.purchaseTimer >= PURCHASE_INTERVAL) {
+                if (!hadWater && timer.purchaseTimer >= effectivePurchaseInterval) {
                     float price = mkt->GetPrice(ResourceType::Water);
                     if (money->balance >= price) {
                         money->balance -= price;

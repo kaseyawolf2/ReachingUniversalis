@@ -380,3 +380,27 @@ struct FamilyTag {
 // and intercept haulers within 40 units. Removed when balance recovers
 // above 20g or when the player confronts them (E key).
 struct BanditTag {};
+
+// ---- Personal goals ----
+// Each NPC holds one active goal. When met, a celebration fires and a new
+// goal is assigned. Goals influence behaviour (SaveGold → hoard; BecomeHauler
+// → work harder for production bonus).
+enum class GoalType { SaveGold, ReachAge, FindFamily, BecomeHauler };
+
+struct Goal {
+    GoalType type          = GoalType::SaveGold;
+    float    progress      = 0.f;   // current measured value
+    float    target        = 100.f; // threshold to complete
+    float    celebrateTimer = 0.f;  // game-hours remaining for personal celebration
+};
+
+// Helper: human-readable goal description (e.g. for the event log)
+inline const char* GoalLabel(GoalType g) {
+    switch (g) {
+        case GoalType::SaveGold:     return "Save Gold";
+        case GoalType::ReachAge:     return "Reach Age";
+        case GoalType::FindFamily:   return "Find Family";
+        case GoalType::BecomeHauler: return "Become Merchant";
+    }
+    return "Unknown";
+}

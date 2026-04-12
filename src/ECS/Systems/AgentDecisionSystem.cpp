@@ -219,13 +219,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         // Reverts to Idle when the festival ends.
         // ============================================================
         if (state.behavior == AgentBehavior::Celebrating) {
+            // Personal celebration from a completed goal takes priority.
+            bool personalCelebration = false;
+            if (const auto* g = registry.try_get<Goal>(entity))
+                personalCelebration = (g->celebrateTimer > 0.f);
+
             // Check if the festival is still active at home settlement
             bool festivalActive = false;
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
                 if (const auto* s = registry.try_get<Settlement>(home.settlement))
                     festivalActive = (s->modifierName == "Festival");
             }
-            if (!festivalActive) {
+            if (!festivalActive && !personalCelebration) {
                 state.behavior = AgentBehavior::Idle;
                 // Fall through to normal decision-making below
             } else {
@@ -918,5 +923,97 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
 
             state.behavior = AgentBehavior::Idle;
+        });
+
+    // ============================================================
+    // PERSONAL GOAL SYSTEM
+    // Every frame: update progress for all NPCs with a Goal component.
+    // When progress >= target: log a celebration, set Celebrating state
+    // for 2 game-hours, then assign a fresh random goal.
+    // ============================================================
+    static std::mt19937       s_goalRng{ std::random_device{}() };
+    static std::uniform_int_distribution<int> s_goalTypeDist(0, 3);
+
+    registry.view<Goal>(entt::exclude<PlayerTag>).each(
+        [&](auto e, Goal& goal)
+        {
+            // Drain personal celebration timer
+            if (goal.celebrateTimer > 0.f) {
+                goal.celebrateTimer = std::max(0.f, goal.celebrateTimer - gameHoursDt);
+                return;  // still celebrating — skip progress check this tick
+            }
+
+            // Update progress for the active goal type
+            switch (goal.type) {
+                case GoalType::SaveGold:
+                    if (const auto* m = registry.try_get<Money>(e))
+                        goal.progress = m->balance;
+                    break;
+                case GoalType::ReachAge:
+                    if (const auto* a = registry.try_get<Age>(e))
+                        goal.progress = a->days;
+                    break;
+                case GoalType::FindFamily:
+                    goal.progress = registry.all_of<FamilyTag>(e) ? 1.f : 0.f;
+                    break;
+                case GoalType::BecomeHauler:
+                    goal.progress = registry.all_of<Hauler>(e) ? 1.f : 0.f;
+                    break;
+            }
+
+            if (goal.progress < goal.target) return;  // not yet met
+
+            // ---- Goal completed! ----
+            // Log the event
+            auto gelv = registry.view<EventLog>();
+            if (gelv.begin() != gelv.end()) {
+                std::string who = "An NPC";
+                if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                std::string msg;
+                switch (goal.type) {
+                    case GoalType::SaveGold:
+                        msg = who + " reached their savings goal!";    break;
+                    case GoalType::ReachAge:
+                        msg = who + " celebrated a life milestone!";   break;
+                    case GoalType::FindFamily:
+                        msg = who + " found a family!";                break;
+                    case GoalType::BecomeHauler:
+                        msg = who + " achieved their dream of becoming a merchant!"; break;
+                }
+                gelv.get<EventLog>(*gelv.begin()).Push(charityDay, charityHour, msg);
+            }
+
+            // Start personal celebration: 2 game-hours for regular NPCs
+            goal.celebrateTimer = 2.f;
+            if (!registry.all_of<Hauler>(e)) {
+                if (auto* st = registry.try_get<AgentState>(e))
+                    st->behavior = AgentBehavior::Celebrating;
+            }
+
+            // Assign a new goal (avoid immediately re-assigning the same type)
+            GoalType newType = static_cast<GoalType>(s_goalTypeDist(s_goalRng));
+            if (newType == goal.type)
+                newType = static_cast<GoalType>((static_cast<int>(newType) + 1) % 4);
+
+            goal.type     = newType;
+            goal.progress = 0.f;
+            switch (newType) {
+                case GoalType::SaveGold: {
+                    float bal = registry.try_get<Money>(e)
+                                ? registry.get<Money>(e).balance : 0.f;
+                    goal.target = std::max(50.f, bal + 75.f);   // save 75g more
+                    break;
+                }
+                case GoalType::ReachAge: {
+                    float days = registry.try_get<Age>(e)
+                                 ? registry.get<Age>(e).days : 0.f;
+                    goal.target = days + 20.f;
+                    break;
+                }
+                case GoalType::FindFamily:
+                case GoalType::BecomeHauler:
+                    goal.target = 1.f;
+                    break;
+            }
         });
 }

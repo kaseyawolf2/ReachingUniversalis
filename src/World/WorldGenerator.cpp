@@ -92,6 +92,24 @@ static void SpawnNPCs(entt::registry& registry,
         static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
         registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
         registry.emplace<Profession>(npc, Profession{ profession });
+
+        // Assign a random initial personal goal
+        static std::uniform_int_distribution<int> goal_type_dist(0, 3);
+        Goal initialGoal;
+        initialGoal.type = static_cast<GoalType>(goal_type_dist(wg_rng));
+        switch (initialGoal.type) {
+            case GoalType::SaveGold:
+                initialGoal.target = 100.f;          // accumulate 100 gold
+                break;
+            case GoalType::ReachAge:
+                initialGoal.target = age.days + 25.f; // reach current age + 25 days
+                break;
+            case GoalType::FindFamily:
+            case GoalType::BecomeHauler:
+                initialGoal.target = 1.f;
+                break;
+        }
+        registry.emplace<Goal>(npc, initialGoal);
     }
 }
 

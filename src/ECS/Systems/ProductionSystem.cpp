@@ -71,7 +71,12 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                                 && ageComp
                                 && ageComp->days >= 12.f
                                 && ageComp->days < 15.f;
-            workers[hs.settlement] += isApprentice ? 0.2f : 1.0f;
+            // BecomeHauler goal: motivated workers produce 10% more (ambition bonus)
+            bool hasBecomeHaulerGoal = false;
+            if (const auto* g = registry.try_get<Goal>(e))
+                hasBecomeHaulerGoal = (g->type == GoalType::BecomeHauler);
+            float workerContrib = isApprentice ? 0.2f : (hasBecomeHaulerGoal ? 1.1f : 1.0f);
+            workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
                 arr[0].sum += skills->farming;       arr[0].count++;
