@@ -513,12 +513,14 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                      e.message.find("FIRE")       != std::string::npos ||
                      e.message.find("EARTHQUAKE") != std::string::npos ||
                      e.message.find("cold")       != std::string::npos ||
+                     e.message.find("stole")      != std::string::npos ||
                      e.message.find("COLLAPSED")  != std::string::npos) ? RED    :
                     (e.message.find("died")        != std::string::npos ||
                      e.message.find("migrating")   != std::string::npos ||
                      e.message.find("MIGRATION")   != std::string::npos ||
                      e.message.find("HEAT WAVE")   != std::string::npos ||
-                     e.message.find("bankrupt")    != std::string::npos) ? ORANGE :
+                     e.message.find("bankrupt")    != std::string::npos ||
+                     e.message.find("saw through") != std::string::npos) ? ORANGE :
                     (e.message.find("CLEARED")        != std::string::npos ||
                      e.message.find("restored")       != std::string::npos ||
                      e.message.find("reopened")       != std::string::npos ||
@@ -533,7 +535,8 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                      e.message.find("respawned")      != std::string::npos ||
                      e.message.find("built a new")    != std::string::npos ||
                      e.message.find("funded road")    != std::string::npos ||
-                     e.message.find("became a hauler") != std::string::npos) ? GREEN  :
+                     e.message.find("became a hauler") != std::string::npos ||
+                     e.message.find("Ally trade")      != std::string::npos) ? GREEN  :
                     (e.message.find("--- ")        != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
     }
