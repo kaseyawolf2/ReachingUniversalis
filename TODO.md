@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler return trip line** — Draw faint gray return line for haulers heading home.
-  Add homeX/homeY to AgentEntry, populate from HomeSettlement position in SimThread.
-
 ## Recently Done
+
+- [x] **Hauler return trip line** — Gray return-trip line drawn for haulers heading home.
 
 - [x] **Route line colour by cargo type** — Route lines now coloured by cargo (green/blue/brown).
 
@@ -779,7 +778,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   water, brown for wood, skyblue when empty. Makes trade flow resource types visible.
   No new snapshot fields — `cargoDotColor` and `hasCargoDot` already available.
 
-- [ ] **Hauler return trip line** — In `GameState.cpp`'s agent render loop, for haulers
+- [x] **Hauler return trip line** — In `GameState.cpp`'s agent render loop, for haulers
   without `hasRouteDest` but with a `homeSettlementName`, draw a faint gray line back toward
   home. Requires adding `float homeX, homeY` to `AgentEntry` in `RenderSnapshot.h` (populated
   from `HomeSettlement` position in SimThread). Shows both outbound (coloured) and return
@@ -2029,3 +2028,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   log "X and Y travel together toward Z" once per pair per trip. Use `static std::set<
   std::pair<entt::entity, entt::entity>> s_loggedConvoy` cleared when either hauler changes
   state. Adds emergent social narrative to hauler behaviour without gameplay changes.
+
+- [ ] **Seasonal NPC clothing colour shift** — In `SimThread::WriteSnapshot`, when computing
+  `drawColor` for NPCs, tint the NPC body color slightly blue in Winter and slightly warm in
+  Summer by blending with `ColorTint`. Uses existing `Season` from `TimeManager`. Purely visual
+  — NPCs subtly reflect the current season through their appearance.
+
+- [ ] **NPC tavern gathering at night** — In `AgentDecisionSystem.cpp`, idle NPCs between
+  hours 20–23 with contentment > 0.5 walk toward the centre of their home settlement (within
+  20px). When 3+ NPCs cluster within 25px at night, log "Tavern gathering at X" once per
+  night per settlement. Use `static std::map<entt::entity, int> s_tavernDay` to track last
+  logged day. Adds emergent social atmosphere without new components.
