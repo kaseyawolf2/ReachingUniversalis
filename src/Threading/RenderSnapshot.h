@@ -70,6 +70,8 @@ struct RenderSnapshot {
         bool ill      = false;
         // Which need is currently ill (0=Hunger, 1=Thirst, 2=Energy); only valid when ill=true
         int  illNeedIdx = 0;
+        // True if this NPC has an active good-harvest bonus (harvestBonusTimer > 0)
+        bool harvestBonus = false;
     };
 
     struct SettlementEntry {

@@ -346,6 +346,9 @@ void GameState::Draw() {
             DrawCircleLinesV({ a.x, a.y }, a.size + 1.f, a.ringColor);
         if (a.hasCargoDot)
             DrawCircleV({ a.x + a.size + 4.f, a.y - a.size }, 4.f, a.cargoDotColor);
+        // Harvest bonus glow: faint gold ring around workers with active good-harvest bonus
+        if (a.harvestBonus)
+            DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(GOLD, 0.4f));
     }
 
     EndMode2D();

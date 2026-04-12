@@ -1269,6 +1269,7 @@ void SimThread::WriteSnapshot() {
         bool onStrike        = false;
         bool ill             = false;
         int  illNeedIdx      = 0;
+        bool harvestBonus    = false;
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
             recentlyHelped   = (dt->helpedTimer > 0.f);
             recentlyStole    = (dt->stealCooldown > 46.f);
@@ -1278,6 +1279,7 @@ void SimThread::WriteSnapshot() {
             onStrike         = (dt->strikeDuration > 0.f);
             ill              = (dt->illnessTimer > 0.f);
             illNeedIdx       = dt->illnessNeedIdx;
+            harvestBonus     = (dt->harvestBonusTimer > 0.f);
         }
 
         bool isBandit = m_registry.all_of<BanditTag>(e);
@@ -1296,7 +1298,8 @@ void SimThread::WriteSnapshot() {
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, charityReady,
-                           isBandit, onStrike, ill, illNeedIdx });
+                           isBandit, onStrike, ill, illNeedIdx,
+                           harvestBonus });
     });
 
     // ---- Settlements ----
