@@ -9,11 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Estate size shown in settlement tooltip** — Add `float pendingEstates = 0.f` to
-  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, sum `money->balance`
-  for all elders (age > 60) homed at each settlement multiplied by 0.8f. In
-  `DrawSettlementTooltip` (HUD.cpp), show "Estates: ~Ng" in dim gold when > 0. Gives the player
-  a forward-looking economic signal — how much will flow into treasury when elders die.
+- [x] **Estate size shown in settlement tooltip** — Added `pendingEstates` to SettlementStatus,
+  populated in SimThread, displayed as "Estates: ~Ng" in Fade(GOLD, 0.5f) in settlement tooltip.
 
 - [x] **Elder will tooltip line** — Added "Will: 80% to treasury" in Fade(GOLD, 0.5f) for
   elders with gold in the NPC hover tooltip.
@@ -484,11 +481,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Elder will tooltip line** — Added "Will: 80% to treasury" in Fade(GOLD, 0.5f) for
   elders with gold in the NPC hover tooltip.
 
-- [ ] **Estate size shown in settlement tooltip** — Add `float pendingEstates = 0.f` to
-  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, sum `money->balance`
-  for all elders (age > 60) homed at each settlement multiplied by 0.8f. In
-  `DrawSettlementTooltip` (HUD.cpp), show "Estates: ~Ng" in dim gold when > 0. Gives the player
-  a forward-looking economic signal — how much will flow into treasury when elders die.
+- [x] **Estate size shown in settlement tooltip** — Added `pendingEstates` to SettlementStatus,
+  populated in SimThread, displayed as "Estates: ~Ng" in settlement tooltip.
 
 - [ ] **Profession shown in migration log** — In `AgentDecisionSystem.cpp`'s MIGRATING arrival
   block, after setting the new profession, append it to the existing migration log message.
@@ -1474,3 +1468,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `Hauler` component in `Components.h`. Increment by `gameHoursDt` when idle, reset to 0 on
   state transition. When `idleHours > 8.f`, log "Hauler X idle for 8h — no profitable routes"
   once (use a bool guard `idleLogged`). Reset guard on state change.
+
+- [ ] **Settlement wealth inequality metric** — Add `float giniCoeff = 0.f` to `SettlementStatus`
+  in `RenderSnapshot.h`. In SimThread's world-status loop, compute a simplified Gini coefficient
+  from the `Money::balance` of all homed NPCs (exclude Player/Hauler). Sort balances, compute
+  `sum(i * balance[i]) / (n * totalBalance)` scaled to 0-1. Display in settlement tooltip as
+  "Inequality: XX%" in LIGHTGRAY. High inequality (> 60%) could trigger social events later.
+
+- [ ] **NPC gratitude memory** — Add `std::string lastHelper` and `float gratitudeTimer = 0.f`
+  to `DeprivationTimer` in `Components.h`. In `ConsumptionSystem.cpp`'s charity block, when an
+  NPC receives charity, set `lastHelper` to the giver's `Name::value` and `gratitudeTimer = 24.f`
+  (game-hours). In `AgentDecisionSystem.cpp`'s migration scoring, while `gratitudeTimer > 0`,
+  apply a +0.3 bonus to the helper's home settlement score. Tick down in `NeedDrainSystem`.
+  Creates emergent loyalty — helped NPCs prefer to stay near their benefactors.
