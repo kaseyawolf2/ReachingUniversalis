@@ -66,6 +66,10 @@ struct RenderSnapshot {
         bool isBandit = false;
         // True if this NPC is currently on strike (DeprivationTimer::strikeDuration > 0)
         bool onStrike = false;
+        // True if this NPC has an active illness (DeprivationTimer::illnessTimer > 0)
+        bool ill      = false;
+        // Which need is currently ill (0=Hunger, 1=Thirst, 2=Energy); only valid when ill=true
+        int  illNeedIdx = 0;
     };
 
     struct SettlementEntry {

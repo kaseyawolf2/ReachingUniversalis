@@ -628,6 +628,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     // "On strike" line: shown when NPC has active strikeDuration
     bool showStrike   = best->onStrike;
 
+    // Illness suffix: appended inline on the needs line when illnessTimer > 0
+    const char* illLabel = nullptr;
+    if (best->ill) {
+        illLabel = (best->illNeedIdx == 0) ? "(ill: hunger)"  :
+                   (best->illNeedIdx == 1) ? "(ill: thirst)"  :
+                   (best->illNeedIdx == 2) ? "(ill: fatigue)" : "(ill)";
+    }
+
     // Skill line: show the relevant skill for this agent's profession
     bool showSkill = false;
     Color skillColor = GREEN;
@@ -666,11 +674,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkill)    lineCount++;
     if (showCargo)    lineCount++;
 
+    int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
     bool showApprentice = (best->role == RenderSnapshot::AgentRole::Child && best->ageDays >= 12.f);
     int wa  = hasName ? MeasureText(lineAge, 11) + (showApprentice ? MeasureText(" [Apprentice]", 11) : 0) : 0;
-    int w2  = MeasureText(line2, 11);
-    int w3  = MeasureText(line3, 11), w4 = MeasureText(line4, 11);
+    // Needs line is line3 for named NPCs, line2 for unnamed. Account for illness suffix width.
+    int w2  = MeasureText(line2, 11) + ((!hasName && illLabel) ? illSuffixW : 0);
+    int w3  = MeasureText(line3, 11) + ((hasName && illLabel) ? illSuffixW : 0);
+    int w4  = MeasureText(line4, 11);
     int w5  = showGold   ? MeasureText(line5,                 11) : 0;
     int wf  = showFollow ? MeasureText(followLine,            11) : 0;
     int w6  = showSkill  ? MeasureText(line6,                 11) : 0;
@@ -705,8 +716,18 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         }
         ly += 16;
     }
-    DrawText(line2, tx, ly, 11, LIGHTGRAY); ly += 16;
-    DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol); ly += 16;
+    {
+        DrawText(line2, tx, ly, 11, LIGHTGRAY);
+        if (!hasName && illLabel)
+            DrawText(illLabel, tx + MeasureText(line2, 11) + 4, ly, 11, Fade(RED, 0.75f));
+        ly += 16;
+    }
+    {
+        DrawText(line3, tx, ly, 11, hasName ? LIGHTGRAY : ageCol);
+        if (hasName && illLabel)
+            DrawText(illLabel, tx + MeasureText(line3, 11) + 4, ly, 11, Fade(RED, 0.75f));
+        ly += 16;
+    }
     if (hasName) { DrawText(line4, tx, ly, 11, ageCol); ly += 16; }
     if (showGold)   { DrawText(line5,               tx, ly, 11, YELLOW);               ly += 16; }
     if (showFollow) { DrawText(followLine,          tx, ly, 11, Fade(SKYBLUE, 0.8f)); ly += 16; }
