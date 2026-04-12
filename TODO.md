@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
+  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, compute the average
+  contentment of homed NPCs (view `Needs, HomeSettlement`, same exclusions as needStability).
+  In `HUD::DrawWorldStatus` (HUD.cpp), after the existing pop count, append a small coloured
+  "C:XX%" indicator using GREEN/YELLOW/RED thresholds matching the dot colours.
+
 - [x] **NPC longest-resident badge** — In `SimThread::WriteSnapshot`'s StockpilePanel residents
   loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
   to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
