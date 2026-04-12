@@ -9,16 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement anger on theft** — After implementing Theft from stockpile, when a theft
-  occurs, decrement the home `Settlement::treasury` by the stolen item's market price AND add
-  a small social consequence: reduce the thief's `Skills` across the board by 0.02 (shame penalty,
-  simulating social ostracism). Read `Skills` via `registry.try_get<Skills>` on the thief entity,
-  clamp at 0. Apply in the theft block in `AgentDecisionSystem` right after setting
-  `stealCooldown`. No new components needed.
-
 ---
 
 ## Done
+
+- [x] **Settlement anger on theft** — Skills penalty -0.02 per theft in `AgentDecisionSystem`; treasury deduction was already present. No new components.
 
 - [x] **Theft indicator in tooltip** — `recentlyStole` field in `AgentEntry`; set when `stealCooldown > 46f`. Faint red `(thief)` suffix on tooltip line1 in `HUD::DrawHoverTooltip`.
 
@@ -457,3 +452,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block: after confirming a theft, check all nearby NPCs (within 80 units) who have
   `gratitudeTarget == thief entity`; clear their `gratitudeTimer` and log the message. Purely
   social flavour — no new components.
+
+- [ ] **Theft log includes skill level** — Extend the theft log message in `AgentDecisionSystem`'s
+  theft block to include the thief's relevant skill after the penalty: change "Mira stole food from
+  Ashford." to "Mira stole food from Ashford (skill −0.02 → 23%)." Read `sk->farming` after
+  applying the penalty, pick the skill matching `stealRes` (farming→Food, water→Water,
+  woodcutting→Wood), format as integer percent. Only append the skill suffix when the NPC has a
+  `Skills` component.
+
+- [ ] **Skill degradation with age** — In `NeedDrainSystem.cpp`, after the need-drain loop, add
+  a second loop over `registry.view<Skills, Age>()`. When `age.days > 65.f`, reduce all three
+  skills by `0.0002f * gameDt` per tick, clamped at `0.1f` minimum. This creates an economic
+  lifecycle: NPCs peak mid-life, then gradually reduce output as elders. No new components needed.
+
+- [ ] **NPC idle chat radius** — When two NPCs of the same `HomeSettlement` are both `Idle` and
+  within 25 units during hours 18–21, briefly stop both (`vel = 0`) for 30–60 game-seconds.
+  Track with a `chatTimer` float on `DeprivationTimer`. After the timer expires, resume normal
+  gathering movement. Implement in `AgentDecisionSystem` after the evening gathering block.
