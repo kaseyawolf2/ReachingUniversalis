@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Hauler preferred route bias** — +10% score bonus in FindBestRoute when route matches hauler.bestRoute. Pass hauler entity into route evaluation.
 
 ## Recently Done
 
