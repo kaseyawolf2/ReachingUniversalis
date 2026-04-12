@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Stockpile abundance log event** — Log "Prosperity: [settlement] has abundant stores —
+## Recently Done
+
+- [x] **Stockpile abundance log event** — Log "Prosperity: [settlement] has abundant stores —
   morale rising." on first abundance trigger (all 3 stockpiles >= 80). One-shot per settlement
   per abundance period.
-
-## Recently Done
 
 - [x] **Hauler home morale penalty on bankruptcy** — Apply -0.03 morale to home settlement
   when a hauler goes bankrupt in EconomicMobilitySystem.cpp.
@@ -592,7 +592,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `registry.try_get<Settlement>(home.settlement)->morale -= 0.03f` with a `std::max(0.f, ...)`
   clamp. No new components needed.
 
-- [ ] **Stockpile abundance log event** — In `RandomEventSystem::Update`'s per-settlement loop,
+- [x] **Stockpile abundance log event** — In `RandomEventSystem::Update`'s per-settlement loop,
   when the abundance condition fires (all three stockpiles ≥ 80) for the first time, log
   "Prosperity: [settlement] has abundant stores — morale rising." Use a `static
   std::set<entt::entity> s_loggedAbundance`; insert on first trigger, erase when any stockpile
@@ -615,6 +615,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   flag on a new `AgentEntry` field. In `GameState.cpp`'s agent render loop, draw a faint red
   pulsating ring (like celebrating but red) around near-bankrupt haulers. Gives visual warning
   before demotion. Add `bool nearBankrupt` to `AgentEntry` in `RenderSnapshot.h`.
+
+- [ ] **Abundance end log** — In `RandomEventSystem::Update`'s abundance block, when a
+  settlement exits abundance (was in `s_loggedAbundance` but `abundant` is now false and not yet
+  below the scarcity reset), log "Abundance fading at [settlement] — stores declining." before
+  erasing from the set. Gives a narrative arc: prosperity → warning → scarcity.
+
+- [ ] **Hauler graduation celebration** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler
+  graduation block, set the new hauler's `AgentState::behavior = Celebrating` for 2 game-hours
+  (set `celebrateTimer = 2.f` on `DeprivationTimer`). Also bump home settlement morale by +0.02.
+  Becoming a hauler is a proud moment for the community.
 
 ---
 
