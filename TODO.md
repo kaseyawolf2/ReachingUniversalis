@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement anger on theft** — After implementing Theft from stockpile, when a theft
+  occurs, decrement the home `Settlement::treasury` by the stolen item's market price AND add
+  a small social consequence: reduce the thief's `Skills` across the board by 0.02 (shame penalty,
+  simulating social ostracism). Read `Skills` via `registry.try_get<Skills>` on the thief entity,
+  clamp at 0. Apply in the theft block in `AgentDecisionSystem` right after setting
+  `stealCooldown`. No new components needed.
+
 ---
 
 ## Done
@@ -24,13 +31,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Settlement anger on theft** — After implementing Theft from stockpile, when a theft
-  occurs, decrement the home `Settlement::treasury` by the stolen item's market price AND add
-  a small social consequence: reduce the thief's `Skills` across the board by 0.02 (shame penalty,
-  simulating social ostracism). Read `Skills` via `registry.try_get<Skills>` on the thief entity,
-  clamp at 0. Apply in the theft block in `AgentDecisionSystem` right after setting
-  `stealCooldown`. No new components needed.
 
 - [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
   world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
