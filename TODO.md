@@ -9,12 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Festival NPC count in event log** — When the Festival event fires in
-  `RandomEventSystem`, include the number of celebrating NPCs in the log message. After counting
-  NPCs set to Celebrating (the loop already iterates them), store the count and replace the
-  `snprintf` format: "FESTIVAL at Ashford — 12 celebrating, treasury +120g, production +35% (16h)".
-  Read the count from the same view loop that sets `behavior = Celebrating`; no new component.
-
 ---
 
 ## Backlog
@@ -28,6 +22,20 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   home `Stockpile`. Deduct the market price from `Settlement::treasury` (the settlement "loses"
   the good). Set `stealCooldown = 48` game-hours. Log: "Mira stole food from Ashford." Implement
   in `AgentDecisionSystem` in the IDLE/SEEKING section, after the migration trigger check.
+
+- [ ] **Theft indicator in tooltip** — After the Theft task above lands, surface the fact that an
+  NPC recently stole something. Add `bool recentlyStole = false` to `AgentEntry` in
+  `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2h of a theft). In
+  `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In
+  `HUD::DrawHoverTooltip`, show a faint RED "(thief)" suffix appended to line1 — same snprintf
+  pattern as the family indicator.
+
+- [ ] **Settlement anger on theft** — After implementing Theft from stockpile, when a theft
+  occurs, decrement the home `Settlement::treasury` by the stolen item's market price AND add
+  a small social consequence: reduce the thief's `Skills` across the board by 0.02 (shame penalty,
+  simulating social ostracism). Read `Skills` via `registry.try_get<Skills>` on the thief entity,
+  clamp at 0. Apply in the theft block in `AgentDecisionSystem` right after setting
+  `stealCooldown`. No new components needed.
 
 - [ ] **Event modifier label colour** — In `HUD::DrawSettlementTooltip` (HUD.cpp) and the
   world-status bar, the active modifier name (Drought, Plague, Festival, etc.) is shown as plain
@@ -295,6 +303,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ---
 
 ## Done
+
+- [x] **Festival NPC count in event log** — Added `celebrantCount` int incremented in the
+  existing Celebrating-setter loop in `RandomEventSystem`'s festival case. Log message updated
+  to "FESTIVAL at Ashford — 12 celebrating, treasury +120g, production +35% (16h)". Buffer
+  widened to 128.
 
 - [x] **Festival dot colour** — In `GameState.cpp`'s settlement render loop, added Festival
   override after the Plague override: `modifierName == "Festival"` → ring = `Fade(GOLD, 0.85f)`
