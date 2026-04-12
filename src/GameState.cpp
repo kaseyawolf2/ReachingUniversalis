@@ -360,6 +360,11 @@ void GameState::Draw() {
         // Vocation indicator: small gold ring when working in their best-skill profession
         if (a.inVocation && a.behavior == AgentBehavior::Working)
             DrawCircleLinesV({ a.x, a.y }, 5.f, Fade(GOLD, 0.5f));
+        // Celebrating glow: pulsating gold ring during celebrations
+        if (a.behavior == AgentBehavior::Celebrating) {
+            float alpha = 0.4f + 0.2f * sinf((float)GetTime() * 3.f);
+            DrawCircleLinesV({ a.x, a.y }, 12.f, Fade(GOLD, alpha));
+        }
     }
 
     EndMode2D();
