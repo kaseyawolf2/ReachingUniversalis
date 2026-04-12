@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Greeting builds affinity** — After logging a greeting in AgentDecisionSystem, gain +0.01 mutual affinity between the two NPCs. Uses existing Relations component.
+
 
 ## Recently Done
+
+- [x] **Greeting builds affinity** — After logging a greeting in AgentDecisionSystem, +0.01 mutual affinity via Relations. Casual greetings slowly build familiarity into friendship.
+
 
 - [x] **Settlement rivalry events** — Adjacent settlements with morale > 0.7 and pop > 15 trigger rivalry (2%/game-hour). 20% trade score penalty in FindBestRoute, 24 game-hour duration. rivalWith+rivalryTimer+rivalEntity on Settlement.
 
@@ -1432,7 +1435,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route scoring). Log "[A] and [B] are competing for regional dominance." Lasts 24 game-hours.
   Add `std::string rivalWith = ""` to Settlement.
 
-- [ ] **Greeting builds affinity** — In `AgentDecisionSystem`'s new greeting block, after logging
+- [x] **Greeting builds affinity** — In `AgentDecisionSystem`'s new greeting block, after logging
   the greeting, gain +0.01 mutual affinity between the two NPCs (same pattern as evening chat's
   `AFFINITY_GAIN`). Uses existing `Relations` component. Over many greetings, casual acquaintances
   become friends — bridging daytime greetings and evening chat into a unified social fabric.
@@ -2890,3 +2893,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   where `rivalryTimer` hits 0), give both settlements a temporary +20% production modifier for 6
   game-hours (`s.productionModifier = 1.2f; s.modifierDuration = 6.f; s.modifierName = "Post-Rivalry Boom"`).
   Log "[A] and [B] resume trade — post-rivalry boom." Reward for surviving the rivalry period.
+
+- [ ] **Friend greeting uses name** — In `AgentDecisionSystem`'s greeting block, after the affinity
+  gain, check if the two NPCs' mutual affinity exceeds `FRIEND_THRESHOLD` (0.5). If so, change
+  the log message from "[A] greets [B]" to "[A] warmly greets friend [B]". No new components —
+  uses existing `Relations::affinity` check. Makes high-affinity relationships visible in the log.
+
+- [ ] **NPC introduces friend to stranger** — In `AgentDecisionSystem`'s evening gathering chat
+  block (after the chat partner is found), if the chatting NPC has a friend (affinity > 0.5) nearby
+  who has zero affinity with the chat partner, set both strangers' mutual affinity to 0.05 and log
+  "[A] introduces [B] to [C]." Check `Relations::affinity` on both the friend and the chat partner.
+  Social networks grow organically through introductions rather than random encounters alone.
