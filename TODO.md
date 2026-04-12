@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement specialty label in stockpile header** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after the existing header line, add a small `specialty` label if non-empty.
-  `StockpilePanel` doesn't currently carry specialty — add `std::string specialty` to it in
-  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot (same as `SettlementEntry`
-  specialty). Draw "Specialty: Farming" in dim colour under the header line. Occupies one extra
-  row (adjust `totalLines` accordingly).
+(none)
+
+## Recently Done
+
+- [x] **Settlement specialty label in stockpile header** — Specialty label shown in stockpile panel header.
 
 - [x] **Profession colour in residents list** — Fa=green, Wa=skyblue, Lu=brown, Me=gold in
   stockpile panel residents list.
@@ -512,12 +511,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Profession colour in residents list** — Fa=green, Wa=skyblue, Lu=brown, Me=gold.
 
-- [ ] **Settlement specialty label in stockpile header** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after the existing header line, add a small `specialty` label if non-empty.
-  `StockpilePanel` doesn't currently carry specialty — add `std::string specialty` to it in
-  `RenderSnapshot.h` and populate it in SimThread's WriteSnapshot (same as `SettlementEntry`
-  specialty). Draw "Specialty: Farming" in dim colour under the header line. Occupies one extra
-  row (adjust `totalLines` accordingly).
+- [x] **Settlement specialty label in stockpile header** — Specialty label shown in stockpile panel header.
 
 - [ ] **Idle NPC count in stockpile panel** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), extend the "Treasury/Workers" line to also show idle NPCs:
@@ -1529,3 +1523,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   scale `workerContrib` by age bracket: youth (age < 20) get 0.7x, prime (20-50) get 1.0x,
   mature (50-60) get 0.9x, elder (> 60) already has special handling. Read `Age::days` via
   `try_get<Age>` on the worker entity. Models physical capability varying with life stage.
+
+- [ ] **Seasonal work schedule shift** — In `ScheduleSystem.cpp`, adjust NPC work-start and work-end
+  hours by season: Summer has longer work hours (5:00–20:00), Winter has shorter (7:00–17:00),
+  Spring/Autumn keep the current default. Read `TimeManager::season` and modify the `workStart`
+  / `workEnd` thresholds accordingly. This makes seasonal daylight affect productivity naturally.
+
+- [ ] **NPC mood emoji in tooltip** — In `HUD.cpp`'s NPC tooltip section, add a small text emoji
+  or symbol reflecting the NPC's contentment level: "☺" (>0.7), "😐" (0.3-0.7), "☹" (<0.3).
+  Draw it next to the NPC's name line using the existing `contentment` field from `AgentEntry`.
+  Color-code: green for happy, yellow for neutral, red for unhappy.
