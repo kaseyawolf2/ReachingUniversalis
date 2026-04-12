@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route line on world map** — Draw faint line from hauler to destination.
-
 ## Recently Done
+
+- [x] **Hauler route line on world map** — Faint sky-blue line from hauler to destination.
 
 - [x] **Settlement trade volume counter** — Track deliveries per settlement, show "Trades: N/day" in tooltip.
 
@@ -672,7 +672,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   snapshot, read and write it to the entry. Display in settlement tooltip as "Trades: N"
   showing total deliveries received. Reset counter every 24 game-hours.
 
-- [ ] **Hauler route line on world map** — In `GameState.cpp`'s agent render loop, when a
+- [x] **Hauler route line on world map** — In `GameState.cpp`'s agent render loop, when a
   hauler has `hasRouteDest` true, draw a thin dashed line from the hauler's position to
   `(destX, destY)` using `DrawLineV` with `Fade(SKYBLUE, 0.3f)`. This makes active trade
   routes visible on the world map without needing to hover the hauler. No new snapshot fields.
@@ -747,6 +747,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   discount from the local merchant). Log "X received local loyalty bonus at Y." once per
   delivery. Credits the hauler's balance. No new components — use existing `HomeSettlement`
   and `Money` checks.
+
+- [ ] **Route line colour by cargo type** — In `GameState.cpp`'s hauler route line, colour
+  the line based on `a.cargoDotColor` instead of always SKYBLUE: green for food, blue for
+  water, brown for wood, skyblue when empty. Makes trade flow resource types visible.
+  No new snapshot fields — `cargoDotColor` and `hasCargoDot` already available.
+
+- [ ] **Hauler return trip line** — In `GameState.cpp`'s agent render loop, for haulers
+  without `hasRouteDest` but with a `homeSettlementName`, draw a faint gray line back toward
+  home. Requires adding `float homeX, homeY` to `AgentEntry` in `RenderSnapshot.h` (populated
+  from `HomeSettlement` position in SimThread). Shows both outbound (coloured) and return
+  (gray) trade flow.
 
 ---
 
