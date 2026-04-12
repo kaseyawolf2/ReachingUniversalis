@@ -173,6 +173,16 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
             });
         }
 
+        // Seasonal migration penalty: Winter travel is harsh — destinations
+        // are less attractive, making NPCs more inclined to stay put.
+        {
+            auto tmv2 = registry.view<TimeManager>();
+            if (!tmv2.empty()) {
+                Season s = tmv2.get<TimeManager>(*tmv2.begin()).CurrentSeason();
+                if (s == Season::Winter) total *= 0.8f;
+            }
+        }
+
         // Migration memory bonus: prefer destinations remembered as having
         // cheaper food / water than the NPC's current home.
         // +20% if food was cheaper there; +10% if water was cheaper there.
