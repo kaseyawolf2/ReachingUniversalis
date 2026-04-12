@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
+  dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
+  settlement dots are drawn; check `SettlementEntry::modifierName == "Festival"` and use
+  `Fade(GOLD, 0.85f)` instead of the normal WHITE/GREEN color. Only applies during the festival
+  window, reverts automatically when `modifierName` clears.
+
 ---
 
 ## Backlog
@@ -16,12 +22,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Festival dot colour** — While a settlement has `modifierName == "Festival"`, draw its
-  dot in a festive yellow-gold tint in `GameState.cpp`'s settlement render loop. Find where
-  settlement dots are drawn; check `SettlementEntry::modifierName == "Festival"` and use
-  `Fade(GOLD, 0.85f)` instead of the normal WHITE/GREEN color. Only applies during the festival
-  window, reverts automatically when `modifierName` clears.
 
 - [ ] **Festival NPC count in event log** — When the Festival event fires in
   `RandomEventSystem`, include the number of celebrating NPCs in the log message. After counting
