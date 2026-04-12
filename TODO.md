@@ -11,6 +11,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Bandit flee on confrontation log detail** — Log includes bandit name, gold recovered, and nearest road's settlement names: "Player confronted X on the A-B road, recovered Ng."
+
+
 - [x] **Bandit density cap per road** — Max 3 bandits per road midpoint; excess wander randomly. Pre-count map built before bandit loop; lurk selection skips full roads.
 
 - [x] **Exile indicator in tooltip** — "[Exiled]" in faint RED on behavior line for homeless exiles.
@@ -1098,7 +1101,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after `WorldGenerator::FoundSettlement` returns. This makes founding visible in the event log
   alongside other major events.
 
-- [ ] **Bandit flee on confrontation log detail** — When the player confronts a bandit (E key),
+- [x] **Bandit flee on confrontation log detail** — When the player confronts a bandit (E key),
   log the bandit's name, gold recovered, and the road they were lurking near. In `SimThread::ProcessInput`'s
   bandit confrontation block, find the nearest Road entity and include its endpoint settlement names
   in the log message: "Player confronted [name] on the [A]–[B] road, recovered [N]g."
@@ -1113,6 +1116,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentDecisionSystem`'s bandit lurk block, after selecting a road, if the road already has 1+
   bandits, copy the existing gang name; otherwise generate one from the road's endpoint settlement
   names. Show gang name in bandit tooltip after "[Bandit]".
+
+- [ ] **Hauler road avoidance** — Haulers with cargo should prefer roads with fewer bandits. In
+  `TransportSystem`'s route selection (if applicable) or `AgentDecisionSystem`'s hauler pathfinding,
+  add a penalty to road attractiveness proportional to nearby bandit count. Haulers already know their
+  destination; if multiple paths exist, prefer the safer one. If only one path, proceed but log a
+  warning: "[Hauler] nervously travels the [A]-[B] road (N bandits spotted)."
+
+- [ ] **NPC reputation decay** — Reputation should slowly decay toward 0 over time. In
+  `AgentDecisionSystem`, reduce `reputation` by 0.01 per game-hour toward zero (positive reps decay
+  down, negative decay up). This prevents permanent reputation from a single act and encourages
+  ongoing good/bad behavior. Add `reputationDecayRate` constant near other reputation constants.
 
 ---
 
