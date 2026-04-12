@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Illness recovery log** — When `DeprivationTimer::illnessTimer` transitions from >0 to 0,
-  log "X recovered from illness at Y." Track with `static std::set<entt::entity> s_currentlyIll`.
+(none)
 
 ## Recently Done
+
+- [x] **Illness recovery log** — Logs "X recovered from illness at Y" on timer-to-zero transition.
 
 - [x] **GoodHarvest rumour seeding** — New RumourType, seeded on Harvest Bounty, -5% food price on arrival.
 
@@ -542,12 +543,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **GoodHarvest rumour seeding** — New RumourType, seeded on Harvest Bounty, -5% food on arrival.
 
-- [ ] **Illness recovery log** — In `RandomEventSystem::Update`'s per-NPC event loop (which
-  already drains `illnessTimer`), when `illnessTimer` transitions from `> 0` to `0` (i.e. it was
-  positive last tick and now hits zero), log "X recovered from illness at Y." using `try_get<Name>`
-  and `try_get<HomeSettlement>`. Track the transition with a `static std::set<entt::entity>
-  s_currentlyIll` that inserts on illness start and erases on recovery — the erase fires the log.
-  Rate-limited naturally since illness can only start every `personalEventTimer` interval.
+- [x] **Illness recovery log** — Logs recovery on illnessTimer transition to zero.
 
 - [ ] **Illness NPC dot tint** — When an NPC has `ill = true` in `AgentEntry` (already added),
   apply a subtle visual tint in `GameState.cpp`'s agent render loop: blend the existing `drawColor`
@@ -1596,3 +1592,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   SimThread's snapshot loop. Extend the rumour tooltip line in `HUD::DrawHoverTooltip` to
   show "(spreading: good harvest from Ashford)" instead of just "(spreading: good harvest)".
   Gives the player information about where the rumour originated.
+
+- [ ] **Illness spread between coworkers** — In `ScheduleSystem.cpp`'s Working state block
+  (around line 274), when an NPC is at a worksite and has `DeprivationTimer::illnessTimer > 0`,
+  check other Working NPCs at the same `ProductionFacility` entity. If a healthy coworker
+  (illnessTimer <= 0) is within 30 units, roll a 2% per-game-hour chance to infect them with the
+  same `illnessNeedIdx`. Log "X caught illness from Y at Z" via `EventLog`. Cap at 1 spread per
+  ill NPC per game-hour using a cooldown on `DeprivationTimer`.
+
+- [ ] **Illness affects work output** — In `ProductionSystem.cpp`'s per-worker contribution,
+  if the worker has `DeprivationTimer::illnessTimer > 0` (via `try_get<DeprivationTimer>`),
+  reduce their production contribution by 40%. This makes illness a tangible economic cost
+  beyond just accelerated need drain, creating pressure to keep NPCs healthy.
