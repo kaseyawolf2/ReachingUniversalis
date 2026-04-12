@@ -1062,10 +1062,24 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showTrade)
         std::snprintf(lineTrade, sizeof(lineTrade), "Trades: %d/day", best->tradeVolume);
 
+    // Line 10: production output
+    char lineOutput[80] = {};
+    bool showOutput = false;
+    if (status && (status->foodRate > 0.f || status->waterRate > 0.f || status->woodRate > 0.f)) {
+        int off = std::snprintf(lineOutput, sizeof(lineOutput), "Output:");
+        if (status->foodRate > 0.f)
+            off += std::snprintf(lineOutput + off, sizeof(lineOutput) - off, " food %.1f/h", status->foodRate);
+        if (status->waterRate > 0.f)
+            off += std::snprintf(lineOutput + off, sizeof(lineOutput) - off, " water %.1f/h", status->waterRate);
+        if (status->woodRate > 0.f)
+            std::snprintf(lineOutput + off, sizeof(lineOutput) - off, " wood %.1f/h", status->woodRate);
+        showOutput = true;
+    }
+
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
                       + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
-                      + (showTrade ? 1 : 0);
+                      + (showTrade ? 1 : 0) + (showOutput ? 1 : 0);
     int w = std::max({ MeasureText(line1, 12), MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
@@ -1073,7 +1087,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0,
-                       showTrade    ? MeasureText(lineTrade, 11) : 0 }) + 12;
+                       showTrade    ? MeasureText(lineTrade, 11) : 0,
+                       showOutput   ? MeasureText(lineOutput, 11) : 0 }) + 12;
     int h = lineCount * 16 + 4;
 
     Vector2 screen = GetWorldToScreen2D({ best->x, best->y }, cam);
@@ -1105,7 +1120,10 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         DrawText(line7, tx, ty,  11, moraleCol);            ty += 16;
     }
     if (showTrade) {
-        DrawText(lineTrade, tx, ty, 11, Fade(SKYBLUE, 0.8f));
+        DrawText(lineTrade, tx, ty, 11, Fade(SKYBLUE, 0.8f)); ty += 16;
+    }
+    if (showOutput) {
+        DrawText(lineOutput, tx, ty, 11, Fade(GREEN, 0.7f));
     }
 }
 

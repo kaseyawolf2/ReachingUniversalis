@@ -150,6 +150,9 @@ struct RenderSnapshot {
         float       morale         = 0.5f;  // settlement morale (0–1)
         float       avgContentment = 1.f;   // average NPC contentment (0–1)
         float       pendingEstates = 0.f;  // sum of elder (age>60) balances * 0.8 (future inheritance)
+        float       foodRate  = 0.f;  // estimated food production per game-hour
+        float       waterRate = 0.f;
+        float       woodRate  = 0.f;
     };
 
     // ---- Stockpile panel (shown when a settlement is selected) ----

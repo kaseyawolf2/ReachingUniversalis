@@ -1657,13 +1657,32 @@ void SimThread::WriteSnapshot() {
                     pendingEstates += m.balance * 0.8f;
             });
 
+        // Estimate gross production rates per resource for this settlement
+        float foodRate2 = 0.f, waterRate2 = 0.f, woodRate2 = 0.f;
+        {
+            int wk = workerCount.count(e) ? workerCount.at(e) : 0;
+            float ws = std::min(2.f, std::max(0.1f, wk / BASE_WORKERS_EST));
+            float sm = s.productionModifier * curSeasonMod;
+            m_registry.view<ProductionFacility>().each(
+                [&](const ProductionFacility& fac) {
+                if (fac.settlement != e || fac.baseRate <= 0.f) return;
+                float r = fac.baseRate * ws * sm;
+                switch (fac.output) {
+                    case ResourceType::Food:  foodRate2  += r; break;
+                    case ResourceType::Water: waterRate2 += r; break;
+                    case ResourceType::Wood:  woodRate2  += r; break;
+                }
+            });
+        }
+
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
                                  pop, hCount, childPop, s.treasury,
                                  s.modifierDuration > 0.f, s.modifierName,
                                  popTrend, foodPriceTrend, waterPriceTrend, woodPriceTrend,
                                  hungerCrisis, elderPop, elderBonus, s.morale,
-                                 avgContentment, pendingEstates });
+                                 avgContentment, pendingEstates,
+                                 foodRate2, waterRate2, woodRate2 });
 
         // Stockpile panel for selected settlement
         if (e == m_selectedSettlement) {
