@@ -9,10 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Scarcity log event** — Log "Shortage: X running low on food, water" once per scarcity
-  period per resource, using bitmask tracking in RandomEventSystem.cpp.
-
 ## Recently Done
+
+- [x] **Scarcity log event** — Log "Shortage: X running low on food, water" once per scarcity
+  period per resource, using bitmask tracking in RandomEventSystem.cpp.
 
 - [x] **Hauler graduation celebration** — New haulers celebrate 2h and home morale +0.02.
 
@@ -642,7 +642,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (set `celebrateTimer = 2.f` on `Goal`). Also bump home settlement morale by +0.02.
   Becoming a hauler is a proud moment for the community.
 
-- [ ] **Scarcity log event** — In `RandomEventSystem::Update`'s scarcity check, log "Shortage:
+- [x] **Scarcity log event** — In `RandomEventSystem::Update`'s scarcity check, log "Shortage:
   [settlement] running low on [resource]" once per scarcity period per resource. Use a
   `static std::map<entt::entity, int> s_loggedScarcity` keyed by entity, value is a bitmask
   (bit 0=food, 1=water, 2=wood). Set bit on first trigger, clear when that resource rises above
@@ -693,6 +693,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   for 12h at Y — no profitable routes." once per idle period using a `static
   std::set<entt::entity> s_loggedIdle`. Clear on state transition away from Idle. Surfaces
   stuck haulers that may need player attention.
+
+- [ ] **Scarcity recovery log** — In `RandomEventSystem::Update`'s scarcity bitmask block,
+  when a resource bit is cleared (rises above 20), log "Recovery: X food stores recovering."
+  per resource. Use the existing `s_loggedScarcity` map — detect clearing before `mask &= ~bit`.
+  Completes the scarcity narrative arc: shortage → recovery.
+
+- [ ] **NPC desperation purchase log** — In `ConsumptionSystem.cpp`'s emergency market purchase
+  block (where an NPC buys from a distant settlement because local stockpile is empty), log
+  "X desperate — bought food from Y market at Ng." once per NPC per 12 game-hours. Use a
+  `static std::map<entt::entity, float> s_desperateCooldown` drained by gameHoursDt. Shows
+  when NPCs are forced into expensive emergency purchases.
 
 ---
 
