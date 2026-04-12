@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Inter-settlement rivalry** — Track a `rivalry` map in each `Settlement`:
+  `std::map<entt::entity, float>` where negative = rival, positive = ally. Rivals form when one
+  settlement's haulers consistently undercut another's prices (detected in `PriceSystem`). Rival
+  settlements have a 10% trade tax surcharge between them. Allied settlements (formed by prolonged
+  fair trade) get a 5% discount. Show rivalry/alliance in the settlement tooltip.
+
 ---
 
 ## Done
@@ -85,12 +91,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Inter-settlement rivalry** — Track a `rivalry` map in each `Settlement`:
-  `std::map<entt::entity, float>` where negative = rival, positive = ally. Rivals form when one
-  settlement's haulers consistently undercut another's prices (detected in `PriceSystem`). Rival
-  settlements have a 10% trade tax surcharge between them. Allied settlements (formed by prolonged
-  fair trade) get a 5% discount. Show rivalry/alliance in the settlement tooltip.
 
 - [ ] **NPC age display in tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), after the role line,
   add an age line: "Age: 23" (integer days). Read `AgentEntry::age` (already in the struct as a
