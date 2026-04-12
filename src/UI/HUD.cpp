@@ -31,6 +31,18 @@ static const char* BehaviorLabel(AgentBehavior b) {
     return "Unknown";
 }
 
+// Maps a modifier/event name to a display colour.
+// Plague → RED, Drought → ORANGE, Festival → GOLD, Harvest Bounty → GREEN,
+// Heat Wave → warm orange, others → YELLOW.
+static Color ModifierColour(const std::string& name) {
+    if (name == "Plague")          return RED;
+    if (name == "Drought")         return ORANGE;
+    if (name == "Festival")        return Fade(GOLD, 0.95f);
+    if (name == "Harvest Bounty")  return Fade(GREEN, 0.90f);
+    if (name == "Heat Wave")       return Color{255, 160, 40, 255};
+    return YELLOW;
+}
+
 // ---- HandleInput ----
 
 void HUD::HandleInput(const RenderSnapshot& /*snapshot*/) {
@@ -293,7 +305,7 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     bool showWood = (season == Season::Autumn || season == Season::Winter);
 
     static const int STATUS_FONT = 12;
-    char bufs[4][128]; bool hasEvent[4] = {}; int count = 0;
+    char bufs[4][128]; bool hasEvent[4] = {}; std::string eventNames[4]; int count = 0;
     for (const auto& s : ws) {
         if (count >= 4) break;
         // Format: "Name F:stock@price W:stock@price G:treasury [pop+haulers]"
@@ -335,7 +347,8 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
             bufs[count][len+2] = '\0';
         }
         (void)trendSym;  // suppress warning if UTF-8 arrows not used
-        hasEvent[count] = s.hasEvent;
+        hasEvent[count]   = s.hasEvent;
+        eventNames[count] = s.eventName;
         ++count;
     }
 
@@ -365,9 +378,9 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     int cx = sx;
     for (int i = 0; i < count; ++i) {
         if (i > 0) { DrawText("|", cx, 14, STATUS_FONT, DARKGRAY); cx += 16; }
-        // Color wood stock red if very low in winter
+        // Color wood stock red if very low in winter; event lines use modifier-specific colour.
         bool woodLow = showWood && (ws[i].wood < 20.f) && (season == Season::Winter);
-        Color col = woodLow ? RED : (hasEvent[i] ? ORANGE : WHITE);
+        Color col = woodLow ? RED : (hasEvent[i] ? ModifierColour(eventNames[i]) : WHITE);
         DrawText(bufs[i], cx, 14, STATUS_FONT, col);
         cx += MeasureText(bufs[i], STATUS_FONT);
         if (childCounts[i] > 0) {
@@ -1003,7 +1016,7 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
                 char evBuf[16];
                 std::snprintf(evBuf, sizeof(evBuf), "!%-.8s", s.eventName.c_str());
                 DrawText(evBuf, SX + 4 + MeasureText(line1, SFONT) + 4,
-                         sy, 9, Fade(ORANGE, 0.8f));
+                         sy, 9, Fade(ModifierColour(s.eventName), 0.85f));
             }
             sy += SLH;
 
