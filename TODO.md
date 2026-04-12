@@ -9,10 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Low-morale NPC grumbling log** — NPCs at low-morale settlements grumble during gossip.
-  Rate-limited per settlement via static cooldown map.
-
 ## Recently Done
+
+- [x] **Low-morale NPC grumbling log** — Grumbling events logged during gossip at low-morale settlements.
 
 - [x] **Hauler state label in tooltip** — Hauler status shown in hover tooltip.
 
@@ -749,7 +748,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentEntry` in `RenderSnapshot.h`, populated from `Hauler::state` in SimThread. No gameplay
   changes — purely informational.
 
-- [ ] **Low-morale NPC grumbling log** — In `AgentDecisionSystem.cpp`'s gossip block, when
+- [x] **Low-morale NPC grumbling log** — In `AgentDecisionSystem.cpp`'s gossip block, when
   two NPCs at a settlement with morale < 0.3 gossip, 20% chance to log "X and Y grumble about
   conditions at Z." Use the existing gossip proximity check. Rate-limit per settlement to once
   per 12 game-hours via `static std::map<entt::entity, float> s_grumbleCooldown`. Adds social
@@ -1972,3 +1971,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   0.05 per game-hour while not Working. Apply a `(1.0 - shiftFatigue * 0.3)` multiplier to
   production output. Cap fatigue at 1.0. Log "X is exhausted at Y" when fatigue exceeds 0.8
   (rate-limited once per NPC). Creates a natural reason to rest and rotate workers.
+
+- [ ] **Morale recovery celebration** — When a settlement's morale crosses above 0.6 after being
+  below 0.35, log "Spirits lift at Settlement — morale restored" and set all homed NPCs to
+  `AgentBehavior::Celebrating` for 1 game-hour. Add `bool moraleCrisisLogged = false` to
+  `Settlement` in `Components.h`, set true when morale drops below 0.35, cleared on recovery.
+  Check in `RandomEventSystem.cpp` alongside existing morale checks. Creates a visible community
+  response to recovering from hardship.
+
+- [ ] **NPC mentorship** — Elder NPCs (age > 60) with high skill passively boost skill growth
+  of nearby younger NPCs. In `ProductionSystem.cpp`, when an elder is present at the same
+  facility as a younger worker, the younger NPC gains +50% skill XP. Add a tooltip line
+  "Mentored by: Elder Name" when this is active. Add `std::string mentorName` to `AgentEntry`
+  in `RenderSnapshot.h`, populated in SimThread when an elder shares the worker's facility.
