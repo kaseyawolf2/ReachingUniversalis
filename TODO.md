@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC mood colour on world dot** — In `GameState.cpp`, agent dots are currently all WHITE.
-  Tint the dot colour by the NPC's contentment: `contentment >= 0.7` → `GREEN`, `>= 0.4` →
-  `YELLOW`, `< 0.4` → `RED`. Use `AgentEntry::contentment` (already in the snapshot). Children and
-  haulers keep their existing colour logic. This makes settlement health instantly readable from the
-  overworld view.
-
 ---
 
 ## Done
+
+- [x] **NPC mood colour on world dot** — `GameState.cpp` agent draw loop: added contentment-based
+  `drawColor` for `AgentRole::NPC`. Green (≥ 0.7), yellow (≥ 0.4), red (< 0.4). Celebrating
+  overrides to gold for all roles. Children, haulers, and player use `a.color` unchanged.
 
 - [x] **Family size in tooltip** — `DrawHoverTooltip` (HUD.cpp): added `familyNameCount` map
   built alongside `surnameCount` in the same agent loop. FamilyTag path looks up the count;
@@ -390,6 +388,23 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loop, also track the NPC whose `Age::days` is highest among residents. Add an `isEldest bool`
   to `StockpilePanel::AgentInfo`. In `DrawStockpilePanel`, suffix the eldest resident's name
   with " [Elder]" in `Fade(ORANGE, 0.8f)`. Represents the settlement patriarch/matriarch.
+
+- [ ] **Contentment shown in world status bar** — Add `float avgContentment = 1.f` to
+  `SettlementStatus` in `RenderSnapshot.h`. In SimThread's world-status loop, compute the average
+  contentment of homed NPCs (view `Needs, HomeSettlement`, same exclusions as needStability).
+  In `HUD::DrawWorldStatus` (HUD.cpp), after the existing pop count, append a small coloured
+  "❤XX%" or plain "C:XX%" indicator using GREEN/YELLOW/RED thresholds matching the dot colours.
+
+- [ ] **Mood colour legend overlay** — In `HUD::Draw` (HUD.cpp), when `debugOverlay` is true,
+  draw a small 3-row legend in the bottom-right corner: a green dot + "Thriving (>70%)", a yellow
+  dot + "Stressed (40-70%)", a red dot + "Suffering (<40%)". Draw using `DrawCircleV` (radius 5)
+  + `DrawText` at fixed screen coordinates. Helps the player decode the contentment colour system.
+
+- [ ] **Suffering NPC log event** — In `RandomEventSystem::Update`'s per-NPC loop, when
+  `contentment < 0.2f` for an NPC, log "X is desperate at Y" (once per 12 game-hours using the
+  existing `personalEventTimer`). Requires computing `contentment` the same way as SimThread's
+  snapshot: weighted average of the 4 needs (hunger 30%, thirst 30%, energy 20%, heat 20%). Log
+  only if the NPC has a Name and HomeSettlement, and rate-limit per entity.
 
 ---
 
