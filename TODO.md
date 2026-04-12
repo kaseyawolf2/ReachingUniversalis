@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler graduation gold threshold shown in tooltip** — Show "Hauler at: 100g" progress
+  for NPCs with balance > 50g.
+
 ## Recently Done
 
 - [x] **NPC mood emoji in residents list** — Colored mood dot per resident in stockpile panel.
