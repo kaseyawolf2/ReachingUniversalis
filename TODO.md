@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bankrupt hauler flash before demotion** — Red pulsating ring on haulers near bankruptcy
+  (timer > 75% of BANKRUPTCY_HOURS). Add `nearBankrupt` bool to AgentEntry.
+
 ## Recently Done
 
 - [x] **Hauler profit margin in tooltip** — Show "Profit: ~Ng" for haulers with cargo. Add
