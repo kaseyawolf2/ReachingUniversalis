@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Scarcity causes NPC migration nudge** — NPCs more likely to migrate from settlements
-  with stockpile < 10.
-
 ## Recently Done
+
+- [x] **Recovery morale bump** — +0.01 morale per recovered resource when scarcity clears.
+
+- [x] **Scarcity causes NPC migration nudge** — +0.3 migration score per scarce resource at home.
 
 - [x] **Settlement import/export balance** — Import/export counts displayed in settlement tooltip.
 
@@ -848,13 +849,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement tooltip as "Trade: +N imports / -N exports". Reset every 24 game-hours alongside
   `tradeVolume`.
 
-- [ ] **Scarcity causes NPC migration nudge** — In `AgentDecisionSystem.cpp`'s
+- [x] **Scarcity causes NPC migration nudge** — In `AgentDecisionSystem.cpp`'s
   `FindMigrationTarget` scoring, when the NPC's home settlement has any stockpile below 10
   (read from `Stockpile` component), add +0.3 to the migration score of all other settlements.
   Makes NPCs more likely to migrate away from scarce settlements. Use
   `registry.try_get<Stockpile>(home)` with the same threshold as `SCARCITY_THRESHOLD` (10).
 
-- [ ] **Recovery morale bump** — In `RandomEventSystem::Update`'s new recovery detection block,
+- [x] **Recovery morale bump** — In `RandomEventSystem::Update`'s new recovery detection block,
   when a resource recovers (bit cleared from `s_loggedScarcity`), bump settlement morale by
   +0.01 per recovered resource. Model: recovery from scarcity is a small community boost.
   Use `registry.try_get<Settlement>(e)->morale` already in scope.
@@ -2152,3 +2153,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   below the residents list, show a one-line summary: "Avg mood: X%" where X is the mean
   contentment of all residents. Color green (> 70%), yellow (> 40%), red (< 40%). Uses
   existing `AgentInfo::contentment` already populated. No new snapshot fields needed.
+
+- [ ] **Morale-driven work slowdown** — In `ProductionSystem.cpp`, when producing resources,
+  scale output by a morale factor: `moraleFactor = 0.5f + 0.5f * settlement.morale` (so morale
+  0 = 50% output, morale 1 = 100%). Apply to the `produced` amount after seasonal modifiers.
+  Settlement morale is already accessible via `registry.try_get<Settlement>`. Visible effect:
+  low-morale settlements produce less, creating economic feedback loops.
+
+- [ ] **Festival morale bonus** — In `RandomEventSystem.cpp`'s festival event block, when a
+  festival triggers, bump settlement morale by +0.05 in addition to the existing production
+  bonus. Log "Festival lifts spirits in X — morale rising." This creates a positive feedback
+  loop where prosperous settlements get occasional morale boosts that further improve output.
