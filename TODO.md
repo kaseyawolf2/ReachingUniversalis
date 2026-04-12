@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler profit summary in tooltip** — Show estimated trip profit in faint GREEN below cargo line.
-
 ## Recently Done
+
+- [x] **Hauler profit summary in tooltip** — estimatedProfit computed from dest market price in WriteSnapshot. Shows "Est. profit: +Ng" in GREEN/RED during delivery.
+
 
 - [x] **Hauler convoy formation** — Hauler::inConvoy set when GoingToDeposit within 60u of another hauler to same destination. 25% speed bonus, "[Convoy]" in green tooltip.
 
@@ -1184,7 +1185,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   haulers heading to the same destination within 60u; if found, set `inConvoy = true`. Convoys get
   a 25% speed bonus. Pipe `inConvoy` through `RenderSnapshot::AgentEntry` and show in tooltip.
 
-- [ ] **Hauler profit summary in tooltip** — Show estimated trip profit in the hauler tooltip.
+- [x] **Hauler profit summary in tooltip** — Show estimated trip profit in the hauler tooltip.
   Add `float estimatedProfit = 0.f` to `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`,
   compute `(destPrice - buyPrice) * cargoQty * 0.8` (after 20% tax). Show as "Est. profit: +Ng"
   in faint GREEN below the cargo line. Helps the player understand hauler economics at a glance.
@@ -1258,6 +1259,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   haulers with `Hauler::inConvoy == true`. Bandits won't attack a convoy — too risky. This gives
   convoys a gameplay purpose beyond speed: safety. Already have the `inConvoy` field on the Hauler
   component; just add an `if (h.inConvoy) return;` check in the intercept lambda.
+
+- [ ] **Hauler trip history summary** — Add `int lifetimeTrips = 0; float lifetimeProfit = 0.f`
+  to `Hauler` component. In `TransportSystem`'s GoingToDeposit arrival block (where cargo is sold),
+  increment `lifetimeTrips` and add actual profit to `lifetimeProfit`. Pipe both through
+  `RenderSnapshot::AgentEntry` and show "Trips: N (total +Xg)" in faint LIGHTGRAY in tooltip.
+
+- [ ] **Hauler loss-making trip log** — In `TransportSystem`'s GoingToDeposit arrival block,
+  after computing actual profit from selling cargo, if profit < 0, log: "[Hauler] completed a
+  loss-making trip to [settlement] (-Xg)." Helps player identify failing trade routes. Uses
+  existing EventLog and TimeManager access pattern from the nervous-travel log.
 
 ---
 
