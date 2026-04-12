@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement trade volume in tooltip** — Show "Trade volume: Xg/day" in settlement tooltip.
+
 ## Recently Done
 
 - [x] **NPC witness bandit confrontation** — Non-bandit NPCs within 120u gain +0.1 reputation. Logged per witness.
