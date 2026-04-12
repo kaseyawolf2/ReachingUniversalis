@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
+  when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
+  GRATITUDE block, after computing target position, check if within 25 units of the helper:
+  if so, set `vel = {0, 0}` (polite stop) but still decrement the timer and `continue`. This
+  makes NPCs stand near their helper for the remainder of the gratitude window rather than
+  endlessly bumping into them.
+
 ---
 
 ## Done
@@ -28,13 +35,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Gratitude approach stops at polite distance** — Currently the gratitude walk doesn't stop
-  when the receiver reaches the helper; they clip into each other. In `AgentDecisionSystem`'s
-  GRATITUDE block, after computing target position, check if within 25 units of the helper:
-  if so, set `vel = {0, 0}` (polite stop) but still decrement the timer and `continue`. This
-  makes NPCs stand near their helper for the remainder of the gratitude window rather than
-  endlessly bumping into them.
 
 - [ ] **Gratitude shown in tooltip** — When `gratitudeTimer > 0`, add a faint indication in the
   tooltip. In `SimThread::WriteSnapshot`, add a `bool isGrateful = false` field to `AgentEntry`
