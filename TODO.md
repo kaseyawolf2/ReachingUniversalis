@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Scarcity causes NPC migration nudge** — NPCs more likely to migrate from settlements
+  with stockpile < 10.
+
 ## Recently Done
 
 - [x] **Settlement import/export balance** — Import/export counts displayed in settlement tooltip.
