@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Harvest bonus shown in tooltip** — Draw "(good harvest)" line in HUD tooltip when
-  `AgentEntry::harvestBonus` is true. No new snapshot fields needed.
+(none)
 
 ## Recently Done
+
+- [x] **Harvest bonus shown in tooltip** — "Good harvest bonus" in faint gold in NPC tooltip.
 
 - [x] **Illness source context in log** — Added "at Greenfield" to illness log messages.
 
@@ -562,11 +563,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Illness source context in log** — Added settlement name to illness log.
 
-- [ ] **Harvest bonus shown in tooltip** — When `AgentEntry::harvestBonus` is true (already
-  wired), draw a faint gold "(good harvest)" line in `HUD::DrawHoverTooltip` (HUD.cpp) below
-  the illness line. Add to `lineCount`, `pw` calculation, and draw block using the same pattern
-  as the `showStrike` line. No new snapshot fields needed — `harvestBonus` is already in
-  `AgentEntry`.
+- [x] **Harvest bonus shown in tooltip** — "Good harvest bonus" line in faint gold.
 
 - [ ] **Celebrating NPC glow ring** — In `GameState.cpp`'s agent render loop, when
   `a.behavior == AgentBehavior::Celebrating`, draw a pulsating `Fade(GOLD, alpha)` ring
@@ -1644,3 +1641,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   source entity in a new `IllnessSource` component (`entt::entity source; std::string sourceName;`)
   in `Components.h`. Display "Caught from: X" in the illness tooltip line in `HUD.cpp` by adding
   `std::string illnessSource` to `AgentEntry` in `RenderSnapshot.h` and populating it in SimThread.
+
+- [ ] **Harvest bonus remaining time in tooltip** — Extend the "Good harvest bonus" tooltip
+  line in `HUD.cpp` to show remaining hours: "Good harvest bonus (2h left)". Add `float
+  harvestBonusHours = 0.f` to `AgentEntry` in `RenderSnapshot.h`. Populate from
+  `DeprivationTimer::harvestBonusTimer` in SimThread's agent snapshot loop. Use snprintf to
+  format the line with the remaining hours.
+
+- [ ] **NPC celebration triggers affinity boost** — In `AgentDecisionSystem.cpp`, when an NPC
+  transitions to `AgentBehavior::Celebrating` (goal completion), boost affinity by +0.1 toward
+  all NPCs within 50 world units who share the same `HomeSettlement`. This simulates shared
+  joy strengthening community bonds. Use `registry.view<Relations, Position, HomeSettlement>`
+  to find nearby same-settlement NPCs.
