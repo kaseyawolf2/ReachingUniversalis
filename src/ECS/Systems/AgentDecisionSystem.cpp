@@ -772,6 +772,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 });
             }
 
+            // ---- Greeting: idle NPCs occasionally greet a nearby idle neighbour ----
+            if (timer.greetCooldown > 0.f)
+                timer.greetCooldown = std::max(0.f, timer.greetCooldown - dt);
+            if (timer.greetCooldown <= 0.f &&
+                home.settlement != entt::null && registry.valid(home.settlement)) {
+                static constexpr float GREET_RADIUS = 40.f;
+                bool greeted = false;
+                registry.view<AgentState, Position, HomeSettlement, DeprivationTimer, Name>(
+                    entt::exclude<Hauler, PlayerTag, BanditTag>)
+                    .each([&](auto other, const AgentState& oState, const Position& oPos,
+                              const HomeSettlement& oHome, DeprivationTimer& oTimer,
+                              const Name& oName) {
+                    if (greeted) return;
+                    if (other == entity) return;
+                    if (oHome.settlement != home.settlement) return;
+                    if (oState.behavior != AgentBehavior::Idle) return;
+                    float gdx = oPos.x - pos.x, gdy = oPos.y - pos.y;
+                    if (gdx*gdx + gdy*gdy > GREET_RADIUS * GREET_RADIUS) return;
+                    // Greet — 120 game-seconds cooldown = 2 real-seconds
+                    timer.greetCooldown  = 2.f;
+                    oTimer.greetCooldown = 2.f;
+                    {
+                        auto lv = registry.view<EventLog>();
+                        if (lv.begin() != lv.end()) {
+                            const auto* myName = registry.try_get<Name>(entity);
+                            std::string msg = (myName ? myName->value : "NPC") +
+                                              " greets " + oName.value;
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm.day, (int)tm.hourOfDay, msg);
+                        }
+                    }
+                    greeted = true;
+                });
+            }
+
             // ---- Evening gathering (hours 18–21) ----
             // Idle NPCs drift toward their home settlement centre at dusk,
             // making the world visually alive: people return home in the evening.

@@ -148,6 +148,7 @@ struct DeprivationTimer {
     float                harvestBonusTimer  = 0.f;       // game-hours remaining for good-harvest bonus (1.5× worker contribution)
     float                gossipNudgeTimer   = 0.f;       // game-seconds remaining for gossip drift animation (0 = eligible)
     float                fleeTimer          = 0.f;       // real-seconds remaining for post-theft flee (sprint away from settlement)
+    float                greetCooldown      = 0.f;       // real-seconds until NPC can greet a neighbour again (0 = ready)
     std::string          gangName;                       // bandit gang name (set when lurking at a road with other bandits)
 };
 
