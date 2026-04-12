@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC mood colour on world dot** — In `GameState.cpp`, agent dots are currently all WHITE.
+  Tint the dot colour by the NPC's contentment: `contentment >= 0.7` → `GREEN`, `>= 0.4` →
+  `YELLOW`, `< 0.4` → `RED`. Use `AgentEntry::contentment` (already in the snapshot). Children and
+  haulers keep their existing colour logic. This makes settlement health instantly readable from the
+  overworld view.
+
 ---
 
 ## Done
@@ -113,12 +119,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **NPC mood colour on world dot** — In `GameState.cpp`, agent dots are currently all WHITE.
-  Tint the dot colour by the NPC's contentment: `contentment >= 0.7` → `GREEN`, `>= 0.4` →
-  `YELLOW`, `< 0.4` → `RED`. Use `AgentEntry::contentment` (already in the snapshot). Children and
-  haulers keep their existing colour logic. This makes settlement health instantly readable from the
-  overworld view.
 
 - [ ] **Settlement name in event log** — In `RandomEventSystem.cpp`, random events like "Drought at
   Ashford" currently emit to the global EventLog with just the settlement name in the string. Add
