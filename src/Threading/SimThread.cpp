@@ -1690,6 +1690,8 @@ void SimThread::WriteSnapshot() {
 
             // Residents list — homed NPCs sorted by balance descending, max 12
             panel.residents.clear();
+            float eldestAge = -1.f;
+            std::string eldestName;
             m_registry.view<Name, HomeSettlement, Money>(entt::exclude<PlayerTag, Hauler>).each(
                 [&](auto npc, const Name& nm, const HomeSettlement& hs, const Money& mn) {
                     if (hs.settlement != e) return;
@@ -1700,12 +1702,24 @@ void SimThread::WriteSnapshot() {
                         ai.profession = ProfessionLabel(pr->type);
                     if (const auto* ft = m_registry.try_get<FamilyTag>(npc))
                         ai.familyName = ft->name;
+                    if (const auto* age = m_registry.try_get<Age>(npc)) {
+                        if (age->days > eldestAge) {
+                            eldestAge  = age->days;
+                            eldestName = nm.value;
+                        }
+                    }
                     panel.residents.push_back(std::move(ai));
                 });
             std::sort(panel.residents.begin(), panel.residents.end(),
                 [](const auto& a, const auto& b) { return a.balance > b.balance; });
             if (panel.residents.size() > 12)
                 panel.residents.resize(12);
+            // Mark the eldest resident (if still in the truncated list)
+            if (!eldestName.empty()) {
+                for (auto& r : panel.residents) {
+                    if (r.name == eldestName) { r.isEldest = true; break; }
+                }
+            }
         }
     });
 

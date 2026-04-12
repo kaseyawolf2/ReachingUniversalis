@@ -257,8 +257,13 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                     char famBuf[8];
                     std::snprintf(famBuf, sizeof(famBuf), " \xc3\x97%d", it->second);
                     DrawText(famBuf, rx, y, 11, Fade(DARKGRAY, 0.85f));
+                    rx += MeasureText(famBuf, 11);
                 }
             }
+
+            // Eldest resident badge — settlement patriarch/matriarch
+            if (r.isEldest)
+                DrawText(" [Elder]", rx, y, 11, Fade(ORANGE, 0.8f));
 
             y += LINE_H - 3;
         }

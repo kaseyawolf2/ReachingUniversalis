@@ -164,6 +164,7 @@ struct RenderSnapshot {
             float       balance    = 0.f;
             std::string profession;
             std::string familyName;   // FamilyTag::name, empty if no family
+            bool        isEldest   = false;  // oldest NPC at this settlement
         };
         std::vector<AgentInfo>        residents;
     };
