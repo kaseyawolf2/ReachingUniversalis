@@ -48,7 +48,8 @@ struct TradeRoute {
 // proximity: profit-per-distance so close routes beat distant ones.
 static TradeRoute FindBestRoute(entt::registry& registry,
                                  entt::entity homeSettlement,
-                                 int maxCapacity) {
+                                 int maxCapacity,
+                                 const std::string& preferredRoute = "") {
     TradeRoute best;
     float bestScore = 0.f;  // profit / max(100, distance) — avoids zero division
 
@@ -56,6 +57,13 @@ static TradeRoute FindBestRoute(entt::registry& registry,
     auto* homeMkt = registry.try_get<Market>(homeSettlement);
     const auto* homePos = registry.try_get<Position>(homeSettlement);
     if (!homeSp || !homeMkt || !homePos) return best;
+
+    // Home settlement name for preferred-route matching
+    std::string homeName;
+    if (!preferredRoute.empty()) {
+        if (auto* hs = registry.try_get<Settlement>(homeSettlement))
+            homeName = hs->name;
+    }
 
     // Build reachable-destination list from open roads, carrying road condition.
     // Poor-condition roads get a penalty applied to the route score so haulers
@@ -116,6 +124,15 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             auto* homeSettl = registry.try_get<Settlement>(homeSettlement);
             if (homeSettl && homeSettl->rivalryTimer > 0.f && homeSettl->rivalEntity == destEnt)
                 score *= 0.8f;
+            // Preferred route bonus: +10% when this route matches the hauler's best route
+            if (!preferredRoute.empty() && !homeName.empty()) {
+                auto* destSettl = registry.try_get<Settlement>(destEnt);
+                if (destSettl) {
+                    std::string candidate = homeName + "\xe2\x86\x92" + destSettl->name;
+                    if (candidate == preferredRoute)
+                        score *= 1.1f;
+                }
+            }
             if (score > bestScore) {
                 bestScore     = score;
                 best.dest     = destEnt;
@@ -244,7 +261,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             // Evaluate all reachable trade routes by expected profit.
             // Patience: after MAX_WAIT_CYCLES idle evaluations, accept any
             // positive margin rather than insisting on MIN_TRIP_PROFIT.
-            TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity);
+            TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity, hauler.bestRoute);
             float effectiveMin = (hauler.waitCycles >= MAX_WAIT_CYCLES)
                                  ? MIN_TRIP_PROFIT_FLOOR
                                  : MIN_TRIP_PROFIT;
