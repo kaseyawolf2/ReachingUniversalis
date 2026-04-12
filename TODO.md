@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Road condition overlay toggle** — 'O' key toggles road colour between safety and condition modes.
+
 ## Recently Done
 
 - [x] **Reputation affects charity willingness** — Starving NPCs with Reputation::score < -0.5 skipped in charity block. Log: "[Helper] refused to help [NPC] (bad reputation)."
