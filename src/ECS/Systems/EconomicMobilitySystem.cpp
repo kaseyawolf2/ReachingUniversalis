@@ -65,11 +65,13 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
         if (money.balance < BANKRUPTCY_THRESHOLD) {
             s_bankruptTimer[e] += CHECK_INTERVAL;
             hauler.nearBankrupt = (s_bankruptTimer[e] >= BANKRUPTCY_HOURS * 0.75f);
+            hauler.bankruptProgress = s_bankruptTimer[e];
             if (s_bankruptTimer[e] >= BANKRUPTCY_HOURS)
                 toDegrade.push_back(e);
         } else {
             s_bankruptTimer.erase(e);
             hauler.nearBankrupt = false;
+            hauler.bankruptProgress = 0.f;
         }
     });
 

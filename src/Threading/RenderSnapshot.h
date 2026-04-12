@@ -85,6 +85,8 @@ struct RenderSnapshot {
         int   haulerCargoQty = 0;
         // True when a hauler's bankruptcy timer exceeds 75% of threshold
         bool  nearBankrupt = false;
+        // Bankruptcy countdown: game-hours accumulated (0–24); remaining = 24 - progress
+        float bankruptProgress = 0.f;
         // Hauler state: 0=Idle, 1=GoingToDeposit, 2=GoingHome
         int   haulerState = 0;
     };

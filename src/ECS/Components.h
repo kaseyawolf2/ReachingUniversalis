@@ -167,6 +167,7 @@ struct Hauler {
     int          waitCycles       = 0;     // consecutive evaluations with no good route
     entt::entity cargoSource      = entt::null;  // settlement where current cargo was loaded (for rivalry tracking)
     bool         nearBankrupt    = false;       // true when bankruptcy timer > 75% threshold
+    float        bankruptProgress = 0.f;      // game-hours toward bankruptcy (0–24)
 };
 
 // ---- Economy ----

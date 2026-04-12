@@ -746,8 +746,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showHaulerState = true;
     }
 
-    // Near-bankrupt warning
+    // Near-bankrupt warning with countdown
     bool showNearBankrupt = best->nearBankrupt;
+    char bankruptLine[48] = {};
+    if (showNearBankrupt) {
+        float remaining = std::max(0.f, 24.f - best->bankruptProgress);
+        std::snprintf(bankruptLine, sizeof(bankruptLine),
+                      "!! Near bankruptcy — ~%.0fh left !!", remaining);
+    }
 
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
     const char* illLabel = nullptr;
@@ -824,7 +830,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
     int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
-    int wnb = showNearBankrupt ? MeasureText("!! Near bankruptcy !!", 11) : 0;
+    int wnb = showNearBankrupt ? MeasureText(bankruptLine, 11) : 0;
     int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
     int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wb, wsk, wwl, wr, whv, wpr, wrt, wnb, whs}) + 10;
     int ph = lineCount * 16;
@@ -884,7 +890,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHaulerState) { DrawText(haulerStateLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showRoute)        { DrawText(routeLine,               tx, ly, 11, Fade(LIGHTGRAY, 0.8f)); ly += 16; }
-    if (showNearBankrupt) { DrawText("!! Near bankruptcy !!", tx, ly, 11, Fade(RED, 0.9f));       }
+    if (showNearBankrupt) { DrawText(bankruptLine, tx, ly, 11, Fade(RED, 0.9f)); }
 }
 
 // ---- Facility hover tooltip ----
