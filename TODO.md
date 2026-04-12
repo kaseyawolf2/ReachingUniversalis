@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
+  show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
+  (2) "Morale: XX%" from `StockpilePanel::morale` — but that's only available when the settlement
+  is selected. Instead add `float morale` to `SettlementStatus` in `RenderSnapshot.h`, populate
+  it in SimThread's world-status loop with `s.morale`, and read it in the tooltip. Display it
+  in the same green/yellow/red colour scheme as the panel bar.
+
 - [x] **Unrest pop context** — In `RandomEventSystem::Update`'s settlement loop, the UNREST log
   currently reads "UNREST in Ashford — morale critical, production suffering". Extend it to
   include `[pop N]` and the current morale percentage: "UNREST in Ashford [pop 8] — morale 22%,
