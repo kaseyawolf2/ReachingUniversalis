@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Work stoppage event** — New random event type in `RandomEventSystem`: when settlement morale
+  < 0.3, there is a 5% chance per day of a Work Stoppage. All `Schedule`-following NPCs at that
+  settlement enter `AgentBehavior::Idle` for 6 game-hours, refusing to work. Settlement treasury
+  is not charged wages during this period. Log: "Workers in Ashford downed tools."
+
 ---
 
 ## Done
@@ -79,11 +84,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Memory & Goals
 
 ### Settlement Social Dynamics
-
-- [ ] **Work stoppage event** — New random event type in `RandomEventSystem`: when settlement morale
-  < 0.3, there is a 5% chance per day of a Work Stoppage. All `Schedule`-following NPCs at that
-  settlement enter `AgentBehavior::Idle` for 6 game-hours, refusing to work. Settlement treasury
-  is not charged wages during this period. Log: "Workers in Ashford downed tools."
 
 - [ ] **Inter-settlement rivalry** — Track a `rivalry` map in each `Settlement`:
   `std::map<entt::entity, float>` where negative = rival, positive = ally. Rivals form when one
