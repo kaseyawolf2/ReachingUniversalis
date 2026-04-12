@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler loyalty bonus** — 5% delivery bonus when hauler delivers to home settlement.
+
 ## Recently Done
 
 - [x] **Trade hub badge in settlement tooltip** — "[Trade Hub]" badge shown for settlements with ≥5 trades/day.
