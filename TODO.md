@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Exile on repeat theft** — Track a `theftCount` int on `DeprivationTimer`. After 3 thefts,
+  the NPC is "exiled": their `HomeSettlement` is cleared, they become a wanderer (no home, no wages,
+  no schedule). They can re-settle at a new settlement by spending 30g (implement as an extended
+  version of the existing H-key settle logic, triggered automatically for wanderers in
+  `AgentDecisionSystem` when they have enough gold).
+
 ---
 
 ## Done
@@ -38,12 +44,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 ### NPC Crime & Consequence
-
-- [ ] **Exile on repeat theft** — Track a `theftCount` int on `DeprivationTimer`. After 3 thefts,
-  the NPC is "exiled": their `HomeSettlement` is cleared, they become a wanderer (no home, no wages,
-  no schedule). They can re-settle at a new settlement by spending 30g (implement as an extended
-  version of the existing H-key settle logic, triggered automatically for wanderers in
-  `AgentDecisionSystem` when they have enough gold).
 
 - [ ] **Charity recipient log detail** — Extend the charity log message to name both parties:
   change "X helped a starving neighbour." to "X helped [Recipient Name] at [Settlement]."
