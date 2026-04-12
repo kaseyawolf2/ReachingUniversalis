@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
+- [x] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
   show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
   (2) "Morale: XX%" from `StockpilePanel::morale` — but that's only available when the settlement
   is selected. Instead add `float morale` to `SettlementStatus` in `RenderSnapshot.h`, populate
@@ -433,7 +433,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   production suffering". Count pop via the same HomeSettlement view pattern used in TriggerEvent.
   Same for "Tensions ease" recovery log.
 
-- [ ] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
+- [x] **Settlement tooltip: specialty and morale** — Extend `DrawSettlementTooltip` (HUD.cpp) to
   show two extra lines: (1) "Specialty: Farming" from `SettlementEntry::specialty` when non-empty;
   (2) "Morale: XX%" from `StockpilePanel::morale` — but that's only available when the settlement
   is selected. Instead add `float morale` to `SettlementStatus` in `RenderSnapshot.h`, populate
@@ -1416,3 +1416,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   2 wood)" showing `destSettlName` and cargo contents from `AgentEntry::cargo`. Format each
   resource type as "N type" comma-separated. No new snapshot fields needed — all data already
   in `AgentEntry`.
+
+- [ ] **Settlement tooltip: price summary** — In `DrawSettlementTooltip` (HUD.cpp), add a line
+  showing market prices: "Prices: F:1.2 W:0.8 L:2.1" using `SettlementStatus::foodPrice`,
+  `waterPrice`, `woodPrice` (already available via the `status` pointer). Color each price
+  GREEN if < 2.0, YELLOW if 2.0-5.0, RED if > 5.0. Helps players spot trade opportunities
+  without opening the market overlay.
+
+- [ ] **NPC grudge after theft** — In `ConsumptionSystem.cpp`, when an NPC steals from a
+  stockpile (the `recentlyStole` flag path), record the victim settlement entity on a new
+  `entt::entity grudgeTarget = entt::null` field in `DeprivationTimer` (Components.h). In
+  `AgentDecisionSystem.cpp`'s migration scoring, apply a -0.3 penalty to the grudge target
+  settlement. Clear grudge after 48 game-hours via a `float grudgeTimer = 0.f` on
+  `DeprivationTimer`. Makes theft have social consequences — thieves avoid returning.
