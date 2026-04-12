@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Theft indicator in tooltip** — After the Theft task above lands, surface the fact that an
+  NPC recently stole something. Add `bool recentlyStole = false` to `AgentEntry` in
+  `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2h of a theft). In
+  `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In
+  `HUD::DrawHoverTooltip`, show a faint RED "(thief)" suffix appended to line1 — same snprintf
+  pattern as the family indicator.
+
 ---
 
 ## Done
@@ -22,13 +29,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Theft indicator in tooltip** — After the Theft task above lands, surface the fact that an
-  NPC recently stole something. Add `bool recentlyStole = false` to `AgentEntry` in
-  `RenderSnapshot.h`; set it when `stealCooldown > 46.f` (within 2h of a theft). In
-  `SimThread::WriteSnapshot`, populate from `DeprivationTimer::stealCooldown`. In
-  `HUD::DrawHoverTooltip`, show a faint RED "(thief)" suffix appended to line1 — same snprintf
-  pattern as the family indicator.
 
 - [ ] **Settlement anger on theft** — After implementing Theft from stockpile, when a theft
   occurs, decrement the home `Settlement::treasury` by the stolen item's market price AND add
