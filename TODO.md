@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
+- [x] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
   road's arbitrage rate in `PriceSystem.cpp`. In the per-road arbitrage loop, check
   `sA->relations.find(road.to)` and `sB->relations.find(road.from)`; if both scores > 0.5, multiply
   `convergeFrac` by 1.5 (prices converge 50% faster on allied trade routes). Add a tooltip note
@@ -241,7 +241,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   rises above -0.3 (recovery), log "Relations improving between X and Y". Use a similar `bool`
   crossing approach as `Settlement::unrest`. This makes rivalry formation a visible story beat.
 
-- [ ] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
+- [x] **Alliance bonus shown in road tooltip** — When two settlements are allied, also boost the
   road's arbitrage rate in `PriceSystem.cpp`. In the per-road arbitrage loop, check
   `sA->relations.find(road.to)` and `sB->relations.find(road.from)`; if both scores > 0.5, multiply
   `convergeFrac` by 1.5 (prices converge 50% faster on allied trade routes). Add a tooltip note
@@ -1123,3 +1123,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   This creates a natural path out of rivalry: continued trade slowly rebuilds relations. Combined
   with the -0.04 per hauler delivery on the exporter side, net effect is that importing settlements
   slowly warm to their trade partners while exporters cool — modelling the asymmetry of trade.
+
+- [ ] **Alliance production bonus** — In `ProductionSystem.cpp`, after the existing morale modifier
+  block, check if the worker's home settlement has any ally (any `relations` entry > 0.5). If so,
+  apply a +5% production bonus (multiply `contribution` by 1.05f). This models allied settlements
+  sharing techniques/tools. Cap at one bonus regardless of number of allies. Log nothing — the
+  effect is visible through faster resource accumulation.
+
+- [ ] **Rivalry morale drain** — In `RandomEventSystem::Update`'s settlement loop, after the morale
+  drift block, check if the settlement has any rival (any `relations` entry < -0.5). If so, apply
+  a slow morale drain of -0.001 per game-hour per rival (uncapped, stacks). This creates pressure:
+  prolonged rivalry grinds morale down, increasing strike risk, which can push NPCs to migrate away.
+  Combined with morale-driven migration push, this creates organic settlement decline under rivalry.
