@@ -65,6 +65,10 @@ struct RenderSnapshot {
         bool recentWarmthGlow = false;
         // True if this NPC recently taught or learned a skill (teachCooldown > 0)
         bool recentlyTaught = false;
+        // True if this NPC is grieving (griefTimer > 0)
+        bool isGrieving = false;
+        // Remaining grief duration in game-hours
+        float griefHoursLeft = 0.f;
         // True if this NPC's charity cooldown is 0 (ready to give charity)
         bool charityReady = false;
         // Remaining charity cooldown in game-hours (> 0 means recently gave charity)
