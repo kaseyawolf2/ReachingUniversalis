@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
+
 ## Recently Done
 
 - [x] **Reunion affinity boost** — On migration arrival in `AgentDecisionSystem.cpp`, scans
@@ -779,8 +781,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
 
 - [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
 
