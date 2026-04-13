@@ -575,6 +575,77 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // ---- Mentor-apprentice: elders (age > 60) mentor children (age 12-14) at the same settlement ----
+    {
+        static int s_lastMentorDay = -1;
+        if (tm.day != s_lastMentorDay) {
+            s_lastMentorDay = tm.day;
+            static constexpr float MENTOR_SKILL_GROWTH = 0.003f;
+            static std::mt19937 s_mentorRng{ std::random_device{}() };
+
+            // Build per-settlement elder profession set: settlement → vector of (entity, profType)
+            struct ElderInfo { entt::entity e; ProfessionType prof; };
+            std::unordered_map<entt::entity, std::vector<ElderInfo>> eldersBySettl;
+            registry.view<Age, Profession, HomeSettlement>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, const Age& age, const Profession& prof, const HomeSettlement& hs) {
+                    if (age.days > 60.f && hs.settlement != entt::null
+                        && prof.type != ProfessionType::Idle)
+                        eldersBySettl[hs.settlement].push_back({e, prof.type});
+                });
+
+            // For each child apprentice (age 12-14), find a matching elder mentor
+            auto logV = registry.view<EventLog>();
+            auto childView = registry.view<ChildTag, Age, Skills, Profession, HomeSettlement, Name>();
+            for (auto child : childView) {
+                const auto& age = childView.get<Age>(child);
+                auto& sk = childView.get<Skills>(child);
+                const auto& prof = childView.get<Profession>(child);
+                const auto& hs = childView.get<HomeSettlement>(child);
+                const auto& childName = childView.get<Name>(child);
+                {
+                    if (age.days < 12.f || age.days > 14.f) return;
+                    if (hs.settlement == entt::null) return;
+                    if (prof.type == ProfessionType::Idle) return;
+                    auto it = eldersBySettl.find(hs.settlement);
+                    if (it == eldersBySettl.end()) return;
+
+                    // Find an elder with matching profession
+                    for (const auto& elder : it->second) {
+                        if (elder.prof != prof.type) continue;
+                        // Apply mentor skill growth
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:
+                                sk.farming = std::min(1.f, sk.farming + MENTOR_SKILL_GROWTH); break;
+                            case ProfessionType::WaterCarrier:
+                                sk.water_drawing = std::min(1.f, sk.water_drawing + MENTOR_SKILL_GROWTH); break;
+                            case ProfessionType::Lumberjack:
+                                sk.woodcutting = std::min(1.f, sk.woodcutting + MENTOR_SKILL_GROWTH); break;
+                            default: break;
+                        }
+                        // Log at 1-in-5 frequency
+                        if (!logV.empty() && s_mentorRng() % 5 == 0) {
+                            std::string elderName = "An elder";
+                            if (const auto* nm = registry.try_get<Name>(elder.e))
+                                elderName = nm->value;
+                            const char* skillName = (prof.type == ProfessionType::Farmer) ? "farming" :
+                                                    (prof.type == ProfessionType::WaterCarrier) ? "water-drawing" :
+                                                    "woodcutting";
+                            std::string settlName = "settlement";
+                            if (registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    settlName = s->name;
+                            logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                elderName + " mentors " + childName.value + " in " +
+                                skillName + " at " + settlName + ".");
+                        }
+                        break; // one mentor per child per day
+                    }
+                }
+            }
+        }
+    }
+
     // ---- Wealthy NPC celebration: one-time log when balance crosses 500g ----
     {
         auto logV = registry.view<EventLog>();
