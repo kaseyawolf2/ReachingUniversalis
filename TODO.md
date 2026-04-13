@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`, settlements with `profMask == 7` (all 3 professions) have 1-in-200 chance per game-day to trigger a "Harvest Festival" event: +0.05 morale, +0.02 affinity between all residents, lasts 4 game-hours. Log "[Settlement] celebrates its diverse workforce!" Requires checking `SettlAgg.profMask` or mirroring the bitmask.
+
+## Backlog
 
 - [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
 
