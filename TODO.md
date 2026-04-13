@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rivalry softening on shared crisis** — In `RandomEventSystem.cpp`, when a plague or drought hits a settlement, check if any rival settlements (relations < -0.5) are also experiencing the same event type. If so, improve relations by +0.15 for both and log "[Settlement A] and [Settlement B] set aside differences during [crisis]." Shared hardship as diplomacy.
-
 ## Recently Done
+
+- [x] **Rivalry softening on shared crisis** — Added `SoftenRivalryOnSharedCrisis()` static helper
+  in `RandomEventSystem.cpp`. Called after drought and plague events. When a rival settlement
+  (relations < -0.5) is experiencing the same crisis type, both sides gain +0.15 relations and
+  logs "[A] and [B] set aside differences during [crisis]."
+
+
 
 - [x] **Hauler route loyalty log** — Added `lastRoute` and `consecutiveRouteCount` to `Hauler`
   struct in `Components.h`. In `TransportSystem.cpp` after `lifetimeTrips++`, tracks consecutive
@@ -828,8 +833,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Rivalry softening on shared crisis** — In `RandomEventSystem.cpp`, when a plague or drought hits a settlement, check if any rival settlements (relations < -0.5) are also experiencing the same event type. If so, improve relations by +0.15 for both and log "[Settlement A] and [Settlement B] set aside differences during [crisis]." Shared hardship as diplomacy.
-
 - [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
 
 - [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
@@ -855,6 +858,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
 - [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
+
+- [ ] **Crisis aid between allied settlements** — In `RandomEventSystem.cpp`, after a drought or plague hits a settlement, check allied settlements (relations > 0.5). The closest ally with treasury > 100g donates 30g to the afflicted settlement's treasury. Log "[Ally] sends aid to [Settlement] during [crisis]." Gold flows treasury-to-treasury. Boosts relations by +0.05 for both sides.
+
+- [ ] **Post-crisis morale recovery event** — In `RandomEventSystem.cpp`'s modifier tick-down block (where `modifierDuration <= 0`), when a plague or drought ends, give the settlement a +0.05 morale bonus and log "[Settlement] celebrates the end of [crisis]." at 1-in-2 frequency. Settlements that survive hardship get a small morale bounce.
 
 - [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
 
