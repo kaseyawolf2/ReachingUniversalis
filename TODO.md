@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Benchmark history tracking** — After each benchmark run (`bash benchmark.sh`), append a one-line summary to `benchmark_history.csv` (date, git hash, duration, avg steps/s, final pop, final day, total deaths, avg gold, gini). Create the CSV header if the file doesn't exist. Modify `benchmark.sh` to parse `benchmark_report.txt` after the run and append the row. Also add a long-duration stability test: `bash benchmark.sh 1800` (30 min) to verify the sim stays healthy at full speed over extended play. Track results in the same CSV.
-
 ## Recently Done
+
+- [x] **Benchmark history tracking** — Modified `benchmark.sh` to parse `benchmark_report.txt`
+  after each run and append a one-line summary to `benchmark_history.csv` (date, git hash,
+  duration, avg steps/s, pop stats, economy, gini). Creates CSV header on first run. Supports
+  long-duration stability tests via `bash benchmark.sh 1800`. CSV and report added to `.gitignore`.
 
 - [x] **Stagger thank-player and teach scans** — Thank-player (reputation nod), wave-at-player
   (happy wave), and skill training (O(n) proximity scan) blocks gated with
@@ -4108,3 +4111,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **NPC workplace camaraderie** — In `AgentDecisionSystem.cpp`'s social block, when two NPCs are both in `AgentBehavior::Working` state at the same `ProductionFacility` (same `state.target`), boost `Relations::affinity` by +0.01 per game-day (capped at 1.0). Log "[Name] and [Name] bond over work at [Settlement]." at 1-in-10 frequency. Gate with `entity % 4 == s_frameCounter % 4`. Uses existing `AgentState::target`, `Relations`, `HomeSettlement`.
 
 - [ ] **NPC neighbourhood memory** — Add `entt::entity lastNeighbour = entt::null` to `DeprivationTimer` in `Components.h`. In `AgentDecisionSystem.cpp`'s evening chat block, store the chat partner as `lastNeighbour`. On the next chat, if the partner is the same as `lastNeighbour`, boost affinity by an extra +0.01 (repeated-contact familiarity). Log "[Name] and [Name] are becoming regular companions at [Settlement]." at 1-in-8 frequency when this repeat bonus fires.
+
+- [ ] **Benchmark regression detection** — In `benchmark.sh`, after appending to `benchmark_history.csv`, compare the new `avg_steps_s` against the previous row's value (if it exists). If throughput dropped by more than 20%, print a warning: "WARNING: steps/s dropped from X to Y (Z% decrease)". Helps catch performance regressions early. Pure shell — parse last two lines of the CSV.
+
+- [ ] **Benchmark population stability check** — In `benchmark.sh`, after parsing the report, check if `total_deaths` exceeds 50% of `max_pop` and print "WARNING: high death rate — sim may be unhealthy" if true. Also warn if `final_day` is 0 (sim didn't advance). Catches sim health issues during long stability runs without needing manual report inspection.
