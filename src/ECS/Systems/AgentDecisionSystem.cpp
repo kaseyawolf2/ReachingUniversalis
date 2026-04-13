@@ -2694,6 +2694,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     friendName = fn->value;
                 charityLog->Push(charityDay, charityHour,
                     giverName.value + " gifts gold to " + friendName + ".");
+
+                // Thank-you log: recipient acknowledges the gift (1-in-3)
+                static std::mt19937 s_thankRng{ std::random_device{}() };
+                if (s_thankRng() % 3 == 0) {
+                    std::string settlName = "settlement";
+                    if (giverHome.settlement != entt::null && registry.valid(giverHome.settlement))
+                        if (const auto* s = registry.try_get<Settlement>(giverHome.settlement))
+                            settlName = s->name;
+                    charityLog->Push(charityDay, charityHour,
+                        friendName + " thanks " + giverName.value +
+                        " for the gift at " + settlName + ".");
+                }
             }
         });
     }
