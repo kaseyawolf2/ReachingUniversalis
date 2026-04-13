@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family greeting clears grief early** — In `AgentDecisionSystem`'s greeting block, when a
-  family reunion greeting fires (`isFamilyReunion == true`) and either NPC has `griefTimer > 0`,
-  halve the griefTimer on both NPCs. Log "[Name] finds comfort in [Other]'s company." after the
-  embrace log. Family support helps NPCs recover from loss faster.
+
 
 
 
 ## Recently Done
+
+- [x] **Family greeting clears grief early** — Family reunion halves griefTimer on both NPCs. Logs "[Name] finds comfort in [Other]'s company."
 
 - [x] **Grief reduces work output** — Grieving workers (griefTimer > 0) produce at 0.5× rate in ProductionSystem. Reads existing DeprivationTimer field.
 
@@ -1661,11 +1660,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Family greeting clears grief early** — In `AgentDecisionSystem`'s greeting block, when a
-  family reunion greeting fires (`isFamilyReunion == true`) and either NPC has `griefTimer > 0`,
-  halve the griefTimer on both NPCs. Log "[Name] finds comfort in [Other]'s company." after the
-  embrace log. Family support helps NPCs recover from loss faster.
 
 - [ ] **NPC comforts grieving neighbour** — In `AgentDecisionSystem`'s idle block, after the
   greeting section, when an idle NPC is within 25u of another idle NPC with `griefTimer > 0` and
@@ -3332,3 +3326,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   they're still grieving a previous loss). If so, set `griefTimer = current + 3.0f` instead of 4.0f
   (compounding grief). Cap at 12.0f game-hours to prevent infinite stacking. Log "[NPC] is
   overwhelmed by loss." Multiple family deaths in quick succession create compounding grief.
+
+- [ ] **Grief comfort builds affinity** — In `AgentDecisionSystem`'s greeting block, in the
+  family reunion grief-clearing section, after halving griefTimer, also boost mutual
+  `Relations::affinity` by +0.1 (via `get_or_emplace<Relations>`). Comforting someone through loss
+  strengthens the bond significantly — more than a normal greeting (+0.01) or even gratitude (+0.05).
+
+- [ ] **Grieving NPC seeks family** — In `AgentDecisionSystem`'s idle block, when an NPC has
+  `griefTimer > 0` and a `FamilyTag`, scan for family members at different settlements (via
+  `registry.view<FamilyTag, HomeSettlement, Position>`). If found within 200u, set velocity toward
+  them at 0.6× speed and `chatTimer = 5.f`. No log — ambient movement. Grieving NPCs naturally
+  seek out family, creating visible grief-driven migration patterns.
