@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
+
 ## Recently Done
 
 - [x] **WriteSnapshot settlement master count via settlAgg** — Added `int masterCount` to `SettlAgg`
@@ -1084,8 +1086,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
 
 - [ ] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block, when an NPC switches profession and had ≥ 0.5 skill in their old profession, grant +0.05 initial bonus to the new matching skill (capped at 0.5). Reflects transferable experience — a skilled farmer picking up woodcutting learns faster. Uses `Profession::prevType` to identify the old skill and `registry.try_get<Skills>` to apply the bonus.
 
