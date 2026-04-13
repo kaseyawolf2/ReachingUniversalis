@@ -236,6 +236,7 @@ struct RenderSnapshot {
             float       contentment = 1.f;  // weighted need average (0–1)
         };
         std::vector<AgentInfo>        residents;
+        int                           strugglingHaulers = 0; // haulers with bankruptWarned at this settlement
     };
 
     // ---- Data fields ----

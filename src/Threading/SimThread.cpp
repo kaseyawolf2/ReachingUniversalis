@@ -2136,6 +2136,14 @@ void SimThread::WriteSnapshot() {
                     if (r.name == eldestName) { r.isEldest = true; break; }
                 }
             }
+
+            // Count struggling haulers homed at this settlement
+            panel.strugglingHaulers = 0;
+            m_registry.view<Hauler, HomeSettlement>().each(
+                [&](auto, const Hauler& h, const HomeSettlement& hs) {
+                    if (hs.settlement == e && h.bankruptWarned)
+                        ++panel.strugglingHaulers;
+                });
         }
     });
 
