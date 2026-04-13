@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
-
 ## Recently Done
+
+- [x] **Master retention bonus** — Added `bool masterSettled` to `DeprivationTimer`. Set true in
+  skill growth block when any skill reaches 0.9. In migration trigger, masters get
+  `effectiveMigrateThreshold *= 1.5f` — need 50% more scarcity to migrate. Stacks with plague modifier.
+
+
 
 - [x] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, NPCs with all three skills ≥ 0.4
   get `workerContrib *= 1.05f`. Placed after grief penalty, before settlement accumulation.
@@ -1067,6 +1071,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
 
 - [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
+
+- [ ] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC with `masterSettled == true` arrives at a new settlement, log "[Name], a master [skill], settles at [Settlement]." at full frequency. Uses existing `Skills` to determine which skill is ≥ 0.9. Complements the exodus warning — shows where masters end up after leaving.
+
+- [ ] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block, when a departing NPC has `masterSettled == true`, apply `-0.03` morale to the home `Settlement`. Log "[Settlement] mourns the loss of a master." at 1-in-2 frequency. Uses existing `Settlement::morale`. Mirrors the bankruptcy morale penalty in `EconomicMobilitySystem.cpp`.
 
 - [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
