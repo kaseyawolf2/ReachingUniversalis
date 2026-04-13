@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Milestone celebration boosts settlement morale** — In `ScheduleSystem`'s `checkMilestone`
+  lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
+  by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
+  `registry.try_get<Settlement>(hs.settlement)`. Master-level NPCs are a source of community pride.
 
 
 
