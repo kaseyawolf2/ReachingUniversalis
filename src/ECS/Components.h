@@ -463,6 +463,8 @@ struct Skills {
         }
         *target = std::min(1.f, *target + delta);
     }
+
+    float wisdomGriefDays = 0.f;  // days remaining of skill growth penalty after a wise elder dies
 };
 
 // ---- Tags ----

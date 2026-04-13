@@ -602,6 +602,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // Elder wisdom grief: reduced growth when mourning a wise elder
+                    if (sk.wisdomGriefDays > 0.f) {
+                        sk.wisdomGriefDays = std::max(0.f, sk.wisdomGriefDays - 1.f); // tick down 1 day per day
+                        growth = std::max(0.f, growth - 0.0002f);
+                    }
+
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = 0.f;
                     switch (prof.type) {

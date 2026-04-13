@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdio>
 #include <algorithm>
+#include <random>
 #include <unordered_map>
 
 // An NPC dies if any single need stays at 0 for this many gameDt seconds.
@@ -11,6 +12,8 @@ static constexpr float DEATH_THRESHOLD = 12.f * 60.f;
 
 // 1 game-day = 24 game-hours × 60 game-minutes = 1440 game-seconds
 static constexpr float SECS_PER_GAME_DAY = 24.f * 60.f;
+
+static std::mt19937 s_wisdomDeathRng{ std::random_device{}() };
 
 void DeathSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
@@ -121,6 +124,47 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 bool wasOldAge = age && (age->days >= age->maxDays * 0.95f);
                 float moralePenalty = wasOldAge ? 0.02f : 0.08f;
                 settl->morale = std::max(0.f, settl->morale - moralePenalty);
+            }
+        }
+
+        // ---- Elder wisdom fading: skilled elder death penalises bonded NPCs ----
+        {
+            const auto* deadAge = registry.try_get<Age>(e);
+            const auto* deadSkills = registry.try_get<Skills>(e);
+            if (deadAge && deadAge->days > 60.f && deadSkills && hs
+                && hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                // Check if elder had any skill >= 0.8
+                bool wasWise = (deadSkills->farming >= 0.8f || deadSkills->water_drawing >= 0.8f
+                                || deadSkills->woodcutting >= 0.8f);
+                if (wasWise) {
+                    registry.view<Relations, Skills, HomeSettlement>(
+                        entt::exclude<PlayerTag, BanditTag>).each(
+                        [&](auto mourner, Relations& rel, Skills& mSkills, const HomeSettlement& mHome) {
+                            if (mourner == e) return;
+                            if (mHome.settlement != hs->settlement) return;
+                            auto it = rel.affinity.find(e);
+                            if (it == rel.affinity.end() || it->second < 0.6f) return;
+                            // Apply wisdom grief: 3 days of growth penalty
+                            mSkills.wisdomGriefDays = 3.f;
+                            // Log at 1-in-3 frequency
+                            if (s_wisdomDeathRng() % 3 == 0) {
+                                auto logVW = registry.view<EventLog>();
+                                if (!logVW.empty()) {
+                                    auto& tmW = timeView.get<TimeManager>(*timeView.begin());
+                                    std::string mournerName = "An NPC";
+                                    if (const auto* nm = registry.try_get<Name>(mourner)) mournerName = nm->value;
+                                    std::string elderName = "an elder";
+                                    if (const auto* nm = registry.try_get<Name>(e)) elderName = nm->value;
+                                    std::string where = "settlement";
+                                    if (const auto* s = registry.try_get<Settlement>(hs->settlement)) where = s->name;
+                                    char wbuf[180];
+                                    std::snprintf(wbuf, sizeof(wbuf), "%s mourns the loss of %s's guidance at %s",
+                                                  mournerName.c_str(), elderName.c_str(), where.c_str());
+                                    logVW.get<EventLog>(*logVW.begin()).Push(tmW.day, (int)tmW.hourOfDay, wbuf);
+                                }
+                            }
+                        });
+                }
             }
         }
 
