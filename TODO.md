@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Friendship bonus on birth** — In `BirthSystem.cpp`, when a birth occurs, check if the
-  parent NPC has any friends (Relations::affinity ≥ 0.5) at the same settlement. If so, give
-  those friends a small morale boost: `settl->morale = std::min(1.f, settl->morale + 0.01f)`
-  per friend (capped at 2 boosts). Log `"[FriendName] celebrates [Name]'s new child."`.
-
 ## Recently Done
+
+- [x] **Friendship bonus on birth** — Parent's friends (affinity ≥ 0.5, same settlement) each boost morale +0.01 (max 2). Logs "[Friend] celebrates [Parent]'s new child." In `BirthSystem.cpp`.
+
+
 
 - [x] **Friend grief on death** — In `DeathSystem.cpp`, after family dissolution: scan NPCs with `Relations::affinity ≥ 0.5` toward deceased. Morale -0.03, helpedTimer cleared. Log for top 2 friends sorted by affinity.
 
@@ -3616,3 +3615,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   NPCs who are at different settlements than their friend. Friends who stay together maintain
   bonds; separated friends slowly drift apart. Prevents unbounded affinity accumulation across
   the whole map. No new components — modifies existing `Relations::affinity` map inline.
+
+- [ ] **Birth celebration gathers friends** — In `BirthSystem.cpp`, after the friendship bonus
+  block, set `DeprivationTimer::skillCelebrateTimer = 0.5f` on celebrating friends. This reuses
+  the existing celebration mechanic to make friends briefly pause and gather. No new components.
+
+- [ ] **Godparent assignment** — In `BirthSystem.cpp`, after the friendship celebration block,
+  if the parent has a friend with affinity ≥ 0.7 at the same settlement, assign that friend's
+  entity as `lastHelper` on the newborn's `DeprivationTimer` (godparent link). This wires into
+  the existing gratitude greeting so the child will later thank their godparent. Log "[Friend]
+  becomes godparent to [Child]." No new components — reuses existing `lastHelper` field.
