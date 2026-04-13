@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
+
 ## Recently Done
 
 - [x] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an
