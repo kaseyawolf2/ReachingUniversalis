@@ -9,15 +9,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC mentorship rivalry** — In `AgentDecisionSystem.cpp`'s skill growth block, when two NPCs at the same settlement both have the same skill ≥ 0.7 and one is training a child (mentor), the non-mentor gets `effectiveGrowthRate *= 1.1f` competitive boost. Log "[Name] trains harder, inspired by [Mentor]'s teaching" at 1-in-8 frequency. Uses existing mentor-apprentice infrastructure.
-
 ## Backlog
 
 - [ ] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`, settlements with `profMask == 7` (all 3 professions) have 1-in-200 chance per game-day to trigger a "Harvest Festival" event: +0.05 morale, +0.02 affinity between all residents, lasts 4 game-hours. Log "[Settlement] celebrates its diverse workforce!" Requires checking `SettlAgg.profMask` or mirroring the bitmask.
 
 - [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
 
+- [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when an elder (age > 60) and a non-elder are both idle at the same settlement, 1-in-12 chance per hour to log "[Elder] tells [Listener] tales of the old days at [Settlement]." Boost listener's `Relations::affinity` toward elder by +0.03 (cap 1.0). Uses existing idle chat infrastructure and `Age` component.
+
+- [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
+
 ## Recently Done
+
+- [x] **NPC mentorship rivalry** — In `AgentDecisionSystem.cpp`'s skill growth block, pre-computes
+  active mentoring pairs (elder+child profession intersection per settlement). Non-mentor NPCs with
+  skill ≥ 0.7 in that profession get `growth *= 1.1f`. Logs at 1-in-8 frequency with mentor name.
 
 - [x] **Profession diversity tooltip indicator** — Added `bool diverse` to `SettlementEntry` in
   `RenderSnapshot.h`. Computed via `profMask` bitmask (Farmer|WaterCarrier|Lumberjack) in `SettlAgg`
