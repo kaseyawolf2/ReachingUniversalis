@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC with `masterSettled == true` arrives at a new settlement, log "[Name], a master [skill], settles at [Settlement]." at full frequency. Uses existing `Skills` to determine which skill is ≥ 0.9. Complements the exodus warning — shows where masters end up after leaving.
+
 ## Recently Done
 
 - [x] **Overworked penalty** — Added `int consecutiveWorkHours` to `Schedule` in `Components.h`.
@@ -1143,8 +1145,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC with `masterSettled == true` arrives at a new settlement, log "[Name], a master [skill], settles at [Settlement]." at full frequency. Uses existing `Skills` to determine which skill is ≥ 0.9. Complements the exodus warning — shows where masters end up after leaving.
 
 - [ ] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block, when a departing NPC has `masterSettled == true`, apply `-0.03` morale to the home `Settlement`. Log "[Settlement] mourns the loss of a master." at 1-in-2 frequency. Uses existing `Settlement::morale`. Mirrors the bankruptcy morale penalty in `EconomicMobilitySystem.cpp`.
 
