@@ -9,9 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **AgentDecision per-block profiling** — In `AgentDecisionSystem.cpp`, add `#ifdef PROFILE` scoped timers around the major blocks (migration trigger, co-migration, theft, friendship scans, homesickness, gratitude, grief, etc.). Output per-block average microseconds to the benchmark report. AgentDecision is 54.6% of sim time — need to identify which sub-blocks are the worst offenders before optimising blindly.
 
 ## Recently Done
+
+- [x] **AgentDecision per-block profiling** — Added 7 sub-block timers (PreLoop, MainLoop, Orphan,
+  Gossip, Social, Bandits, Goals) to `AgentDecisionSystem.cpp` using `std::chrono::steady_clock`.
+  1-second smoothing window. Results appended to `RenderSnapshot::profiling` as `AD:*` entries.
+  Confirmed: AD:MainLoop (per-NPC decision loop) is ~90% of AgentDecision time.
+
+
 
 - [x] **Migration homesickness** — Added `float homesickTimer` to `DeprivationTimer` and
   `entt::entity prevSettlement` to `HomeSettlement`. At migration trigger, stores previous home
@@ -3857,6 +3863,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   visible rivalry spiral. Uses existing `Settlement::relations` map.
 
 - [ ] **Migration caravan arrival log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at their destination and was part of a co-migration group (2-3 NPCs arriving at same settlement within a short window), log "[Name] and companions arrive at [Settlement] and settle in." Track recent arrivals per settlement via `static std::map<entt::entity, std::vector<std::pair<entt::entity, int>>>` keyed by settlement, cleared each game-day. Fires when 2+ arrive same day.
+
+- [ ] **AD:MainLoop inner profiling** — Sub-profiling shows AD:MainLoop is ~90% of AgentDecision time. Add finer-grained timing within the main per-NPC loop in `AgentDecisionSystem.cpp`: split into Sleeping/Panic/Flee/Visit/Celebrate (early exits), Working, Migration (arrival + trigger + co-migration), Satisfying, Gratitude, and IdleDecision. Use a second `SubProfile` array or extend the existing one. This pinpoints whether migration scoring, co-migration friend scans, or idle seeking dominates.
+
+- [ ] **NPC mood contagion spreading** — In `AgentDecisionSystem.cpp`'s main loop idle section, when an NPC with satisfaction > 0.7 is within 30u of an NPC with satisfaction < 0.3, the happier NPC has a 1-in-10 chance per tick to boost the sad NPC's satisfaction by +0.02 (via `DeprivationTimer::lastSatisfaction`, capped at 0.5). Log "[Happy] cheers up [Sad] at [Settlement]." at 1-in-5 frequency. Uses `moodContagionCooldown` on the recipient (24h). Creates emotional cascading.
 
 - [ ] **Friend reunion celebration** — In `AgentDecisionSystem.cpp`, after an NPC migrates and arrives at a new settlement, scan `Relations::affinity` for friends (≥ 0.5) already living there (same `HomeSettlement`). If found, log "[Name] reunites with [Friend] at [Settlement]!" at 1-in-2 frequency and boost both affinities by +0.05 (capped at 1.0). Creates emotional payoff for the loneliness-driven migration system.
 
