@@ -12,6 +12,35 @@ static constexpr float BANDIT_DURATION   = 3.f;    // game-hours road is blocked
 static constexpr float EVENT_MEAN_HOURS  = 72.f;   // ~3 game-days between events
 static constexpr float EVENT_JITTER      = 36.f;   // ±jitter in game-hours
 
+// Check if any rival settlements share the same crisis type; soften rivalry if so.
+static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
+                                         entt::entity target,
+                                         Settlement& settl,
+                                         const std::string& crisisName,
+                                         EventLog* log, int day, int hour) {
+    static constexpr float RIVAL_THRESHOLD = -0.5f;
+    static constexpr float RELATION_BOOST  =  0.15f;
+
+    for (auto& [otherEnt, relation] : settl.relations) {
+        if (relation >= RIVAL_THRESHOLD) continue;   // not a rival
+        if (!registry.valid(otherEnt)) continue;
+        auto* otherSettl = registry.try_get<Settlement>(otherEnt);
+        if (!otherSettl) continue;
+        if (otherSettl->modifierName != crisisName) continue;  // not same crisis
+
+        // Both settlements suffer the same crisis — soften rivalry
+        relation = std::min(1.f, relation + RELATION_BOOST);
+        auto& reverse = otherSettl->relations[target];
+        reverse = std::min(1.f, reverse + RELATION_BOOST);
+
+        if (log) {
+            log->Push(day, hour,
+                settl.name + " and " + otherSettl->name +
+                " set aside differences during " + crisisName);
+        }
+    }
+}
+
 void RandomEventSystem::Update(entt::registry& registry, float realDt) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
@@ -730,6 +759,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             for (int k = 0; k < seedCount; ++k)
                 registry.emplace<Rumour>(residents[k], Rumour{RumourType::DroughtNearby, target, 3});
         }
+        SoftenRivalryOnSharedCrisis(registry, target, *settl, "Drought", log, day, hour);
         break;
     }
 
@@ -797,6 +827,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             for (int k = 0; k < seedCount; ++k)
                 registry.emplace<Rumour>(residents[k], Rumour{RumourType::PlagueNearby, target, 3});
         }
+        SoftenRivalryOnSharedCrisis(registry, target, *settl, "Plague", log, day, hour);
         break;
     }
 
