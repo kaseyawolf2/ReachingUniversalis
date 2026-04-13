@@ -126,6 +126,7 @@ struct Road {
 
 struct HomeSettlement {
     entt::entity settlement = entt::null;
+    entt::entity prevSettlement = entt::null; // previous home; used for homesickness return
 };
 
 // Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
@@ -169,6 +170,7 @@ struct DeprivationTimer {
     float                lastSatisfaction     = 0.5f;  // rolling average of all 4 needs (0-1); updated in ConsumptionSystem
     bool                 wealthCelebrated     = false; // true once NPC's balance crosses 500g (one-time event)
     float                begTimer             = 0.f;  // game-hours until NPC can beg from a friend again (0 = ready)
+    float                homesickTimer        = 0.f;  // game-hours since migration arrival; triggers return when > 72h and low satisfaction
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

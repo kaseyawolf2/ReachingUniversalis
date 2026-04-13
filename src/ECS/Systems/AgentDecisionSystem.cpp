@@ -546,6 +546,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 // Arrived — adopt new home
                 home.settlement       = state.target;
                 timer.stockpileEmpty  = 0.f;
+                timer.homesickTimer   = 0.f;
                 state.behavior        = AgentBehavior::Idle;
                 state.target          = entt::null;
                 vel.vx = vel.vy       = 0.f;
@@ -760,6 +761,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         // IDLE / SEEKING: decide what to do this tick
         // ============================================================
 
+        // -- Homesickness: tick timer and possibly return to previous settlement --
+        if (home.prevSettlement != entt::null && registry.valid(home.prevSettlement)
+            && home.prevSettlement != home.settlement) {
+            float ghDtHS = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+            timer.homesickTimer += ghDtHS;
+            if (timer.homesickTimer > 72.f && timer.lastSatisfaction < 0.4f) {
+                // Return to previous settlement
+                entt::entity returnDest = home.prevSettlement;
+                timer.homesickTimer  = 0.f;
+                state.behavior       = AgentBehavior::Migrating;
+                state.target         = returnDest;
+                home.prevSettlement  = entt::null; // clear so it doesn't loop
+                vel.vx = vel.vy      = 0.f;
+
+                // Log at 1-in-3 frequency
+                static std::mt19937 s_hsRng{ std::random_device{}() };
+                static std::uniform_int_distribution<int> s_hsDist(0, 2);
+                if (s_hsDist(s_hsRng) == 0) {
+                    auto lv = registry.view<EventLog>();
+                    if (!lv.empty()) {
+                        std::string who = "Someone";
+                        if (const auto* n = registry.try_get<Name>(entity))
+                            who = n->value;
+                        std::string oldHome = "their old home";
+                        if (const auto* s = registry.try_get<Settlement>(returnDest))
+                            oldHome = s->name;
+                        lv.get<EventLog>(*lv.begin()).Push(
+                            tm.day, (int)tm.hourOfDay,
+                            who + " feels homesick and returns to " + oldHome);
+                    }
+                }
+                continue;
+            }
+        }
+
         // -- Check migration trigger first --
         // NPCs in a plague settlement are more fearful and migrate at half the normal threshold.
         float effectiveMigrateThreshold = timer.migrateThreshold;
@@ -795,6 +831,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
             if (dest != entt::null) {
+                home.prevSettlement  = home.settlement;
+                timer.homesickTimer  = 0.f;
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;
                 timer.stockpileEmpty = 0.f;
