@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`, settlements with `profMask == 7` (all 3 professions) have 1-in-200 chance per game-day to trigger a "Harvest Festival" event: +0.05 morale, +0.02 affinity between all residents, lasts 4 game-hours. Log "[Settlement] celebrates its diverse workforce!" Requires checking `SettlAgg.profMask` or mirroring the bitmask.
-
 ## Backlog
 
 - [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
@@ -19,7 +17,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
 
+- [ ] **Post-festival morale afterglow** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration <= 0`), when `modifierName == "Harvest Festival"` or `modifierName == "Festival"`, set a new `Settlement::afterglowHours` field (add `float afterglowHours = 0.f` to `Settlement` in `Components.h`). While `afterglowHours > 0`, settlement morale drift toward 0.5 is halved. Tick down in the same modifier block. Creates lingering social effect from celebrations.
+
+- [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
+
 ## Recently Done
+
+- [x] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`'s Update(), once per
+  game-day checks each settlement for profMask == 7. 1-in-200 chance triggers "Harvest Festival":
+  +0.05 morale, +0.02 mutual affinity between all residents, 4 game-hour duration. Logs celebration.
 
 - [x] **NPC mentorship rivalry** — In `AgentDecisionSystem.cpp`'s skill growth block, pre-computes
   active mentoring pairs (elder+child profession intersection per settlement). Non-mentor NPCs with
