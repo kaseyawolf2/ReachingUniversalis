@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
-
 ## Recently Done
+
+- [x] **Gift thank-you log** — After the reciprocity boost in the trade gift block, recipients
+  log "[Friend] thanks [Giver] for the gift at [Settlement]." at 1-in-3 frequency. Uses
+  existing `charityLog`, `Settlement` name from `giverHome.settlement`.
 
 - [x] **Reunion affinity boost** — Already implemented in `AgentDecisionSystem.cpp` migration
   arrival block (lines ~977-1016). Scans friends with affinity > 0.3 at new settlement, boosts
@@ -4150,3 +4152,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Mentored apprentice graduation bonus** — In `BirthSystem.cpp` or `DeathSystem.cpp`'s age graduation block (where `ChildTag` is removed at age 15), check if the child's matching profession skill is >= 0.3. If so, log "[Name] graduates as a promising [profession] at [Settlement]." at 1-in-3 frequency. Children who were mentored will naturally have higher skills at graduation, making this event more common for settlements with active mentorship.
 
 - [ ] **Elder retirement wisdom** — In `AgentDecisionSystem.cpp`'s death block or a new once-per-day check, when an elder (age > 60) with any skill >= 0.9 dies, boost ALL children at the same settlement's matching skill by +0.02 (legacy knowledge). Log "[Elder]'s wisdom lives on in the children of [Settlement]." at full frequency. Uses existing `Age`, `Skills`, `ChildTag`, `HomeSettlement` components. One-time effect on death.
+
+- [ ] **Gift reciprocation cycle** — In `AgentDecisionSystem.cpp`'s trade gift block, add `entt::entity lastGiftFrom = entt::null` to `DeprivationTimer` in `Components.h`. Set it when receiving a gift. On the next gift cycle, if the NPC's best friend matches `lastGiftFrom`, skip the cooldown check (gift back immediately). Creates back-and-forth gift exchanges between close friends. Log "[Name] returns [Friend]'s generosity at [Settlement]." at 1-in-4 frequency.
+
+- [ ] **Friendship decay notification** — In `AgentDecisionSystem.cpp`'s relations decay block (where distance-based affinity decreases), when a pair's affinity drops below 0.3 from above, log "[Name] and [Name] are drifting apart." at 1-in-5 frequency. Uses existing `Relations::affinity` comparison. Shows the social cost of migration — friends who moved away lose touch over time.
