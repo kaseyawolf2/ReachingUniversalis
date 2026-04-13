@@ -1328,6 +1328,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             rel->affinity[other] = std::min(1.f, rel->affinity[other] + AFFINITY_GAIN);
                         if (auto* oRel = registry.try_get<Relations>(other))
                             oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + AFFINITY_GAIN);
+                        // Log ~10% of chats for social flavour
+                        static std::uniform_real_distribution<float> s_chatLogDist(0.f, 1.f);
+                        if (s_chatLogDist(s_chatRng) < 0.1f) {
+                            auto clv = registry.view<EventLog>();
+                            if (clv.begin() != clv.end()) {
+                                std::string nameA = "An NPC", nameB = "another NPC";
+                                if (const auto* nA = registry.try_get<Name>(entity)) nameA = nA->value;
+                                if (const auto* nB = registry.try_get<Name>(other))  nameB = nB->value;
+                                std::string settName = "";
+                                if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                    settName = " near " + stt->name;
+                                char buf[160];
+                                std::snprintf(buf, sizeof(buf), "%s and %s chat%s.",
+                                              nameA.c_str(), nameB.c_str(), settName.c_str());
+                                clv.get<EventLog>(*clv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                            }
+                        }
                     });
                 }
             } else {
