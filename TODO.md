@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement skill summary in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the existing resident list, show "Top skill: [Type] (N masters, M journeymen)" in faint GOLD. Add `int masterCount[3]` and `int journeymanCount[3]` to `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting NPCs homed at the settlement with Skills ≥ 0.9 or ≥ 0.5. Pick the type with the most combined masters+journeymen.
+
 
 ## Recently Done
+
+- [x] **Settlement skill summary in stockpile panel** — "Top skill: [Type] (N masters, M journeymen)" in faint GOLD. masterCount[3]/journeymanCount[3] on StockpilePanel piped from WriteSnapshot.
+
+
+
 
 - [x] **Skill training between NPCs** — Idle NPCs with skill ≥ 0.6 teach nearby (30u) NPCs with that skill < 0.3. +0.005/game-hour gain, +0.02 mutual affinity, 120s cooldown via teachCooldown.
 
@@ -1588,7 +1593,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `float teachCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown). Log "[Teacher] teaches
   [Learner] about farming/water/woodcutting." Skilled NPCs spread knowledge organically.
 
-- [ ] **Settlement skill summary in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+- [x] **Settlement skill summary in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
   below the existing resident list, show "Top skill: [Type] (N masters, M journeymen)" in faint
   GOLD. Add `int masterCount[3]` and `int journeymanCount[3]` to `RenderSnapshot::StockpilePanel`.
   Pipe from `SimThread::WriteSnapshot` by counting NPCs homed at the settlement with Skills ≥ 0.9
@@ -1659,6 +1664,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
   This enables the existing gratitude greeting to fire later: the learner will thank their teacher
   when they next greet. No new fields needed — reuses `lastHelper` for mentor gratitude.
+
+- [ ] **Settlement specialisation bonus** — In `ProductionSystem`, when a settlement's top skill
+  type (computed like in `WriteSnapshot`'s skill summary) matches the facility's output type and
+  has ≥ 3 masters, apply a +15% production bonus to all workers at matching facilities. Check via
+  `registry.view<Skills, HomeSettlement>` counting masters per type, cache per settlement entity.
+  Log "[Settlement] has a thriving [Type] tradition (+15% output)." once via a static set.
+
+- [ ] **Skill decay warning in tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
+  NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
+  ORANGE below the milestone line. Read from existing `AgentEntry::behavior` and skill fields.
+  No new piping needed — purely a display check on already-piped data.
 
 ---
 
