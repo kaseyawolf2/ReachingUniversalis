@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC avoids player with bad reputation** — In `AgentDecisionSystem`'s idle block, after
-  the thank-player check, when the player entity is within 30u and the NPC has `Reputation::score
-  < -0.5`, apply flee velocity away from the player at 0.8× speed for 2 real-seconds (set
-  `timer.panicTimer = 2.f`). Log "[NPC] hurries away from you nervously." Uses the existing
-  `panicTimer` and `playerPos` cache. Negative reputation has visible social consequences.
+
 
 
 
 ## Recently Done
+
+- [x] **NPC avoids player with bad reputation** — NPCs with Reputation < -0.5 within 30u flee at 0.8× speed for 2s via panicTimer. Logs "[NPC] hurries away from you nervously."
 
 - [x] **NPC gossips about confrontation** — In greeting block, NPCs with `lastHelper == playerEntity` spread the memory to greeted NPCs. Logs "[NPC] tells [Other] about the player's bravery."
 
@@ -1647,12 +1645,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **NPC avoids player with bad reputation** — In `AgentDecisionSystem`'s idle block, after
-  the thank-player check, when the player entity is within 30u and the NPC has `Reputation::score
-  < -0.5`, apply flee velocity away from the player at 0.8× speed for 2 real-seconds (set
-  `timer.panicTimer = 2.f`). Log "[NPC] hurries away from you nervously." Uses the existing
-  `panicTimer` and `playerPos` cache. Negative reputation has visible social consequences.
-
 - [ ] **NPC waves at player when happy** — In `AgentDecisionSystem`'s idle block, near the
   thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
   of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
@@ -3265,3 +3257,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "[NPC] and [Other] discuss the player's deeds." (no gossip spread needed since both already know).
   Use the existing `isGratitude`/`isFamilyReunion` priority pattern — check this before the normal
   greeting case. Shared knowledge creates a sense of community narrative.
+
+- [ ] **Bad-rep player warned in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the
+  hovered NPC has `Reputation::score < -0.5`, show "Fears you" in `Fade(RED, 0.7f)`. Pipe
+  `bool fearsPlayer` through `RenderSnapshot::AgentEntry` (set true in `SimThread::WriteSnapshot`
+  when `Reputation::score < -0.5` AND the NPC is within 60u of the player). Visual feedback that
+  your reputation is causing NPCs distress.
+
+- [ ] **NPC avoidance escalates with worse reputation** — In `AgentDecisionSystem`'s avoid-player
+  block, scale the flee radius and speed by reputation severity: rep < -0.5 → 30u/0.8×,
+  rep < -1.0 → 50u/1.0×, rep < -2.0 → 80u/1.2×. Use `std::abs(rep->score)` to index into
+  thresholds. Severely disliked players clear entire areas. Keep the same panicTimer = 2.f and
+  log message pattern.
