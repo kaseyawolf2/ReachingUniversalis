@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Facility crowding log** — When 4+ NPCs arrive at the same `ProductionFacility` in
+  the same tick, log a flavour event. In `ProductionSystem.cpp`, count workers per facility.
+  When count exceeds 3 for the first time this game-day, push the log. Track last-logged day
+  with `static std::map<entt::entity, int>`.
 
 ## Recently Done
 
