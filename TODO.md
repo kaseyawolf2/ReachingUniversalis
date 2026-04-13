@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Milestone celebration boosts settlement morale** — In `ScheduleSystem`'s `checkMilestone`
-  lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
-  by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
-  `registry.try_get<Settlement>(hs.settlement)`. Master-level NPCs are a source of community pride.
+
 
 
 
 ## Recently Done
+
+- [x] **Milestone celebration boosts settlement morale** — Master milestone (idx 1) in ScheduleSystem::checkMilestone boosts home Settlement::morale by +0.03 (capped at 1.0).
 
 - [x] **Nearby NPCs join skill celebration** — Idle friends (Relations::affinity >= 0.2) within 30u join skill celebrations with 0.25 game-hour timer. Logs "[Friend] joins [Celebrant]'s celebration."
 
@@ -1640,11 +1639,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **Milestone celebration boosts settlement morale** — In `ScheduleSystem`'s `checkMilestone`
-  lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
-  by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
-  `registry.try_get<Settlement>(hs.settlement)`. Master-level NPCs are a source of community pride.
-
 - [ ] **Confrontation witness remembers player** — In `SimThread::ProcessInput`'s witness loop
   (after the confrontation block), set `timer.lastHelper = playerEntity` on each witness's
   `DeprivationTimer` via `registry.get_or_emplace<DeprivationTimer>(we)`. This lets the gratitude
@@ -3239,3 +3233,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   NPC has `AgentBehavior::Celebrating` and `skillCelebrateTimer > 0` (piped as `bool celebrating`
   through `RenderSnapshot::AgentEntry`), show "Celebrating!" in faint GOLD. Add the bool in
   `SimThread::WriteSnapshot`'s agent loop. Simple visual feedback for an active social event.
+
+- [ ] **Master count shown in settlement status bar** — In `SimThread::WriteSnapshot`'s
+  `worldStatus` loop, count NPCs homed at each settlement with any skill >= 0.9 (via
+  `registry.view<Skills, HomeSettlement>`). Pipe as `int masterCount` on
+  `RenderSnapshot::SettlementStatus`. In `RenderSystem::DrawWorldStatus`, append "M:N" in GOLD
+  after the population display when masterCount > 0. Settlements with masters are visibly special.
+
+- [ ] **Apprentice milestone boosts NPC contentment** — In `ScheduleSystem`'s `checkMilestone`
+  lambda, when an Apprentice milestone (idx 2, threshold 0.25) is reached, give the NPC a one-time
+  need boost: set the lowest `Needs::list[i].value` to `max(current, 0.5)`. First skill progress
+  gives NPCs a morale lift — learning a trade feels rewarding even at the lowest level.
