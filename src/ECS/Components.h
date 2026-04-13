@@ -493,6 +493,7 @@ struct BanditTag {};
 // charity and may follow each other during migration.
 struct Relations {
     std::map<entt::entity, float> affinity;   // entity → score [0, 1]
+    entt::entity workBestFriend = entt::null;  // coworker with highest cumulative workplace affinity
 };
 
 // ---- NPC rumour propagation ----

@@ -2389,6 +2389,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 festivalActive = true;
                         }
                         float affinityGain = festivalActive ? 0.04f : AFFINITY_GAIN;
+                        // Work best friend bonus: chatting with your work buddy deepens bonds
+                        bool isWorkBuddy = false;
+                        if (const auto* myRel = registry.try_get<Relations>(entity)) {
+                            if (myRel->workBestFriend == other) {
+                                affinityGain = std::max(affinityGain, 0.03f);
+                                isWorkBuddy = true;
+                            }
+                        }
+                        if (!isWorkBuddy) {
+                            if (const auto* oRel = registry.try_get<Relations>(other)) {
+                                if (oRel->workBestFriend == entity) {
+                                    affinityGain = std::max(affinityGain, 0.03f);
+                                    isWorkBuddy = true;
+                                }
+                            }
+                        }
                         // Grief-born friendship persistence: shared grief deepens bonds
                         bool griefBond = false;
                         if (timer.lastGriefDay >= 0.f && oTimer.lastGriefDay >= 0.f
@@ -2420,6 +2436,20 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                     where = stt->name;
                                 glv.get<EventLog>(*glv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                     nA + " and " + nB + " share a knowing look at " + where);
+                            }
+                        }
+                        // Work best friend log at 1-in-8
+                        if (isWorkBuddy && s_chatRng() % 8 == 0) {
+                            auto wblv = registry.view<EventLog>();
+                            if (!wblv.empty()) {
+                                std::string nA = "An NPC", nB = "another NPC";
+                                if (const auto* nmA = registry.try_get<Name>(entity)) nA = nmA->value;
+                                if (const auto* nmB = registry.try_get<Name>(other)) nB = nmB->value;
+                                std::string where = "settlement";
+                                if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                    where = stt->name;
+                                wblv.get<EventLog>(*wblv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    nA + " catches up with work buddy " + nB + " at " + where);
                             }
                         }
                         // Festival bonding log at 1-in-6 frequency

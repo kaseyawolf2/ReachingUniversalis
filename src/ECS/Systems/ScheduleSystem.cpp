@@ -438,6 +438,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         static constexpr float WORK_AFFINITY_PER_HOUR = 0.002f;
                         static constexpr float WORK_AFFINITY_CAP      = 0.5f;
                         static std::map<std::pair<entt::entity, entt::entity>, float> s_workAffinityGain;
+                        // Track per-entity best coworker cumulative gain for workBestFriend
+                        static std::map<entt::entity, std::pair<entt::entity, float>> s_bestCoworker;
                         auto* myRel = registry.try_get<Relations>(entity);
                         if (myRel) {
                             registry.view<AgentState, Position, HomeSettlement>(
@@ -461,6 +463,18 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 myRel->affinity[other] = std::min(1.f, myRel->affinity[other] + gain);
                                 if (auto* oRel = registry.try_get<Relations>(other))
                                     oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + gain);
+                                // Update workBestFriend for both NPCs
+                                auto& bestA = s_bestCoworker[entity];
+                                if (cumGain > bestA.second || !registry.valid(bestA.first)) {
+                                    bestA = { other, cumGain };
+                                    myRel->workBestFriend = other;
+                                }
+                                auto& bestB = s_bestCoworker[other];
+                                if (cumGain > bestB.second || !registry.valid(bestB.first)) {
+                                    bestB = { entity, cumGain };
+                                    if (auto* oRel2 = registry.try_get<Relations>(other))
+                                        oRel2->workBestFriend = entity;
+                                }
                             });
                         }
                     }
