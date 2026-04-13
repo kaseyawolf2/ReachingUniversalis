@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block, before the NPC leaves, scan `Relations::affinity` for friends (≥ 0.5) at the old settlement. For each friend, decrease both sides' affinity by 0.1 (floor 0.0) to represent distance strain. Log "[Migrant] says goodbye to [Friend] at [Settlement]" at 1-in-3 frequency per friend. Uses existing migration and Relations infrastructure.
+
+## Backlog
 
 - [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
 
