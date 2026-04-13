@@ -320,6 +320,45 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     MoveToward(vel, pos, fpos.x, fpos.y, speed * 0.8f);
                 } else {
                     vel.vx = vel.vy = 0.f;
+
+                    // ---- Shared workplace affinity gain ----
+                    // NPCs working at the same facility build affinity over time.
+                    {
+                        static constexpr float WORK_AFFINITY_PER_HOUR = 0.002f;
+                        static constexpr float WORK_AFFINITY_CAP      = 0.5f;
+                        // Track cumulative workplace affinity gains per ordered pair
+                        static std::map<std::pair<entt::entity, entt::entity>, float> s_workAffinityGain;
+                        float wgHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
+                        auto* myRel = registry.try_get<Relations>(entity);
+                        if (myRel) {
+                            registry.view<AgentState, Position, HomeSettlement>(
+                                entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                [&](auto other, const AgentState& oState, const Position& oPos,
+                                    const HomeSettlement& oHome) {
+                                if (other == entity) return;
+                                if (oState.behavior != AgentBehavior::Working) return;
+                                if (oHome.settlement != home.settlement) return;
+                                // Check within facility radius
+                                float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
+                                if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
+                                // Ordered pair key to avoid double-counting
+                                auto key = (entity < other)
+                                    ? std::make_pair(entity, other)
+                                    : std::make_pair(other, entity);
+                                float& cumGain = s_workAffinityGain[key];
+                                if (cumGain >= WORK_AFFINITY_CAP) return;
+                                float gain = WORK_AFFINITY_PER_HOUR * wgHrs;
+                                float remaining = WORK_AFFINITY_CAP - cumGain;
+                                if (gain > remaining) gain = remaining;
+                                cumGain += gain;
+                                myRel->affinity[other] = std::min(1.f, myRel->affinity[other] + gain);
+                                // Boost other side too
+                                if (auto* oRel = registry.try_get<Relations>(other))
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + gain);
+                            });
+                        }
+                    }
+
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
