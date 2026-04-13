@@ -9,11 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, when both source and
-  destination settlements have `relations[other] > 0.5` (allied), log "Allied trade: [Hauler]
-  delivers [N] [resource] from [Source] to [Dest] (boosted)." at 1-in-3 frequency.
-
 ## Recently Done
+
+- [x] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, allied trades now log
+  "Allied trade: [Hauler] delivers [N] [resource] from [Source] to [Dest] (boosted)" with
+  1-in-3 per-hauler throttling via static counter map. Shows hauler name, cargo quantity, and type.
+
+
 
 - [x] **Rivalry tariff shown in hauler tooltip** — `rivalryTariff` bool on `AgentEntry`, set when destination has `relations < -0.5` with cargo source. Shows "Rivalry tariff (+30%)" in red in tooltip.
 
@@ -741,6 +743,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
+
+- [ ] **Rivalry trade avoidance** — In `AgentDecisionSystem.cpp`'s hauler destination selection, if a hauler's home settlement has `relations[dest] < -0.5` with a potential destination, apply a -40% score penalty to that destination. Haulers naturally avoid trading with rival settlements unless the profit is very high.
+
+- [ ] **Friendship decay over distance** — In `AgentDecisionSystem.cpp`, once per game-day, decay `Relations::affinity` by 0.005 for friends living in different settlements. Friendships maintained by proximity (same settlement) don't decay. Keeps social ties dynamic and encourages co-location.
+
+- [ ] **NPC mood log on need satisfaction** — In `ConsumptionSystem.cpp`, when an NPC's worst need rises from below 0.3 to above 0.5 after purchasing, log "[Name] feels relieved after eating at [Settlement]" at 1-in-5 frequency. Varies message by need type (eating/drinking/resting/warming up).
 
 ### NPC Crime & Consequence
 
