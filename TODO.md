@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Stale memory decay** — In `AgentDecisionSystem`'s migration trigger section, add a
+  `lastVisitedDay` int field to `MigrationMemory::PriceSnapshot` (Components.h). When recording
+  a snapshot, set it to the current `tm.day`. When scoring destinations in `FindMigrationTarget`,
+  if `tm.day - snap.lastVisitedDay > 30` (more than 30 days old), reduce the memory bonus to 50%.
 
 ## Recently Done
 
