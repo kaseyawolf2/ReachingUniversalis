@@ -2162,6 +2162,32 @@ void SimThread::WriteSnapshot() {
                         else if (vals[i] >= 0.5f)  ++panel.journeymanCount[i];
                     }
                 });
+
+            // Hauler routes — up to 3 haulers homed at this settlement
+            panel.haulerRoutes.clear();
+            m_registry.view<Hauler, HomeSettlement, Name>().each(
+                [&](auto he, const Hauler& h, const HomeSettlement& hhs, const Name& hn) {
+                    if (hhs.settlement != e) return;
+                    if ((int)panel.haulerRoutes.size() >= 3) return;
+                    RenderSnapshot::StockpilePanel::HaulerInfo hi;
+                    hi.name = hn.value;
+                    hi.struggling = h.bankruptWarned;
+                    if (h.state == HaulerState::Idle) {
+                        hi.route = "Idle";
+                    } else if (h.targetSettlement != entt::null &&
+                               m_registry.valid(h.targetSettlement)) {
+                        std::string homeName = "?";
+                        if (const auto* hs2 = m_registry.try_get<Settlement>(hhs.settlement))
+                            homeName = hs2->name;
+                        std::string destName = "?";
+                        if (const auto* ds = m_registry.try_get<Settlement>(h.targetSettlement))
+                            destName = ds->name;
+                        hi.route = homeName + "\xe2\x86\x92" + destName;
+                    } else {
+                        hi.route = "En route";
+                    }
+                    panel.haulerRoutes.push_back(std::move(hi));
+                });
         }
     });
 

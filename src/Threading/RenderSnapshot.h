@@ -240,6 +240,13 @@ struct RenderSnapshot {
         // Skill summary: masterCount[0]=farming, [1]=water, [2]=woodcutting; same for journeymen
         int                           masterCount[3]     = {};
         int                           journeymanCount[3] = {};
+        // Hauler routes — up to 3 haulers homed at this settlement
+        struct HaulerInfo {
+            std::string name;
+            std::string route;       // "A→B" or "Idle"
+            bool        struggling;  // bankruptWarned
+        };
+        std::vector<HaulerInfo>       haulerRoutes;
     };
 
     // ---- Data fields ----
