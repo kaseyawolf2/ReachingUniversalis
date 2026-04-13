@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Friend grief on death** — In `DeathSystem.cpp`'s inheritance loop, after the family
-  dissolution check, scan all NPCs who have the dead entity in their `Relations::affinity` map
-  with affinity ≥ 0.5. For each friend, lower their home settlement's morale by -0.03 and
-  set their `DeprivationTimer::helpedTimer = 0.f`. Log for the 2 closest friends only.
-
 ## Recently Done
+
+- [x] **Friend grief on death** — In `DeathSystem.cpp`, after family dissolution: scan NPCs with `Relations::affinity ≥ 0.5` toward deceased. Morale -0.03, helpedTimer cleared. Log for top 2 friends sorted by affinity.
+
+
 
 - [x] **Friendship shown in NPC tooltip** — `bestFriendName` + `bestFriendAffinity` on `AgentEntry`. WriteSnapshot iterates `Relations::affinity`. Tooltip shows "Friend: Name (X%)" in LIME when affinity ≥ 0.5.
 
@@ -3606,3 +3605,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   who is also Idle. If so, set the friend's migration target to the same destination and log
   "[Name] convinced [Friend] to migrate to [settlement] together." Uses existing `Relations`
   and `AgentState`. No new components.
+
+- [ ] **Friend grief sets griefTimer** — In `DeathSystem.cpp`'s friend grief block, also set
+  `oTmr.griefTimer = std::max(oTmr.griefTimer, 2.f)` on grieving friends (2 game-hours, shorter
+  than family grief's 4h). This connects friend grief to the existing grief system — grieving
+  friends will have reduced production and visible grief in tooltip. Pure addition to existing
+  block; no new components.
+
+- [ ] **Affinity decay for distant friends** — In `AgentDecisionSystem.cpp`, during the chat
+  pairing block or a new per-NPC pass, decay `Relations::affinity` by 0.001 per game-hour for
+  NPCs who are at different settlements than their friend. Friends who stay together maintain
+  bonds; separated friends slowly drift apart. Prevents unbounded affinity accumulation across
+  the whole map. No new components — modifies existing `Relations::affinity` map inline.
