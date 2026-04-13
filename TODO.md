@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **DeathSystem inheritance scan optimisation** — In `DeathSystem.cpp`, when an NPC dies with gold, the heir scan iterates all NPCs at the same settlement to find the closest friend. Use `s_entitySettlement`-style cache (or pass one in) to filter by settlement in O(1), then scan only same-settlement NPCs' Relations. Currently O(n) per death; matters at scale with mass death events (plague).
+
 ## Recently Done
 
 - [x] **Bandit encounter deduplication** — Pre-computed road midpoints into `s_roadMids` vector
@@ -945,8 +947,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **DeathSystem inheritance scan optimisation** — In `DeathSystem.cpp`, when an NPC dies with gold, the heir scan iterates all NPCs at the same settlement to find the closest friend. Use `s_entitySettlement`-style cache (or pass one in) to filter by settlement in O(1), then scan only same-settlement NPCs' Relations. Currently O(n) per death; matters at scale with mass death events (plague).
 
 ### NPC Lifecycle & Identity
 
