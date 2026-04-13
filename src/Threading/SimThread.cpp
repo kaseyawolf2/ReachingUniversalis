@@ -1624,6 +1624,7 @@ void SimThread::WriteSnapshot() {
         bool isGrievingSnap  = false;
         float griefHoursLeft = 0.f;
         bool chatting        = false;
+        float satisfaction   = 0.5f;
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
             recentlyHelped   = (dt->helpedTimer > 0.f);
             recentlyStole    = (dt->stealCooldown > 46.f);
@@ -1640,6 +1641,7 @@ void SimThread::WriteSnapshot() {
             isGrievingSnap   = (dt->griefTimer > 0.f);
             griefHoursLeft   = dt->griefTimer;
             chatting         = (dt->chatTimer > 0.f);
+            satisfaction     = dt->lastSatisfaction;
         }
 
         // Best friend: highest affinity from Relations map
@@ -1764,7 +1766,7 @@ void SimThread::WriteSnapshot() {
                             (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f),
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
-                           rivalryTariff });
+                           rivalryTariff, satisfaction });
     });
 
     // ---- Settlements ----

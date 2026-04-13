@@ -765,6 +765,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRep)
         std::snprintf(repLine, sizeof(repLine), "Rep: %+.1f", best->reputation);
 
+    // Satisfaction line
+    char satLine[32] = {};
+    std::snprintf(satLine, sizeof(satLine), "Satisfaction: %d%%", (int)(best->satisfaction * 100));
+    Color satColor = (best->satisfaction < 0.3f)  ? Fade(RED, 0.8f)    :
+                     (best->satisfaction < 0.6f)  ? Fade(YELLOW, 0.8f) :
+                                                    Fade(GREEN, 0.8f);
+
     // Home morale line: shown for NPCs with a home settlement
     bool showHomeMorale = (best->homeMorale >= 0.f);
     char homeMoraleLine[32] = {};
@@ -964,6 +971,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGraduation)    lineCount++;
     if (showWage)          lineCount++;
     if (showRep)           lineCount++;
+    lineCount++;  // satisfaction line (always shown)
     if (showHomeMorale)    lineCount++;
     if (showGoal)          lineCount++;
     if (showMigMem)        lineCount++;
@@ -1003,13 +1011,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
+    int wst = MeasureText(satLine, 11);
     int wmd = showMood ? MeasureText(moodLine, 11) : 0;
     int wml = showMilestone ? MeasureText(milestoneLine, 11) : 0;
     int wsd = showSkillDecay ? MeasureText("Skills rusting", 11) : 0;
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
     int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
     int wfr = showFriend ? MeasureText(friendLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm, wfr, wrt2}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wst, wmd, wml, wgo, wmm, wfr, wrt2}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1079,6 +1088,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);
         DrawText(repLine, tx, ly, 11, repCol); ly += 16;
     }
+    DrawText(satLine, tx, ly, 11, satColor); ly += 16;
     if (showCargo)       { DrawText(cargoLine,        tx, ly, 11, Fade(SKYBLUE, 0.9f));    ly += 16; }
     if (showHaulerState) {
         Color hsCol = (isHauler && best->inConvoy) ? Fade(GREEN, 0.7f) : Fade(LIGHTGRAY, 0.7f);
