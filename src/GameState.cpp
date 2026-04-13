@@ -155,6 +155,7 @@ void GameState::Draw() {
     std::vector<RenderSnapshot::RoadEntry>        roads;
     std::vector<RenderSnapshot::FacilityEntry>    facilities;
     RenderSnapshot::StockpilePanel                panel;
+    float snapHour = 12.f;
 
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
@@ -163,6 +164,7 @@ void GameState::Draw() {
         roads       = m_snapshot.roads;
         facilities  = m_snapshot.facilities;
         panel       = m_snapshot.stockpilePanel;
+        snapHour    = m_snapshot.hourOfDay;
     }
 
     // World drawing
@@ -337,6 +339,25 @@ void GameState::Draw() {
             DrawText(s.modifierName.c_str(),
                      (int)(s.x - MeasureText(s.modifierName.c_str(), 10) / 2),
                      (int)(s.y + s.radius + 5), 10, modCol);
+        }
+    }
+
+    // Evening gathering density ring: show how many NPCs are clustered near each settlement
+    if (snapHour >= 18.f && snapHour < 21.f) {
+        for (const auto& s : settlements) {
+            if (s.pop <= 0 || s.popCap <= 0) continue;
+            int gathered = 0;
+            for (const auto& a : agents) {
+                if (a.homeSettlementName == s.name &&
+                    a.role == RenderSnapshot::AgentRole::NPC) {
+                    float dx = a.x - s.x, dy = a.y - s.y;
+                    if (dx*dx + dy*dy < 40.f * 40.f) ++gathered;
+                }
+            }
+            if (gathered < 2) continue;
+            float ratio = std::min(1.f, (float)gathered / (float)s.popCap);
+            float ringRadius = s.radius + 8.f + ratio * 20.f;
+            DrawCircleLinesV({ s.x, s.y }, ringRadius, Fade(SKYBLUE, 0.15f));
         }
     }
 
