@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit proximity spatial cache** — In `FindMigrationTarget`, the inner bandit danger penalty loop scans all `BanditTag` entities per road per destination settlement. Build a spatial hash or per-road bandit count cache once per tick (similar to `s_entitySettlement` pattern) so each road lookup is O(1) instead of O(bandits). The bandit view is also iterated in `AgentDecisionSystem::Update` for the bandit encounter block — share the cache.
+
 ## Recently Done
 
 - [x] **FindMigrationTarget caching** — Added per-settlement-per-hour cache to `FindMigrationTarget`
@@ -924,8 +926,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **Bandit proximity spatial cache** — In `FindMigrationTarget`, the inner bandit danger penalty loop scans all `BanditTag` entities per road per destination settlement. Build a spatial hash or per-road bandit count cache once per tick (similar to `s_entitySettlement` pattern) so each road lookup is O(1) instead of O(bandits). The bandit view is also iterated in `AgentDecisionSystem::Update` for the bandit encounter block — share the cache.
 
 - [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
 
