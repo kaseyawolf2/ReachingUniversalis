@@ -614,17 +614,23 @@ void SimThread::ProcessInput() {
                         std::string banditName2 = "a bandit";
                         if (const auto* bn = m_registry.try_get<Name>(nearBandit))
                             banditName2 = bn->value;
+                        int witnessCount = 0;
                         m_registry.view<Position, Reputation, Name>(
                             entt::exclude<BanditTag, PlayerTag, Hauler>).each(
                             [&](auto we, const Position& wp, Reputation& wrep, const Name& wn) {
                                 float wdx = wp.x - ppos3.x, wdy = wp.y - ppos3.y;
                                 if (wdx*wdx + wdy*wdy > WITNESS_RANGE * WITNESS_RANGE) return;
                                 wrep.score += 0.1f;
-                                if (plog) {
-                                    std::string msg = wn.value + " witnessed player confront " + banditName2 + ".";
-                                    plog->Push(tm.day, (int)tm.hourOfDay, msg);
-                                }
+                                ++witnessCount;
                             });
+                        if (plog && witnessCount > 0) {
+                            char wbuf[128];
+                            std::snprintf(wbuf, sizeof(wbuf),
+                                "Player confronted %s (%d witness%s).",
+                                banditName2.c_str(), witnessCount,
+                                witnessCount == 1 ? "" : "es");
+                            plog->Push(tm.day, (int)tm.hourOfDay, wbuf);
+                        }
                     }
                 }
             } else if (pst3.behavior == AgentBehavior::Working) {
