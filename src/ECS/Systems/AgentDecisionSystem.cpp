@@ -898,6 +898,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // Pre-compute grieving NPCs per settlement for vigil gathering
+    std::map<entt::entity, std::vector<entt::entity>> grievingBySettlement;
+    registry.view<HomeSettlement, DeprivationTimer>(
+        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+        [&](auto e, const HomeSettlement& hs, const DeprivationTimer& tmr) {
+        if (tmr.griefTimer > 0.f && hs.settlement != entt::null && registry.valid(hs.settlement))
+            grievingBySettlement[hs.settlement].push_back(e);
+    });
+
     spFlush(0); // AD:PreLoop
 
     // Exclude Haulers (TransportSystem handles them), Player (PlayerInputSystem),
@@ -1852,6 +1861,39 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
             bool isGrieving = (timer.griefTimer > 0.f);
+
+            // ---- Grief vigil gathering: 3+ grieving NPCs at same settlement ----
+            if (isGrieving && home.settlement != entt::null) {
+                static std::map<entt::entity, int> s_lastVigilDay;
+                auto gIt = grievingBySettlement.find(home.settlement);
+                if (gIt != grievingBySettlement.end() && (int)gIt->second.size() >= 3) {
+                    int today = (int)tm.day;
+                    if (s_lastVigilDay[home.settlement] != today) {
+                        s_lastVigilDay[home.settlement] = today;
+                        // Boost mutual affinity among all grieving NPCs at this settlement
+                        auto& grievers = gIt->second;
+                        for (size_t i = 0; i < grievers.size(); ++i) {
+                            for (size_t j = i + 1; j < grievers.size(); ++j) {
+                                auto a = grievers[i], b = grievers[j];
+                                if (!registry.valid(a) || !registry.valid(b)) continue;
+                                if (auto* rA = registry.try_get<Relations>(a))
+                                    rA->affinity[b] = std::min(1.f, rA->affinity[b] + 0.02f);
+                                if (auto* rB = registry.try_get<Relations>(b))
+                                    rB->affinity[a] = std::min(1.f, rB->affinity[a] + 0.02f);
+                            }
+                        }
+                        // Log once
+                        auto vlv = registry.view<EventLog>();
+                        if (!vlv.empty()) {
+                            std::string where = "A settlement";
+                            if (const auto* st = registry.try_get<Settlement>(home.settlement))
+                                where = st->name;
+                            vlv.get<EventLog>(*vlv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                where + " holds a vigil for the fallen");
+                        }
+                    }
+                }
+            }
 
             // ---- Gossip idle animation (hours 20–22) ----
             // Idle NPCs visually gravitate toward a nearby same-settlement NPC.
