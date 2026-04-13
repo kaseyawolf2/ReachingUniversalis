@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder mentor bonus** — In `ScheduleSystem.cpp`'s skill-at-worksite block (where
+  `SKILL_GAIN_PER_GAME_HOUR` is applied), if there is an elder NPC (age > 60) currently `Working`
+  at the same `ProductionFacility`, give all other younger workers at that facility a +20% skill
+  gain multiplier (`gainMult *= 1.2f`). Check for nearby elders via a small inner loop over the
+  same facility view, capped to avoid O(n²) blow-up by breaking after finding one elder. Log
+  `"[Name] mentored workers at [settlement]."` once per game-day per facility.
+
 ## Recently Done
 
 - [x] **Skill degradation with age** — Already implemented: `ScheduleSystem.cpp` line 376-382 applies 2× decay for age > 65 with 0.1 skill floor for elders.
@@ -1955,13 +1962,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Elder mentor bonus** — In `ScheduleSystem.cpp`'s skill-at-worksite block (where
-  `SKILL_GAIN_PER_GAME_HOUR` is applied), if there is an elder NPC (age > 60) currently `Working`
-  at the same `ProductionFacility`, give all other younger workers at that facility a +20% skill
-  gain multiplier (`gainMult *= 1.2f`). Check for nearby elders via a small inner loop over the
-  same facility view, capped to avoid O(n²) blow-up by breaking after finding one elder. Log
-  `"[Name] mentored workers at [settlement]."` once per game-day per facility.
 
 - [ ] **Peak-age production bonus** — In `ProductionSystem.cpp`, when a worker NPC's age is
   between 25 and 55 (prime working years), apply a small +10% production bonus to their
