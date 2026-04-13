@@ -1582,6 +1582,17 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Goal description for tooltip
+        std::string goalDesc;
+        if (const auto* goal = m_registry.try_get<Goal>(e)) {
+            char buf[128];
+            const char* unit = (goal->type == GoalType::SaveGold) ? "g" :
+                               (goal->type == GoalType::ReachAge) ? "d" : "";
+            std::snprintf(buf, sizeof(buf), "Goal: %s (%.0f/%.0f%s)",
+                          GoalLabel(goal->type), goal->progress, goal->target, unit);
+            goalDesc = buf;
+        }
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1602,7 +1613,8 @@ void SimThread::WriteSnapshot() {
                            bestProfit, std::move(bestRoute),
                            homeMorale, wagePerHour, reputationScore, isFatigued,
                            isExiled,
-                           lifetimeTrips, lifetimeProfit });
+                           lifetimeTrips, lifetimeProfit,
+                           std::move(goalDesc) });
     });
 
     // ---- Settlements ----

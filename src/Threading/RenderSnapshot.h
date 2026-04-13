@@ -124,6 +124,8 @@ struct RenderSnapshot {
         // Hauler lifetime stats
         int   lifetimeTrips  = 0;
         float lifetimeProfit = 0.f;
+        // Personal goal description (e.g. "Goal: Save Gold (42/100g)")
+        std::string goalDescription;
     };
 
     struct SettlementEntry {
