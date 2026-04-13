@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
+
 ## Recently Done
 
 - [x] **Satisfaction shown in NPC tooltip** — Added `float satisfaction` to `AgentEntry` in
