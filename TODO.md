@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Orphan adoption** — When a child has `ChildTag` but no valid `HomeSettlement` (orphaned
-  by family dissolution or settlement collapse), any adult NPC at a settlement with `pop < popCap - 1`
-  who has `charityTimer == 0` can adopt them. In `AgentDecisionSystem`, after the charity block,
-  add: if the adult spots a nearby orphan (ChildTag, no home, within 60 units), set the orphan's
-  `HomeSettlement` to the adult's home, assign the adult's `FamilyTag::name` to the orphan (or
-  emplace a new FamilyTag), and log "X took in orphan Y at Z."
-
 ## Recently Done
+
+- [x] **Orphan adoption** — Adults with `charityTimer == 0` at settlements with room adopt nearby orphans (within 60u, no valid home). Orphan gets adopter's `HomeSettlement` and `FamilyTag::name`. 120 game-hour cooldown. Logged to EventLog. In `AgentDecisionSystem.cpp` after the charity block.
+
+
 
 - [x] **Family size shown in stockpile residents panel** — Already implemented: `familyName` on `AgentInfo`, populated in `WriteSnapshot`, " ×N" suffix drawn in `RenderSystem.cpp` lines 294-344 when 2+ family members present.
 
@@ -3544,3 +3541,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   spawning settlers and the hauler, give the new settlement an initial morale boost of +0.15
   (capped at 1.0). Also push an EventLog entry: "[Settlement] settlers are optimistic about their
   new home." This makes founding feel impactful beyond the mechanical log.
+
+- [ ] **Adopted orphan gratitude greeting** — In `AgentDecisionSystem.cpp`'s greeting/chat pairing
+  block (~line 1304), when an adopted child (has `ChildTag` + `FamilyTag` that was emplaced by
+  adoption, not birth) encounters their adopter (check `lastHelper` or match by `FamilyTag::name`
+  + proximity), 15% chance to log "[Child] smiles gratefully at [Adopter]." Pure flavour, uses
+  existing `DeprivationTimer::chatTimer` cooldown. No new components.
+
+- [ ] **Adoption shown in NPC tooltip** — Add `bool isAdopted = false` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set true for NPCs with `ChildTag` + `FamilyTag`
+  whose family name doesn't match any adult at their home settlement with the same `FamilyTag::name`
+  who is a biological parent (simplification: just check if the child was born at a different
+  settlement than current home). Show "Adopted" in faint PURPLE in `HUD.cpp` tooltip.
+
+- [ ] **Orphan count in settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop,
+  count children with `ChildTag` and `HomeSettlement` matching this settlement who have no
+  `FamilyTag`. Add `int orphanCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. Display
+  "Orphans: N" in faint `Fade(ORANGE, 0.6f)` in `RenderSystem::DrawStockpilePanel` after the
+  child count line when orphanCount > 0.
