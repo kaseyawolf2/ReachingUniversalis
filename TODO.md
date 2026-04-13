@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **BecomeHauler goal auto-completes on graduation** — In `EconomicMobilitySystem.cpp`,
+  when an NPC graduates to Hauler (`registry.emplace<Hauler>`), check if they have a `Goal` with
+  `type == GoalType::BecomeHauler`. If so, set `goal.progress = goal.target` immediately so the
+  goal system picks it up next tick and triggers the celebration + new goal assignment.
 
 ## Recently Done
 
