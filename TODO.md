@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Settlement harmony score** — In `SimThread::WriteSnapshot`'s settlement loop, compute `float harmony` as (friendshipPairs * 2.0f) / max(1, pop * (pop-1)) — the fraction of all possible NPC pairs that are mutual friends. Add `float harmony = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Harmony: X%" in green (>50%), yellow (25-50%), or red (<25%) after the morale line. Gives the player a social cohesion metric.
+
+## Backlog
 
 - [ ] **Plague solidarity** — In `RandomEventSystem.cpp`'s plague trigger (case 2), mirror the drought solidarity pattern: after applying plague, scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.03 (cap 1.0). Log "[Settlement] residents support each other through the plague." Reuses the same pattern as drought solidarity for consistency across crisis types.
 
