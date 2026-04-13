@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Death inheritance to best friend** — In `DeathSystem.cpp`, after the treasury estate deposit, if the deceased has `Relations::affinity` with anyone ≥ 0.6 at the same settlement, transfer 25% of their remaining balance to that friend (balance-to-balance, Gold Flow Rule). Log "[Friend] inherits Xg from [Deceased]'s estate." Uses the already-built `entitiesBySettlement` index for O(settlement_pop) lookup instead of full scan.
-
 ## Recently Done
+
+- [x] **Death inheritance to best friend** — In `DeathSystem.cpp`, after treasury estate deposit,
+  scans `entitiesBySettlement` for the best friend (affinity ≥ 0.6) at the same settlement.
+  Transfers 25% of remaining balance (post-estate) to that friend balance-to-balance. Logs
+  "[Friend] inherits Xg from [Deceased]'s estate."
+
+
 
 - [x] **NPC age-based skill growth** — Added once-per-game-day skill growth in
   `AgentDecisionSystem.cpp`. Adult NPCs gain +0.001 in their profession's matching skill
@@ -1000,6 +1005,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
 
 - [ ] **Friend mourning on death** — In `DeathSystem.cpp`, when an NPC dies, scan their `Relations::affinity` map for friends (affinity ≥ 0.5) at the same settlement. The top friend by affinity gets -0.03 morale on their home settlement and logs "[Friend] mourns the loss of [Name] at [Settlement]." at 1-in-2 frequency. Death has social consequences.
+
+- [ ] **Inherited wealth gratitude** — In `AgentDecisionSystem.cpp`'s gossip/social block, when an NPC's `Money::balance` increased by ≥ 5g from friend inheritance (track via a new `float inheritedGold = 0.f` on `DeprivationTimer`), the heir boosts affinity toward the deceased's family members (`FamilyTag::name` match) by +0.1 and logs "[Heir] honours the memory of [Deceased]'s family." once. Set `inheritedGold = 0` after processing. Adds emotional consequence to inheritance.
+
+- [ ] **Deathbed farewell log** — In `DeathSystem.cpp`, when an NPC with `Age::days >= Age::maxDays * 0.95f` (old-age death) has a best friend (affinity ≥ 0.5) at the same settlement, log "[Deceased] bid farewell to [Friend] before passing." at 1-in-2 frequency. Uses `entitiesBySettlement` for lookup. Adds emotional depth to natural death events.
 
 - [ ] **Workplace friendship milestone log** — In `ScheduleSystem.cpp`'s workplace affinity block, when cumulative workplace gain for a pair crosses 0.3 (first meaningful friendship threshold), log "[Name] and [Coworker] have become friends through working together at [Settlement]." once per pair via static set. Makes organic friendships visible.
 
