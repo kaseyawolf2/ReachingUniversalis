@@ -441,9 +441,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 }
             } else {
                 // Adults: normal leisure wandering
+                // Evening (18–22): cluster closer to settlement centre
                 if (std::abs(vel.vx) < 0.5f && std::abs(vel.vy) < 0.5f) {
                     float ang = s_angle(s_rng);
                     float rad = s_radius(s_rng);
+                    if (hour >= 18 && hour < 22) rad *= 0.4f;
                     float wx  = homePos.x + std::cos(ang) * rad;
                     float wy  = homePos.y + std::sin(ang) * rad;
                     MoveToward(vel, pos, wx, wy, speed * 0.4f);
