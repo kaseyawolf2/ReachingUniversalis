@@ -2139,6 +2139,35 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 clv.get<EventLog>(*clv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
                             }
                         }
+                        // ---- Elder storytelling: elder + non-elder chat pair ----
+                        if (s_chatRng() % 12 == 0) {
+                            const auto* ageA = registry.try_get<Age>(entity);
+                            const auto* ageB = registry.try_get<Age>(other);
+                            entt::entity elder = entt::null, listener = entt::null;
+                            if (ageA && ageA->days > 60.f && (!ageB || ageB->days <= 60.f))
+                                { elder = entity; listener = other; }
+                            else if (ageB && ageB->days > 60.f && (!ageA || ageA->days <= 60.f))
+                                { elder = other; listener = entity; }
+                            if (elder != entt::null) {
+                                // Boost listener's affinity toward elder
+                                if (auto* lRel = registry.try_get<Relations>(listener))
+                                    lRel->affinity[elder] = std::min(1.f, lRel->affinity[elder] + 0.03f);
+                                auto elv = registry.view<EventLog>();
+                                if (!elv.empty()) {
+                                    std::string elderName = "An elder";
+                                    if (const auto* ne = registry.try_get<Name>(elder)) elderName = ne->value;
+                                    std::string listenerName = "a listener";
+                                    if (const auto* nl = registry.try_get<Name>(listener)) listenerName = nl->value;
+                                    std::string settlName = "settlement";
+                                    if (home.settlement != entt::null && registry.valid(home.settlement))
+                                        if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                            settlName = s->name;
+                                    elv.get<EventLog>(*elv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        elderName + " tells " + listenerName +
+                                        " tales of the old days at " + settlName + ".");
+                                }
+                            }
+                        }
                         // ---- Gossip about career changers ----
                         if (s_chatRng() % 8 == 0) {
                             const auto* profA = registry.try_get<Profession>(entity);
