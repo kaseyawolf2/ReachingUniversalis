@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
-
 ## Recently Done
+
+- [x] **Satisfaction shown in NPC tooltip** — Added `float satisfaction` to `AgentEntry` in
+  `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. Displayed
+  as "Satisfaction: X%" with RED/YELLOW/GREEN gradient in `HUD.cpp` tooltip after reputation line.
+
+
 
 - [x] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, counts starving NPCs
   (hunger < 0.15) per settlement each frame. When ≥ 3 at one settlement, logs "[Settlement]
@@ -875,8 +879,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
-
 - [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
 
 - [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
@@ -922,6 +924,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Food crisis morale impact** — In `ConsumptionSystem.cpp`'s food crisis warning block, when a crisis is logged (≥ 3 starving), apply -0.03 morale to the settlement via `Settlement::morale`. Chronic starvation demoralises the community. Only apply once per game-day (already gated by `s_crisisLogDay`).
 
 - [ ] **Crisis-triggered food import request** — In `ConsumptionSystem.cpp`'s food crisis block, when a crisis fires, set a `bool foodCrisis` flag on `Settlement` (add to `Components.h`). In `TransportSystem.cpp`'s `FindBestRoute`, destinations with `foodCrisis == true` get +25% route score bonus for food deliveries. Flag cleared when food stock > 20. Creates demand-pull trade response to starvation.
+
+- [ ] **Satisfaction color on NPC dot** — In `RenderSystem.cpp`'s NPC drawing block, when satisfaction < 0.25, tint the NPC's ring color with a faint red pulse (`Fade(RED, 0.3f * sinf(elapsed * 4))`) to make deeply unsatisfied NPCs visually identifiable on the map without hovering.
+
+- [ ] **Settlement average satisfaction in tooltip** — Add `float avgSatisfaction = 0.5f` to `SettlementEntry` in `RenderSnapshot.h`. Compute in `WriteSnapshot` by averaging `DeprivationTimer::lastSatisfaction` across all NPCs at each settlement. Display "Avg satisfaction: X%" in `RenderSystem.cpp`'s settlement panel after morale with RED/YELLOW/GREEN gradient.
 
 ### NPC Crime & Consequence
 
