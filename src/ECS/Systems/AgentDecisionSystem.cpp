@@ -2059,6 +2059,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 clv.get<EventLog>(*clv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
                             }
                         }
+                        // ---- Gossip about career changers ----
+                        if (s_chatRng() % 8 == 0) {
+                            const auto* profA = registry.try_get<Profession>(entity);
+                            const auto* profB = registry.try_get<Profession>(other);
+                            entt::entity changer = entt::null, listener = entt::null;
+                            if (profA && profA->careerChanges >= 2) { changer = entity; listener = other; }
+                            else if (profB && profB->careerChanges >= 2) { changer = other; listener = entity; }
+                            if (changer != entt::null) {
+                                auto glv = registry.view<EventLog>();
+                                if (!glv.empty()) {
+                                    std::string lName = "An NPC", cName = "someone";
+                                    if (const auto* nl = registry.try_get<Name>(listener)) lName = nl->value;
+                                    if (const auto* nc = registry.try_get<Name>(changer)) cName = nc->value;
+                                    glv.get<EventLog>(*glv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        lName + " hears about " + cName + "'s varied career.");
+                                }
+                            }
+                        }
                     });
                 }
             } else {
