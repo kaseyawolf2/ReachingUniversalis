@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Evening gathering density ring** — During hours 18–21, draw a faint translucent circle
-  around each settlement showing gathered NPC count. In `GameState::Draw`, count agents with
-  matching `homeSettlName`, draw `DrawCircleLinesV` scaled by pop/popCap. No new snapshot fields.
+
 
 ## Recently Done
+
+- [x] **Evening gathering density ring** — Faint SKYBLUE ring around settlements during hours 18-21, radius scaled by gathered NPC count vs popCap. Counts NPCs within 40u of centre.
 
 - [x] **Chat log entry** — 10% of chat pair formations log "[Name] and [Other] chat near [Settlement]." to EventLog. Social flavour without spam.
 
@@ -1928,7 +1928,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Only log ~10% of chats (gate with `std::uniform_real_distribution<float>(0,1)(s_chatRng) < 0.1f`)
   to avoid log spam. Gives the event log some social flavour.
 
-- [ ] **Evening gathering density ring** — During hours 18–21, draw a faint translucent circle
+- [x] **Evening gathering density ring** — During hours 18–21, draw a faint translucent circle
   around each settlement on the world map showing how many NPCs are gathered there. In
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
@@ -3522,3 +3522,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `chatTimer == 0` and hasn't chatted for > 60 game-seconds (add `float lastChatAge = 0.f` to
   `DeprivationTimer`), increase CHAT_RADIUS from 25u to 40u for that NPC. Lonely NPCs actively
   seek out conversation partners from further away. Reset `lastChatAge` when chatTimer is set.
+
+- [ ] **Gathering count in settlement tooltip** — In `HUD::DrawSettlementTooltip` (HUD.cpp),
+  during hours 18–21, add a line "Evening gathering: N NPCs nearby" in faint SKYBLUE. Count
+  agents in `snap.agents` whose `homeSettlementName` matches the hovered settlement and are
+  within 40u. No new snapshot fields — reuse existing agent position data.
+
+- [ ] **Dawn dispersal animation** — In `ScheduleSystem.cpp`, when hour transitions from
+  sleeping to working (wake-up), if the NPC is within 30u of their settlement centre, add a
+  brief outward velocity nudge: `vel.vx += (pos.x - homePos.x) * 0.02f` (and vy). This creates
+  a visible "dispersal" as NPCs fan out from the overnight cluster. No new components — uses
+  existing Position, Velocity, and HomeSettlement.
