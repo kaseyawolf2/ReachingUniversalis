@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Idle NPCs discuss hauler routes** — In `AgentDecisionSystem`'s greeting block, when
-  both NPCs have `HomeSettlement` at a settlement with active haulers (check
-  `registry.view<Hauler, HomeSettlement>`), 20% chance to replace the greeting log with "[Name]
-  and [Other] discuss trade routes." No gameplay effect — purely flavour text that makes
-  settlements with haulers feel like trading hubs.
+
 
 
 
 ## Recently Done
+
+- [x] **Idle NPCs discuss hauler routes** — 20% chance flavour greeting "discuss trade routes" when both NPCs share a settlement with haulers. No gameplay effect.
 
 - [x] **Hauler profit shown in stockpile panel** — lifetimeProfit on HaulerInfo, rendered as "(+Xg)" GREEN or "(-Xg)" RED inline after route text.
 
@@ -1668,12 +1666,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Idle NPCs discuss hauler routes** — In `AgentDecisionSystem`'s greeting block, when
-  both NPCs have `HomeSettlement` at a settlement with active haulers (check
-  `registry.view<Hauler, HomeSettlement>`), 20% chance to replace the greeting log with "[Name]
-  and [Other] discuss trade routes." No gameplay effect — purely flavour text that makes
-  settlements with haulers feel like trading hubs.
 
 ---
 
@@ -3354,3 +3346,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   below the hauler routes section, when there are ≥2 haulers, show "Best: [Name] ([profit/trip]g/trip)"
   in faint GOLD. Compute from `lifetimeProfit / max(1, lifetimeTrips)` across haulerRoutes entries.
   No new piping — pure render-side calculation on existing HaulerInfo data.
+
+- [ ] **NPCs discuss weather during seasonal extremes** — In `AgentDecisionSystem`'s greeting
+  block, in the normal greeting case, when season is Summer or Winter (from `TimeManager`), 15%
+  chance to replace greeting with "[Name] and [Other] complain about the [heat/cold]." Check
+  `tm.CurrentSeason()` which is already available. Pure flavour text — NPCs react to seasons.
+
+- [ ] **NPCs discuss food prices when hungry** — In `AgentDecisionSystem`'s greeting block, in the
+  normal greeting case, when both NPCs have `needs.list[0].value < 0.5` (hunger below 50%), 25%
+  chance to replace greeting with "[Name] and [Other] grumble about food prices." No gameplay
+  effect — flavour text that creates ambient narrative about economic conditions.
