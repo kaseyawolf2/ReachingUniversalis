@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
-
 ## Recently Done
+
+- [x] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, counts starving NPCs
+  (hunger < 0.15) per settlement each frame. When ≥ 3 at one settlement, logs "[Settlement]
+  faces a food crisis — N residents starving." once per game-day via static day tracker.
+
+
 
 - [x] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after starvation desperation
   log. Finds best friend (affinity ≥ 0.4, same settlement, balance > 10g) and transfers 3g
@@ -869,8 +873,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
-
 - [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
 
 - [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
@@ -914,6 +916,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Begging gratitude affinity boost** — In `ConsumptionSystem.cpp`'s begging block, after the 3g transfer, boost `Relations::affinity` between beggar and helper by +0.05 (both directions, capped at 1.0). Receiving help strengthens the friendship bond. No new fields needed — modify existing begging block.
 
 - [ ] **Repeated begging strain** — In `ConsumptionSystem.cpp`'s begging block, track a static `std::map<std::pair<entt::entity,entt::entity>, int>` counting how many times each pair has begged. After 3 begging events from the same pair, decay `Relations::affinity` by -0.02 per additional beg. Log "[Friend] is growing tired of helping [Name]." at 1-in-3 when the penalty kicks in. Friendship has limits.
+
+- [ ] **Food crisis morale impact** — In `ConsumptionSystem.cpp`'s food crisis warning block, when a crisis is logged (≥ 3 starving), apply -0.03 morale to the settlement via `Settlement::morale`. Chronic starvation demoralises the community. Only apply once per game-day (already gated by `s_crisisLogDay`).
+
+- [ ] **Crisis-triggered food import request** — In `ConsumptionSystem.cpp`'s food crisis block, when a crisis fires, set a `bool foodCrisis` flag on `Settlement` (add to `Components.h`). In `TransportSystem.cpp`'s `FindBestRoute`, destinations with `foodCrisis == true` get +25% route score bonus for food deliveries. Flag cleared when food stock > 20. Creates demand-pull trade response to starvation.
 
 ### NPC Crime & Consequence
 
