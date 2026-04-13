@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder wisdom event** — In `RandomEventSystem`'s per-NPC event tier (personal event
-  system), add a new case: when a NPC's age > 70 and has a skill ≥ 0.6, fire a rare one-time
-  "wisdom transfer" event — boost one random co-settled younger NPC's skill by 0.1, capped at
-  0.8. Log `"Elder [Name] passed their knowledge to [Name2] at [settlement]."` Guard with a
-  `wisdomFired` bool on `DeprivationTimer` to prevent repeated firings.
-
 ## Recently Done
+
+- [x] **Elder wisdom event** — One-time wisdom transfer for elders (age > 70, skill ≥ 0.6): +0.1 to random younger co-settled NPC's matching skill, capped at 0.8. `wisdomFired` bool on `DeprivationTimer`. In `RandomEventSystem.cpp`.
+
+
 
 - [x] **Peak-age production bonus** — Workers aged 25-55 get `workerContrib *= 1.1f` in `ProductionSystem.cpp`. Completes lifecycle arc with existing `Age` component.
 
@@ -3592,3 +3590,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   add `bool primeAge = false` to `AgentEntry` in `RenderSnapshot.h`. Set true when age is
   25–55. In `HUD.cpp`'s `DrawHoverTooltip`, show "Prime years" in faint `Fade(GREEN, 0.5f)`
   after the age line when `primeAge` is true. Pure display.
+
+- [ ] **Wisdom recipient gratitude** — In `RandomEventSystem.cpp`'s elder wisdom transfer block,
+  after boosting the target's skill, set `registry.get_or_emplace<DeprivationTimer>(target).lastHelper
+  = e` (the elder entity). This wires into the existing gratitude greeting path so wisdom
+  recipients will thank their elder. Pure wiring — no new components.
+
+- [ ] **Elder storytelling during evening gather** — In `AgentDecisionSystem.cpp`'s chat pairing
+  block (~line 1304), when one chat partner is an elder (age > 65) and the other is younger,
+  10% chance to log "[Elder] tells [Younger] a story of the old days at [settlement]." Uses
+  existing `Age` component and `chatTimer`. Pure flavour, no gameplay effect.
