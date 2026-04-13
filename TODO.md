@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
-
 ## Recently Done
+
+- [x] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, NPCs both in `Working` state
+  within 30u of the same `ProductionFacility` gain `Relations::affinity` at +0.002 per game-hour,
+  capped at 0.5 from workplace proximity via static cumulative tracker. Both sides updated
+  symmetrically. Creates organic friendships from shared daily work.
+
+
 
 - [x] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block, scans
   departing NPC's friends (affinity ≥ 0.4) at the current settlement. Finds top friend by affinity
@@ -842,8 +847,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
-
 - [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
 
 - [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
@@ -879,6 +882,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
 
 - [ ] **Friend mourning on death** — In `DeathSystem.cpp`, when an NPC dies, scan their `Relations::affinity` map for friends (affinity ≥ 0.5) at the same settlement. The top friend by affinity gets -0.03 morale on their home settlement and logs "[Friend] mourns the loss of [Name] at [Settlement]." at 1-in-2 frequency. Death has social consequences.
+
+- [ ] **Workplace friendship milestone log** — In `ScheduleSystem.cpp`'s workplace affinity block, when cumulative workplace gain for a pair crosses 0.3 (first meaningful friendship threshold), log "[Name] and [Coworker] have become friends through working together at [Settlement]." once per pair via static set. Makes organic friendships visible.
+
+- [ ] **Leisure socialising affinity** — In `ScheduleSystem.cpp`'s leisure wandering block (hour 18–22 evening cluster), scan for other Idle NPCs within 40u at the same settlement. Tick `Relations::affinity` by +0.001 per game-hour, capped at 0.3 from leisure alone (separate static tracker). Evening socialising builds weaker but broader social bonds than workplace proximity.
 
 ### NPC Crime & Consequence
 
