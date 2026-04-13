@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
-
 ## Recently Done
+
+- [x] **NPC satisfaction memory** — `float lastSatisfaction` on `DeprivationTimer`, updated in
+  `ConsumptionSystem.cpp` as average of 4 needs. `FindMigrationTarget` gives +0.2 push when < 0.3.
+  Consistently unsatisfied NPCs seek better settlements.
+
+
 
 - [x] **Starvation desperation log escalation** — When hunger < 0.1, balance < 1g, and no food in
   stockpile, logs "[Name] is starving and desperate at [Settlement]." at 1-in-10 frequency.
@@ -815,6 +819,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
 
 - [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
+
+- [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
+
+- [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
 
 ### NPC Crime & Consequence
 
