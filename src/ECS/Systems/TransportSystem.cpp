@@ -49,7 +49,8 @@ struct TradeRoute {
 static TradeRoute FindBestRoute(entt::registry& registry,
                                  entt::entity homeSettlement,
                                  int maxCapacity,
-                                 const std::string& preferredRoute = "") {
+                                 const std::string& preferredRoute = "",
+                                 const std::string& avoidRoute = "") {
     TradeRoute best;
     float bestScore = 0.f;  // profit / max(100, distance) — avoids zero division
 
@@ -125,12 +126,15 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             if (homeSettl && homeSettl->rivalryTimer > 0.f && homeSettl->rivalEntity == destEnt)
                 score *= 0.8f;
             // Preferred route bonus: +10% when this route matches the hauler's best route
-            if (!preferredRoute.empty() && !homeName.empty()) {
-                auto* destSettl = registry.try_get<Settlement>(destEnt);
-                if (destSettl) {
-                    std::string candidate = homeName + "\xe2\x86\x92" + destSettl->name;
-                    if (candidate == preferredRoute)
+            // Worst route penalty: -20% when this route matches recent worst loss
+            if (!homeName.empty()) {
+                auto* destSettl2 = registry.try_get<Settlement>(destEnt);
+                if (destSettl2) {
+                    std::string candidate = homeName + "\xe2\x86\x92" + destSettl2->name;
+                    if (!preferredRoute.empty() && candidate == preferredRoute)
                         score *= 1.1f;
+                    if (!avoidRoute.empty() && candidate == avoidRoute)
+                        score *= 0.8f;
                 }
             }
             if (score > bestScore) {
@@ -242,6 +246,16 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
         if (hauler.state != HaulerState::GoingToDeposit)
             hauler.inConvoy = false;
 
+        // Tick down worst-route avoidance timer
+        if (hauler.worstRouteTimer > 0.f) {
+            hauler.worstRouteTimer -= gameHoursDt;
+            if (hauler.worstRouteTimer <= 0.f) {
+                hauler.worstRouteTimer = 0.f;
+                hauler.worstRoute.clear();
+                hauler.worstLoss = 0.f;
+            }
+        }
+
         switch (hauler.state) {
 
         // ---- Idle: return home, then evaluate trades ----
@@ -261,7 +275,9 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             // Evaluate all reachable trade routes by expected profit.
             // Patience: after MAX_WAIT_CYCLES idle evaluations, accept any
             // positive margin rather than insisting on MIN_TRIP_PROFIT.
-            TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity, hauler.bestRoute);
+            TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity,
+                                            hauler.bestRoute,
+                                            hauler.worstRouteTimer > 0.f ? hauler.worstRoute : "");
             float effectiveMin = (hauler.waitCycles >= MAX_WAIT_CYCLES)
                                  ? MIN_TRIP_PROFIT_FLOOR
                                  : MIN_TRIP_PROFIT;
@@ -611,6 +627,14 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                                 who.c_str(), dest.c_str(), tripProfit);
                             logV3.get<EventLog>(*logV3.begin()).Push(tm4.day, (int)tm4.hourOfDay, lbuf);
                         }
+                    }
+                    // Track worst loss for route avoidance
+                    if (tripProfit < 0.f && tripProfit < hauler.worstLoss) {
+                        hauler.worstLoss = tripProfit;
+                        std::string wsrc = cargoSourceName.empty() ? "???" : cargoSourceName;
+                        std::string wdst = destSettl ? destSettl->name : "???";
+                        hauler.worstRoute = wsrc + "\xe2\x86\x92" + wdst;
+                        hauler.worstRouteTimer = 24.f;  // avoid for 24 game-hours
                     }
                     if (tripProfit > hauler.bestProfit) {
                         hauler.bestProfit = tripProfit;

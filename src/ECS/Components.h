@@ -194,6 +194,9 @@ struct Hauler {
     bool         bankruptWarned = false;      // true after logging the 50% bankruptcy warning
     int          lifetimeTrips  = 0;         // total completed deliveries
     float        lifetimeProfit = 0.f;       // cumulative net profit across all trips
+    std::string  worstRoute;                  // "A→B" label of the worst recent loss
+    float        worstLoss       = 0.f;      // worst single-trip loss (negative profit)
+    float        worstRouteTimer = 0.f;      // game-hours remaining on worst-route avoidance
 };
 
 // ---- Economy ----
