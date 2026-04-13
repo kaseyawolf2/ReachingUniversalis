@@ -1107,6 +1107,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 // Cooldowns
                                 timer.teachCooldown  = 120.f;
                                 oTimer.teachCooldown = 120.f;
+                                // Mentor bond: learner remembers teacher for gratitude greeting
+                                oTimer.lastHelper = entity;
                                 // Log
                                 auto lv = registry.view<EventLog>();
                                 if (lv.begin() != lv.end()) {
