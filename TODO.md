@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
-
 ## Recently Done
+
+- [x] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, NPCs with all three skills ≥ 0.4
+  get `workerContrib *= 1.05f`. Placed after grief penalty, before settlement accumulation.
+  Rewards generalists and counterbalances skill rust.
+
+
 
 - [x] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
   pre-rust skill values, then after decay logs "[Name]'s [skill] is getting rusty at [Settlement]."
@@ -1059,6 +1063,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
 
 - [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
+
+- [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
+
+- [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
 
 - [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
