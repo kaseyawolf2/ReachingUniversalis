@@ -9,7 +9,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+## Backlog
+
+- [ ] **NPC mentorship rivalry** — In `AgentDecisionSystem.cpp`'s skill growth block, when two NPCs at the same settlement both have the same skill ≥ 0.7 and one is training a child (mentor), the non-mentor gets `effectiveGrowthRate *= 1.1f` competitive boost. Log "[Name] trains harder, inspired by [Mentor]'s teaching" at 1-in-8 frequency. Uses existing mentor-apprentice infrastructure.
+
+- [ ] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`, settlements with `profMask == 7` (all 3 professions) have 1-in-200 chance per game-day to trigger a "Harvest Festival" event: +0.05 morale, +0.02 affinity between all residents, lasts 4 game-hours. Log "[Settlement] celebrates its diverse workforce!" Requires checking `SettlAgg.profMask` or mirroring the bitmask.
+
+- [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
+
 ## Recently Done
+
+- [x] **Profession diversity tooltip indicator** — Added `bool diverse` to `SettlementEntry` in
+  `RenderSnapshot.h`. Computed via `profMask` bitmask (Farmer|WaterCarrier|Lumberjack) in `SettlAgg`
+  single-pass loop. Displays "[Diverse]" gold badge after settlement name in `HUD.cpp`'s tooltip.
+
+
 
 - [x] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`'s skill recovery celebration,
   applies +0.02 morale to home settlement when active skill crosses 0.5 upward. Capped at 1.0.
