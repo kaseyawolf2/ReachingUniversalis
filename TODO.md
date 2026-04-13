@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Settlement specialisation bonus** — In `ProductionSystem`, when a settlement's top skill
+  type (computed like in `WriteSnapshot`'s skill summary) matches the facility's output type and
+  has ≥ 3 masters, apply a +15% production bonus to all workers at matching facilities. Check via
+  `registry.view<Skills, HomeSettlement>` counting masters per type, cache per settlement entity.
+  Log "[Settlement] has a thriving [Type] tradition (+15% output)." once via a static set.
 
 
 
