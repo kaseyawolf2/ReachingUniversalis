@@ -458,6 +458,68 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // ---- Workplace rivalry ----
+                    // Skilled workers at the same facility with matching profession skill ≥ 0.7
+                    // may develop rivalry, decreasing affinity. Checked once per hour.
+                    if (hourChanged) {
+                        const auto* mySkills = registry.try_get<Skills>(entity);
+                        const auto* myProf   = registry.try_get<Profession>(entity);
+                        auto* myRel2 = registry.try_get<Relations>(entity);
+                        if (mySkills && myProf && myRel2) {
+                            // Determine this NPC's profession skill level
+                            float myProfSkill = 0.f;
+                            switch (myProf->type) {
+                                case ProfessionType::Farmer:      myProfSkill = mySkills->farming; break;
+                                case ProfessionType::WaterCarrier: myProfSkill = mySkills->water_drawing; break;
+                                case ProfessionType::Lumberjack:   myProfSkill = mySkills->woodcutting; break;
+                                default: break;
+                            }
+                            if (myProfSkill >= 0.7f) {
+                                registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
+                                    entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                    [&](auto other, const AgentState& oState, const Position& oPos,
+                                        const HomeSettlement& oHome, const Skills& oSk, const Profession& oPr) {
+                                    if (other <= entity) return; // avoid double-processing pairs
+                                    if (oState.behavior != AgentBehavior::Working) return;
+                                    if (oHome.settlement != home.settlement) return;
+                                    if (oPr.type != myProf->type) return; // must be same profession
+                                    float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
+                                    if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
+                                    // Check other NPC's matching profession skill
+                                    float otherSkill = 0.f;
+                                    switch (oPr.type) {
+                                        case ProfessionType::Farmer:      otherSkill = oSk.farming; break;
+                                        case ProfessionType::WaterCarrier: otherSkill = oSk.water_drawing; break;
+                                        case ProfessionType::Lumberjack:   otherSkill = oSk.woodcutting; break;
+                                        default: break;
+                                    }
+                                    if (otherSkill < 0.7f) return;
+                                    // 1-in-20 chance per hour
+                                    if (s_rng() % 20 != 0) return;
+                                    // Decrease affinity by 0.02 (floor 0.0) for both
+                                    myRel2->affinity[other] = std::max(0.f, myRel2->affinity[other] - 0.02f);
+                                    if (auto* oRel = registry.try_get<Relations>(other))
+                                        oRel->affinity[entity] = std::max(0.f, oRel->affinity[entity] - 0.02f);
+                                    // Log at 1-in-5 frequency
+                                    if (s_rng() % 5 == 0) {
+                                        auto logV = registry.view<EventLog>();
+                                        if (logV.begin() != logV.end()) {
+                                            std::string n1 = "NPC", n2 = "NPC";
+                                            if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                            if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
+                                            std::string where = "settlement";
+                                            if (home.settlement != entt::null && registry.valid(home.settlement))
+                                                if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                    where = s->name;
+                                            logV.get<EventLog>(*logV.begin()).Push(tm.day, hour,
+                                                n1 + " and " + n2 + " compete at " + where + ".");
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
