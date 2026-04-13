@@ -782,6 +782,37 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 continue;
             }
 
+            // ---- Bandit intimidation: nearby bandits erode settlement morale ----
+            if (timer.intimidationCooldown > 0.f)
+                timer.intimidationCooldown = std::max(0.f, timer.intimidationCooldown - dt);
+            if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                static constexpr float INTIM_RADIUS = 50.f;
+                bool nearBandit = false;
+                registry.view<BanditTag, Position>().each(
+                    [&](const Position& bp) {
+                    if (nearBandit) return;
+                    float bdx = bp.x - pos.x, bdy = bp.y - pos.y;
+                    if (bdx*bdx + bdy*bdy < INTIM_RADIUS * INTIM_RADIUS)
+                        nearBandit = true;
+                });
+                if (nearBandit) {
+                    float intimGameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                    if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                        settl->morale = std::max(0.f, settl->morale - 0.02f * intimGameHoursDt);
+                    if (timer.intimidationCooldown <= 0.f) {
+                        timer.intimidationCooldown = 60.f;  // 60 game-seconds cooldown
+                        auto lv = registry.view<EventLog>();
+                        if (lv.begin() != lv.end()) {
+                            const auto* myName = registry.try_get<Name>(entity);
+                            std::string msg = (myName ? myName->value : "NPC") +
+                                              " feels uneasy near bandits.";
+                            lv.get<EventLog>(*lv.begin()).Push(
+                                tm.day, (int)tm.hourOfDay, msg);
+                        }
+                    }
+                }
+            }
+
             // ---- Gossip idle animation (hours 20–22) ----
             // Idle NPCs visually gravitate toward a nearby same-settlement NPC.
             if (timer.gossipNudgeTimer > 0.f)

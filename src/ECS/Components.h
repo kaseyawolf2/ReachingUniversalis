@@ -158,6 +158,7 @@ struct DeprivationTimer {
     float                visitTimer = 0.f;               // game-minutes remaining on family visit (0 = not visiting)
     entt::entity         visitTarget = entt::null;       // settlement entity being visited
     entt::entity         lastHelper = entt::null;        // entity who last gave charity; for gratitude greeting
+    float                intimidationCooldown = 0.f;    // game-seconds until next bandit intimidation log (0 = ready)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
