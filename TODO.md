@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Post-festival morale afterglow** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration <= 0`), when `modifierName == "Harvest Festival"` or `modifierName == "Festival"`, set a new `Settlement::afterglowHours` field (add `float afterglowHours = 0.f` to `Settlement` in `Components.h`). While `afterglowHours > 0`, settlement morale drift toward 0.5 is halved. Tick down in the same modifier block. Creates lingering social effect from celebrations.
-
 ## Backlog
 
 - [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
@@ -27,7 +25,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
 
+- [ ] **Afterglow tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool afterglow = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::afterglowHours > 0`. In `HUD.cpp`'s settlement tooltip, display "[Afterglow]" in warm yellow after the name badges (alongside "[Diverse]", "[Trade Hub]"). Makes the lingering festival effect visible.
+
+- [ ] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), after applying drought, scan all NPCs at the settlement via `Relations`. For each pair with affinity ≥ 0.3, boost mutual affinity by +0.03 (cap 1.0). Log "[Settlement] residents pull together during the drought" once per drought. Shared hardship strengthens community bonds.
+
 ## Recently Done
+
+- [x] **Post-festival morale afterglow** — Added `float afterglowHours = 0.f` to `Settlement` in
+  `Components.h`. In `RandomEventSystem.cpp`, when Festival/Harvest Festival expires, sets
+  afterglow to 12 game-hours. During afterglow, morale drift toward 0.5 halved (0.25% vs 0.5%).
 
 - [x] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace block, NPCs at the
   same facility with different professions and both skill ≥ 0.5 have 1-in-25 chance per hour to
