@@ -1016,6 +1016,33 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Wave at player when happy: content NPCs create warm ambient feedback ----
+            if (playerEntity != entt::null && timer.thankCooldown <= 0.f) {
+                float avgN = 0.f;
+                for (int i = 0; i < 4; ++i) avgN += needs.list[i].value;
+                avgN *= 0.25f;
+                if (avgN > 0.8f) {
+                    static constexpr float WAVE_RADIUS = 50.f;
+                    float wdx = playerPos.x - pos.x, wdy = playerPos.y - pos.y;
+                    if (wdx * wdx + wdy * wdy <= WAVE_RADIUS * WAVE_RADIUS) {
+                        // 1% chance per real-second
+                        static std::mt19937 s_waveRng{ std::random_device{}() };
+                        static std::uniform_real_distribution<float> s_waveDist(0.f, 1.f);
+                        if (s_waveDist(s_waveRng) < 0.01f * realDt) {
+                            timer.thankCooldown = 60.f;
+                            auto lv = registry.view<EventLog>();
+                            if (lv.begin() != lv.end()) {
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = (myName ? myName->value : "An NPC") +
+                                    " waves at you cheerfully.";
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                        }
+                    }
+                }
+            }
+
             // ---- Avoid player with bad reputation: NPCs flee nervously ----
             if (playerEntity != entt::null) {
                 if (const auto* rep = registry.try_get<Reputation>(entity)) {
