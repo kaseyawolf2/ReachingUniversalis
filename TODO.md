@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Wanderer resettlement preference for friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block (~line 2465), when an exile with enough gold picks a settlement, add +20% score bonus to settlements where they have a friend (affinity ≥ 0.3 in `Relations`). Uses `s_entitySettlement` cache for O(1) settlement lookup per friend. Homeless NPCs preferentially resettle near friends.
-
 ## Recently Done
+
+- [x] **Wanderer resettlement preference for friends** — Exiles choosing a settlement now prefer
+  settlements with friends (affinity ≥ 0.3). Built `friendSettlements` set via `s_entitySettlement`
+  cache. Settlements with friends get 20% distance bonus. Falls back to pure distance if no friends.
+
+
 
 - [x] **Death inheritance to best friend** — In `DeathSystem.cpp`, after treasury estate deposit,
   scans `entitiesBySettlement` for the best friend (affinity ≥ 0.6) at the same settlement.
@@ -1009,6 +1013,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Inherited wealth gratitude** — In `AgentDecisionSystem.cpp`'s gossip/social block, when an NPC's `Money::balance` increased by ≥ 5g from friend inheritance (track via a new `float inheritedGold = 0.f` on `DeprivationTimer`), the heir boosts affinity toward the deceased's family members (`FamilyTag::name` match) by +0.1 and logs "[Heir] honours the memory of [Deceased]'s family." once. Set `inheritedGold = 0` after processing. Adds emotional consequence to inheritance.
 
 - [ ] **Deathbed farewell log** — In `DeathSystem.cpp`, when an NPC with `Age::days >= Age::maxDays * 0.95f` (old-age death) has a best friend (affinity ≥ 0.5) at the same settlement, log "[Deceased] bid farewell to [Friend] before passing." at 1-in-2 frequency. Uses `entitiesBySettlement` for lookup. Adds emotional depth to natural death events.
+
+- [ ] **Exile farewell to settlement** — In `AgentDecisionSystem.cpp`, when an NPC loses their home settlement (becomes exile), if they had any friend (affinity ≥ 0.4) at the old settlement, log "[Name] was forced to leave [Friend] behind at [Settlement]." at 1-in-3 frequency. Uses the NPC's `Relations::affinity` map. Makes exile a social event, not just an economic one.
+
+- [ ] **Resettlement welcome from old friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block, after a wanderer successfully resettles at a settlement with friends, boost affinity by +0.05 between the wanderer and each friend at the new settlement. Log "[Friend] welcomes [Wanderer] back." for the top friend at 1-in-3 frequency. Closes the loop on friend-preference resettlement.
 
 - [ ] **Workplace friendship milestone log** — In `ScheduleSystem.cpp`'s workplace affinity block, when cumulative workplace gain for a pair crosses 0.3 (first meaningful friendship threshold), log "[Name] and [Coworker] have become friends through working together at [Settlement]." once per pair via static set. Makes organic friendships visible.
 
