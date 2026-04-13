@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC waves at player when happy** — In `AgentDecisionSystem`'s idle block, near the
+  thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
+  of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
+  `thankCooldown` (reuse existing cooldown). Content NPCs create warm ambient feedback.
 
 
 
