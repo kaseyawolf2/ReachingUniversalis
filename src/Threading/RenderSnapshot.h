@@ -63,6 +63,8 @@ struct RenderSnapshot {
         bool isGrateful = false;
         // True if this NPC recently gave charity AND has very high heat (warmth glow)
         bool recentWarmthGlow = false;
+        // True if this NPC recently taught or learned a skill (teachCooldown > 0)
+        bool recentlyTaught = false;
         // True if this NPC's charity cooldown is 0 (ready to give charity)
         bool charityReady = false;
         // Remaining charity cooldown in game-hours (> 0 means recently gave charity)

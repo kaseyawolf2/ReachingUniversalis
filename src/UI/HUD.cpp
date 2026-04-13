@@ -732,6 +732,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
     // "Good harvest" line: shown when NPC has active harvest bonus
     bool showHarvest  = best->harvestBonus;
+    // "Recently taught/learned" line: shown when teachCooldown > 0
+    bool showTaught   = best->recentlyTaught;
 
     // Elder will line: surfaces the inheritance mechanic
     bool showWill = hasName && (best->ageDays > 60.f) && (best->balance > 0.f);
@@ -923,6 +925,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
+    if (showTaught)   lineCount++;
     if (showProfit)   lineCount++;
     if (showBestRoute)    lineCount++;
     if (showTripHistory)  lineCount++;
@@ -955,6 +958,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wwl = showWill     ? MeasureText("Will: 80% to treasury", 11) : 0;
     int wr  = showRumour  ? MeasureText(rumourLine,              11) : 0;
     int whv = showHarvest ? MeasureText("Good harvest bonus",     11) : 0;
+    int wtl = showTaught ? MeasureText("Recently taught/learned", 11) : 0;
     int wpr = showProfit ? MeasureText(profitLine,               11) : 0;
     int wbr = showBestRoute ? MeasureText(bestRouteLine,         11) : 0;
     int wth = showTripHistory ? MeasureText(tripHistoryLine,     11) : 0;
@@ -967,7 +971,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
     int wmd = showMood ? MeasureText(moodLine, 11) : 0;
     int wml = showMilestone ? MeasureText(milestoneLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1024,6 +1028,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showStrike)   { DrawText(strikeLine,                    tx, ly, 11, RED);                    ly += 16; }
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
+    if (showTaught)   { DrawText("Recently taught/learned",    tx, ly, 11, Fade(SKYBLUE, 0.6f));  ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showMilestone) { DrawText(milestoneLine, tx, ly, 11, milestoneColor); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
