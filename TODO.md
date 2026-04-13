@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mentor-apprentice relationship** — In `AgentDecisionSystem.cpp`, when an elder (age > 60) works at the same settlement as a child apprentice (age 12-14), the apprentice's matching skill gains +0.003 per game-day instead of normal growth rate. Log "[Elder] mentors [Child] in [skill] at [Settlement]." once when the bond first forms (1-in-5 frequency). Uses existing `Age`, `Skills`, `ChildTag` components.
-
 ## Recently Done
+
+- [x] **Mentor-apprentice relationship** — Once per game-day, children (age 12-14) at a settlement
+  with an elder (age > 60) of matching profession receive +0.003 skill growth. Builds per-settlement
+  elder map, iterates children with `ChildTag`. Logs at 1-in-5 frequency. One mentor per child per day.
 
 - [x] **Settlement skill summary in tooltip** — Added `float avgFarming, avgWater, avgWood` to
   `SettlementEntry` in `RenderSnapshot.h`. Computed in `settlAgg` single-pass loop via
@@ -4142,3 +4144,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Settlement skill specialisation indicator** — In `SimThread::WriteSnapshot`'s settlement section, after computing `avgFarming/avgWater/avgWood` from `settlAgg`, determine if one skill is dominant (>= 1.5x the average of the other two). If so, set a new `std::string skillSpeciality` field on `SettlementEntry` (e.g. "Farming Hub", "Forestry Hub"). Display in `HUD.cpp`'s tooltip after the skills line in a distinct colour. Highlights natural skill clustering.
 
 - [ ] **Settlement skill growth trend** — Add `float prevAvgFarming, prevAvgWater, prevAvgWood` to `SettlementEntry` in `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, store the current averages and compare with a cached previous snapshot (use a `static std::map<entt::entity, std::array<float,3>>` keyed by settlement entity, updated once per game-day). Display arrows in tooltip: "Skills: Farm 45% ↑ Water 30% ↓ Wood 20% →" using `settlAgg` data. Shows whether settlement workforce is improving.
+
+- [ ] **Mentored apprentice graduation bonus** — In `BirthSystem.cpp` or `DeathSystem.cpp`'s age graduation block (where `ChildTag` is removed at age 15), check if the child's matching profession skill is >= 0.3. If so, log "[Name] graduates as a promising [profession] at [Settlement]." at 1-in-3 frequency. Children who were mentored will naturally have higher skills at graduation, making this event more common for settlements with active mentorship.
+
+- [ ] **Elder retirement wisdom** — In `AgentDecisionSystem.cpp`'s death block or a new once-per-day check, when an elder (age > 60) with any skill >= 0.9 dies, boost ALL children at the same settlement's matching skill by +0.02 (legacy knowledge). Log "[Elder]'s wisdom lives on in the children of [Settlement]." at full frequency. Uses existing `Age`, `Skills`, `ChildTag`, `HomeSettlement` components. One-time effect on death.
