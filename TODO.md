@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Elder wisdom fading on death** — In `DeathSystem.cpp`'s death handler, when an elder (age > 60) with skill >= 0.8 dies, scan NPCs at the same settlement with `Relations::affinity >= 0.6` toward the deceased. For each, log "[NPC] mourns the loss of [Elder]'s guidance at [Settlement]" at 1-in-3 frequency and apply a one-time `growth -= 0.0002f` penalty for 3 days via a new `float wisdomGriefDays = 0.f` field on `Skills` in `Components.h`. In `AgentDecisionSystem.cpp`'s skill growth block, tick down and apply the penalty. Represents the knowledge gap left by a skilled elder's passing.
+
+## Backlog
 
 - [ ] **Elder council influence on settlement decisions** — In `ConstructionSystem.cpp`'s facility-building block, count elders (age > 60) with skill >= 0.7 at the settlement. When 2+ skilled elders are present, reduce facility build cost by 10% (round down). Log "[Settlement]'s elders guide the construction effort" at 1-in-5 frequency. Uses existing `Age`, `Skills`, `HomeSettlement` components. Represents accumulated wisdom reducing waste.
 
