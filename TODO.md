@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block (just added), after donating, boost the donor's affinity from other NPCs at the settlement by +0.01 (via `Relations`). Iterate all NPCs at the home settlement and bump their affinity toward the donor. Log "[Donor] earns respect for helping [Bankrupt]" at 1-in-5 frequency. Creates a reputation payoff for generosity.
-
 ## Backlog
 
 - [ ] **Elder wisdom fading on death** — In `DeathSystem.cpp`'s death handler, when an elder (age > 60) with skill >= 0.8 dies, scan NPCs at the same settlement with `Relations::affinity >= 0.6` toward the deceased. For each, log "[NPC] mourns the loss of [Elder]'s guidance at [Settlement]" at 1-in-3 frequency and apply a one-time `growth -= 0.0002f` penalty for 3 days via a new `float wisdomGriefDays = 0.f` field on `Skills` in `Components.h`. In `AgentDecisionSystem.cpp`'s skill growth block, tick down and apply the penalty. Represents the knowledge gap left by a skilled elder's passing.
@@ -59,7 +57,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
 
+- [ ] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
+
+- [ ] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
 ## Recently Done
+
+- [x] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block,
+  after each donation, all NPCs at the settlement gain +0.01 affinity toward the donor. Logs reputation
+  gain at 1-in-5 frequency. Creates a payoff for generosity.
 
 - [x] **Bankruptcy survivor determination** — Added `bool bankruptSurvivor` to `DeprivationTimer` in
   `Components.h`. Set in `EconomicMobilitySystem.cpp` on hauler bankruptcy. In `AgentDecisionSystem.cpp`'s
