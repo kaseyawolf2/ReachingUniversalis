@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Agent decision cooldown** — In `AgentDecisionSystem.cpp`'s main loop, add a `float decisionCooldown = 0` field on `DeprivationTimer` (or `AgentState`). After an NPC makes a behaviour decision (sets `state.behavior` to a new value), set cooldown to ~0.5 real-seconds. While cooldown > 0, skip the expensive decision evaluation and only tick down the cooldown and continue movement/current-action. This prevents 60/sec re-evaluation — NPCs commit to decisions for ~30 frames. Reset cooldown early if a critical need drops below 0.2 (emergency override). Dramatically reduces per-frame cost of the main decision loop.
+
 ## Recently Done
 
 - [x] **Settlement master count in tooltip** — Added `int masterCount` to `SettlementEntry`. Counted
@@ -1043,8 +1045,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **Agent decision cooldown** — In `AgentDecisionSystem.cpp`'s main loop, add a `float decisionCooldown = 0` field on `DeprivationTimer` (or `AgentState`). After an NPC makes a behaviour decision (sets `state.behavior` to a new value), set cooldown to ~0.5 real-seconds. While cooldown > 0, skip the expensive decision evaluation and only tick down the cooldown and continue movement/current-action. This prevents 60/sec re-evaluation — NPCs commit to decisions for ~30 frames. Reset cooldown early if a critical need drops below 0.2 (emergency override). Dramatically reduces per-frame cost of the main decision loop.
 
 ### NPC Lifecycle & Identity
 
