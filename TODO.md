@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
-
 ## Backlog
 
 - [ ] **Post-festival morale afterglow** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration <= 0`), when `modifierName == "Harvest Festival"` or `modifierName == "Festival"`, set a new `Settlement::afterglowHours` field (add `float afterglowHours = 0.f` to `Settlement` in `Components.h`). While `afterglowHours > 0`, settlement morale drift toward 0.5 is halved. Tick down in the same modifier block. Creates lingering social effect from celebrations.
@@ -25,7 +23,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour block, when two NPCs are both grieving (`griefTimer > 0`) at the same settlement, boost their mutual `Relations::affinity` by +0.05 (cap 1.0). Log "[Name] and [Other] find comfort in shared loss at [Settlement]" at 1-in-6 frequency. Uses existing grief infrastructure and staggered frame scan.
 
+- [ ] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs with different professions have `Relations::affinity < 0.1` (strained by taunts) and work at the same facility for 3+ consecutive hours (track via a static map of pair → hour count), 1-in-10 chance to reconcile: boost mutual affinity by +0.05 and log "[Name] and [Other] put aside their differences at [Settlement]." Resets hour count after reconciliation.
+
+- [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
+
 ## Recently Done
+
+- [x] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace block, NPCs at the
+  same facility with different professions and both skill ≥ 0.5 have 1-in-25 chance per hour to
+  taunt each other. Decreases mutual affinity by 0.01 (floor 0.0). Logs playful teasing message.
 
 - [x] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when elder
   (age > 60) and non-elder pair up, 1-in-12 chance triggers storytelling. Listener's affinity
