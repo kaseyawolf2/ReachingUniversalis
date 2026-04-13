@@ -381,6 +381,38 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // Nearby friends join skill celebration
+            if (skillCelebration) {
+                const auto* myRel = registry.try_get<Relations>(entity);
+                if (myRel) {
+                    registry.view<AgentState, Position, DeprivationTimer>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                        [&](auto other, AgentState& oState, const Position& oPos, DeprivationTimer& oTimer) {
+                            if (other == entity) return;
+                            if (oState.behavior != AgentBehavior::Idle) return;
+                            if (oTimer.skillCelebrateTimer > 0.f) return; // already celebrating
+                            float ddx = oPos.x - pos.x, ddy = oPos.y - pos.y;
+                            if (ddx * ddx + ddy * ddy > 30.f * 30.f) return;
+                            auto it = myRel->affinity.find(other);
+                            if (it == myRel->affinity.end() || it->second < 0.2f) return;
+                            // Recruit friend into celebration
+                            oState.behavior = AgentBehavior::Celebrating;
+                            oTimer.skillCelebrateTimer = 0.25f;
+                            // Log
+                            auto lv = registry.view<EventLog>();
+                            if (lv.begin() != lv.end()) {
+                                const auto* oName = registry.try_get<Name>(other);
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = (oName ? oName->value : "An NPC") +
+                                    " joins " + (myName ? myName->value : "an NPC") +
+                                    "'s celebration.";
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                        });
+                }
+            }
+
             // Check if the festival is still active at home settlement
             bool festivalActive = false;
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
