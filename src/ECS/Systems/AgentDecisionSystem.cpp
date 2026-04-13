@@ -2741,9 +2741,17 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
             if (bestFriend == entt::null) return;
 
+            // Close friends (recipient affinity ≥ 0.8 toward giver) give larger gifts
+            float giftAmt = GIFT_AMOUNT;
+            if (const auto* recipRel2 = registry.try_get<Relations>(bestFriend)) {
+                auto it = recipRel2->affinity.find(giver);
+                if (it != recipRel2->affinity.end() && it->second >= 0.8f)
+                    giftAmt = 8.f;
+            }
+
             // Transfer gold: balance-to-balance (no treasury)
-            giverMoney.balance -= GIFT_AMOUNT;
-            registry.get<Money>(bestFriend).balance += GIFT_AMOUNT;
+            giverMoney.balance -= giftAmt;
+            registry.get<Money>(bestFriend).balance += giftAmt;
             giverTmr.charityTimer = GIFT_COOLDOWN;
 
             // Reciprocity: boost recipient's affinity toward giver
