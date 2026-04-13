@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
+
 ## Recently Done
 
 - [x] **Loneliness migration push** — Added `bool isLonely` param to `FindMigrationTarget` in
