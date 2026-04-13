@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
-
 ## Recently Done
+
+- [x] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, counts mutual friendship
+  pairs (both `Relations::affinity ≥ 0.5`) among NPCs at each settlement. +1% production per
+  pair, capped at +10%. Pair counts cached per settlement per game-hour. Added `cohesionBonus`
+  to the modifier chain.
+
+
 
 - [x] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, NPCs both in `Working` state
   within 30u of the same `ProductionFacility` gain `Relations::affinity` at +0.002 per game-hour,
@@ -849,8 +854,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
-
 - [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
 
 - [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
@@ -888,6 +891,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Workplace friendship milestone log** — In `ScheduleSystem.cpp`'s workplace affinity block, when cumulative workplace gain for a pair crosses 0.3 (first meaningful friendship threshold), log "[Name] and [Coworker] have become friends through working together at [Settlement]." once per pair via static set. Makes organic friendships visible.
 
 - [ ] **Leisure socialising affinity** — In `ScheduleSystem.cpp`'s leisure wandering block (hour 18–22 evening cluster), scan for other Idle NPCs within 40u at the same settlement. Tick `Relations::affinity` by +0.001 per game-hour, capped at 0.3 from leisure alone (separate static tracker). Evening socialising builds weaker but broader social bonds than workplace proximity.
+
+- [ ] **Cohesion bonus shown in settlement tooltip** — Add `int cohesionPairs = 0` and `float cohesionBonus = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. Set in `WriteSnapshot` by counting mutual friendship pairs (same logic as `ProductionSystem`). Display "Social cohesion: N pairs (+X%)" in `RenderSystem.cpp`'s settlement panel after morale bar, in Fade(LIME, 0.6f).
+
+- [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
 ### NPC Crime & Consequence
 
