@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Strike grievance log** — In `ScheduleSystem.cpp`, when `strikeDuration` transitions from
-  0 to >0 (strike begins), log "Workers strike at [Settlement] — [N] workers walk out (morale:
-  XX%)." When strike ends (>0 to 0), log "[Settlement] strike ends — morale recovering."
-
 ## Recently Done
+
+- [x] **Strike grievance log** — Strike begin log updated with morale % in `RandomEventSystem.cpp`. Strike end log added in `ScheduleSystem.cpp` with once-per-settlement dedup. Makes strikes a visible story beat.
+
+
 
 - [x] **Friendship bonus on birth** — Parent's friends (affinity ≥ 0.5, same settlement) each boost morale +0.01 (max 2). Logs "[Friend] celebrates [Parent]'s new child." In `BirthSystem.cpp`.
 
@@ -3623,3 +3623,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   entity as `lastHelper` on the newborn's `DeprivationTimer` (godparent link). This wires into
   the existing gratitude greeting so the child will later thank their godparent. Log "[Friend]
   becomes godparent to [Child]." No new components — reuses existing `lastHelper` field.
+
+- [ ] **Strike leader emerges** — In `RandomEventSystem.cpp`'s strike block, after setting
+  `strikeDuration` on all NPCs, pick the NPC with the lowest contentment as the "strike leader".
+  Log "[Name] leads the workers' strike at [Settlement]." Set their `DeprivationTimer::chatTimer
+  = 2.f` so they visually gather. No new components — uses existing contentment calculation
+  from `Needs` and `chatTimer`.
+
+- [ ] **Post-strike morale memory** — In `ScheduleSystem.cpp`'s strike-end block, after logging,
+  boost `Relations::affinity` by +0.05 between all NPCs who were on strike at the same settlement
+  (shared hardship builds bonds). Cap affinity at 1.0. Iterate via `HomeSettlement` matching.
+  No new components — modifies existing `Relations::affinity` map.
