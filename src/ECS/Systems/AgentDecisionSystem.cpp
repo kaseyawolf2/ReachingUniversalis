@@ -1589,10 +1589,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // ---- Thank player: NPCs with good rep nod respectfully near the player ----
+            // ---- Thank player: NPCs with good rep nod respectfully near the player (staggered: 1/4 per frame) ----
             if (timer.thankCooldown > 0.f)
                 timer.thankCooldown = std::max(0.f, timer.thankCooldown - realDt);
-            if (playerEntity != entt::null && timer.thankCooldown <= 0.f) {
+            if (playerEntity != entt::null && timer.thankCooldown <= 0.f
+                && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 static constexpr float THANK_RADIUS = 40.f;
                 if (const auto* rep = registry.try_get<Reputation>(entity)) {
                     if (rep->score > 0.3f) {
@@ -1612,8 +1613,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // ---- Wave at player when happy: content NPCs create warm ambient feedback ----
-            if (playerEntity != entt::null && timer.thankCooldown <= 0.f) {
+            // ---- Wave at player when happy: content NPCs create warm ambient feedback (staggered: 1/4 per frame) ----
+            if (playerEntity != entt::null && timer.thankCooldown <= 0.f
+                && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 float avgN = 0.f;
                 for (int i = 0; i < 4; ++i) avgN += needs.list[i].value;
                 avgN *= 0.25f;
@@ -1664,10 +1666,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // ---- Skill training: skilled NPC teaches nearby unskilled NPC ----
+            // ---- Skill training: skilled NPC teaches nearby unskilled NPC (staggered: 1/4 per frame) ----
             if (timer.teachCooldown > 0.f)
                 timer.teachCooldown = std::max(0.f, timer.teachCooldown - realDt);
-            if (timer.teachCooldown <= 0.f) {
+            if (timer.teachCooldown <= 0.f
+                && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 if (auto* mySkills = registry.try_get<Skills>(entity)) {
                     static constexpr float TEACH_RADIUS = 30.f;
                     static constexpr float TEACH_MIN = 0.6f;
