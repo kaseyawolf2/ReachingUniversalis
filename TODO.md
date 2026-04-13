@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency.
+- [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
 ## Recently Done
+
+- [x] **Reunion affinity boost** — Already implemented in `AgentDecisionSystem.cpp` migration
+  arrival block (lines ~977-1016). Scans friends with affinity > 0.3 at new settlement, boosts
+  both sides by +0.1 (capped at 1.0), logs at 1-in-2 frequency. No code changes needed.
 
 - [x] **Mentor-apprentice relationship** — Once per game-day, children (age 12-14) at a settlement
   with an elder (age > 60) of matching profession receive +0.003 skill growth. Builds per-settlement
@@ -1108,8 +1112,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
 - [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block (line where `prof->prevType = prof->type`). In `SimThread::WriteSnapshot`, write `careerChanges` to a new `int careerChanges` field on `AgentEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s NPC tooltip as "Career changes: N" after the profession line. Makes career mobility visible.
 
