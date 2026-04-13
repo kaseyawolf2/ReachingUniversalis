@@ -313,11 +313,15 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             y += LINE_H - 3;
         }
 
-        // Count family members among visible residents for the " ×N" suffix
+        // Count family members and sum wealth for the " ×N (total Xg)" suffix
         std::map<std::string, int> familyCount;
-        for (const auto& r : panel.residents)
-            if (!r.familyName.empty())
+        std::map<std::string, float> familyWealth;
+        for (const auto& r : panel.residents) {
+            if (!r.familyName.empty()) {
                 familyCount[r.familyName]++;
+                familyWealth[r.familyName] += r.balance;
+            }
+        }
 
         for (const auto& r : panel.residents) {
             // First entry is richest (sorted descending); highlight in gold
@@ -354,7 +358,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             DrawText(goldBuf, rx, y, 11, rc);
             rx += MeasureText(goldBuf, 11);
 
-            // Append " ×N" family count when 2+ members of the same family are present
+            // Append " ×N (total Xg)" family count + wealth when 2+ members present
             if (!r.familyName.empty()) {
                 auto it = familyCount.find(r.familyName);
                 if (it != familyCount.end() && it->second >= 2) {
@@ -362,6 +366,14 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
                     std::snprintf(famBuf, sizeof(famBuf), " \xc3\x97%d", it->second);
                     DrawText(famBuf, rx, y, 11, Fade(DARKGRAY, 0.85f));
                     rx += MeasureText(famBuf, 11);
+
+                    auto wit = familyWealth.find(r.familyName);
+                    if (wit != familyWealth.end()) {
+                        char wBuf[16];
+                        std::snprintf(wBuf, sizeof(wBuf), " (%.0fg)", wit->second);
+                        DrawText(wBuf, rx, y, 11, Fade(GOLD, 0.6f));
+                        rx += MeasureText(wBuf, 11);
+                    }
                 }
             }
 
