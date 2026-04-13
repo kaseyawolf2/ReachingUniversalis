@@ -189,6 +189,52 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // ---- Starvation begging from friends ----
+        // When starving (hunger < 0.1) and broke, beg from a friend at the same settlement.
+        if (timer.begTimer > 0.f) timer.begTimer -= gameHoursDt;
+        if (needs.list[0].value < 0.1f && (!money || money->balance < 1.f)
+            && timer.begTimer <= 0.f) {
+            const auto* rel = registry.try_get<Relations>(entity);
+            if (rel) {
+                entt::entity bestHelper = entt::null;
+                float bestAff = 0.4f - 0.01f;
+                for (const auto& [fe, aff] : rel->affinity) {
+                    if (aff < 0.4f) continue;
+                    if (!registry.valid(fe)) continue;
+                    const auto* fh = registry.try_get<HomeSettlement>(fe);
+                    if (!fh || fh->settlement != home.settlement) continue;
+                    const auto* fm = registry.try_get<Money>(fe);
+                    if (!fm || fm->balance <= 10.f) continue;
+                    if (aff > bestAff) { bestAff = aff; bestHelper = fe; }
+                }
+                if (bestHelper != entt::null) {
+                    auto* helperMoney = registry.try_get<Money>(bestHelper);
+                    if (helperMoney) {
+                        helperMoney->balance -= 3.f;
+                        if (money) money->balance += 3.f;
+                        else {
+                            auto& m = registry.get_or_emplace<Money>(entity);
+                            m.balance += 3.f;
+                        }
+                        timer.begTimer = 24.f;  // cooldown: once per 24 game-hours
+                        auto logV = registry.view<EventLog>();
+                        auto tmV  = registry.view<TimeManager>();
+                        if (!logV.empty() && !tmV.empty()) {
+                            const auto& tm2 = tmV.get<TimeManager>(*tmV.begin());
+                            std::string helperName = "A friend";
+                            if (const auto* n = registry.try_get<Name>(bestHelper))
+                                helperName = n->value;
+                            std::string npcName = "an NPC";
+                            if (const auto* n = registry.try_get<Name>(entity))
+                                npcName = n->value;
+                            logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay,
+                                helperName + " helps starving " + npcName + " with gold.");
+                        }
+                    }
+                }
+            }
+        }
+
         // Drain desperation log cooldown
         if (auto cdIt = s_desperateCooldown.find(entity); cdIt != s_desperateCooldown.end()) {
             cdIt->second -= gameHoursDt;

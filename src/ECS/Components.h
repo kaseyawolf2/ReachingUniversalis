@@ -168,6 +168,7 @@ struct DeprivationTimer {
     bool                 wisdomFired          = false; // true once elder wisdom transfer has fired (one-time event)
     float                lastSatisfaction     = 0.5f;  // rolling average of all 4 needs (0-1); updated in ConsumptionSystem
     bool                 wealthCelebrated     = false; // true once NPC's balance crosses 500g (one-time event)
+    float                begTimer             = 0.f;  // game-hours until NPC can beg from a friend again (0 = ready)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
