@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
-
 ## Recently Done
+
+- [x] **Loneliness migration push** — Added `bool isLonely` param to `FindMigrationTarget` in
+  `AgentDecisionSystem.h/.cpp`. At call site, checks if NPC has any friend (affinity ≥ 0.3) at
+  current settlement. Lonely NPCs get +0.15 migration score bonus. Complements reunion boost.
+
+
 
 - [x] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, counts mutual friendship
   pairs (both `Relations::affinity ≥ 0.5`) among NPCs at each settlement. +1% production per
@@ -856,8 +860,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
-
 - [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
 
 - [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
@@ -897,6 +899,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Cohesion bonus shown in settlement tooltip** — Add `int cohesionPairs = 0` and `float cohesionBonus = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. Set in `WriteSnapshot` by counting mutual friendship pairs (same logic as `ProductionSystem`). Display "Social cohesion: N pairs (+X%)" in `RenderSystem.cpp`'s settlement panel after morale bar, in Fade(LIME, 0.6f).
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
+
+- [ ] **Lonely NPC greeting on arrival** — In `AgentDecisionSystem.cpp`'s migration arrival block, when a lonely NPC (no friends at new settlement) arrives, scan settlement residents and set `Relations::affinity` to 0.1 with the nearest NPC. Log "[Name] introduces themselves to [Resident] at [Settlement]." at 1-in-3. Seeds initial social connection for isolated newcomers.
+
+- [ ] **Social network shown in F1 debug panel** — In `HUD.cpp`'s F1 overlay, after settlement breakdown, add a "Social" section showing total friendship pairs across all settlements, average affinity of existing relations, and count of lonely NPCs (zero friends at home). Read from `RenderSnapshot` — add `int totalFriendPairs`, `int lonelyNpcCount` fields to `RenderSnapshot`.
 
 ### NPC Crime & Consequence
 
