@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
-
 ## Recently Done
+
+- [x] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who
+  have never changed profession (`prevType == type` or `prevType == Idle`) get +0.0005 bonus skill
+  growth per game-day, stacking with both base (+0.001) and master teaching bonus (+0.002).
+  Rewards career stability. Uses existing `Profession::prevType`.
+
+
 
 - [x] **Master exodus warning** — When a migrating NPC has any skill ≥ 0.9, logs
   "[Name], a master [skill], leaves [Settlement]." at full frequency. Placed between
@@ -1019,6 +1024,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
 
 - [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
+
+- [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
+
+- [ ] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block, when an NPC switches profession and had ≥ 0.5 skill in their old profession, grant +0.05 initial bonus to the new matching skill (capped at 0.5). Reflects transferable experience — a skilled farmer picking up woodcutting learns faster. Uses `Profession::prevType` to identify the old skill and `registry.try_get<Skills>` to apply the bonus.
 
 - [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
