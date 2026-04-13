@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler bankruptcy shown in settlement stockpile** — In `RenderSystem::DrawStockpilePanel`, below the resident list, show "Struggling haulers: N" in faint RED when any haulers homed at the settlement have `bankruptWarned == true`. Add `int strugglingHaulers = 0` to `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting Haulers with `bankruptWarned && HomeSettlement == selectedSettlement`.
+
 
 ## Recently Done
+
+- [x] **Hauler bankruptcy shown in settlement stockpile** — "Struggling haulers: N" in faint RED in stockpile panel. Piped via `strugglingHaulers` on `StockpilePanel`, counted in `WriteSnapshot`.
+
+
+
 
 - [x] **NPC shares food with family first** — Family members prioritized in charity via two-pass loop. Family helpers need only ≥1g, bypass reputation check. Log: "[Name] feeds family member [Other]."
 
@@ -1534,7 +1539,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always
   offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
 
-- [ ] **Hauler bankruptcy shown in settlement stockpile** — In `RenderSystem::DrawStockpilePanel`,
+- [x] **Hauler bankruptcy shown in settlement stockpile** — In `RenderSystem::DrawStockpilePanel`,
   below the resident list, show "Struggling haulers: N" in faint RED when any haulers homed at the
   settlement have `bankruptWarned == true`. Add `int strugglingHaulers = 0` to
   `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting Haulers
@@ -1579,6 +1584,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   a `FamilyTag::name` and haven't greeted in the current `greetCooldown` window, use a special log:
   "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of the standard
   +0.01. Family reunions are emotionally significant encounters.
+
+- [ ] **Hauler route shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after the
+  struggling haulers line, show up to 3 haulers homed at the settlement with their current route
+  (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
+  route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
+  from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
+
+- [ ] **NPC mood contagion in idle** — In `AgentDecisionSystem`'s idle block, when two NPCs are
+  within 25u and one has avg needs > 0.8 while the other has avg needs < 0.4, the happy NPC's
+  presence slightly boosts the struggling NPC's morale: +0.01 to home `Settlement::morale` per
+  game-hour. Add `float moodContagionCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown).
+  Log "[Happy NPC] cheers up [Sad NPC]." Positive moods are socially infectious.
 
 ---
 
