@@ -800,6 +800,36 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Farewell log: departing NPC says goodbye to top friend ----
+                if (const auto* rel = registry.try_get<Relations>(entity)) {
+                    static std::mt19937 s_farewellRng{ std::random_device{}() };
+                    static std::uniform_int_distribution<int> s_farewellDist(0, 2);
+                    if (s_farewellDist(s_farewellRng) == 0) {  // 1-in-3 frequency
+                        entt::entity topFriend = entt::null;
+                        float topAff = 0.4f - 0.01f;
+                        for (const auto& [fe, aff] : rel->affinity) {
+                            if (aff < 0.4f) continue;
+                            if (!registry.valid(fe)) continue;
+                            auto* fh = registry.try_get<HomeSettlement>(fe);
+                            if (!fh || fh->settlement != home.settlement) continue;
+                            if (aff > topAff) { topAff = aff; topFriend = fe; }
+                        }
+                        if (topFriend != entt::null) {
+                            auto lv2 = registry.view<EventLog>();
+                            auto tv2 = registry.view<TimeManager>();
+                            if (!lv2.empty() && !tv2.empty()) {
+                                const auto& tm3 = tv2.get<TimeManager>(*tv2.begin());
+                                std::string who = "NPC", friendName = "a friend", settlName = "?";
+                                if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                                if (auto* n = registry.try_get<Name>(topFriend)) friendName = n->value;
+                                if (auto* s = registry.try_get<Settlement>(home.settlement)) settlName = s->name;
+                                lv2.get<EventLog>(*lv2.begin()).Push(tm3.day, (int)tm3.hourOfDay,
+                                    who + " says farewell to " + friendName + " before leaving " + settlName);
+                            }
+                        }
+                    }
+                }
+
                 // ---- Friend co-migration: best friend (highest affinity ≥ 0.5) follows if they also want to migrate ----
                 if (const auto* rel = registry.try_get<Relations>(entity)) {
                     entt::entity bestFriend = entt::null;
