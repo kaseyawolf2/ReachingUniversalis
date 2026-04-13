@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Witness count shown in confrontation log** — In `SimThread::ProcessInput`'s confrontation block, after the witness loop, append the count to the main confrontation log: "Player confronted [bandit] (N witnesses)." Replace the existing log call or add a follow-up entry.
+
 
 ## Recently Done
+
+- [x] **Witness count shown in confrontation log** — Replaced per-witness log spam with single "Player confronted [bandit] (N witnesses)." summary after the witness loop. Witnesses still get +0.1 rep each.
+
+
+
 
 - [x] **NPC celebrates skill milestone** — Journeyman/Master milestones in ScheduleSystem trigger Celebrating behavior for 0.5 game-hours via skillCelebrateTimer on DeprivationTimer. Existing gold glow renders automatically.
 
@@ -1556,7 +1561,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
   Creates a visible moment when NPCs achieve something meaningful.
 
-- [ ] **Witness count shown in confrontation log** — In `SimThread::ProcessInput`'s confrontation
+- [x] **Witness count shown in confrontation log** — In `SimThread::ProcessInput`'s confrontation
   block, after the witness loop, append the count to the main confrontation log: "Player confronted
   [bandit] (N witnesses)." Replace the existing log call or add a follow-up entry. Makes the social
   impact of confrontation visible in the event log without needing a separate line per witness.
@@ -1612,6 +1617,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
   by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
   `registry.try_get<Settlement>(hs.settlement)`. Master-level NPCs are a source of community pride.
+
+- [ ] **Confrontation witness remembers player** — In `SimThread::ProcessInput`'s witness loop
+  (after the confrontation block), set `timer.lastHelper = playerEntity` on each witness's
+  `DeprivationTimer` via `registry.get_or_emplace<DeprivationTimer>(we)`. This lets the gratitude
+  greeting in `AgentDecisionSystem` fire for witnesses too — NPCs who saw the player act bravely
+  remember and thank them later.
+
+- [ ] **NPC gossips about confrontation** — In `AgentDecisionSystem`'s greeting block, when an NPC
+  with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
+  `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
+  about the player's bravery." with `greetCooldown` gating. Word of heroic deeds spreads socially.
 
 ---
 
