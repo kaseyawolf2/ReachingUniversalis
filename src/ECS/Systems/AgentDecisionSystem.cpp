@@ -96,6 +96,26 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         int currentDay,
                                                         float lastSatisfaction,
                                                         bool isLonely) {
+    // ---- Cache: per source settlement per game-hour ----
+    // NPC-specific modifiers (skills, memory, satisfaction) cause minor score variation
+    // but the base destination ranking is settlement-dependent. Caching avoids repeated
+    // O(roads × facilities × bandits) scans for co-migration candidates.
+    struct MigCache { int hour = -1; int day = -1; entt::entity dest = entt::null; };
+    static std::unordered_map<entt::entity, MigCache> s_migCache;
+    int cacheHour = -1, cacheDay = -1;
+    {
+        auto tmv = registry.view<TimeManager>();
+        if (!tmv.empty()) {
+            const auto& tmData = tmv.get<TimeManager>(*tmv.begin());
+            cacheHour = (int)tmData.hourOfDay;
+            cacheDay  = tmData.day;
+            auto it = s_migCache.find(homeSettlement);
+            if (it != s_migCache.end() && it->second.hour == cacheHour && it->second.day == cacheDay) {
+                return it->second.dest;
+            }
+        }
+    }
+
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -271,6 +291,8 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
+    if (cacheHour >= 0)
+        s_migCache[homeSettlement] = {cacheHour, cacheDay, best};
     return best;
 }
 
