@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdio>
 #include <algorithm>
+#include <unordered_map>
 
 // An NPC dies if any single need stays at 0 for this many gameDt seconds.
 // 12 game-hours = 12 * 60 gameDt seconds at 1x speed.
@@ -18,6 +19,15 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
     if (gameDt <= 0.f) return;
 
     float agingDays = gameDt / SECS_PER_GAME_DAY;  // age advance per tick
+
+    // Per-settlement entity index: built once per tick, used for inheritance,
+    // family grief/dissolution, and settlement collapse pop counting.
+    std::unordered_map<entt::entity, std::vector<entt::entity>> entitiesBySettlement;
+    registry.view<HomeSettlement>().each(
+        [&](auto entity, const HomeSettlement& hs) {
+            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                entitiesBySettlement[hs.settlement].push_back(entity);
+        });
 
     std::vector<entt::entity> toRemove;
 
@@ -186,26 +196,28 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
 
             // Count surviving adults with the same family name at the same settlement
             // (exclude all entities in toRemove, since they're also dying this tick)
+            // Uses per-settlement index to avoid scanning all entities.
             int survivingAdults = 0;
-            registry.view<FamilyTag, HomeSettlement, Age>(entt::exclude<ChildTag>).each(
-                [&](auto other, const FamilyTag& oFt, const HomeSettlement& oHs, const Age& oAge) {
-                    if (other == e) return;
-                    // Skip other entities dying this tick
-                    for (auto dead : toRemove) if (dead == other) return;
-                    if (oFt.name != familyName) return;
-                    if (oHs.settlement != homeSettl) return;
-                    ++survivingAdults;
-                });
+            std::vector<entt::entity> orphanedChildren;
+            if (homeSettl != entt::null) {
+                auto sit = entitiesBySettlement.find(homeSettl);
+                if (sit != entitiesBySettlement.end()) {
+                    for (auto other : sit->second) {
+                        if (other == e || !registry.valid(other)) continue;
+                        bool isDying = false;
+                        for (auto dead : toRemove) if (dead == other) { isDying = true; break; }
+                        if (isDying) continue;
+                        const auto* oFt = registry.try_get<FamilyTag>(other);
+                        if (!oFt || oFt->name != familyName) continue;
+                        if (registry.all_of<ChildTag>(other))
+                            orphanedChildren.push_back(other);
+                        else
+                            ++survivingAdults;
+                    }
+                }
+            }
 
             if (survivingAdults == 0) {
-                // No adult family members left — dissolve: remove FamilyTag from children
-                std::vector<entt::entity> orphanedChildren;
-                registry.view<FamilyTag, ChildTag, HomeSettlement>().each(
-                    [&](auto child, const FamilyTag& cFt, const HomeSettlement& cHs) {
-                        if (cFt.name != familyName) return;
-                        if (cHs.settlement != homeSettl) return;
-                        orphanedChildren.push_back(child);
-                    });
                 for (auto child : orphanedChildren)
                     if (registry.valid(child)) registry.remove<FamilyTag>(child);
 
@@ -227,6 +239,8 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
         // ---- Friend grief on death ----
         // NPCs with affinity ≥ 0.5 toward the deceased mourn: morale -0.03, clear helpedTimer.
         // Log for the 2 closest friends only.
+        // Optimised: use dead NPC's own Relations to find friends, then check the
+        // reverse affinity — O(friends) instead of O(all entities).
         {
             std::string deadName = "Someone";
             if (const auto* nm = registry.try_get<Name>(e)) deadName = nm->value;
@@ -234,23 +248,30 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
             struct FriendGrief { entt::entity e; float affinity; };
             std::vector<FriendGrief> grievingFriends;
 
-            registry.view<Relations, DeprivationTimer>().each(
-                [&](auto other, Relations& rel, DeprivationTimer& oTmr) {
-                if (other == e) return;
-                for (auto dead : toRemove) if (dead == other) return;
-                auto it = rel.affinity.find(e);
-                if (it == rel.affinity.end() || it->second < 0.5f) return;
-
-                // Apply grief effects
-                oTmr.helpedTimer = 0.f;
-                if (const auto* oHs = registry.try_get<HomeSettlement>(other)) {
-                    if (oHs->settlement != entt::null && registry.valid(oHs->settlement)) {
-                        if (auto* settl = registry.try_get<Settlement>(oHs->settlement))
-                            settl->morale = std::max(0.f, settl->morale - 0.03f);
+            const auto* deadRel = registry.try_get<Relations>(e);
+            if (deadRel) {
+                for (const auto& [other, deadAff] : deadRel->affinity) {
+                    if (!registry.valid(other)) continue;
+                    bool isDying = false;
+                    for (auto dead : toRemove) if (dead == other) { isDying = true; break; }
+                    if (isDying) continue;
+                    // Check reverse: does 'other' consider the deceased a friend?
+                    auto* otherRel = registry.try_get<Relations>(other);
+                    if (!otherRel) continue;
+                    auto it = otherRel->affinity.find(e);
+                    if (it == otherRel->affinity.end() || it->second < 0.5f) continue;
+                    // Apply grief effects
+                    if (auto* oTmr = registry.try_get<DeprivationTimer>(other))
+                        oTmr->helpedTimer = 0.f;
+                    if (const auto* oHs = registry.try_get<HomeSettlement>(other)) {
+                        if (oHs->settlement != entt::null && registry.valid(oHs->settlement)) {
+                            if (auto* settl = registry.try_get<Settlement>(oHs->settlement))
+                                settl->morale = std::max(0.f, settl->morale - 0.03f);
+                        }
                     }
+                    grievingFriends.push_back({other, it->second});
                 }
-                grievingFriends.push_back({other, it->second});
-            });
+            }
 
             // Log for the 2 closest friends
             if (!grievingFriends.empty()) {
@@ -288,19 +309,26 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
 
     // ---- Settlement collapse check ----
     // After deaths, log any settlement that just hit 0 population.
+    // Rebuild pop counts from the settlement index (post-removal).
     auto logView2 = registry.view<EventLog>();
     if (!logView2.empty() && !toRemove.empty()) {
         auto& log2 = logView2.get<EventLog>(*logView2.begin());
         auto& tm2  = timeView.get<TimeManager>(*timeView.begin());
+
+        // Post-death population: count surviving (valid, non-player) entities per settlement
+        std::unordered_map<entt::entity, int> postPop;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+            [&](const HomeSettlement& hs) {
+                if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                    postPop[hs.settlement]++;
+            });
 
         registry.view<Settlement>().each([&](auto settl, Settlement& s) {
             // Drain ruin timer each tick
             if (s.ruinTimer > 0.f) {
                 s.ruinTimer = std::max(0.f, s.ruinTimer - gameDt / 60.f);  // gameDt in sim-secs; timer in game-hours
             }
-            int pop = 0;
-            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-                [&](const HomeSettlement& hs) { if (hs.settlement == settl) ++pop; });
+            int pop = postPop.count(settl) ? postPop[settl] : 0;
             if (pop == 0 && !m_collapsed.count(settl)) {
                 m_collapsed.insert(settl);
                 s.ruinTimer = 300.f;  // 300 game-hours cooldown before repopulation
