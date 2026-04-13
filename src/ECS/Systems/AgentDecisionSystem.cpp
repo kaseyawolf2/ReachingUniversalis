@@ -2133,6 +2133,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             registry.get<Money>(bestFriend).balance += GIFT_AMOUNT;
             giverTmr.charityTimer = GIFT_COOLDOWN;
 
+            // Reciprocity: boost recipient's affinity toward giver
+            if (auto* recipRel = registry.try_get<Relations>(bestFriend)) {
+                float& recAff = recipRel->affinity[giver];
+                recAff = std::min(1.0f, recAff + 0.05f);
+            }
+
             // Log
             if (charityLog) {
                 std::string friendName = "a friend";
