@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include <algorithm>
 #include <map>
+#include <set>
 
 // At full workforce (BASE_WORKERS) production runs at baseline rate.
 // Fewer workers → proportional reduction; more workers → bonus up to 2×.
@@ -111,6 +112,20 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
             }
         });
 
+    // ---- Settlement specialisation: count masters per resource type per settlement ----
+    // masterCount[settlement][0=Food,1=Water,2=Wood] = number of NPCs with skill >= 0.9
+    std::map<entt::entity, std::array<int, 3>> masterCount;
+    registry.view<Skills, HomeSettlement>(entt::exclude<Hauler>).each(
+        [&](auto, const Skills& sk, const HomeSettlement& hs) {
+            if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
+            auto& mc = masterCount[hs.settlement];
+            if (sk.farming       >= 0.9f) mc[0]++;
+            if (sk.water_drawing >= 0.9f) mc[1]++;
+            if (sk.woodcutting   >= 0.9f) mc[2]++;
+        });
+    // Log specialisation once per settlement+type combination
+    static std::set<uint64_t> s_specLogged;
+
     auto facView = registry.view<ProductionFacility>();
     for (auto entity : facView) {
         const auto& fac = facView.get<ProductionFacility>(entity);
@@ -147,7 +162,31 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
         float moraleBonus = 1.0f;
         if (settl)
             moraleBonus = 1.0f + 0.3f * (settl->morale - 0.5f);
-        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus * moraleBonus;
+        // Specialisation bonus: +15% when ≥3 masters in the facility's resource type
+        float specBonus = 1.0f;
+        if (ri >= 0 && masterCount.count(fac.settlement)) {
+            const auto& mc = masterCount.at(fac.settlement);
+            if (mc[ri] >= 3) {
+                specBonus = 1.15f;
+                // Log once per settlement+type
+                uint64_t specKey = (uint64_t)entt::to_integral(fac.settlement) * 10 + ri;
+                if (s_specLogged.insert(specKey).second) {
+                    const char* typeName = (ri == 0) ? "Farming" : (ri == 1) ? "Water" : "Lumber";
+                    auto lv = registry.view<EventLog>();
+                    if (lv.begin() != lv.end()) {
+                        std::string sName = settl ? settl->name : "Settlement";
+                        char buf[128];
+                        std::snprintf(buf, sizeof(buf),
+                            "%s has a thriving %s tradition (+15%% output).",
+                            sName.c_str(), typeName);
+                        auto& tm2 = registry.view<TimeManager>().get<TimeManager>(
+                            *registry.view<TimeManager>().begin());
+                        lv.get<EventLog>(*lv.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                    }
+                }
+            }
+        }
+        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus * moraleBonus * specBonus;
 
         float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 
