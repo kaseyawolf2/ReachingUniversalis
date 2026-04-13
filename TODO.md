@@ -9,6 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **ScheduleSystem early-exit optimisation** — `ScheduleSystem.cpp` takes 4ms (15.1%) which is high for time-of-day checks. Profile whether the cost is in the view iteration or the schedule logic. If most NPCs don't change state each tick, add a `lastScheduleHour` field to skip re-evaluation when `hourOfDay` hasn't changed since last check.
 
 ## Recently Done
 
@@ -910,8 +911,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **ScheduleSystem early-exit optimisation** — `ScheduleSystem.cpp` takes 4ms (15.1%) which is high for time-of-day checks. Profile whether the cost is in the view iteration or the schedule logic. If most NPCs don't change state each tick, add a `lastScheduleHour` field to skip re-evaluation when `hourOfDay` hasn't changed since last check.
 
 - [ ] **FindMigrationTarget caching** — `FindMigrationTarget` in `AgentDecisionSystem.cpp` iterates all settlements and computes scores. Called once per migrating NPC, but also for each co-migration friend candidate (up to 2 extra calls per migration). Cache results per source settlement per game-hour in a `static std::unordered_map<entt::entity, std::pair<int, entt::entity>>` (keyed by home settlement, value is {hour, best destination}). Invalidate when hour changes.
 
