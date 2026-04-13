@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block, when a departing NPC has `masterSettled == true`, apply `-0.03` morale to the home `Settlement`. Log "[Settlement] mourns the loss of a master." at 1-in-2 frequency. Uses existing `Settlement::morale`. Mirrors the bankruptcy morale penalty in `EconomicMobilitySystem.cpp`.
+
 ## Recently Done
 
 - [x] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, logs
@@ -1147,8 +1149,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block, when a departing NPC has `masterSettled == true`, apply `-0.03` morale to the home `Settlement`. Log "[Settlement] mourns the loss of a master." at 1-in-2 frequency. Uses existing `Settlement::morale`. Mirrors the bankruptcy morale penalty in `EconomicMobilitySystem.cpp`.
 
 - [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
