@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Mentor-apprentice relationship** — In `AgentDecisionSystem.cpp`, when an elder (age > 60) works at the same settlement as a child apprentice (age 12-14), the apprentice's matching skill gains +0.003 per game-day instead of normal growth rate. Log "[Elder] mentors [Child] in [skill] at [Settlement]." once when the bond first forms (1-in-5 frequency). Uses existing `Age`, `Skills`, `ChildTag` components.
+
 ## Recently Done
 
 - [x] **Settlement skill summary in tooltip** — Added `float avgFarming, avgWater, avgWood` to
@@ -1100,8 +1102,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Mentor-apprentice relationship** — In `AgentDecisionSystem.cpp`, when an elder (age > 60) works at the same settlement as a child apprentice (age 12-14), the apprentice's matching skill gains +0.003 per game-day instead of normal growth rate. Log "[Elder] mentors [Child] in [skill] at [Settlement]." once when the bond first forms (1-in-5 frequency). Uses existing `Age`, `Skills`, `ChildTag` components.
 
 
 
