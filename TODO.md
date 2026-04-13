@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
-
 ## Recently Done
+
+- [x] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
+  pre-growth skill value for the active profession. After growth, if a loyal NPC (prevType ==
+  type or prevType == Idle) crosses 0.7 threshold, logs "[Name] is a dedicated [profession] at
+  [Settlement]." at 1-in-5 frequency. Fires only on the exact crossing tick.
 
 - [x] **WriteSnapshot settlement master count via settlAgg** — Added `int masterCount` to `SettlAgg`
   struct. Master counting (skills ≥ 0.9, excluding player/bandits/haulers) now happens in the
@@ -4122,3 +4125,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **WriteSnapshot friendship pairs via settlAgg** — The friendship pair counting in `SimThread::WriteSnapshot()` (lines ~1912-1930) does a per-settlement O(n²) mutual affinity scan. Move it into the `settlAgg` pre-compute pass: for each NPC with `Relations`, check mutual affinity ≥ 0.5 pairs at the same settlement. Add `int friendPairs` and a `std::vector<entt::entity> residents` to `SettlAgg`. Replaces nested resident loop.
 
 - [ ] **NPC co-worker recognition** — In `AgentDecisionSystem.cpp`'s social block, when an NPC finishes a work shift (`Schedule::state` transitions from Working to Idle) and another NPC at the same settlement also just finished, boost mutual `Relations::affinity` by +0.005. Log "[Name] and [Name] walk home together from [Facility] at [Settlement]." at 1-in-8 frequency. Gate with `entity % 4 == s_frameCounter % 4`. Uses existing `Schedule`, `AgentState`, `HomeSettlement`, `Relations`.
+
+- [ ] **Loyalty milestone title in tooltip** — In `SimThread::WriteSnapshot`'s agent specialisation logic, when a loyal NPC (prevType == type or prevType == Idle) has active skill ≥ 0.7, prepend "Dedicated " to their specialisation string (e.g. "Dedicated Journeyman Farmer"). Uses existing `Profession::prevType` check and `AgentEntry::specialisation` field in `RenderSnapshot.h`. No new components needed.
+
+- [ ] **Loyal NPC homesickness resistance** — In `AgentDecisionSystem.cpp`'s migration trigger block, loyal NPCs (prevType == type or Idle) with active skill ≥ 0.7 get an additional migration threshold boost: `effectiveMigrateThreshold *= 1.3f` (stacks with master retention 1.5x). Rewards long-term career commitment with stronger settlement attachment. Uses existing `Profession`, `Skills`, `DeprivationTimer` components.
