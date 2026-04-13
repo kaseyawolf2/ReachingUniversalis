@@ -1593,6 +1593,27 @@ void SimThread::WriteSnapshot() {
             goalDesc = buf;
         }
 
+        // Migration memory summary for tooltip
+        std::string migMemSummary;
+        if (const auto* mm = m_registry.try_get<MigrationMemory>(e)) {
+            if ((int)mm->known.size() >= 2) {
+                migMemSummary = "Knows:";
+                int shown = 0;
+                for (const auto& [name, snap] : mm->known) {
+                    if (shown >= 3) break;  // cap at 3 entries to avoid huge tooltip
+                    float cheapest = std::min({snap.food, snap.water, snap.wood});
+                    const char* cheapLabel = (cheapest == snap.food) ? "food" :
+                                             (cheapest == snap.water) ? "water" : "wood";
+                    char entry[64];
+                    std::snprintf(entry, sizeof(entry), " %s (%s %.0fg)",
+                                  name.c_str(), cheapLabel, cheapest);
+                    if (shown > 0) migMemSummary += ",";
+                    migMemSummary += entry;
+                    ++shown;
+                }
+            }
+        }
+
         agents.push_back({ pos.x, pos.y, drawSize,
                            drawColor, ring, hasCargo, cargoColor,
                            role, hp, tp, ep, htp, astate.behavior,
@@ -1614,7 +1635,8 @@ void SimThread::WriteSnapshot() {
                            homeMorale, wagePerHour, reputationScore, isFatigued,
                            isExiled,
                            lifetimeTrips, lifetimeProfit,
-                           std::move(goalDesc) });
+                           std::move(goalDesc),
+                           std::move(migMemSummary) });
     });
 
     // ---- Settlements ----

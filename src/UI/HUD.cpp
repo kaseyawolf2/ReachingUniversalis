@@ -909,6 +909,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     // Goal description
     bool showGoal = !best->goalDescription.empty();
+    bool showMigMem = !best->migrationMemorySummary.empty();
 
     // Mood comment based on contentment
     char moodLine[32] = {};
@@ -955,6 +956,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRep)           lineCount++;
     if (showHomeMorale)    lineCount++;
     if (showGoal)          lineCount++;
+    if (showMigMem)        lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -993,7 +995,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wml = showMilestone ? MeasureText(milestoneLine, 11) : 0;
     int wsd = showSkillDecay ? MeasureText("Skills rusting", 11) : 0;
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo}) + 10;
+    int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1056,6 +1059,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showMilestone) { DrawText(milestoneLine, tx, ly, 11, milestoneColor); ly += 16; }
     if (showSkillDecay) { DrawText("Skills rusting", tx, ly, 11, Fade(ORANGE, 0.6f)); ly += 16; }
     if (showGoal)     { DrawText(best->goalDescription.c_str(), tx, ly, 11, Fade(SKYBLUE, 0.6f)); ly += 16; }
+    if (showMigMem)   { DrawText(best->migrationMemorySummary.c_str(), tx, ly, 11, Fade(GRAY, 0.6f)); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);

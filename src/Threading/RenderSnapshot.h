@@ -126,6 +126,8 @@ struct RenderSnapshot {
         float lifetimeProfit = 0.f;
         // Personal goal description (e.g. "Goal: Save Gold (42/100g)")
         std::string goalDescription;
+        // Migration memory summary (e.g. "Knows: Wellsworth (food 2g), Millhaven (wood 1g)")
+        std::string migrationMemorySummary;
     };
 
     struct SettlementEntry {
