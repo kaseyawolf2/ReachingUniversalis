@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Largest family in settlement header** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), in the header section after the treasury/workers line, add a one-liner
-  showing the most populous family at this settlement: `"Largest family: Smith ×4"`. Build the
-  count by iterating `panel.residents` and finding the `familyName` with the highest count.
-  Only show when at least one family has ≥ 2 members. No new snapshot fields needed.
-
 ## Recently Done
+
+- [x] **Largest family in settlement header** — "Largest family: Smith ×4" shown in `RenderSystem::DrawStockpilePanel` after treasury line when any family has ≥2 members. Computed from `panel.residents` familyName counts. Height calc updated.
+
+
 
 - [x] **Orphan adoption** — Adults with `charityTimer == 0` at settlements with room adopt nearby orphans (within 60u, no valid home). Orphan gets adopter's `HomeSettlement` and `FamilyTag::name`. 120 game-hour cooldown. Logged to EventLog. In `AgentDecisionSystem.cpp` after the charity block.
 
@@ -3559,3 +3557,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `FamilyTag`. Add `int orphanCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. Display
   "Orphans: N" in faint `Fade(ORANGE, 0.6f)` in `RenderSystem::DrawStockpilePanel` after the
   child count line when orphanCount > 0.
+
+- [ ] **Family dynasty colour in residents list** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), when the largest family has ≥3 members, tint their names with a unique
+  family colour. Use a simple hash of `familyName` to pick from a palette of 6 muted colours
+  (defined as a static array). Apply via `Fade(palette[hash % 6], 0.8f)` instead of the default
+  `LIGHTGRAY`. No new snapshot fields needed — uses existing `familyName` on `AgentInfo`.
+
+- [ ] **NPC remembers adopter as mentor** — In `AgentDecisionSystem.cpp`'s orphan adoption block,
+  after setting the orphan's `HomeSettlement` and `FamilyTag`, also set
+  `registry.get_or_emplace<DeprivationTimer>(orphan).lastHelper = adopter entity`. This enables
+  the existing gratitude greeting path so adopted children will eventually thank their adopter.
+  Pure wiring — no new components or systems.
