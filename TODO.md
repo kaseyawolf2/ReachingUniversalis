@@ -11,6 +11,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Cache FindNearestFacility results per settlement** — Added static cache in
+  `AgentDecisionSystem::FindNearestFacility` keyed by `(settlement, resourceType)`, invalidated
+  per game-hour via `TimeManager::hourOfDay` and `day`. Cache miss does the full O(facilities)
+  scan; cache hit returns immediately. Eliminates redundant scans for NPCs at the same settlement.
+
 - [x] **Stagger grief/comfort scans across frames** — Comfort-grieving-neighbour and mood contagion
   scans gated with `entity % 4 == s_frameCounter % 4`. Two more O(n) proximity loops reduced to
   1/4 frequency per frame.
@@ -1063,8 +1068,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
-- [ ] **Cache FindNearestFacility results per settlement** — In `AgentDecisionSystem.cpp`, `FindNearestFacility` is called per NPC per decision cycle. Add a `static std::unordered_map<std::pair<entt::entity, ResourceType>, entt::entity>` cache keyed by (settlement, resource type), invalidated once per game-hour via `s_lastFacCacheHour`. NPCs at the same settlement seeking the same resource reuse the cached facility. Eliminates O(facilities) scan per NPC.
-
 - [ ] **Stagger thank-player and teach scans** — In `AgentDecisionSystem.cpp`'s thank-player block (~line 1553) and elder teach block, gate with `entity % 4 == s_frameCounter % 4`. These do per-NPC distance checks against the player or other NPCs every tick. Same 1/4 stagger pattern as grief/comfort/chat.
 
 - [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
@@ -1116,6 +1119,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
 
 - [ ] **Wealth milestone tiers** — In `AgentDecisionSystem.cpp`'s wealthy celebration block, extend to track multiple thresholds (500g, 1000g, 2000g) using an `int wealthTier = 0` on `DeprivationTimer` (replace bool). Log different messages: "prosperous" at 500, "wealthy" at 1000, "a merchant prince" at 2000. Each tier fires once.
+
+- [ ] **NPC work gossip about neighbours** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs both have `Profession` components, 1-in-4 chance one comments on the other's profession: log "[Name] asks [Name] about life as a [profession] at [Settlement]." If the listener has skill < 0.3 in that profession's matching skill, 1-in-3 chance to boost it by +0.01 (knowledge transfer through conversation). Uses existing `Skills`, `Profession`, `Relations`.
+
+- [ ] **NPC grudge from failed trade** — In `ConsumptionSystem.cpp`'s emergency market purchase block, when an NPC tries to buy from a settlement stockpile but it's empty (purchase fails), find the wealthiest NPC at that settlement via `HomeSettlement` match and `Money::balance`. Reduce `Relations::affinity` toward them by 0.03 (floor 0.0). Log "[Name] resents [Wealthy] for hoarding at [Settlement]." at 1-in-5 frequency. Scarcity breeds social tension.
+
+- [ ] **Shared hardship friendship boost** — In `AgentDecisionSystem.cpp`'s need satisfaction block, when two NPCs at the same settlement both have any need < 0.3 (both struggling), boost `Relations::affinity` between them by +0.02 per game-day (capped at 1.0). Log "[Name] and [Name] bond through hardship at [Settlement]." at 1-in-10 frequency. Adversity creates friendships. Gate with `entity % 4 == s_frameCounter % 4` stagger.
 
 - [ ] **Wealthy NPC philanthropy** — In `AgentDecisionSystem.cpp`, NPCs with `wealthCelebrated == true` and `balance > 600g` contribute 10g to their settlement's `treasury` once per 72 game-hours (reuse `charityTimer`). Log "[Name] donates to [Settlement]'s treasury." Gold flows `Money::balance` → `Settlement::treasury`. Follows Gold Flow Rule.
 
