@@ -831,6 +831,32 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 registry.emplace<Rumour>(residents[k], Rumour{RumourType::DroughtNearby, target, 3});
         }
         SoftenRivalryOnSharedCrisis(registry, target, *settl, "Drought", log, day, hour);
+        // Drought solidarity: residents with existing bonds pull together
+        {
+            std::vector<entt::entity> droughtResidents;
+            registry.view<HomeSettlement, Relations>(
+                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, const HomeSettlement& hs, const Relations&) {
+                    if (hs.settlement == target) droughtResidents.push_back(e);
+                });
+            for (size_t i = 0; i < droughtResidents.size(); ++i) {
+                auto* relA = registry.try_get<Relations>(droughtResidents[i]);
+                if (!relA) continue;
+                for (size_t j = i + 1; j < droughtResidents.size(); ++j) {
+                    auto itA = relA->affinity.find(droughtResidents[j]);
+                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
+                    auto* relB = registry.try_get<Relations>(droughtResidents[j]);
+                    if (!relB) continue;
+                    auto itB = relB->affinity.find(droughtResidents[i]);
+                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
+                    // Boost mutual affinity by +0.03 (cap 1.0)
+                    itA->second = std::min(1.f, itA->second + 0.03f);
+                    itB->second = std::min(1.f, itB->second + 0.03f);
+                }
+            }
+            if (log)
+                log->Push(day, hour, settl->name + " residents pull together during the drought.");
+        }
         break;
     }
 
