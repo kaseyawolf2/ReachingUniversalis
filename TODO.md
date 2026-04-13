@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migration memory shown in tooltip** — Add `std::string migrationMemorySummary` to
-  `RenderSnapshot::AgentEntry` (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity
-  has a `MigrationMemory` with ≥ 2 entries, set it to e.g. "Knows: Wellsworth (food 2g), Millhaven
-  (wood 1g)". In `HUD::DrawHoverTooltip`, render it as an extra dim GRAY line.
+
 
 ## Recently Done
+
+- [x] **Migration memory shown in tooltip** — `migrationMemorySummary` piped through AgentEntry. Shows "Knows: Town (cheapest Xg), ..." in dim GRAY for NPCs with ≥2 known settlements.
 
 - [x] **BecomeHauler goal auto-completes on graduation** — In EconomicMobilitySystem, set `goal.progress = goal.target` when goal type is BecomeHauler during hauler graduation.
 
@@ -1860,7 +1859,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   graduation happens but the goal completion fires only on the next frame via the registry check —
   making it explicit here ensures the log fires reliably.
 
-- [ ] **Migration memory shown in tooltip** — Add `std::string migrationMemorySummary` to
+- [x] **Migration memory shown in tooltip** — Add `std::string migrationMemorySummary` to
   `RenderSnapshot::AgentEntry` (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity
   has a `MigrationMemory` with ≥ 2 entries, set it to e.g. "Knows: Wellsworth (food 2g), Millhaven
   (wood 1g)". In `HUD::DrawHoverTooltip`, render it as an extra dim GRAY line. Gives the player
@@ -3418,3 +3417,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Name, DeprivationTimer>`. For up to 3 NPCs whose `HomeSettlement::settlement` matches the
   graduate's, set `dt.chatTimer = 0.1f` (brief chat animation) and log "[Neighbour] cheers for
   [Graduate]'s promotion." Uses existing chatTimer field — no new components needed.
+
+- [ ] **Migration memory entry count in tooltip** — In `SimThread::WriteSnapshot`, add
+  `int migrationMemoryCount = 0` to `RenderSnapshot::AgentEntry`. Set from `mm->known.size()`.
+  In `HUD::DrawHoverTooltip`, when `migrationMemoryCount > 0` but `migrationMemorySummary` is
+  empty (only 1 entry), show "Knows 1 settlement" in dim GRAY instead of nothing. Currently
+  NPCs with exactly 1 memory entry show no migration info at all.
+
+- [ ] **NPCs share migration knowledge on greeting** — In `AgentDecisionSystem`'s greeting block,
+  after the gossip propagation section (~line where `lastHelper` is spread), if both NPCs have
+  `MigrationMemory`, pick one random entry from each and call `other.Record(...)` to teach
+  settlements the other doesn't know. Cap at 1 exchange per greeting. Log "[Name] tells [Other]
+  about [Settlement]." Uses existing `MigrationMemory::Record` — no new structs.
