@@ -9,9 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
+
 
 ## Recently Done
+
+- [x] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the
+  best friend follows, scans the best friend's friends (affinity ≥ 0.5, same settlement, not
+  already migrating) for up to 1 additional NPC with a valid migration target. Third NPC joins
+  the caravan to the same destination. Log updated to "[Name], [Friend], and [Third] leave
+  together for [Dest]." when a third joins; original two-person log preserved otherwise.
+
 
 - [x] **Satisfaction shown in NPC tooltip** — Added `float satisfaction` to `AgentEntry` in
   `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. Displayed
@@ -880,8 +887,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Social Behaviour
 
-
-- [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
 
 - [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
@@ -3836,3 +3841,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   settlement (relations < -0.5) and pays the tariff, 20% chance to log "[Settlement A] tensions
   rise with [Settlement B] after taxed delivery." and worsen relations by -0.02. Creates a
   visible rivalry spiral. Uses existing `Settlement::relations` map.
+
+- [ ] **Migration caravan arrival log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at their destination and was part of a co-migration group (2-3 NPCs arriving at same settlement within a short window), log "[Name] and companions arrive at [Settlement] and settle in." Track recent arrivals per settlement via `static std::map<entt::entity, std::vector<std::pair<entt::entity, int>>>` keyed by settlement, cleared each game-day. Fires when 2+ arrive same day.
+
+- [ ] **Friend reunion celebration** — In `AgentDecisionSystem.cpp`, after an NPC migrates and arrives at a new settlement, scan `Relations::affinity` for friends (≥ 0.5) already living there (same `HomeSettlement`). If found, log "[Name] reunites with [Friend] at [Settlement]!" at 1-in-2 frequency and boost both affinities by +0.05 (capped at 1.0). Creates emotional payoff for the loneliness-driven migration system.
+
+- [ ] **Caravan safety bonus** — In `TransportSystem.cpp`, when multiple haulers are travelling the same road segment simultaneously (within 40u of each other, same route), reduce their banditry/loss risk by 50%. Check proximity to other haulers in the `GoingToDeposit` state each tick. Log "[Hauler1] and [Hauler2] travel together for safety on [Road]." at 1-in-5 frequency. No new components needed.
