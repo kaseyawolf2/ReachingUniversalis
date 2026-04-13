@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Grief reduces work output** — In `ProductionSystem`'s worker contribution block, after the
-  contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
-  contribution by 0.5f (grieving workers produce at half rate). No new fields — reads existing
-  griefTimer. Creates a visible economic impact when family members die.
+
 
 
 
 ## Recently Done
+
+- [x] **Grief reduces work output** — Grieving workers (griefTimer > 0) produce at 0.5× rate in ProductionSystem. Reads existing DeprivationTimer field.
 
 - [x] **Grief shown in NPC tooltip** — `isGrieving` + `griefHoursLeft` piped through AgentEntry. Shows "Grieving (X.Xh left)" in faint PURPLE.
 
@@ -1659,11 +1658,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Grief reduces work output** — In `ProductionSystem`'s worker contribution block, after the
-  contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
-  contribution by 0.5f (grieving workers produce at half rate). No new fields — reads existing
-  griefTimer. Creates a visible economic impact when family members die.
 
 - [ ] **Family greeting clears grief early** — In `AgentDecisionSystem`'s greeting block, when a
   family reunion greeting fires (`isFamilyReunion == true`) and either NPC has `griefTimer > 0`,
@@ -3323,3 +3317,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   with `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours
   (one-time, gate with `greetCooldown`). Log "[NPC] comforts [Grieving NPC]." Friends help
   each other through loss — grief heals faster in good company.
+
+- [ ] **Grief penalty shown in stockpile panel** — In `SimThread::WriteSnapshot`'s stockpile panel
+  section, count grieving workers at the selected settlement (NPCs with `AgentBehavior::Working` and
+  `griefTimer > 0`). Pipe as `int grievingWorkers` on `RenderSnapshot::StockpilePanel`. In
+  `RenderSystem::DrawStockpilePanel`, when > 0, show "Grieving workers: N (-50% output)" in faint
+  PURPLE. Update panel height calculation. Visible economic consequence in the settlement view.
+
+- [ ] **Multiple deaths compound grief** — In `DeathSystem`'s family grief block, when setting
+  `griefTimer = 4.0f` on surviving family members, check if `griefTimer` is *already* > 0 (meaning
+  they're still grieving a previous loss). If so, set `griefTimer = current + 3.0f` instead of 4.0f
+  (compounding grief). Cap at 12.0f game-hours to prevent infinite stacking. Log "[NPC] is
+  overwhelmed by loss." Multiple family deaths in quick succession create compounding grief.
