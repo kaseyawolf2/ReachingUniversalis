@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Elder wisdom skill boost** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC (non-elder) has `Relations::affinity >= 0.6` toward an elder at the same settlement who has the same `Profession::type` and skill ≥ 0.8, the NPC gets `growth += 0.0003f` extra daily skill growth. Log "[NPC] draws on [Elder]'s wisdom at [Settlement]" at 1-in-10 frequency. Separate from mentor-apprentice (which targets children); this benefits adult workers with strong elder relationships.
+
+## Backlog
 
 - [ ] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour block, when two NPCs are both grieving (`griefTimer > 0`) at the same settlement, boost their mutual `Relations::affinity` by +0.05 (cap 1.0). Log "[Name] and [Other] find comfort in shared loss at [Settlement]" at 1-in-6 frequency. Uses existing grief infrastructure and staggered frame scan.
 
