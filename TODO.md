@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Stagger grief/comfort scans across frames** — In `AgentDecisionSystem.cpp`'s comfort-a-grieving-neighbour block and mood contagion block, both scan nearby NPCs every tick. Gate with the same `s_frameCounter % 4` pattern used for chat/celebration scans. Reduces two more O(n) proximity loops to 1/4 frequency.
-
 ## Recently Done
+
+- [x] **Stagger grief/comfort scans across frames** — Comfort-grieving-neighbour and mood contagion
+  scans gated with `entity % 4 == s_frameCounter % 4`. Two more O(n) proximity loops reduced to
+  1/4 frequency per frame.
+
+
 
 - [x] **Stagger social scans across frames** — Added `static int s_frameCounter` to
   `AgentDecisionSystem::Update`. Celebration friend-recruit and evening chat scans gated with
@@ -1060,6 +1064,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 - [ ] **Cache FindNearestFacility results per settlement** — In `AgentDecisionSystem.cpp`, `FindNearestFacility` is called per NPC per decision cycle. Add a `static std::unordered_map<std::pair<entt::entity, ResourceType>, entt::entity>` cache keyed by (settlement, resource type), invalidated once per game-hour via `s_lastFacCacheHour`. NPCs at the same settlement seeking the same resource reuse the cached facility. Eliminates O(facilities) scan per NPC.
+
+- [ ] **Stagger thank-player and teach scans** — In `AgentDecisionSystem.cpp`'s thank-player block (~line 1553) and elder teach block, gate with `entity % 4 == s_frameCounter % 4`. These do per-NPC distance checks against the player or other NPCs every tick. Same 1/4 stagger pattern as grief/comfort/chat.
 
 - [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
