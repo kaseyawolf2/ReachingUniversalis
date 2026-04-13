@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
-
 ## Recently Done
+
+- [x] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`'s skill recovery celebration,
+  applies +0.02 morale to home settlement when active skill crosses 0.5 upward. Capped at 1.0.
 
 - [x] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s idle chat block,
   1-in-8 chance when one chatter has `careerChanges >= 2` to log gossip about their varied
@@ -1258,6 +1259,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gossip-driven career curiosity** — In `AgentDecisionSystem.cpp`'s idle chat gossip block (just added), when the listener has `careerChanges == 0` and contentment < 0.5, 1-in-10 chance to boost `DeprivationTimer::stockpileEmpty` by +0.5 — hearing about varied careers makes dissatisfied NPCs more likely to consider migration/change. Log "[Listener] wonders about life elsewhere." Uses existing fields.
 
 - [ ] **Chat topic variety** — In `AgentDecisionSystem.cpp`'s idle chat log block, vary the chat message based on context: if both NPCs share the same `Profession::type`, log "[A] and [B] discuss [profession] techniques." If one is an elder (age > 60), log "[Elder] shares wisdom with [Younger]." Default remains generic chat. 1-in-10 frequency for each variant. No new fields — uses existing `Profession`, `Age`, `Name`.
+
+- [ ] **Skill rust morale drain** — In `AgentDecisionSystem.cpp`'s skill rust notification block (where skill drops below 0.5), apply `-0.01` to home `Settlement::morale` (floored at 0.0). NPCs losing skills hurts community confidence. Mirrors the +0.02 skill recovery boost — makes skill dynamics affect settlement morale bidirectionally.
+
+- [ ] **Settlement morale tooltip breakdown** — In `HUD.cpp`'s settlement tooltip, after the morale bar, add a line showing recent morale sources: count of skill recoveries, master arrivals/departures, and deaths in the last game-day. Store as `int moraleUpEvents, moraleDownEvents` on `SettlementEntry` in `RenderSnapshot.h`, tracked via `static std::unordered_map` in `SimThread::WriteSnapshot`. Display "Morale: +N / -N events today" in green/red.
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
