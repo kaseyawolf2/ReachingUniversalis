@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Skill training builds mentor bond** — In `AgentDecisionSystem`'s skill training block,
+  after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
+  This enables the existing gratitude greeting to fire later: the learner will thank their teacher
+  when they next greet. No new fields needed — reuses `lastHelper` for mentor gratitude.
 
 
 
