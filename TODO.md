@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Bankruptcy survivor determination** — In `EconomicMobilitySystem.cpp`, after a hauler goes bankrupt and returns to labor, add a `bool bankruptSurvivor = false` flag to `DeprivationTimer` in `Components.h`. Set it true. In `AgentDecisionSystem.cpp`'s skill growth block, if `bankruptSurvivor == true`, grant `growth += 0.0002f` extra daily skill growth. Log "[Name] works with renewed determination at [Settlement]" at 1-in-8 frequency on first day. Rewards resilience.
+
+## Backlog
 
 - [ ] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block (just added), after donating, boost the donor's affinity from other NPCs at the settlement by +0.01 (via `Relations`). Iterate all NPCs at the home settlement and bump their affinity toward the donor. Log "[Donor] earns respect for helping [Bankrupt]" at 1-in-5 frequency. Creates a reputation payoff for generosity.
 
