@@ -1016,6 +1016,31 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Avoid player with bad reputation: NPCs flee nervously ----
+            if (playerEntity != entt::null) {
+                if (const auto* rep = registry.try_get<Reputation>(entity)) {
+                    if (rep->score < -0.5f) {
+                        static constexpr float AVOID_RADIUS = 30.f;
+                        float adx = playerPos.x - pos.x, ady = playerPos.y - pos.y;
+                        float adSq = adx * adx + ady * ady;
+                        if (adSq > 0.01f && adSq <= AVOID_RADIUS * AVOID_RADIUS) {
+                            float dist = std::sqrt(adSq);
+                            vel.vx = -(adx / dist) * speed * 0.8f;
+                            vel.vy = -(ady / dist) * speed * 0.8f;
+                            timer.panicTimer = 2.f;
+                            auto lv = registry.view<EventLog>();
+                            if (lv.begin() != lv.end()) {
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = (myName ? myName->value : "An NPC") +
+                                    " hurries away from you nervously.";
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                        }
+                    }
+                }
+            }
+
             // ---- Skill training: skilled NPC teaches nearby unskilled NPC ----
             if (timer.teachCooldown > 0.f)
                 timer.teachCooldown = std::max(0.f, timer.teachCooldown - realDt);
