@@ -996,6 +996,32 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // Master homecoming: log when a master-level NPC settles at a new settlement
+                if (const auto* dt = registry.try_get<DeprivationTimer>(entity)) {
+                    if (dt->masterSettled) {
+                        const auto* sk = registry.try_get<Skills>(entity);
+                        if (sk) {
+                            const char* masterSkill = (sk->farming >= 0.9f)       ? "farmer"       :
+                                                      (sk->water_drawing >= 0.9f) ? "water-drawer" :
+                                                      (sk->woodcutting >= 0.9f)   ? "lumberjack"   : nullptr;
+                            if (masterSkill) {
+                                auto lv2 = registry.view<EventLog>();
+                                if (!lv2.empty()) {
+                                    std::string who = "A master";
+                                    if (const auto* n = registry.try_get<Name>(entity))
+                                        who = n->value;
+                                    std::string dest = "a settlement";
+                                    if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                        dest = s->name;
+                                    lv2.get<EventLog>(*lv2.begin()).Push(
+                                        tm.day, (int)tm.hourOfDay,
+                                        who + ", a master " + masterSkill + ", settles at " + dest + ".");
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Reunion affinity boost: check if any residents at the new
                 // settlement are existing friends (affinity > 0.3).
                 if (auto* myRel = registry.try_get<Relations>(entity)) {
