@@ -239,14 +239,16 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
 
             // Find the wealthiest adult at this settlement to name as parent.
             std::string parentName;
+            entt::entity parentEntity = entt::null;
             {
                 float bestBalance = -1.f;
                 registry.view<HomeSettlement, Money, Name>(entt::exclude<ChildTag, PlayerTag>).each(
-                    [&](const HomeSettlement& hs, const Money& m, const Name& n) {
+                    [&](auto pe, const HomeSettlement& hs, const Money& m, const Name& n) {
                         if (hs.settlement != settl) return;
                         if (m.balance > bestBalance) {
                             bestBalance = m.balance;
                             parentName  = n.value;
+                            parentEntity = pe;
                         }
                     });
             }
@@ -262,6 +264,32 @@ void BirthSystem::Update(entt::registry& registry, float realDt) {
                 std::string msg = "Born: " + npcName + " at " + s.name;
                 if (!parentName.empty()) msg += " (to " + parentName + ")";
                 log->Push(tm.day, (int)tm.hourOfDay, msg);
+            }
+
+            // Friendship bonus: friends of the parent celebrate, boosting morale
+            if (parentEntity != entt::null && registry.valid(parentEntity)) {
+                const auto* parentRel = registry.try_get<Relations>(parentEntity);
+                if (parentRel) {
+                    int boosts = 0;
+                    for (const auto& [friendEnt, aff] : parentRel->affinity) {
+                        if (boosts >= 2) break;
+                        if (aff < 0.5f) continue;
+                        if (!registry.valid(friendEnt)) continue;
+                        // Must be at the same settlement
+                        const auto* fhs = registry.try_get<HomeSettlement>(friendEnt);
+                        if (!fhs || fhs->settlement != settl) continue;
+                        auto& sc = settlView.get<Settlement>(settl);
+                        sc.morale = std::min(1.f, sc.morale + 0.01f);
+                        ++boosts;
+                        if (log) {
+                            std::string friendName = "A friend";
+                            if (const auto* fn = registry.try_get<Name>(friendEnt))
+                                friendName = fn->value;
+                            log->Push(tm.day, (int)tm.hourOfDay,
+                                friendName + " celebrates " + parentName + "'s new child.");
+                        }
+                    }
+                }
             }
 
             // Twins: 10% chance of a second birth at the same time
