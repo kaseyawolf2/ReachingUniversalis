@@ -6,6 +6,7 @@
 #include <limits>
 #include <random>
 #include <set>
+#include <unordered_map>
 
 static constexpr float SLEEP_ARRIVE  = 25.f;   // distance at which NPC is "at settlement"
 static constexpr float LEISURE_RADIUS = 80.f;  // wander radius around home settlement center
@@ -44,19 +45,31 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
     int hour   = (int)tm.hourOfDay;
     Season season = tm.CurrentSeason();
 
+    // ---- Early exit: cache expensive pre-computations when hour hasn't changed ----
+    static int    s_cachedHour = -1;
+    static int    s_cachedDay  = -1;
+    static Season s_cachedSeason = Season::Spring;
+    bool hourChanged = (hour != s_cachedHour || tm.day != s_cachedDay || season != s_cachedSeason);
+    if (hourChanged) {
+        s_cachedHour   = hour;
+        s_cachedDay    = tm.day;
+        s_cachedSeason = season;
+    }
+
     // Pre-build set of facilities that have an elder worker (age > 60, Working)
     // within arrival range. Used for the +20% mentor skill gain bonus.
+    // Only rebuild when the hour changes — elder positions are stable within an hour.
     static constexpr float ELDER_AGE = 60.f;
     static constexpr float MENTOR_ARRIVE2 = 30.f * 30.f; // same as WORK_ARRIVE
     struct ElderMentorInfo { std::string name; entt::entity facility; };
-    std::map<entt::entity, ElderMentorInfo> elderFacilities; // facility → elder info
-    {
+    static std::map<entt::entity, ElderMentorInfo> elderFacilities;
+    if (hourChanged) {
+        elderFacilities.clear();
         auto facView = registry.view<Position, ProductionFacility>();
         registry.view<AgentState, Position, Age>(entt::exclude<Hauler, PlayerTag, ChildTag>).each(
             [&](auto e, const AgentState& st, const Position& ep, const Age& age) {
             if (st.behavior != AgentBehavior::Working) return;
             if (age.days <= ELDER_AGE) return;
-            // Find which facility this elder is near
             for (auto fe : facView) {
                 const auto& fp = facView.get<Position>(fe);
                 float dx = ep.x - fp.x, dy = ep.y - fp.y;
@@ -70,6 +83,18 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
         });
+    }
+
+    // Pre-cache facility positions per settlement (rebuilt each hour)
+    struct FacInfo { entt::entity entity; Position pos; ResourceType output; float baseRate; };
+    static std::unordered_map<entt::entity, std::vector<FacInfo>> s_facBySettlement;
+    if (hourChanged) {
+        s_facBySettlement.clear();
+        registry.view<Position, ProductionFacility>().each(
+            [&](auto fe, const Position& fpos, const ProductionFacility& fac) {
+                if (fac.baseRate <= 0.f) return;
+                s_facBySettlement[fac.settlement].push_back({fe, fpos, fac.output, fac.baseRate});
+            });
     }
 
     // Elder mentor log: once per game-day per facility
@@ -296,17 +321,17 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             ResourceType chosenType  = ResourceType::Food;
             ResourceType nearestType = ResourceType::Food;
 
-            registry.view<Position, ProductionFacility>().each(
-                [&](auto fe, const Position& fpos, const ProductionFacility& fac) {
-                if (fac.settlement != home.settlement) return;
-                if (fac.baseRate <= 0.f) return;   // skip shelter nodes
-                float dx = fpos.x - pos.x, dy = fpos.y - pos.y;
-                float d  = dx*dx + dy*dy;
-                if (d < nearestDist) { nearestDist = d; nearestFac = fe; nearestType = fac.output; }
-                if (hasAptitude && fac.output == aptitude && d < chosenDist) {
-                    chosenDist = d; chosenFac = fe; chosenType = fac.output;
+            auto facIt = s_facBySettlement.find(home.settlement);
+            if (facIt != s_facBySettlement.end()) {
+                for (const auto& fi : facIt->second) {
+                    float dx = fi.pos.x - pos.x, dy = fi.pos.y - pos.y;
+                    float d  = dx*dx + dy*dy;
+                    if (d < nearestDist) { nearestDist = d; nearestFac = fi.entity; nearestType = fi.output; }
+                    if (hasAptitude && fi.output == aptitude && d < chosenDist) {
+                        chosenDist = d; chosenFac = fi.entity; chosenType = fi.output;
+                    }
                 }
-            });
+            }
 
             // Use aptitude-matched facility if found; fall back to nearest
             entt::entity workFac  = (chosenFac != entt::null) ? chosenFac  : nearestFac;
@@ -323,12 +348,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
                     // ---- Shared workplace affinity gain ----
                     // NPCs working at the same facility build affinity over time.
-                    {
+                    // Only run the O(n) scan when the hour changes to avoid per-tick O(n²).
+                    if (hourChanged) {
                         static constexpr float WORK_AFFINITY_PER_HOUR = 0.002f;
                         static constexpr float WORK_AFFINITY_CAP      = 0.5f;
-                        // Track cumulative workplace affinity gains per ordered pair
                         static std::map<std::pair<entt::entity, entt::entity>, float> s_workAffinityGain;
-                        float wgHrs = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
                         auto* myRel = registry.try_get<Relations>(entity);
                         if (myRel) {
                             registry.view<AgentState, Position, HomeSettlement>(
@@ -338,21 +362,18 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 if (other == entity) return;
                                 if (oState.behavior != AgentBehavior::Working) return;
                                 if (oHome.settlement != home.settlement) return;
-                                // Check within facility radius
                                 float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                 if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
-                                // Ordered pair key to avoid double-counting
                                 auto key = (entity < other)
                                     ? std::make_pair(entity, other)
                                     : std::make_pair(other, entity);
                                 float& cumGain = s_workAffinityGain[key];
                                 if (cumGain >= WORK_AFFINITY_CAP) return;
-                                float gain = WORK_AFFINITY_PER_HOUR * wgHrs;
+                                float gain = WORK_AFFINITY_PER_HOUR; // 1 hour's worth per call
                                 float remaining = WORK_AFFINITY_CAP - cumGain;
                                 if (gain > remaining) gain = remaining;
                                 cumGain += gain;
                                 myRel->affinity[other] = std::min(1.f, myRel->affinity[other] + gain);
-                                // Boost other side too
                                 if (auto* oRel = registry.try_get<Relations>(other))
                                     oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + gain);
                             });
