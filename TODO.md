@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Confrontation witness remembers player** — In `SimThread::ProcessInput`'s witness loop
-  (after the confrontation block), set `timer.lastHelper = playerEntity` on each witness's
-  `DeprivationTimer` via `registry.get_or_emplace<DeprivationTimer>(we)`. This lets the gratitude
-  greeting in `AgentDecisionSystem` fire for witnesses too — NPCs who saw the player act bravely
-  remember and thank them later.
+
 
 
 
 ## Recently Done
+
+- [x] **Confrontation witness remembers player** — Witnesses in SimThread's confrontation loop get `lastHelper = playerEntity` via `get_or_emplace<DeprivationTimer>`, enabling gratitude greetings later.
 
 - [x] **Milestone celebration boosts settlement morale** — Master milestone (idx 1) in ScheduleSystem::checkMilestone boosts home Settlement::morale by +0.03 (capped at 1.0).
 
@@ -1643,12 +1641,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **Confrontation witness remembers player** — In `SimThread::ProcessInput`'s witness loop
-  (after the confrontation block), set `timer.lastHelper = playerEntity` on each witness's
-  `DeprivationTimer` via `registry.get_or_emplace<DeprivationTimer>(we)`. This lets the gratitude
-  greeting in `AgentDecisionSystem` fire for witnesses too — NPCs who saw the player act bravely
-  remember and thank them later.
-
 - [ ] **NPC gossips about confrontation** — In `AgentDecisionSystem`'s greeting block, when an NPC
   with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
   `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
@@ -3248,3 +3240,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   lambda, when an Apprentice milestone (idx 2, threshold 0.25) is reached, give the NPC a one-time
   need boost: set the lowest `Needs::list[i].value` to `max(current, 0.5)`. First skill progress
   gives NPCs a morale lift — learning a trade feels rewarding even at the lowest level.
+
+- [ ] **Witness tells others about player bravery** — In `AgentDecisionSystem`'s greeting block,
+  when an NPC with `lastHelper != entt::null` (set by confrontation witness) greets another idle NPC
+  within 25u, propagate `lastHelper` to the other NPC's `DeprivationTimer` (via
+  `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other] about the player's bravery." Gate
+  with `greetCooldown`. Word of heroic deeds spreads through NPC social networks.
+
+- [ ] **Witness reputation bonus decays** — In `AgentDecisionSystem`'s reputation decay block
+  (top of `Update`), when an NPC has `lastHelper != entt::null` and the helper is the player entity,
+  clear `lastHelper` after 48 game-hours. Add `float lastHelperTimer = 0.f` to `DeprivationTimer`,
+  set to 48.0 when `lastHelper` is assigned. Decrement by `gameHoursDt` each frame; when it reaches
+  0, set `lastHelper = entt::null`. Memories fade — gratitude doesn't last forever.
