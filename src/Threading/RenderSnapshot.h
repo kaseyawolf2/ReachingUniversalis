@@ -134,6 +134,7 @@ struct RenderSnapshot {
         bool chatting = false;
         std::string bestFriendName;
         float bestFriendAffinity = 0.f;
+        bool rivalryTariff = false;
     };
 
     struct SettlementEntry {

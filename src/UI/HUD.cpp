@@ -959,6 +959,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRoute)        lineCount++;
     if (showNearBankrupt)  lineCount++;
     if (showHaulerState)   lineCount++;
+    bool showRivalryTariff = best->rivalryTariff;
+    if (showRivalryTariff) lineCount++;
     if (showGraduation)    lineCount++;
     if (showWage)          lineCount++;
     if (showRep)           lineCount++;
@@ -996,6 +998,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wrt = showRoute  ? MeasureText(routeLine,                11) : 0;
     int wnb = showNearBankrupt ? MeasureText(bankruptLine, 11) : 0;
     int whs = showHaulerState ? MeasureText(haulerStateLine, 11) : 0;
+    int wrt2 = showRivalryTariff ? MeasureText("Rivalry tariff (+30%)", 11) : 0;
     int wgr = showGraduation ? MeasureText(gradLine, 11) : 0;
     int wwg = showWage ? MeasureText(wageLine, 11) : 0;
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
@@ -1006,7 +1009,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
     int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
     int wfr = showFriend ? MeasureText(friendLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm, wfr}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm, wfr, wrt2}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1081,6 +1084,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         Color hsCol = (isHauler && best->inConvoy) ? Fade(GREEN, 0.7f) : Fade(LIGHTGRAY, 0.7f);
         DrawText(haulerStateLine, tx, ly, 11, hsCol); ly += 16;
     }
+    if (showRivalryTariff) { DrawText("Rivalry tariff (+30%)", tx, ly, 11, Fade(RED, 0.8f)); ly += 16; }
     if (showProfit) { DrawText(profitLine,          tx, ly, 11, profitColor);          ly += 16; }
     if (showBestRoute) { DrawText(bestRouteLine, tx, ly, 11, Fade(GOLD, 0.5f)); ly += 16; }
     if (showTripHistory) { DrawText(tripHistoryLine, tx, ly, 11, Fade(LIGHTGRAY, 0.5f)); ly += 16; }

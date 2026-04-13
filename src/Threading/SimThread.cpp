@@ -1453,6 +1453,22 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Rivalry tariff: hauler is carrying cargo to a settlement that rivals the source
+        bool rivalryTariff = false;
+        if (isHauler) {
+            if (const auto* h = m_registry.try_get<Hauler>(e)) {
+                if (h->state == HaulerState::GoingToDeposit &&
+                    h->cargoSource != entt::null && m_registry.valid(h->cargoSource) &&
+                    h->targetSettlement != entt::null && m_registry.valid(h->targetSettlement)) {
+                    if (const auto* destSettl = m_registry.try_get<Settlement>(h->targetSettlement)) {
+                        auto rit = destSettl->relations.find(h->cargoSource);
+                        if (rit != destSettl->relations.end() && rit->second < -0.5f)
+                            rivalryTariff = true;
+                    }
+                }
+            }
+        }
+
         // Home settlement name and position for tooltip / return-trip line
         std::string homeSettlName;
         float homeX = 0.f, homeY = 0.f;
@@ -1683,7 +1699,8 @@ void SimThread::WriteSnapshot() {
                            (astate.behavior == AgentBehavior::Sleeping && hasHome &&
                             (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f),
                            chatting,
-                           std::move(bestFriendName), bestFriendAffinity });
+                           std::move(bestFriendName), bestFriendAffinity,
+                           rivalryTariff });
     });
 
     // ---- Settlements ----
