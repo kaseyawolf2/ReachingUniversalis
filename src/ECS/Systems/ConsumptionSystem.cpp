@@ -161,6 +161,27 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // ---- Starvation desperation log ----
+        // Fires when hunger < 0.1, no money, and no food in stockpile (purchase impossible).
+        if (needs.list[0].value < 0.1f && (!money || money->balance < 1.f) && !hadFood) {
+            static int s_starvationCounter = 0;
+            if (++s_starvationCounter % 10 == 1) {
+                auto logV = registry.view<EventLog>();
+                auto tmV  = registry.view<TimeManager>();
+                if (!logV.empty() && !tmV.empty()) {
+                    const auto& tm2 = tmV.get<TimeManager>(*tmV.begin());
+                    std::string who = "An NPC";
+                    if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    std::string stlName = "a settlement";
+                    if (settl) stlName = settl->name;
+                    char buf[160];
+                    std::snprintf(buf, sizeof(buf), "%s is starving and desperate at %s.",
+                                  who.c_str(), stlName.c_str());
+                    logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                }
+            }
+        }
+
         // Drain desperation log cooldown
         if (auto cdIt = s_desperateCooldown.find(entity); cdIt != s_desperateCooldown.end()) {
             cdIt->second -= gameHoursDt;
