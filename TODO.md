@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Confrontation witness remembers player** — In `SimThread::ProcessInput`'s witness loop
+  (after the confrontation block), set `timer.lastHelper = playerEntity` on each witness's
+  `DeprivationTimer` via `registry.get_or_emplace<DeprivationTimer>(we)`. This lets the gratitude
+  greeting in `AgentDecisionSystem` fire for witnesses too — NPCs who saw the player act bravely
+  remember and thank them later.
 
 
 
