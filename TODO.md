@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with `Profession::careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f` — frequent career changers are 20% more likely to migrate. Log "[Name] feels restless at [Settlement]." at 1-in-10 frequency when the lowered threshold triggers migration. Uses existing `careerChanges` field.
+
 ## Recently Done
 
 - [x] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, when
@@ -1158,8 +1160,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with `Profession::careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f` — frequent career changers are 20% more likely to migrate. Log "[Name] feels restless at [Settlement]." at 1-in-10 frequency when the lowered threshold triggers migration. Uses existing `careerChanges` field.
 
 - [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
 
