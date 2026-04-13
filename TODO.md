@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Skill decay warning in tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
+  NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
+  ORANGE below the milestone line. Read from existing `AgentEntry::behavior` and skill fields.
+  No new piping needed — purely a display check on already-piped data.
 
 
 
