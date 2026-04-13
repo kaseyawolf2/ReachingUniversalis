@@ -16,6 +16,9 @@ static constexpr float FRIEND_THRESHOLD = 0.5f;
 // Note: migration threshold is now per-NPC (DeprivationTimer::migrateThreshold)
 // so each NPC migrates at a different time, preventing mass simultaneous exodus.
 
+// ---- File-scope caches (populated once per tick in Update, used by helpers) ----
+static std::vector<std::pair<float,float>> s_banditPositions;
+
 // ---- Static helpers ----
 
 static AgentBehavior BehaviorForNeed(NeedType type) {
@@ -267,11 +270,10 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                 float mx = (pa->x + pb->x) * 0.5f;
                 float my = (pa->y + pb->y) * 0.5f;
                 int banditCount = 0;
-                registry.view<Position, BanditTag>().each(
-                    [&](const Position& bp) {
-                        float bdx = bp.x - mx, bdy = bp.y - my;
-                        if (bdx*bdx + bdy*bdy < 100.f * 100.f) ++banditCount;
-                    });
+                for (const auto& [bx, by] : s_banditPositions) {
+                    float bdx = bx - mx, bdy = by - my;
+                    if (bdx*bdx + bdy*bdy < 100.f * 100.f) ++banditCount;
+                }
                 if (banditCount > 0)
                     total *= std::max(0.2f, 1.f - 0.05f * banditCount);
             }
@@ -339,6 +341,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     registry.view<HomeSettlement>().each(
         [&](entt::entity e, const HomeSettlement& hs) {
             s_entitySettlement[e] = hs.settlement;
+        });
+
+    // ---- Bandit position cache: avoids repeated view iteration for proximity checks ----
+    s_banditPositions.clear();
+    registry.view<BanditTag, Position>().each(
+        [&](const Position& bp) {
+            s_banditPositions.emplace_back(bp.x, bp.y);
         });
 
     // ---- Reputation decay: all NPCs drift toward 0 over time ----
@@ -1156,13 +1165,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float INTIM_RADIUS = 50.f;
                 bool nearBandit = false;
-                registry.view<BanditTag, Position>().each(
-                    [&](const Position& bp) {
-                    if (nearBandit) return;
-                    float bdx = bp.x - pos.x, bdy = bp.y - pos.y;
-                    if (bdx*bdx + bdy*bdy < INTIM_RADIUS * INTIM_RADIUS)
+                for (const auto& [bx, by] : s_banditPositions) {
+                    float bdx = bx - pos.x, bdy = by - pos.y;
+                    if (bdx*bdx + bdy*bdy < INTIM_RADIUS * INTIM_RADIUS) {
                         nearBandit = true;
-                });
+                        break;
+                    }
+                }
                 if (nearBandit) {
                     float intimGameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
                     if (auto* settl = registry.try_get<Settlement>(home.settlement))
