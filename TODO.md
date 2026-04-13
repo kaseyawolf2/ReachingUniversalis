@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Post-festival morale afterglow** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration <= 0`), when `modifierName == "Harvest Festival"` or `modifierName == "Festival"`, set a new `Settlement::afterglowHours` field (add `float afterglowHours = 0.f` to `Settlement` in `Components.h`). While `afterglowHours > 0`, settlement morale drift toward 0.5 is halved. Tick down in the same modifier block. Creates lingering social effect from celebrations.
+
+## Backlog
 
 - [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
 
