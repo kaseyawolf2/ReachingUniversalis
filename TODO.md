@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC celebrates skill milestone** — In `ScheduleSystem`'s skill milestone check (the `checkMilestone` lambda), when an NPC reaches Journeyman or Master, set their `AgentState::behavior` to `AgentBehavior::Celebrating` for 30 game-seconds (add `float celebrateTimer = 0.f` to `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
+
 
 ## Recently Done
+
+- [x] **NPC celebrates skill milestone** — Journeyman/Master milestones in ScheduleSystem trigger Celebrating behavior for 0.5 game-hours via skillCelebrateTimer on DeprivationTimer. Existing gold glow renders automatically.
+
+
+
 
 - [x] **Hauler bankruptcy shown in settlement stockpile** — "Struggling haulers: N" in faint RED in stockpile panel. Piped via `strugglingHaulers` on `StockpilePanel`, counted in `WriteSnapshot`.
 
@@ -1545,7 +1550,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting Haulers
   with `bankruptWarned && HomeSettlement == selectedSettlement`.
 
-- [ ] **NPC celebrates skill milestone** — In `ScheduleSystem`'s skill milestone check (the
+- [x] **NPC celebrates skill milestone** — In `ScheduleSystem`'s skill milestone check (the
   `checkMilestone` lambda), when an NPC reaches Journeyman or Master, set their `AgentState::behavior`
   to `AgentBehavior::Celebrating` for 30 game-seconds (add `float celebrateTimer = 0.f` to
   `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
@@ -1596,6 +1601,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   presence slightly boosts the struggling NPC's morale: +0.01 to home `Settlement::morale` per
   game-hour. Add `float moodContagionCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown).
   Log "[Happy NPC] cheers up [Sad NPC]." Positive moods are socially infectious.
+
+- [ ] **Nearby NPCs join skill celebration** — In `AgentDecisionSystem`'s Celebrating block, when
+  an NPC is celebrating a skill milestone (`skillCelebrateTimer > 0`), scan for idle NPCs within
+  30u with `Relations::affinity >= 0.2`. Set those NPCs to `AgentBehavior::Celebrating` with
+  `skillCelebrateTimer = 0.25f` (half duration). Log "[Friend] joins [Celebrant]'s celebration."
+  Friends share in each other's achievements.
+
+- [ ] **Milestone celebration boosts settlement morale** — In `ScheduleSystem`'s `checkMilestone`
+  lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
+  by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
+  `registry.try_get<Settlement>(hs.settlement)`. Master-level NPCs are a source of community pride.
 
 ---
 
