@@ -2700,5 +2700,12 @@ void SimThread::WriteSnapshot() {
             if (m_profile[i].name)
                 m_snapshot.profiling.push_back({ m_profile[i].name, m_profile[i].avgUs });
         }
+        // Append AgentDecision sub-block profiling
+        for (int i = 0; i < AgentDecisionSystem::SUB_PROFILE_COUNT; ++i) {
+            if (m_agentDecisionSystem.m_subProfile[i].name)
+                m_snapshot.profiling.push_back({
+                    m_agentDecisionSystem.m_subProfile[i].name,
+                    m_agentDecisionSystem.m_subProfile[i].avgUs });
+        }
     }
 }

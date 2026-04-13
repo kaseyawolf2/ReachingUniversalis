@@ -6,6 +6,18 @@ class AgentDecisionSystem {
 public:
     void Update(entt::registry& registry, float realDt);
 
+    // Sub-block profiling: smoothed average microseconds per step (1-second window)
+    static constexpr int SUB_PROFILE_COUNT = 7;
+    struct SubProfile {
+        const char* name = nullptr;
+        float accumUs = 0.f;
+        float avgUs   = 0.f;
+    };
+    SubProfile m_subProfile[SUB_PROFILE_COUNT] = {};
+    float      m_subProfileAccum = 0.f;
+    int        m_subProfileSteps = 0;
+    void       SubProfileFlush();
+
 private:
     entt::entity FindNearestFacility(entt::registry& registry,
                                      ResourceType type,

@@ -1,4 +1,5 @@
 #include "AgentDecisionSystem.h"
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <random>
@@ -275,6 +276,25 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 // ---- Main update ----
 
 void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
+    // Sub-block profiling setup
+    using Clock = std::chrono::steady_clock;
+    if (m_subProfile[0].name == nullptr) {
+        const char* names[SUB_PROFILE_COUNT] = {
+            "AD:PreLoop",  "AD:MainLoop", "AD:Orphan",
+            "AD:Gossip",   "AD:Social",   "AD:Bandits",
+            "AD:Goals"
+        };
+        for (int i = 0; i < SUB_PROFILE_COUNT; ++i)
+            m_subProfile[i].name = names[i];
+    }
+    auto spStart = Clock::now();
+    auto spLap   = spStart;
+    auto spFlush = [&](int idx) {
+        auto now = Clock::now();
+        m_subProfile[idx].accumUs += std::chrono::duration<float, std::micro>(now - spLap).count();
+        spLap = now;
+    };
+
     // Charity frequency counter: counts lifetime charity acts per helper entity.
     // Pruned each frame for destroyed entities so it doesn't leak memory.
     static std::map<entt::entity, int> s_charityCount;
@@ -354,6 +374,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             playerPos = pv.get<Position>(playerEntity);
         }
     }
+
+    spFlush(0); // AD:PreLoop
 
     // Exclude Haulers (TransportSystem handles them), Player (PlayerInputSystem),
     // and Bandits (handled in the bandit section at the end of Update).
@@ -1634,6 +1656,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             MoveToward(vel, pos, facPos.x, facPos.y, speed);
         }
     }
+    spFlush(1); // AD:MainLoop (all per-NPC decision logic)
 
     // ============================================================
     // WANDERING ORPHAN RE-SETTLEMENT
@@ -1698,6 +1721,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         });
     }
+    spFlush(2); // AD:Orphan
 
     // ============================================================
     // GOSSIP / PRICE SHARING
@@ -1936,6 +1960,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             break;  // A gossips with at most one NPC per cooldown window
         }
     }
+    spFlush(3); // AD:Gossip
 
     // ============================================================
     // FAMILY PAIRING
@@ -2329,6 +2354,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         });
     }
+    spFlush(4); // AD:Social (family pairing, charity, adoption, trade gifts)
 
     // ============================================================
     // BANDIT PROMOTION & BEHAVIOUR
@@ -2612,6 +2638,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             state.behavior = AgentBehavior::Idle;
         });
+    spFlush(5); // AD:Bandits
 
     // ============================================================
     // PERSONAL GOAL SYSTEM
@@ -2724,4 +2751,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     break;
             }
         });
+
+    spFlush(6); // AD:Goals
+
+    // Sub-profile window management: flush averages every ~1 second
+    ++m_subProfileSteps;
+    m_subProfileAccum += realDt;
+    if (m_subProfileAccum >= 1.f) {
+        SubProfileFlush();
+        m_subProfileAccum = 0.f;
+    }
+}
+
+void AgentDecisionSystem::SubProfileFlush() {
+    if (m_subProfileSteps > 0) {
+        float inv = 1.f / m_subProfileSteps;
+        for (int i = 0; i < SUB_PROFILE_COUNT; ++i) {
+            m_subProfile[i].avgUs = m_subProfile[i].accumUs * inv;
+            m_subProfile[i].accumUs = 0.f;
+        }
+    }
+    m_subProfileSteps = 0;
 }
