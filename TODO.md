@@ -9,9 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit encounter deduplication** — In `AgentDecisionSystem::Update`'s bandit section (~line 2400+), the `banditsPerRoad` density-cap loop also iterates all roads per bandit to find the nearest. Reuse `s_banditPositions` and pre-compute road midpoints once per tick to avoid repeated `registry.get<Position>` on road endpoints.
-
 ## Recently Done
+
+- [x] **Bandit encounter deduplication** — Pre-computed road midpoints into `s_roadMids` vector
+  once per tick. Replaced 3 separate `registry.view<Road>().each()` iterations (banditsPerRoad
+  density cap, per-bandit lurk target, gang name matching) with cached vector iteration via
+  `findNearestRoad` helper. Eliminated repeated `registry.try_get<Position>(road.from/to)` calls.
+  Gang name check reduced from O(bandits² × roads) to O(bandits² × cached_roads).
+
+
 
 - [x] **ProductionSystem container optimisation** — System was already well-structured with
   single-pass per-settlement worker aggregation (no per-worker facility lookups needed). Replaced
@@ -940,6 +946,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
+- [ ] **DeathSystem inheritance scan optimisation** — In `DeathSystem.cpp`, when an NPC dies with gold, the heir scan iterates all NPCs at the same settlement to find the closest friend. Use `s_entitySettlement`-style cache (or pass one in) to filter by settlement in O(1), then scan only same-settlement NPCs' Relations. Currently O(n) per death; matters at scale with mass death events (plague).
+
 ### NPC Lifecycle & Identity
 
 - [ ] **NPC age-based skill growth** — In `AgentDecisionSystem.cpp` or a new system, adult NPCs (not children/elders) gain +0.001 per game-day in their active profession's matching skill (farming for Food workers, water for Water, woodcutting for Wood). Uses `Profession::current` and `Skills`. Capped at 1.0. Makes long-tenured workers increasingly productive. Gate computation to once per game-day.
@@ -947,6 +955,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 ### NPC Social Behaviour
+
+- [ ] **Mentor-apprentice relationship** — In `AgentDecisionSystem.cpp`, when an elder (age > 60) works at the same settlement as a child apprentice (age 12-14), the apprentice's matching skill gains +0.003 per game-day instead of normal growth rate. Log "[Elder] mentors [Child] in [skill] at [Settlement]." once when the bond first forms (1-in-5 frequency). Uses existing `Age`, `Skills`, `ChildTag` components.
+
 
 
 - [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency. Complements the existing friendship decay on distance (already implemented) by rewarding reunions.
