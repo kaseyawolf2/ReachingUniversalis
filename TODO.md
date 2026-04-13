@@ -888,6 +888,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Backlog
 
+### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
+
+- [ ] **AgentDecision per-block profiling** — In `AgentDecisionSystem.cpp`, add `#ifdef PROFILE` scoped timers around the major blocks (migration trigger, co-migration, theft, friendship scans, homesickness, gratitude, grief, etc.). Output per-block average microseconds to the benchmark report. AgentDecision is 54.6% of sim time — need to identify which sub-blocks are the worst offenders before optimising blindly.
+
+- [ ] **AgentDecision friendship scan spatial cache** — Many blocks in `AgentDecisionSystem.cpp` iterate `Relations::affinity` then check `HomeSettlement::settlement` to filter to same-settlement friends. Build a per-settlement friend list once per tick (at the top of `Update`) in a `static std::unordered_map<entt::entity, std::vector<entt::entity>>` and reuse it in farewell, co-migration, loneliness, begging, and greeting blocks. Eliminates repeated O(n) registry lookups per NPC.
+
+- [ ] **WriteSnapshot selective update** — In `SimThread::WriteSnapshot()`, instead of copying every field of every entity every tick, track a `dirty` bitset per entity (set by systems that modify drawable state). Only copy dirty entities under the mutex lock. Reset dirty flags after write. Reduces the 5.5ms (21.2%) WriteSnapshot cost proportional to how many entities actually changed.
+
+- [ ] **ScheduleSystem early-exit optimisation** — `ScheduleSystem.cpp` takes 4ms (15.1%) which is high for time-of-day checks. Profile whether the cost is in the view iteration or the schedule logic. If most NPCs don't change state each tick, add a `lastScheduleHour` field to skip re-evaluation when `hourOfDay` hasn't changed since last check.
+
+- [ ] **FindMigrationTarget caching** — `FindMigrationTarget` in `AgentDecisionSystem.cpp` iterates all settlements and computes scores. Called once per migrating NPC, but also for each co-migration friend candidate (up to 2 extra calls per migration). Cache results per source settlement per game-hour in a `static std::unordered_map<entt::entity, std::pair<int, entt::entity>>` (keyed by home settlement, value is {hour, best destination}). Invalidate when hour changes.
+
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
