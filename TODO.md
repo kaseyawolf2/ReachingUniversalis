@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, when two haulers travel in convoy (`inConvoy == true`) and complete delivery at the same settlement, boost their `Relations::affinity` by +0.04 (cap 1.0). Log "[HaulerA] and [HaulerB] share a drink after their convoy to [Settlement]" at 1-in-4 frequency. Uses existing `Hauler::inConvoy` flag and `Relations` component.
+
+## Backlog
 
 - [ ] **Novice hauler bankruptcy sympathy** — In `TransportSystem.cpp`'s bankruptcy block, when a novice hauler (`lifetimeTrips < 10`) goes bankrupt, nearby NPCs at the same home settlement with `Relations::affinity >= 0.4` toward the bankrupt hauler each donate 5g (deducted from `Money::balance`, credited to bankrupt hauler's balance — Gold Flow Rule: balance-to-balance). Log "[Friend] helps [Bankrupt] get back on their feet at [Settlement]" at 1-in-3 frequency. Cap at 3 donors max.
 
