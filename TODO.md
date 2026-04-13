@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill decay warning in tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
-  NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
-  ORANGE below the milestone line. Read from existing `AgentEntry::behavior` and skill fields.
-  No new piping needed — purely a display check on already-piped data.
+
 
 
 
 ## Recently Done
+
+- [x] **Skill decay warning in tooltip** — Non-working NPCs with any skill ≥ 0.5 show "Skills rusting" in faint ORANGE in HUD tooltip. Pure display check on existing piped data.
 
 - [x] **Settlement specialisation bonus** — In ProductionSystem, +15% output when ≥3 masters in a settlement match a facility's resource type. One-time log per settlement+type.
 
@@ -1655,11 +1654,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Skill decay warning in tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
-  NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
-  ORANGE below the milestone line. Read from existing `AgentEntry::behavior` and skill fields.
-  No new piping needed — purely a display check on already-piped data.
 
 - [ ] **Grief shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `griefTimer > 0`,
   show "Grieving (Xh left)" in faint PURPLE. Pipe `bool isGrieving` through
@@ -3305,3 +3299,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   NPC is considering migration targets, settlements with ≥3 masters in any skill get a +20% score
   bonus in the destination scoring. Access via a per-frame cache of master counts (same pattern as
   `ProductionSystem`'s `masterCount` map). Skilled communities attract talent.
+
+- [ ] **Idle skilled NPC seeks work at matching facility** — In `AgentDecisionSystem`'s idle block,
+  when an idle NPC has any skill ≥ 0.5 and is not currently on strike or grieving, 5% chance per
+  game-hour to set `AgentBehavior::Working` if a matching facility exists at their home settlement.
+  Check via `registry.view<ProductionFacility>` matching `HomeSettlement::settlement`. Uses existing
+  `ScheduleSystem` work hours — only fire during work hours (7–18). Skilled NPCs don't let their
+  talents go to waste.
+
+- [ ] **Skill rust shown in event log** — In `AgentDecisionSystem`'s idle block, when an NPC
+  has any skill ≥ 0.7 and has been idle for 24+ game-hours (track via a new
+  `float idleHoursAccum = 0.f` on `DeprivationTimer`, reset when behavior != Idle), log
+  "[NPC]'s [Skill] skills are getting rusty." once per 48 game-hours (use idleHoursAccum modulo).
+  Creates narrative awareness of wasted talent.
