@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Grief shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `griefTimer > 0`,
-  show "Grieving (Xh left)" in faint PURPLE. Pipe `bool isGrieving` through
-  `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot` (check `timer.griefTimer > 0`).
-  Add the bool, the width variable, and DrawText line following the existing tooltip pattern.
+
 
 
 
 ## Recently Done
+
+- [x] **Grief shown in NPC tooltip** — `isGrieving` + `griefHoursLeft` piped through AgentEntry. Shows "Grieving (X.Xh left)" in faint PURPLE.
 
 - [x] **Skill decay warning in tooltip** — Non-working NPCs with any skill ≥ 0.5 show "Skills rusting" in faint ORANGE in HUD tooltip. Pure display check on existing piped data.
 
@@ -1657,11 +1656,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Grief shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `griefTimer > 0`,
-  show "Grieving (Xh left)" in faint PURPLE. Pipe `bool isGrieving` through
-  `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot` (check `timer.griefTimer > 0`).
-  Add the bool, the width variable, and DrawText line following the existing tooltip pattern.
 
 - [ ] **Grief reduces work output** — In `ProductionSystem`'s worker contribution block, after the
   contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
@@ -3315,3 +3309,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `float idleHoursAccum = 0.f` on `DeprivationTimer`, reset when behavior != Idle), log
   "[NPC]'s [Skill] skills are getting rusty." once per 48 game-hours (use idleHoursAccum modulo).
   Creates narrative awareness of wasted talent.
+
+- [ ] **Grieving NPC walks slowly** — In `MovementSystem`, when an entity has
+  `DeprivationTimer::griefTimer > 0`, multiply effective speed by 0.5f. Check via
+  `registry.try_get<DeprivationTimer>` in the movement loop. Grief physically slows NPCs,
+  making their state visible without tooltip hover.
+
+- [ ] **NPC comforts grieving friend** — In `AgentDecisionSystem`'s idle block, after the grief
+  drain section, when a non-grieving idle NPC is within 25u of a grieving NPC (griefTimer > 0)
+  with `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours
+  (one-time, gate with `greetCooldown`). Log "[NPC] comforts [Grieving NPC]." Friends help
+  each other through loss — grief heals faster in good company.
