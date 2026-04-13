@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block, when a departing NPC has `masterSettled == true`, apply `-0.03` morale to the home `Settlement`. Log "[Settlement] mourns the loss of a master." at 1-in-2 frequency. Uses existing `Settlement::morale`. Mirrors the bankruptcy morale penalty in `EconomicMobilitySystem.cpp`.
-
 ## Recently Done
+
+- [x] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block,
+  applies -0.03 morale to home `Settlement` when `masterSettled` NPC departs. Logged at 1-in-2
+  frequency. Placed after existing master exodus warning.
 
 - [x] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, logs
   "[Name], a master [skill], settles at [Settlement]." at full frequency when `masterSettled`
@@ -1209,6 +1211,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
 
 - [ ] **Friend mourning on death** — In `DeathSystem.cpp`, when an NPC dies, scan their `Relations::affinity` map for friends (affinity ≥ 0.5) at the same settlement. The top friend by affinity gets -0.03 morale on their home settlement and logs "[Friend] mourns the loss of [Name] at [Settlement]." at 1-in-2 frequency. Death has social consequences.
+
+- [ ] **Master arrival morale boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, right after the master homecoming log, when a `masterSettled` NPC arrives at a new settlement, apply `+0.03` morale to the destination `Settlement`. Log "[Settlement] celebrates the arrival of a master." at 1-in-2 frequency. Mirrors the master loss morale penalty — settlements gain morale when they receive masters.
+
+- [ ] **Morale cascade from master loss** — In `AgentDecisionSystem.cpp`'s migration departure block, after the master loss morale penalty, if the departing master's home settlement now has `morale < 0.3` (tipped into unrest by the loss), boost `stockpileEmpty` by +1.0 for all NPCs homed there (via an inline scan of `HomeSettlement`). A master leaving can trigger a chain migration if morale was already fragile. Log "[Settlement] spirals into unrest after losing a master." at full frequency.
 
 - [ ] **Inherited wealth gratitude** — In `AgentDecisionSystem.cpp`'s gossip/social block, when an NPC's `Money::balance` increased by ≥ 5g from friend inheritance (track via a new `float inheritedGold = 0.f` on `DeprivationTimer`), the heir boosts affinity toward the deceased's family members (`FamilyTag::name` match) by +0.1 and logs "[Heir] honours the memory of [Deceased]'s family." once. Set `inheritedGold = 0` after processing. Adds emotional consequence to inheritance.
 
