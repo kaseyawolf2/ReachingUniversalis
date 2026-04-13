@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit proximity spatial cache** — In `FindMigrationTarget`, the inner bandit danger penalty loop scans all `BanditTag` entities per road per destination settlement. Build a spatial hash or per-road bandit count cache once per tick (similar to `s_entitySettlement` pattern) so each road lookup is O(1) instead of O(bandits). The bandit view is also iterated in `AgentDecisionSystem::Update` for the bandit encounter block — share the cache.
-
 ## Recently Done
+
+- [x] **Bandit proximity spatial cache** — Added file-scope `s_banditPositions` vector, populated
+  once per tick in `Update()`. Replaced `registry.view<BanditTag, Position>().each()` calls in
+  `FindMigrationTarget` (road danger penalty) and the per-NPC intimidation check with simple vector
+  iteration. Eliminates repeated EnTT view construction for bandit proximity queries.
+
+
 
 - [x] **FindMigrationTarget caching** — Added per-settlement-per-hour cache to `FindMigrationTarget`
   in `AgentDecisionSystem.cpp`. Uses `static std::unordered_map<entt::entity, MigCache>` keyed by
@@ -929,7 +934,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
 
+- [ ] **Bandit encounter deduplication** — In `AgentDecisionSystem::Update`'s bandit section (~line 2400+), the `banditsPerRoad` density-cap loop also iterates all roads per bandit to find the nearest. Reuse `s_banditPositions` and pre-compute road midpoints once per tick to avoid repeated `registry.get<Position>` on road endpoints.
+
 ### NPC Lifecycle & Identity
+
+- [ ] **NPC age-based skill growth** — In `AgentDecisionSystem.cpp` or a new system, adult NPCs (not children/elders) gain +0.001 per game-day in their active profession's matching skill (farming for Food workers, water for Water, woodcutting for Wood). Uses `Profession::current` and `Skills`. Capped at 1.0. Makes long-tenured workers increasingly productive. Gate computation to once per game-day.
+
+
 
 ### NPC Social Behaviour
 
