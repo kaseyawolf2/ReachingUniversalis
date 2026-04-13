@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Stagger social scans across frames** — In `AgentDecisionSystem.cpp`'s evening chat block (~line 1776) and celebration friend-recruit block (~line 644), both do `registry.view<...>().each()` scans for every idle NPC every tick. Gate these with `entity % 4 == frameCounter % 4` (add `static int s_frameCounter` incremented each Update call) so only 1/4 of NPCs scan per frame. Same behavior, 4× cheaper for O(n²) social proximity checks.
-
 ## Recently Done
+
+- [x] **Stagger social scans across frames** — Added `static int s_frameCounter` to
+  `AgentDecisionSystem::Update`. Celebration friend-recruit and evening chat scans gated with
+  `entity % 4 == frameCounter % 4`. Only 1/4 of NPCs do the O(n) proximity scan per frame.
+
+
 
 - [x] **Agent decision cooldown** — Added `float decisionCooldown` to `AgentState`. NPCs commit to
   decisions for 0.5 real-seconds (~30 frames). Gate placed before migration/needs/facility-finding
@@ -1052,6 +1056,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
+
+- [ ] **Stagger grief/comfort scans across frames** — In `AgentDecisionSystem.cpp`'s comfort-a-grieving-neighbour block and mood contagion block, both scan nearby NPCs every tick. Gate with the same `s_frameCounter % 4` pattern used for chat/celebration scans. Reduces two more O(n) proximity loops to 1/4 frequency.
+
+- [ ] **Cache FindNearestFacility results per settlement** — In `AgentDecisionSystem.cpp`, `FindNearestFacility` is called per NPC per decision cycle. Add a `static std::unordered_map<std::pair<entt::entity, ResourceType>, entt::entity>` cache keyed by (settlement, resource type), invalidated once per game-hour via `s_lastFacCacheHour`. NPCs at the same settlement seeking the same resource reuse the cached facility. Eliminates O(facilities) scan per NPC.
 
 - [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
