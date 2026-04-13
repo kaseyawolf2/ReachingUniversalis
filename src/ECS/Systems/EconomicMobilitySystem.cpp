@@ -103,6 +103,51 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
             }
             registry.remove<Inventory>(e);
         }
+
+        // ---- Novice hauler bankruptcy sympathy ----
+        // Friends at the same settlement donate gold to help a novice back on their feet.
+        {
+            const auto* haulerPtr = registry.try_get<Hauler>(e);
+            if (haulerPtr && haulerPtr->lifetimeTrips < 10) {
+                auto* bankruptMoney = registry.try_get<Money>(e);
+                if (bankruptMoney) {
+                    static constexpr float SYMPATHY_DONATION = 5.f;
+                    static constexpr int   MAX_DONORS = 3;
+                    static std::mt19937 s_sympathyRng{std::random_device{}()};
+                    int donors = 0;
+                    registry.view<Relations, Money, HomeSettlement>(
+                        entt::exclude<PlayerTag>).each(
+                        [&](auto other, Relations& rel, Money& otherMoney, const HomeSettlement& otherHome) {
+                            if (donors >= MAX_DONORS) return;
+                            if (other == e) return;
+                            if (otherHome.settlement != home.settlement) return;
+                            auto it = rel.affinity.find(e);
+                            if (it == rel.affinity.end() || it->second < 0.4f) return;
+                            if (otherMoney.balance < SYMPATHY_DONATION) return;
+                            // Gold Flow Rule: balance-to-balance transfer
+                            otherMoney.balance     -= SYMPATHY_DONATION;
+                            bankruptMoney->balance += SYMPATHY_DONATION;
+                            ++donors;
+                            // Log at 1-in-3 frequency
+                            if (s_sympathyRng() % 3 == 0 && log) {
+                                std::string friendName = "A friend";
+                                if (const auto* nm = registry.try_get<Name>(other)) friendName = nm->value;
+                                std::string bankruptName = "a hauler";
+                                if (const auto* nm = registry.try_get<Name>(e)) bankruptName = nm->value;
+                                std::string where = "settlement";
+                                if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                    where = s->name;
+                                char sbuf[180];
+                                std::snprintf(sbuf, sizeof(sbuf),
+                                    "%s helps %s get back on their feet at %s",
+                                    friendName.c_str(), bankruptName.c_str(), where.c_str());
+                                log->Push(tm.day, (int)tm.hourOfDay, sbuf);
+                            }
+                        });
+                }
+            }
+        }
+
         registry.remove<Hauler>(e);
 
         // Restore energy drain (haulers had it set to 0)
