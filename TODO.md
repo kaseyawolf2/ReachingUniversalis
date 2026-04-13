@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder mentor bonus** — In `ScheduleSystem.cpp`'s skill-at-worksite block (where
-  `SKILL_GAIN_PER_GAME_HOUR` is applied), if there is an elder NPC (age > 60) currently `Working`
-  at the same `ProductionFacility`, give all other younger workers at that facility a +20% skill
-  gain multiplier (`gainMult *= 1.2f`). Check for nearby elders via a small inner loop over the
-  same facility view, capped to avoid O(n²) blow-up by breaking after finding one elder. Log
-  `"[Name] mentored workers at [settlement]."` once per game-day per facility.
-
 ## Recently Done
+
+- [x] **Elder mentor bonus** — Pre-built `elderFacilities` map of facilities with Working elders (age > 60). Younger workers at those facilities get 1.2× skill gain. Logged once per game-day per facility. In `ScheduleSystem.cpp`.
+
+
 
 - [x] **Skill degradation with age** — Already implemented: `ScheduleSystem.cpp` line 376-382 applies 2× decay for age > 65 with 0.1 skill floor for elders.
 
@@ -3577,3 +3574,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   1304), when two chatting NPCs belong to different families that are both ≥2 members at the same
   settlement, 5% chance to log "[Name] and [Other] argue over family matters." Uses existing
   `FamilyTag` and `HomeSettlement` checks. Pure flavour, no gameplay effect.
+
+- [ ] **Mentor shown in NPC tooltip** — Add `bool hasMentor = false` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, set true for Working NPCs within 30u of a
+  facility that has an elder (age > 60) also Working nearby. Show "Mentored" in faint
+  `Fade(SKYBLUE, 0.5f)` in `HUD.cpp`'s `DrawHoverTooltip` after the teaching line.
+
+- [ ] **Elder retirement from work** — In `ScheduleSystem.cpp`, NPCs with `age.days > 75` and
+  at least one skill ≥ 0.5 have a 10% per-day chance to stop Working and switch to permanent
+  Idle (set a `retired` bool on `DeprivationTimer`). Retired NPCs still mentor (their presence
+  at facility counts for elder bonus) but don't produce in `ProductionSystem`. Log "[Name]
+  retired after a lifetime of work at [settlement]."
