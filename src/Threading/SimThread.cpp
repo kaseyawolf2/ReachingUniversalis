@@ -1562,6 +1562,23 @@ void SimThread::WriteSnapshot() {
             chatting         = (dt->chatTimer > 0.f);
         }
 
+        // Best friend: highest affinity from Relations map
+        std::string bestFriendName;
+        float bestFriendAffinity = 0.f;
+        if (const auto* rel = m_registry.try_get<Relations>(e)) {
+            entt::entity bestFriend = entt::null;
+            for (const auto& [other, aff] : rel->affinity) {
+                if (aff > bestFriendAffinity && m_registry.valid(other)) {
+                    bestFriendAffinity = aff;
+                    bestFriend = other;
+                }
+            }
+            if (bestFriend != entt::null) {
+                if (const auto* fn = m_registry.try_get<Name>(bestFriend))
+                    bestFriendName = fn->value;
+            }
+        }
+
         bool isBandit = m_registry.all_of<BanditTag>(e);
         std::string gangName;
         float fleeTimer = 0.f;
@@ -1665,7 +1682,8 @@ void SimThread::WriteSnapshot() {
                            std::move(migMemSummary),
                            (astate.behavior == AgentBehavior::Sleeping && hasHome &&
                             (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f),
-                           chatting });
+                           chatting,
+                           std::move(bestFriendName), bestFriendAffinity });
     });
 
     // ---- Settlements ----

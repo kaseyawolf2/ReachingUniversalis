@@ -911,6 +911,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showGoal = !best->goalDescription.empty();
     bool showMigMem = !best->migrationMemorySummary.empty();
 
+    // Best friend line
+    char friendLine[64] = {};
+    bool showFriend = (best->bestFriendAffinity >= 0.5f && !best->bestFriendName.empty());
+    if (showFriend) {
+        std::snprintf(friendLine, sizeof(friendLine), "Friend: %s (%d%%)",
+                      best->bestFriendName.c_str(), (int)(best->bestFriendAffinity * 100));
+    }
+
     // Mood comment based on contentment
     char moodLine[32] = {};
     Color moodColor = WHITE;
@@ -957,6 +965,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showHomeMorale)    lineCount++;
     if (showGoal)          lineCount++;
     if (showMigMem)        lineCount++;
+    if (showFriend)        lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -996,7 +1005,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wsd = showSkillDecay ? MeasureText("Skills rusting", 11) : 0;
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
     int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm}) + 10;
+    int wfr = showFriend ? MeasureText(friendLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml, wgo, wmm, wfr}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1060,6 +1070,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showSkillDecay) { DrawText("Skills rusting", tx, ly, 11, Fade(ORANGE, 0.6f)); ly += 16; }
     if (showGoal)     { DrawText(best->goalDescription.c_str(), tx, ly, 11, Fade(SKYBLUE, 0.6f)); ly += 16; }
     if (showMigMem)   { DrawText(best->migrationMemorySummary.c_str(), tx, ly, 11, Fade(GRAY, 0.6f)); ly += 16; }
+    if (showFriend)   { DrawText(friendLine, tx, ly, 11, Fade(LIME, 0.75f)); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);

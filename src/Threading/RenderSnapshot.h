@@ -132,6 +132,8 @@ struct RenderSnapshot {
         bool atHome = false;
         // True when NPC is in an evening chat (chatTimer > 0)
         bool chatting = false;
+        std::string bestFriendName;
+        float bestFriendAffinity = 0.f;
     };
 
     struct SettlementEntry {
