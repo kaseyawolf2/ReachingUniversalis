@@ -1006,6 +1006,43 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 });
             }
 
+            // ---- Comfort grieving neighbour: close friends reduce grief ----
+            if (timer.comfortCooldown > 0.f)
+                timer.comfortCooldown = std::max(0.f, timer.comfortCooldown - realDt);
+            if (timer.comfortCooldown <= 0.f && timer.griefTimer <= 0.f) {
+                const auto* myRel = registry.try_get<Relations>(entity);
+                if (myRel) {
+                    static constexpr float COMFORT_RADIUS = 25.f;
+                    bool comforted = false;
+                    registry.view<AgentState, Position, DeprivationTimer, Name>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                        [&](auto other, const AgentState& oState, const Position& oPos,
+                            DeprivationTimer& oTimer, const Name& oName) {
+                            if (comforted) return;
+                            if (other == entity) return;
+                            if (oState.behavior != AgentBehavior::Idle) return;
+                            if (oTimer.griefTimer <= 0.f) return;
+                            float cdx = oPos.x - pos.x, cdy = oPos.y - pos.y;
+                            if (cdx * cdx + cdy * cdy > COMFORT_RADIUS * COMFORT_RADIUS) return;
+                            auto it = myRel->affinity.find(other);
+                            if (it == myRel->affinity.end() || it->second < 0.3f) return;
+                            // Comfort: reduce grief by 0.5 game-hours
+                            oTimer.griefTimer = std::max(0.f, oTimer.griefTimer - 0.5f);
+                            timer.comfortCooldown = 180.f; // 180 real-seconds
+                            // Log
+                            auto lv = registry.view<EventLog>();
+                            if (lv.begin() != lv.end()) {
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = (myName ? myName->value : "An NPC") +
+                                    " comforts " + oName.value + ".";
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                            comforted = true;
+                        });
+                }
+            }
+
             // ---- Thank player: NPCs with good rep nod respectfully near the player ----
             if (timer.thankCooldown > 0.f)
                 timer.thankCooldown = std::max(0.f, timer.thankCooldown - realDt);
