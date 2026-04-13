@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Rivalry softening on shared crisis** — In `RandomEventSystem.cpp`, when a plague or drought hits a settlement, check if any rival settlements (relations < -0.5) are also experiencing the same event type. If so, improve relations by +0.15 for both and log "[Settlement A] and [Settlement B] set aside differences during [crisis]." Shared hardship as diplomacy.
+
 ## Recently Done
 
 - [x] **Hauler route loyalty log** — Added `lastRoute` and `consecutiveRouteCount` to `Hauler`
