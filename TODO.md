@@ -11,6 +11,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Rivalry tariff shown in hauler tooltip** — `rivalryTariff` bool on `AgentEntry`, set when destination has `relations < -0.5` with cargo source. Shows "Rivalry tariff (+30%)" in red in tooltip.
+
+
+
 - [x] **Morale-driven migration push** — In `FindMigrationTarget`: morale < 0.25 → +0.3 push, morale > 0.7 → -0.2 anchor. Creates emigration pressure from unhappy settlements.
 
 
@@ -1988,12 +1992,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
 
-- [ ] **Rivalry tariff shown in hauler tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when the
-  hovered entity is a hauler with a `cargoSource` set, check if the destination settlement has
-  `relations[cargoSource] < -0.5`. If so, show a red "Rivalry tariff (+30%)" line below the cargo
-  info. Read relations from `SettlementStatus` or add a `bool rivalryTariff` to `AgentEntry` and
-  set it in SimThread's hauler snapshot block. This surfaces the rivalry mechanic to the player.
-
 - [ ] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, when both source and
   destination settlements have `relations[other] > 0.5` (allied), log "Allied trade: [Hauler]
   delivers [N] [resource] from [Source] to [Dest] (boosted)." at 1-in-3 frequency to avoid spam.
@@ -3641,3 +3639,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (RenderSystem.cpp), after the morale bar, when morale < 0.3 add a red text line
   "Unrest — NPCs may leave" in `Fade(RED, 0.7f)`. When morale > 0.8, show "Thriving" in
   `Fade(GREEN, 0.6f)`. No new snapshot fields — uses existing `panel.morale`.
+
+- [ ] **Hauler avoids rival routes** — In `TransportSystem.cpp`'s route selection (where haulers
+  pick their target settlement), add a -30% attractiveness penalty when the destination has
+  `relations[homeSettlement] < -0.5` with the hauler's home. Read via `Settlement::relations`.
+  This makes haulers naturally avoid hostile trade routes. No new components.
+
+- [ ] **Rivalry escalation log** — In `TransportSystem.cpp`, when a hauler delivers to a rival
+  settlement (relations < -0.5) and pays the tariff, 20% chance to log "[Settlement A] tensions
+  rise with [Settlement B] after taxed delivery." and worsen relations by -0.02. Creates a
+  visible rivalry spiral. Uses existing `Settlement::relations` map.
