@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Stagger grief/comfort scans across frames** — In `AgentDecisionSystem.cpp`'s comfort-a-grieving-neighbour block and mood contagion block, both scan nearby NPCs every tick. Gate with the same `s_frameCounter % 4` pattern used for chat/celebration scans. Reduces two more O(n) proximity loops to 1/4 frequency.
+
 ## Recently Done
 
 - [x] **Stagger social scans across frames** — Added `static int s_frameCounter` to
@@ -1056,8 +1058,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **Stagger grief/comfort scans across frames** — In `AgentDecisionSystem.cpp`'s comfort-a-grieving-neighbour block and mood contagion block, both scan nearby NPCs every tick. Gate with the same `s_frameCounter % 4` pattern used for chat/celebration scans. Reduces two more O(n) proximity loops to 1/4 frequency.
 
 - [ ] **Cache FindNearestFacility results per settlement** — In `AgentDecisionSystem.cpp`, `FindNearestFacility` is called per NPC per decision cycle. Add a `static std::unordered_map<std::pair<entt::entity, ResourceType>, entt::entity>` cache keyed by (settlement, resource type), invalidated once per game-hour via `s_lastFacCacheHour`. NPCs at the same settlement seeking the same resource reuse the cached facility. Eliminates O(facilities) scan per NPC.
 
