@@ -1441,11 +1441,27 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     static constexpr float FRIEND_CHARITY_MIN = 1.f;  // friends help even with little gold
 
     for (auto& helper : charityAgents) {
+      // Two passes: family first, then non-family
+      bool helped = false;
+      for (int pass = 0; pass < 2 && !helped; ++pass) {
         for (auto& starving : charityAgents) {
             if (starving.entity == helper.entity) continue;
             if (!starving.isStarving) continue;
 
-            // Check if helper qualifies: normal canHelp OR friend with ≥1g and well-fed
+            // Family check — family members help unconditionally (just need ≥1g)
+            bool isFamily = false;
+            if (const auto* hFam = registry.try_get<FamilyTag>(helper.entity)) {
+                if (const auto* sFam = registry.try_get<FamilyTag>(starving.entity)) {
+                    if (!hFam->name.empty() && hFam->name == sFam->name)
+                        isFamily = true;
+                }
+            }
+            // Pass 0: only family. Pass 1: only non-family.
+            if (pass == 0 && !isFamily) continue;
+            if (pass == 1 && isFamily)  continue;
+            bool familyCanHelp = isFamily && helper.balance >= FRIEND_CHARITY_MIN;
+
+            // Check if helper qualifies: normal canHelp OR friend with ≥1g and well-fed OR family
             bool isFriend = false;
             if (const auto* rel = registry.try_get<Relations>(helper.entity)) {
                 auto it = rel->affinity.find(starving.entity);
@@ -1454,7 +1470,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
             bool friendCanHelp = isFriend && helper.hunger >= HUNGER_HELPER
                                  && helper.balance >= FRIEND_CHARITY_MIN;
-            if (!helper.canHelp && !friendCanHelp) continue;
+            if (!helper.canHelp && !friendCanHelp && !familyCanHelp) continue;
 
             // Check helper cooldown (both normal and friend paths respect it)
             if (auto* helperTmrCheck = registry.try_get<DeprivationTimer>(helper.entity))
@@ -1464,18 +1480,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (dx*dx + dy*dy > CHARITY_RADIUS * CHARITY_RADIUS) continue;
 
             // Skip NPCs with bad reputation — community cold-shoulders antisocial individuals
+            // (family members bypass this check)
             static constexpr float CHARITY_REP_THRESHOLD = -0.5f;
-            if (const auto* starvingRep = registry.try_get<Reputation>(starving.entity)) {
-                if (starvingRep->score < CHARITY_REP_THRESHOLD) {
-                    if (charityLog) {
-                        std::string helperName = "Someone";
-                        std::string starvName  = "a neighbour";
-                        if (const auto* hn = registry.try_get<Name>(helper.entity))   helperName = hn->value;
-                        if (const auto* sn = registry.try_get<Name>(starving.entity)) starvName  = sn->value;
-                        charityLog->Push(charityDay, charityHour,
-                            helperName + " refused to help " + starvName + " (bad reputation).");
+            if (!isFamily) {
+                if (const auto* starvingRep = registry.try_get<Reputation>(starving.entity)) {
+                    if (starvingRep->score < CHARITY_REP_THRESHOLD) {
+                        if (charityLog) {
+                            std::string helperName = "Someone";
+                            std::string starvName  = "a neighbour";
+                            if (const auto* hn = registry.try_get<Name>(helper.entity))   helperName = hn->value;
+                            if (const auto* sn = registry.try_get<Name>(starving.entity)) starvName  = sn->value;
+                            charityLog->Push(charityDay, charityHour,
+                                helperName + " refused to help " + starvName + " (bad reputation).");
+                        }
+                        continue;
                     }
-                    continue;
                 }
             }
 
@@ -1543,11 +1562,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 if (sett) at = " at " + sett->name;
                 std::string suffix = (charityN > 1)
                     ? " (x" + std::to_string(charityN) + ")" : "";
-                charityLog->Push(charityDay, charityHour,
-                    who + " helped " + whom + at + "." + suffix);
+                if (isFamily) {
+                    charityLog->Push(charityDay, charityHour,
+                        who + " feeds family member " + whom + at + "." + suffix);
+                } else {
+                    charityLog->Push(charityDay, charityHour,
+                        who + " helped " + whom + at + "." + suffix);
+                }
             }
+            helped = true;
             break;   // helper gives to at most one starving NPC per cooldown window
         }
+      } // end two-pass loop
     }
 
     // ============================================================
