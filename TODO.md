@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
-
 ## Recently Done
+
+- [x] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after
+  master/generalist checks, NPCs with `careerChanges >= 2` and any skill ≥ 0.6 get "Veteran
+  [profession]" title. Uses existing `npcCareerChanges` and `profession` string.
 
 - [x] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block,
   NPCs with `careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f`. Logged at 1-in-10
@@ -1246,6 +1248,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Restless NPC settlement satisfaction decay** — In `AgentDecisionSystem.cpp`'s satisfaction update block, when `Profession::careerChanges >= 3`, apply `lastSatisfaction *= 0.9f` — restless NPCs are harder to keep satisfied even with good conditions. Makes career changers a distinct personality archetype that's harder to retain. Uses existing `DeprivationTimer::lastSatisfaction`.
 
 - [ ] **Wanderlust trait from career changes** — In `SimThread::WriteSnapshot`'s agent data block, add a `bool restless` flag to `AgentEntry` in `RenderSnapshot.h`. Set true when `Profession::careerChanges >= 3`. Display "(restless)" in `HUD.cpp`'s NPC tooltip after the career changes line, in `Fade(ORANGE, 0.7f)`. Makes the career changer personality visible to the player.
+
+- [ ] **Veteran production bonus** — In `ProductionSystem.cpp`'s worker contribution block, after the jack-of-all-trades check, when `Profession::careerChanges >= 2` and the worker's active profession skill ≥ 0.6, apply `workerContrib *= 1.08f`. Veterans bring cross-discipline experience. No new components — uses `registry.try_get<Profession>` and `registry.try_get<Skills>`.
+
+- [ ] **Veteran mentoring speed bonus** — In `AgentDecisionSystem.cpp`'s mentor-apprentice block, when the elder mentor has `Profession::careerChanges >= 2` (veteran), increase apprentice skill growth from +0.003 to +0.004. Veterans are better teachers due to broader experience. Log "[Veteran Elder] shares varied experience with [Child]." at 1-in-10 frequency.
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
