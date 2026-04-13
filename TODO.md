@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Evening gathering scatter** — In `ScheduleSystem.cpp`'s leisure-wander block, when
+  `hour >= 18 && hour < 22`, bias wander target toward settlement centre by using
+  `s_radius(s_rng) * 0.4f` during evening hours so NPCs cluster near home.
 
 ## Recently Done
 
