@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block. In `SimThread::WriteSnapshot`, write to `AgentEntry`. Display in `HUD.cpp`'s NPC tooltip.
-
 ## Recently Done
+
+- [x] **Career history count on AgentEntry** — Added `int careerChanges = 0` to `Profession` struct
+  in `Components.h`. Incremented in `ScheduleSystem.cpp`'s profession change block. Written to
+  `AgentEntry` in `SimThread::WriteSnapshot`. Displayed as "Career changes: N" in `HUD.cpp`'s
+  NPC tooltip (light gray, only shown when > 0).
 
 - [x] **Gift thank-you log** — After the reciprocity boost in the trade gift block, recipients
   log "[Friend] thanks [Giver] for the gift at [Settlement]." at 1-in-3 frequency. Uses
@@ -1136,6 +1139,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
 - [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
+
+- [ ] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with `Profession::careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f` — frequent career changers are 20% more likely to migrate. Log "[Name] feels restless at [Settlement]." at 1-in-10 frequency when the lowered threshold triggers migration. Uses existing `careerChanges` field.
+
+- [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
+
+- [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
 
 - [ ] **Crisis aid between allied settlements** — In `RandomEventSystem.cpp`, after a drought or plague hits a settlement, check allied settlements (relations > 0.5). The closest ally with treasury > 100g donates 30g to the afflicted settlement's treasury. Log "[Ally] sends aid to [Settlement] during [crisis]." Gold flows treasury-to-treasury. Boosts relations by +0.05 for both sides.
 
