@@ -335,6 +335,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     float dt = tm.GameDt(realDt);
     if (dt <= 0.f) return;
     int currentHour = (int)tm.hourOfDay;
+    static int s_frameCounter = 0;
+    ++s_frameCounter;
 
     // ---- Per-entity settlement cache: avoids repeated try_get<HomeSettlement> in friend scans ----
     static std::unordered_map<entt::entity, entt::entity> s_entitySettlement;
@@ -637,8 +639,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // Nearby friends join skill celebration
-            if (skillCelebration) {
+            // Nearby friends join skill celebration (staggered: 1/4 of NPCs per frame)
+            if (skillCelebration && (static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4)) {
                 const auto* myRel = registry.try_get<Relations>(entity);
                 if (myRel) {
                     registry.view<AgentState, Position, DeprivationTimer>(
@@ -1779,13 +1781,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 } else {
                     vel.vx = vel.vy = 0.f;
 
-                    // ---- Idle chat: pair up with a nearby Idle neighbour ----
+                    // ---- Idle chat: pair up with a nearby Idle neighbour (staggered: 1/4 per frame) ----
                     // When gathered at home and not chatting, scan for another Idle NPC
                     // from the same settlement within 25 units. Stop both for 30–60 game-seconds.
                     static constexpr float CHAT_RADIUS   = 25.f;
                     static std::uniform_real_distribution<float> s_chatDist(30.f, 60.f);
                     static std::mt19937 s_chatRng{ std::random_device{}() };
 
+                    if (static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4)
                     registry.view<AgentState, Position, HomeSettlement, DeprivationTimer>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>)
                         .each([&](auto other, AgentState& oState, const Position& oPos,
