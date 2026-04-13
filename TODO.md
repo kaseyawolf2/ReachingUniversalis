@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
+
+## Backlog
 
 - [ ] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, when two haulers travel in convoy (`inConvoy == true`) and complete delivery at the same settlement, boost their `Relations::affinity` by +0.04 (cap 1.0). Log "[HaulerA] and [HaulerB] share a drink after their convoy to [Settlement]" at 1-in-4 frequency. Uses existing `Hauler::inConvoy` flag and `Relations` component.
 
