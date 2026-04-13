@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block (just added), after donating, boost the donor's affinity from other NPCs at the settlement by +0.01 (via `Relations`). Iterate all NPCs at the home settlement and bump their affinity toward the donor. Log "[Donor] earns respect for helping [Bankrupt]" at 1-in-5 frequency. Creates a reputation payoff for generosity.
+
+## Backlog
 
 - [ ] **Elder wisdom fading on death** — In `DeathSystem.cpp`'s death handler, when an elder (age > 60) with skill >= 0.8 dies, scan NPCs at the same settlement with `Relations::affinity >= 0.6` toward the deceased. For each, log "[NPC] mourns the loss of [Elder]'s guidance at [Settlement]" at 1-in-3 frequency and apply a one-time `growth -= 0.0002f` penalty for 3 days via a new `float wisdomGriefDays = 0.f` field on `Skills` in `Components.h`. In `AgentDecisionSystem.cpp`'s skill growth block, tick down and apply the penalty. Represents the knowledge gap left by a skilled elder's passing.
 
