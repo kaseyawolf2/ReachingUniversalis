@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Hauler bankruptcy shown in settlement stockpile** — In `RenderSystem::DrawStockpilePanel`, below the resident list, show "Struggling haulers: N" in faint RED when any haulers homed at the settlement have `bankruptWarned == true`. Add `int strugglingHaulers = 0` to `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting Haulers with `bankruptWarned && HomeSettlement == selectedSettlement`.
 
 ## Recently Done
 
