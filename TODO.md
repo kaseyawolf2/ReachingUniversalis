@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
-
 ## Recently Done
+
+- [x] **Starvation desperation log escalation** — When hunger < 0.1, balance < 1g, and no food in
+  stockpile, logs "[Name] is starving and desperate at [Settlement]." at 1-in-10 frequency.
+  Fires when purchase is impossible. In `ConsumptionSystem.cpp` after the mood log block.
+
+
 
 - [x] **Friendship shown in settlement tooltip** — Counts mutual friendship pairs (`Relations::affinity
   ≥ 0.5` both ways) per settlement in `WriteSnapshot`. Added `int friendshipPairs` to both
@@ -807,6 +811,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
 
 - [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
+
+- [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
+
+- [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
 
 ### NPC Crime & Consequence
 
