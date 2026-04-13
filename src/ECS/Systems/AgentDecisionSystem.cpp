@@ -968,6 +968,20 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 tm.day, (int)tm.hourOfDay, msg);
                         }
                     }
+                    // Gossip about player bravery: spread lastHelper to the other NPC
+                    if (playerEntity != entt::null &&
+                        timer.lastHelper == playerEntity &&
+                        oTimer.lastHelper != playerEntity) {
+                        oTimer.lastHelper = playerEntity;
+                        auto lv2 = registry.view<EventLog>();
+                        if (lv2.begin() != lv2.end()) {
+                            const auto* myName2 = registry.try_get<Name>(entity);
+                            std::string gossipMsg = (myName2 ? myName2->value : "An NPC") +
+                                " tells " + oName.value + " about the player's bravery.";
+                            lv2.get<EventLog>(*lv2.begin()).Push(
+                                tm.day, (int)tm.hourOfDay, gossipMsg);
+                        }
+                    }
                     // Build affinity: casual greetings slowly build familiarity
                     // Gratitude = +0.05, family reunion = +0.08, normal = +0.01
                     float affinityGain = isFamilyReunion ? 0.08f : (isGratitude ? 0.05f : 0.01f);
