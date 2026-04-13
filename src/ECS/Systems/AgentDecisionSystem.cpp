@@ -449,12 +449,31 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         default: break;
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
+                    float preFarm = sk.farming, preWater = sk.water_drawing, preWood = sk.woodcutting;
                     if (prof.type != ProfessionType::Farmer)
                         sk.farming = std::max(SKILL_RUST_FLOOR, sk.farming - SKILL_RUST);
                     if (prof.type != ProfessionType::WaterCarrier)
                         sk.water_drawing = std::max(SKILL_RUST_FLOOR, sk.water_drawing - SKILL_RUST);
                     if (prof.type != ProfessionType::Lumberjack)
                         sk.woodcutting = std::max(SKILL_RUST_FLOOR, sk.woodcutting - SKILL_RUST);
+
+                    // Skill rust notification: log when a skill drops below 0.5
+                    if (!logV2.empty() && s_teachRng() % 5 == 0) {
+                        const char* rustSkill = nullptr;
+                        if (preFarm >= 0.5f && sk.farming < 0.5f) rustSkill = "farming";
+                        else if (preWater >= 0.5f && sk.water_drawing < 0.5f) rustSkill = "water-drawing";
+                        else if (preWood >= 0.5f && sk.woodcutting < 0.5f) rustSkill = "woodcutting";
+                        if (rustSkill) {
+                            std::string who = "NPC";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            std::string where = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    where = s->name;
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                who + "'s " + rustSkill + " is getting rusty at " + where + ".");
+                        }
+                    }
 
                     // Log at 1-in-10 frequency
                     if (hasMaster && growth > SKILL_GROWTH && !logV2.empty()) {
