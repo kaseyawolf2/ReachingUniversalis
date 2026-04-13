@@ -527,6 +527,67 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // ---- Rival profession taunt ----
+                    // NPCs at the same facility with *different* professions and both
+                    // skill ≥ 0.5 may taunt each other, decreasing mutual affinity.
+                    if (hourChanged) {
+                        const auto* mySkillsT = registry.try_get<Skills>(entity);
+                        const auto* myProfT   = registry.try_get<Profession>(entity);
+                        auto* myRelT = registry.try_get<Relations>(entity);
+                        if (mySkillsT && myProfT && myRelT
+                            && myProfT->type != ProfessionType::Idle
+                            && myProfT->type != ProfessionType::Hauler) {
+                            float mySkillT = 0.f;
+                            switch (myProfT->type) {
+                                case ProfessionType::Farmer:      mySkillT = mySkillsT->farming; break;
+                                case ProfessionType::WaterCarrier: mySkillT = mySkillsT->water_drawing; break;
+                                case ProfessionType::Lumberjack:   mySkillT = mySkillsT->woodcutting; break;
+                                default: break;
+                            }
+                            if (mySkillT >= 0.5f) {
+                                registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
+                                    entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                    [&](auto other, const AgentState& oState, const Position& oPos,
+                                        const HomeSettlement& oHome, const Skills& oSk, const Profession& oPr) {
+                                    if (other <= entity) return;
+                                    if (oState.behavior != AgentBehavior::Working) return;
+                                    if (oHome.settlement != home.settlement) return;
+                                    if (oPr.type == myProfT->type) return;  // same profession — handled by rivalry
+                                    if (oPr.type == ProfessionType::Idle || oPr.type == ProfessionType::Hauler) return;
+                                    float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
+                                    if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
+                                    float otherSkillT = 0.f;
+                                    switch (oPr.type) {
+                                        case ProfessionType::Farmer:      otherSkillT = oSk.farming; break;
+                                        case ProfessionType::WaterCarrier: otherSkillT = oSk.water_drawing; break;
+                                        case ProfessionType::Lumberjack:   otherSkillT = oSk.woodcutting; break;
+                                        default: break;
+                                    }
+                                    if (otherSkillT < 0.5f) return;
+                                    // 1-in-25 chance per hour
+                                    if (s_rng() % 25 != 0) return;
+                                    // Decrease mutual affinity by 0.01 (floor 0.0)
+                                    myRelT->affinity[other] = std::max(0.f, myRelT->affinity[other] - 0.01f);
+                                    if (auto* oRel = registry.try_get<Relations>(other))
+                                        oRel->affinity[entity] = std::max(0.f, oRel->affinity[entity] - 0.01f);
+                                    // Log the taunt
+                                    auto logVT = registry.view<EventLog>();
+                                    if (!logVT.empty()) {
+                                        std::string n1 = "NPC", n2 = "NPC";
+                                        if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                        if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
+                                        const char* profStr =
+                                            (oPr.type == ProfessionType::Farmer)      ? "farming" :
+                                            (oPr.type == ProfessionType::WaterCarrier) ? "water-carrying" :
+                                            "woodcutting";
+                                        logVT.get<EventLog>(*logVT.begin()).Push(tm.day, hour,
+                                            n1 + " teases " + n2 + " about their " + profStr + ".");
+                                    }
+                                });
+                            }
+                        }
+                    }
+
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
