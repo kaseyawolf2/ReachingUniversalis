@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
-
 ## Recently Done
+
+- [x] **Master exodus warning** — When a migrating NPC has any skill ≥ 0.9, logs
+  "[Name], a master [skill], leaves [Settlement]." at full frequency. Placed between
+  farewell log and co-migration block in `AgentDecisionSystem.cpp`.
+
+
 
 - [x] **Skill rust from inactivity** — Added -0.0005/day decay for skills not matching the NPC's
   current profession, floored at 0.3. Applied in the once-per-day skill growth block after
@@ -1011,6 +1015,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
 
 - [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
+
+- [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
+
+- [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
 
 - [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
