@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC with `masterSettled == true` arrives at a new settlement, log "[Name], a master [skill], settles at [Settlement]." at full frequency. Uses existing `Skills` to determine which skill is ≥ 0.9. Complements the exodus warning — shows where masters end up after leaving.
-
 ## Recently Done
+
+- [x] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, logs
+  "[Name], a master [skill], settles at [Settlement]." at full frequency when `masterSettled`
+  NPC arrives. Checks `Skills` for which skill ≥ 0.9 to determine master type.
 
 - [x] **Overworked penalty** — Added `int consecutiveWorkHours` to `Schedule` in `Components.h`.
   Incremented per hour in `ScheduleSystem.cpp` while Working, reset on sleep/idle. In
@@ -1199,6 +1201,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Master count change event log** — In `SimThread::WriteSnapshot` or a new lightweight system, track previous master count per settlement in a `static std::unordered_map<entt::entity, int>`. When master count increases, log "[Settlement] now has N masters." When it decreases, log "[Settlement] lost a master (N remain)." Fires once per change. Makes the teaching ecosystem dynamics visible without hovering.
 
 - [ ] **Settlement workforce breakdown in tooltip** — In `SimThread::WriteSnapshot`'s `settlAgg`, count workers by profession type (Farmer/WaterCarrier/Lumberjack). Store as `int farmers, waterCarriers, lumberjacks` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Workers: N farmers, N water, N wood" after the masters line. Gives quick profession diversity visibility.
+
+- [ ] **Master attraction migration factor** — In `AgentDecisionSystem.cpp`'s migration destination scoring, when evaluating a target settlement, check if it has any masters (via `settlAgg.masterCount > 0` or a per-settlement scan). If so, apply a +20% migration attractiveness bonus. NPCs prefer to move to settlements with masters, creating a self-reinforcing growth cycle. Log "[Name] is drawn to [Settlement]'s master [skill]." at 1-in-5 frequency.
+
+- [ ] **Master departure warning** — In `AgentDecisionSystem.cpp`'s migration departure block (where the NPC leaves a settlement), when a departing NPC has `masterSettled == true`, log "[Settlement] loses master [skill] [Name] to migration." at full frequency. Paired with the homecoming log to create a complete master movement narrative.
 
 - [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
 
