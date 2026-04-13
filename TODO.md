@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Orphan adoption** — When a child has `ChildTag` but no valid `HomeSettlement` (orphaned
+  by family dissolution or settlement collapse), any adult NPC at a settlement with `pop < popCap - 1`
+  who has `charityTimer == 0` can adopt them. In `AgentDecisionSystem`, after the charity block,
+  add: if the adult spots a nearby orphan (ChildTag, no home, within 60 units), set the orphan's
+  `HomeSettlement` to the adult's home, assign the adult's `FamilyTag::name` to the orphan (or
+  emplace a new FamilyTag), and log "X took in orphan Y at Z."
+
 ## Recently Done
 
 - [x] **Family size shown in stockpile residents panel** — Already implemented: `familyName` on `AgentInfo`, populated in `WriteSnapshot`, " ×N" suffix drawn in `RenderSystem.cpp` lines 294-344 when 2+ family members present.
@@ -1939,13 +1946,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Orphan adoption** — When a child has `ChildTag` but no valid `HomeSettlement` (orphaned
-  by family dissolution or settlement collapse), any adult NPC at a settlement with `pop < popCap - 1`
-  who has `charityTimer == 0` can adopt them. In `AgentDecisionSystem`, after the charity block,
-  add: if the adult spots a nearby orphan (ChildTag, no home, within 60 units), set the orphan's
-  `HomeSettlement` to the adult's home, assign the adult's `FamilyTag::name` to the orphan (or
-  emplace a new FamilyTag), and log "X took in orphan Y at Z."
 
 - [ ] **Largest family in settlement header** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), in the header section after the treasury/workers line, add a one-liner
