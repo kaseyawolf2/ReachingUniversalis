@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler profit shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
-  each hauler route line, append profit info: " (+Xg)" in GREEN or " (-Xg)" in RED using
-  `Hauler::lifetimeProfit`. Add `float lifetimeProfit` to `StockpilePanel::HaulerInfo`. Pipe
-  from `SimThread::WriteSnapshot` by reading `h.lifetimeProfit`. Helps players see which haulers
-  are profitable at a glance.
+
 
 
 
 ## Recently Done
+
+- [x] **Hauler profit shown in stockpile panel** — lifetimeProfit on HaulerInfo, rendered as "(+Xg)" GREEN or "(-Xg)" RED inline after route text.
 
 - [x] **NPC comforts grieving neighbour** — Non-grieving idle NPCs within 25u with affinity >= 0.3 reduce griefTimer by 0.5h. 180s comfortCooldown on DeprivationTimer.
 
@@ -1666,12 +1664,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Hauler profit shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
-  each hauler route line, append profit info: " (+Xg)" in GREEN or " (-Xg)" in RED using
-  `Hauler::lifetimeProfit`. Add `float lifetimeProfit` to `StockpilePanel::HaulerInfo`. Pipe
-  from `SimThread::WriteSnapshot` by reading `h.lifetimeProfit`. Helps players see which haulers
-  are profitable at a glance.
 
 - [ ] **Idle NPCs discuss hauler routes** — In `AgentDecisionSystem`'s greeting block, when
   both NPCs have `HomeSettlement` at a settlement with active haulers (check
@@ -3348,3 +3340,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Pipe `bool recentlyComforted` through `RenderSnapshot::AgentEntry` from
   `SimThread::WriteSnapshot` (check `timer.comfortCooldown > 0`). Visual feedback for the
   comfort interaction.
+
+- [ ] **Hauler trip count shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  after the profit display on each hauler route line, show trip count: " (N trips)" in faint WHITE.
+  Add `int lifetimeTrips` to `StockpilePanel::HaulerInfo`. Pipe from `SimThread::WriteSnapshot`
+  via `Hauler::lifetimeTrips`. Gives context to the profit number — is this from 1 trip or 50?
+
+- [ ] **Hauler efficiency ranking in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  below the hauler routes section, when there are ≥2 haulers, show "Best: [Name] ([profit/trip]g/trip)"
+  in faint GOLD. Compute from `lifetimeProfit / max(1, lifetimeTrips)` across haulerRoutes entries.
+  No new piping — pure render-side calculation on existing HaulerInfo data.
