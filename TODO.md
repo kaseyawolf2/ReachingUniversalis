@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Sleep arrival indicator** — When an NPC is walking toward their settlement to sleep
-  (`state.behavior == AgentBehavior::Sleeping` and not yet at `SLEEP_ARRIVE` distance),
-  draw a faint dim ring around their world dot. Add `bool atHome = false`
-  to `AgentEntry` (RenderSnapshot.h); set it in `SimThread::WriteSnapshot` when sleeping and
-  within arrival distance of home.
+
 
 ## Recently Done
+
+- [x] **Sleep arrival indicator** — `atHome` bool on AgentEntry, computed in WriteSnapshot from distance to home. Faint blue ring drawn in GameState::Draw for sleeping NPCs still commuting.
 
 - [x] **NPC personal events** — Already fully implemented: skill discovery, windfall, minor illness (2× drain), good harvest (1.5× prod). Timer, jitter, all four event types, and logging all present in RandomEventSystem.cpp.
 
@@ -1886,7 +1884,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   harvest (working NPC produces 1.5× for 4 hours via a `harvestBonus` float). Log the notable
   ones. Use `entt::to_integral(e) % period` for deterministic per-entity jitter.
 
-- [ ] **Sleep arrival indicator** — When an NPC is walking toward their settlement to sleep
+- [x] **Sleep arrival indicator** — When an NPC is walking toward their settlement to sleep
   (`state.behavior == AgentBehavior::Sleeping` and not yet at `SLEEP_ARRIVE` distance),
   draw a faint dim ring around their world dot in `GameState::Draw`. After the main
   `DrawCircleV`, add: if `a.behavior == AgentBehavior::Sleeping && !a.atHome`, call
@@ -3462,3 +3460,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   velocity away from the ill NPC at 0.5× speed for 1s via `panicTimer`. Log "[Name] avoids
   [Ill NPC] who looks unwell." 30s cooldown via `greetCooldown` to avoid spam. Uses existing
   `DeprivationTimer` fields — no new structs.
+
+- [ ] **Late sleeper log** — In `ScheduleSystem.cpp`, when an NPC transitions to Sleeping
+  behaviour but their position is more than 150u from their home settlement (long commute),
+  log "[Name] has a long walk home from [Settlement]." 50% chance to avoid spam. Pure flavour
+  log using existing data — no new components or snapshot fields.
+
+- [ ] **NPC yawns when tired** — In `AgentDecisionSystem`'s idle block, when
+  `needs.list[2].value < 0.3` (low energy) and the NPC is not sleeping, 2% per game-hour
+  chance to log "[Name] yawns wearily." Gated by `greetCooldown > 0` check (reuse cooldown).
+  Pure flavour — no gameplay effect, no new components.
