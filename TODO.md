@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block. In `SimThread::WriteSnapshot`, write to `AgentEntry`. Display in `HUD.cpp`'s NPC tooltip.
+
 ## Recently Done
 
 - [x] **Gift thank-you log** — After the reciprocity boost in the trade gift block, recipients
@@ -1114,8 +1116,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block (line where `prof->prevType = prof->type`). In `SimThread::WriteSnapshot`, write `careerChanges` to a new `int careerChanges` field on `AgentEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s NPC tooltip as "Career changes: N" after the profession line. Makes career mobility visible.
 
 - [ ] **Skill recovery celebration** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill rises back above 0.5 after having been below (track via a `bool skillRecovered` flag or compare pre-growth to post-growth crossing 0.5 upward), log "[Name] regains their [skill] proficiency at [Settlement]." at 1-in-5 frequency. Mirrors the rust notification — shows NPCs bouncing back after career changes.
 
