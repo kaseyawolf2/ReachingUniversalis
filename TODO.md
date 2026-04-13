@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection block (GoingToDeposit), when a hauler detects a potential convoy partner, if `Relations::affinity >= 0.5` toward that partner, increase convoy detection range from 60 to 90 units. Log "[HaulerA] joins up with friend [HaulerB]" at 1-in-6 frequency. Makes social bonds influence trade logistics.
+
+## Backlog
 
 - [ ] **Bankruptcy survivor determination** — In `EconomicMobilitySystem.cpp`, after a hauler goes bankrupt and returns to labor, add a `bool bankruptSurvivor = false` flag to `DeprivationTimer` in `Components.h`. Set it true. In `AgentDecisionSystem.cpp`'s skill growth block, if `bankruptSurvivor == true`, grant `growth += 0.0002f` extra daily skill growth. Log "[Name] works with renewed determination at [Settlement]" at 1-in-8 frequency on first day. Rewards resilience.
 
