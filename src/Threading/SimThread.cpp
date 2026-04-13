@@ -10,7 +10,9 @@
 // regardless of render frame rate or tick speed multiplier.
 static constexpr float SIM_STEP_DT   = 1.f / 60.f;
 // Max virtual frames processed per real frame (prevents spiral-of-death).
-static constexpr int   MAX_CATCHUP   = 8;
+// Kept low so that at higher tick speeds (2×/4×) the total sub-steps stay
+// manageable and each step can publish a snapshot for smooth rendering.
+static constexpr int   MAX_CATCHUP   = 4;
 
 SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot)
     : m_input(input), m_snapshot(snapshot)
@@ -86,8 +88,16 @@ void SimThread::Run() {
 
         if (!paused) {
             int totalSteps = virtualFrames * tickSpeed;
-            for (int i = 0; i < totalSteps; ++i)
+            // Write a snapshot every N steps so the render thread sees smooth
+            // intermediate positions.  At low speeds (1×–4×) every step gets
+            // a snapshot; at very high speeds we throttle to avoid making
+            // WriteSnapshot the bottleneck.
+            int snapshotInterval = std::max(1, totalSteps / 4);
+            for (int i = 0; i < totalSteps; ++i) {
                 RunSimStep(SIM_STEP_DT);
+                if ((i + 1) % snapshotInterval == 0 || i == totalSteps - 1)
+                    WriteSnapshot();
+            }
             m_stepCounter += totalSteps;
 
             // Auto-respawn if player has died
@@ -103,8 +113,9 @@ void SimThread::Run() {
             m_statAccum   -= 1.f;
         }
 
-        // --- Write drawable state for the render thread ---
-        WriteSnapshot();
+        // --- Write drawable state when paused or no steps ran ---
+        if (paused || virtualFrames == 0)
+            WriteSnapshot();
 
         // Yield so we don't pin the core when running faster than real time
         std::this_thread::yield();
