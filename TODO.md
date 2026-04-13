@@ -11,6 +11,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Friendship decay over distance** — Once per game-day in `AgentDecisionSystem.cpp`, decay
+  `Relations::affinity` by 0.005 for NPC pairs in different settlements. Same-settlement friends
+  unaffected. Static day tracker for once-per-day execution.
+
+
+
 - [x] **Rivalry trade avoidance** — In `FindBestRoute` in `TransportSystem.cpp`, haulers apply -40%
   route score penalty when home settlement's `relations[dest] < -0.5`. Stacks with existing
   `rivalryTimer`-based penalty. Haulers naturally avoid rival settlements unless profit is high.
@@ -750,13 +756,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Social Behaviour
 
-- [ ] **Friendship decay over distance** — In `AgentDecisionSystem.cpp`, once per game-day, decay `Relations::affinity` by 0.005 for friends living in different settlements. Friendships maintained by proximity (same settlement) don't decay. Keeps social ties dynamic and encourages co-location.
-
 - [ ] **NPC mood log on need satisfaction** — In `ConsumptionSystem.cpp`, when an NPC's worst need rises from below 0.3 to above 0.5 after purchasing, log "[Name] feels relieved after eating at [Settlement]" at 1-in-5 frequency. Varies message by need type (eating/drinking/resting/warming up).
 
 - [ ] **Hauler rivalry complaint log** — In `TransportSystem.cpp`'s `FindBestRoute`, when a profitable route is penalised by the relations-based rivalry avoidance (score *= 0.6), track the best-rejected rival route. If a hauler ends up idle and the rejected rival route had profit > `MIN_TRIP_PROFIT`, log "[Hauler] avoids [Dest] due to rivalry — potential profit lost." at 1-in-3 frequency.
 
 - [ ] **Trade gift between friends** — In `AgentDecisionSystem.cpp`, once per 48 game-hours, an NPC with `Relations::affinity ≥ 0.6` toward another NPC in the same settlement and balance > 50g transfers 5g to the friend. Log "[Name] gifts gold to [Friend]." Gold flows from sender's `Money::balance` to friend's `Money::balance` (no treasury involved). Cooldown on `DeprivationTimer::charityTimer`.
+
+- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, check if any existing residents have `Relations::affinity > 0.3` with them. If so, boost both parties' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-2 frequency.
+
+- [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
 
 ### NPC Crime & Consequence
 
