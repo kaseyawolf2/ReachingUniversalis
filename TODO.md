@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
+
 ## Recently Done
 
 - [x] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s idle chat block,
@@ -1170,8 +1172,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
 
 - [ ] **Profession diversity tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, check if all 3 profession types are present among homed NPCs (reuse or mirror the bitmask from `ProductionSystem.cpp`). Add `bool diverse = false` to `SettlementEntry` in `RenderSnapshot.h`. Display "[Diverse]" tag in gold after settlement name in `HUD.cpp`'s settlement tooltip when true. Makes the diversity bonus visible to the player.
 
