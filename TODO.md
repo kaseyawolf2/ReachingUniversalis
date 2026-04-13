@@ -9,7 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Chat log entry** — When a chat pair forms (chatTimer is set > 0 in `AgentDecisionSystem`),
+  log a brief flavour message. Gate with 10% chance to avoid spam.
 
 ## Recently Done
 
