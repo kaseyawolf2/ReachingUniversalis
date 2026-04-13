@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Stale memory decay** — In `AgentDecisionSystem`'s migration trigger section, add a
-  `lastVisitedDay` int field to `MigrationMemory::PriceSnapshot` (Components.h). When recording
-  a snapshot, set it to the current `tm.day`. When scoring destinations in `FindMigrationTarget`,
-  if `tm.day - snap.lastVisitedDay > 30` (more than 30 days old), reduce the memory bonus to 50%.
+
 
 ## Recently Done
+
+- [x] **Stale memory decay** — `lastVisitedDay` on PriceSnapshot, passed via `tm.day` on all Record calls. FindMigrationTarget halves memory bonus when info is >30 days old.
 
 - [x] **Migration memory shown in tooltip** — `migrationMemorySummary` piped through AgentEntry. Shows "Knows: Town (cheapest Xg), ..." in dim GRAY for NPCs with ≥2 known settlements.
 
@@ -1868,7 +1867,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (wood 1g)". In `HUD::DrawHoverTooltip`, render it as an extra dim GRAY line. Gives the player
   insight into what an NPC knows about the world.
 
-- [ ] **Stale memory decay** — In `AgentDecisionSystem`'s migration trigger section, add a
+- [x] **Stale memory decay** — In `AgentDecisionSystem`'s migration trigger section, add a
   `lastVisitedDay` int field to `MigrationMemory::PriceSnapshot` (Components.h). When recording
   a snapshot, set it to the current `tm.day`. When scoring destinations in `FindMigrationTarget`,
   if `tm.day - snap.lastVisitedDay > 30` (more than 30 days old), reduce the memory bonus to 50%
@@ -3432,3 +3431,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `MigrationMemory`, pick one random entry from each and call `other.Record(...)` to teach
   settlements the other doesn't know. Cap at 1 exchange per greeting. Log "[Name] tells [Other]
   about [Settlement]." Uses existing `MigrationMemory::Record` — no new structs.
+
+- [ ] **Memory freshness shown in migration tooltip** — In `SimThread::WriteSnapshot`, when
+  building `migrationMemorySummary`, append the age of each entry in days as a suffix:
+  e.g. "Knows: Wellsworth (food 2g, 5d ago)" by computing `tm.day - snap.lastVisitedDay`. In
+  `MigrationMemory::PriceSnapshot`, `lastVisitedDay` is now available. No new components needed —
+  pure display enhancement of existing piped data.
+
+- [ ] **Very stale memories evicted** — In `AgentDecisionSystem`'s migration arrival block, after
+  recording the new settlement, iterate `mem->known` and erase any entry where
+  `tm.day - snap.lastVisitedDay > 90` (3 months stale). This prevents NPCs from carrying
+  ancient price knowledge that will never be relevant again. Keeps memory map bounded by
+  relevance, not just by count.
