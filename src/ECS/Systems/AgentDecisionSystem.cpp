@@ -474,6 +474,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     // Loyalty bonus: NPCs who never changed profession grow faster
                     bool loyal = (prof.prevType == prof.type || prof.prevType == ProfessionType::Idle);
                     if (loyal) growth += LOYALTY_BONUS;
+                    // Capture pre-growth skill for loyalty streak crossing detection
+                    float preActiveSkill = 0.f;
+                    switch (prof.type) {
+                        case ProfessionType::Farmer:      preActiveSkill = sk.farming; break;
+                        case ProfessionType::WaterCarrier: preActiveSkill = sk.water_drawing; break;
+                        case ProfessionType::Lumberjack:   preActiveSkill = sk.woodcutting; break;
+                        default: break;
+                    }
                     switch (prof.type) {
                         case ProfessionType::Farmer:
                             if (hasMaster && sk.farming < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
@@ -488,6 +496,28 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             sk.woodcutting = std::min(1.f, sk.woodcutting + growth);
                             break;
                         default: break;
+                    }
+                    // Loyalty streak: log when a loyal NPC crosses the 0.7 skill threshold
+                    {
+                        float postActiveSkill = 0.f;
+                        const char* profName = nullptr;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      postActiveSkill = sk.farming; profName = "farmer"; break;
+                            case ProfessionType::WaterCarrier: postActiveSkill = sk.water_drawing; profName = "water-carrier"; break;
+                            case ProfessionType::Lumberjack:   postActiveSkill = sk.woodcutting; profName = "lumberjack"; break;
+                            default: break;
+                        }
+                        if (loyal && profName && preActiveSkill < 0.7f && postActiveSkill >= 0.7f
+                            && !logV2.empty() && s_teachRng() % 5 == 0) {
+                            std::string who = "NPC";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            std::string where = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    where = s->name;
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                who + " is a dedicated " + profName + " at " + where + ".");
+                        }
                     }
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
