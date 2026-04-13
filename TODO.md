@@ -9,6 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **FindMigrationTarget caching** — `FindMigrationTarget` in `AgentDecisionSystem.cpp` iterates all settlements and computes scores. Called once per migrating NPC, but also for each co-migration friend candidate (up to 2 extra calls per migration). Cache results per source settlement per game-hour in a `static std::unordered_map<entt::entity, std::pair<int, entt::entity>>` (keyed by home settlement, value is {hour, best destination}). Invalidate when hour changes.
 
 ## Recently Done
 
@@ -917,8 +918,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **FindMigrationTarget caching** — `FindMigrationTarget` in `AgentDecisionSystem.cpp` iterates all settlements and computes scores. Called once per migrating NPC, but also for each co-migration friend candidate (up to 2 extra calls per migration). Cache results per source settlement per game-hour in a `static std::unordered_map<entt::entity, std::pair<int, entt::entity>>` (keyed by home settlement, value is {hour, best destination}). Invalidate when hour changes.
 
 ### NPC Lifecycle & Identity
 
