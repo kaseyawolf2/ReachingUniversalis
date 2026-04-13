@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include <unordered_map>
 
 // At full workforce (BASE_WORKERS) production runs at baseline rate.
 // Fewer workers → proportional reduction; more workers → bonus up to 2×.
@@ -42,11 +43,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     // Apprentice children (ChildTag, age 12–14) count as 0.2 workers (produce at 20% rate).
     // Also count elders (age > 60) at their home settlement for the wisdom/experience bonus.
     struct SkillAccum { float sum = 0.f; int count = 0; };
-    std::map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
-    std::map<entt::entity, int>   workerHeadCount; // integer count for crowding detection
-    std::map<entt::entity, int>   elderCount; // elders per settlement for production bonus
+    std::unordered_map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
+    std::unordered_map<entt::entity, int>   workerHeadCount; // integer count for crowding detection
+    std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
-    std::map<entt::entity, std::array<SkillAccum, 3>> skillData;
+    std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
 
     auto resIdx = [](ResourceType rt) -> int {
         switch (rt) {
@@ -150,7 +151,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
 
     // ---- Settlement specialisation: count masters per resource type per settlement ----
     // masterCount[settlement][0=Food,1=Water,2=Wood] = number of NPCs with skill >= 0.9
-    std::map<entt::entity, std::array<int, 3>> masterCount;
+    std::unordered_map<entt::entity, std::array<int, 3>> masterCount;
     registry.view<Skills, HomeSettlement>(entt::exclude<Hauler>).each(
         [&](auto, const Skills& sk, const HomeSettlement& hs) {
             if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
