@@ -346,6 +346,38 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 } else {
                     vel.vx = vel.vy = 0.f;
 
+                    // ---- Update Profession to match current facility type ----
+                    if (hourChanged) {
+                        ProfessionType newProf = ProfessionForResource(facType);
+                        if (auto* prof = registry.try_get<Profession>(entity)) {
+                            if (prof->type != newProf && newProf != ProfessionType::Idle) {
+                                static std::mt19937 s_profRng{ std::random_device{}() };
+                                if (prof->type != ProfessionType::Idle && prof->type != ProfessionType::Hauler
+                                    && s_profRng() % 2 == 0) {
+                                    auto logV = registry.view<EventLog>();
+                                    if (!logV.empty()) {
+                                        std::string who = "NPC";
+                                        if (const auto* nm = registry.try_get<Name>(entity))
+                                            who = nm->value;
+                                        std::string settlName = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                settlName = s->name;
+                                        auto& tmRef = registry.view<TimeManager>().get<TimeManager>(
+                                            *registry.view<TimeManager>().begin());
+                                        std::string msg = who + " switched from " +
+                                            ProfessionLabel(prof->type) + " to " +
+                                            ProfessionLabel(newProf) + " at " + settlName + ".";
+                                        logV.get<EventLog>(*logV.begin()).Push(
+                                            tmRef.day, (int)tmRef.hourOfDay, msg);
+                                    }
+                                }
+                                prof->prevType = prof->type;
+                                prof->type = newProf;
+                            }
+                        }
+                    }
+
                     // ---- Shared workplace affinity gain ----
                     // NPCs working at the same facility build affinity over time.
                     // Only run the O(n) scan when the hour changes to avoid per-tick O(n²).
