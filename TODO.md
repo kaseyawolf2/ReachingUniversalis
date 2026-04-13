@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
-
 ## Backlog
 
 - [ ] **Mastery teaching chain** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with skill >= 0.8 (from profession pride) is at the same settlement as an NPC with skill < 0.5 in the same profession, the lower-skilled NPC gets `growth += 0.0004f`. Different from master teaching (which requires 0.9): this lets near-masters pass on practical knowledge. Log "[Expert] shares tips with [Novice] at [Settlement]" at 1-in-10 frequency via `s_teachRng`. Pre-compute expert list alongside `masterFlags`.
@@ -75,7 +73,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
 
+- [ ] **Reconciliation glow visible in tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool reconciling = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::reconcileGlow > 0`. In `HUD.cpp`'s NPC tooltip, display "[Harmonious]" in soft green after existing badges. Makes the post-reconciliation state visible to the player.
+
+- [ ] **Repeated reconciliation deepens bond** — In `ScheduleSystem.cpp`'s reconciliation block, track how many times a pair has reconciled via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount`. On 2nd+ reconciliation, use +0.08 affinity instead of +0.05, and boost `reconcileGlow` to 4 game-hours instead of 2. Log "[NPC1] and [NPC2] are becoming unlikely friends at [Settlement]" at full frequency on 3rd+ reconciliation. Creates an escalating friendship arc from repeated conflict resolution.
+
 ## Recently Done
+
+- [x] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`, after reconciliation: +0.01
+  settlement morale, harmony log at 1-in-4, and `reconcileGlow=2h` on both NPCs. In `ProductionSystem.cpp`,
+  reconcileGlow grants +5% work output, ticking down by gameHoursDt.
 
 - [x] **Workplace best friend** — Added `workBestFriend` to `Relations` in `Components.h`. Tracked in
   `ScheduleSystem.cpp` via highest cumulative `s_workAffinityGain`. Idle chat with work buddy uses
