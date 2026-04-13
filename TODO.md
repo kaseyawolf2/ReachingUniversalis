@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
-
 ## Recently Done
+
+- [x] **Hauler route loyalty log** — Added `lastRoute` and `consecutiveRouteCount` to `Hauler`
+  struct in `Components.h`. In `TransportSystem.cpp` after `lifetimeTrips++`, tracks consecutive
+  same-route deliveries. At 5 consecutive, logs "[Hauler] is a regular on the [Source]→[Dest]
+  route." once per hauler via static set.
+
+
 
 - [x] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an
   NPC decides to migrate, finds their best friend (highest `Relations::affinity ≥ 0.5`, same
@@ -821,8 +826,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
-
 - [ ] **Rivalry softening on shared crisis** — In `RandomEventSystem.cpp`, when a plague or drought hits a settlement, check if any rival settlements (relations < -0.5) are also experiencing the same event type. If so, improve relations by +0.15 for both and log "[Settlement A] and [Settlement B] set aside differences during [crisis]." Shared hardship as diplomacy.
 
 - [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
@@ -844,6 +847,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
+
+- [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
+
+- [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
 
 - [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
 
