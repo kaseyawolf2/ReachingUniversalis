@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
+
 ## Recently Done
 
 - [x] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, NPCs with all three skills ≥ 0.4
@@ -1033,8 +1035,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
 
 - [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
 
