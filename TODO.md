@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
+
 ## Recently Done
 
 - [x] **Starvation desperation log escalation** — When hunger < 0.1, balance < 1g, and no food in
@@ -791,8 +793,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
 
 - [ ] **Gift reciprocity affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the gold transfer, boost `Relations::affinity` of the recipient toward the giver by +0.05 (capped at 1.0). Ensures gift-giving strengthens friendships over time, creating a positive feedback loop.
 
