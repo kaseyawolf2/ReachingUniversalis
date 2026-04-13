@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Family greeting clears grief early** — In `AgentDecisionSystem`'s greeting block, when a
+  family reunion greeting fires (`isFamilyReunion == true`) and either NPC has `griefTimer > 0`,
+  halve the griefTimer on both NPCs. Log "[Name] finds comfort in [Other]'s company." after the
+  embrace log. Family support helps NPCs recover from loss faster.
 
 
 
