@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
-
 ## Recently Done
+
+- [x] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when
+  an NPC changes profession for the second time (`prevType != Idle` and `prevType != type`), logs
+  "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3
+  frequency. Fires before `prevType` is overwritten so the old career history is preserved.
+
+
 
 - [x] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who
   have never changed profession (`prevType == type` or `prevType == Idle`) get +0.0005 bonus skill
@@ -1040,6 +1045,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency. Complements the existing friendship decay on distance (already implemented) by rewarding reunions.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
+
+- [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block (line where `prof->prevType = prof->type`). In `SimThread::WriteSnapshot`, write `careerChanges` to a new `int careerChanges` field on `AgentEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s NPC tooltip as "Career changes: N" after the profession line. Makes career mobility visible.
+
+- [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
 
 - [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
 
