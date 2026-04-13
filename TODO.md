@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Evening gathering scatter** — In `ScheduleSystem.cpp`'s leisure-wander block, when
-  `hour >= 18 && hour < 22`, bias wander target toward settlement centre by using
-  `s_radius(s_rng) * 0.4f` during evening hours so NPCs cluster near home.
+
 
 ## Recently Done
+
+- [x] **Evening gathering scatter** — Idle adult NPCs wander at 0.4× radius during hours 18–22 in ScheduleSystem, clustering near settlement centre.
 
 - [x] **Sleep arrival indicator** — `atHome` bool on AgentEntry, computed in WriteSnapshot from distance to home. Faint blue ring drawn in GameState::Draw for sleeping NPCs still commuting.
 
@@ -1894,7 +1894,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `AgentEntry` (RenderSnapshot.h); set it in `SimThread::WriteSnapshot` when sleeping and
   within `SLEEP_ARRIVE` of home. Makes it easy to spot NPCs still commuting at night.
 
-- [ ] **Evening gathering scatter** — Currently all Idle NPCs wander independently. In
+- [x] **Evening gathering scatter** — Currently all Idle NPCs wander independently. In
   `ScheduleSystem.cpp`'s leisure-wander block (lines ~378–385), when `hour >= 18 && hour < 22`,
   bias the wander target toward the settlement centre rather than the full `LEISURE_RADIUS`.
   Replace `s_radius(s_rng)` with `s_radius(s_rng) * 0.4f` during evening hours so NPCs
@@ -3472,3 +3472,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `needs.list[2].value < 0.3` (low energy) and the NPC is not sleeping, 2% per game-hour
   chance to log "[Name] yawns wearily." Gated by `greetCooldown > 0` check (reuse cooldown).
   Pure flavour — no gameplay effect, no new components.
+
+- [ ] **Morning stretch log** — In `ScheduleSystem.cpp`, when an NPC transitions from Sleeping
+  to Idle at wake-up time (the block where `state.behavior = AgentBehavior::Idle` is set on
+  waking), 20% chance to log "[Name] stretches and greets the morning." No gameplay effect,
+  no new components — pure flavour using existing Name and state transition.
+
+- [ ] **Evening gathering chat boost** — In `AgentDecisionSystem`'s greeting block, during
+  hours 18–22, double the greeting chance (reduce `greetCooldown` reset from current value to
+  half) so NPCs who are clustered in the evening gathering actually interact more frequently.
+  No new components — just scale the cooldown by 0.5 when `currentHour >= 18 && currentHour < 22`.
