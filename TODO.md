@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Death inheritance to best friend** — In `DeathSystem.cpp`, after the treasury estate deposit, if the deceased has `Relations::affinity` with anyone ≥ 0.6 at the same settlement, transfer 25% of their remaining balance to that friend (balance-to-balance, Gold Flow Rule). Log "[Friend] inherits Xg from [Deceased]'s estate." Uses the already-built `entitiesBySettlement` index for O(settlement_pop) lookup instead of full scan.
+
 ## Recently Done
 
 - [x] **NPC age-based skill growth** — Added once-per-game-day skill growth in
@@ -962,8 +964,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Death inheritance to best friend** — In `DeathSystem.cpp`, after the treasury estate deposit, if the deceased has `Relations::affinity` with anyone ≥ 0.6 at the same settlement, transfer 25% of their remaining balance to that friend (balance-to-balance, Gold Flow Rule). Log "[Friend] inherits Xg from [Deceased]'s estate." Uses the already-built `entitiesBySettlement` index for O(settlement_pop) lookup instead of full scan.
 
 - [ ] **Wanderer resettlement preference for friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block (~line 2465), when an exile with enough gold picks a settlement, add +20% score bonus to settlements where they have a friend (affinity ≥ 0.3 in `Relations`). Uses `s_entitySettlement` cache for O(1) settlement lookup per friend. Homeless NPCs preferentially resettle near friends.
 
