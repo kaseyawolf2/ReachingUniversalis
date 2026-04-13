@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Settlement skill summary in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, below the existing resident list, show "Top skill: [Type] (N masters, M journeymen)" in faint GOLD. Add `int masterCount[3]` and `int journeymanCount[3]` to `RenderSnapshot::StockpilePanel`. Pipe from `SimThread::WriteSnapshot` by counting NPCs homed at the settlement with Skills ≥ 0.9 or ≥ 0.5. Pick the type with the most combined masters+journeymen.
 
 ## Recently Done
 
