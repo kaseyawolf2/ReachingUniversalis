@@ -949,18 +949,38 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 msg = (myName ? myName->value : "NPC") +
                                       " embraces " + oName.value + " warmly.";
                             } else {
-                                msg = (myName ? myName->value : "NPC") +
-                                      " greets " + oName.value;
-                                // Complain about low need
-                                for (int ni = 0; ni < 4; ++ni) {
-                                    if (needs.list[ni].value < 0.3f) {
-                                        const char* nn = (ni == 0) ? "hunger" :
-                                                         (ni == 1) ? "thirst" :
-                                                         (ni == 2) ? "fatigue" : "the cold";
-                                        msg += " (complains about ";
-                                        msg += nn;
-                                        msg += ")";
-                                        break;
+                                // 20% chance: discuss hauler routes if settlement has haulers
+                                bool discussTrade = false;
+                                if (home.settlement != entt::null && oHome.settlement == home.settlement) {
+                                    static std::mt19937 s_tradeRng{ std::random_device{}() };
+                                    static std::uniform_real_distribution<float> s_tradeDist(0.f, 1.f);
+                                    if (s_tradeDist(s_tradeRng) < 0.2f) {
+                                        // Check if settlement has any haulers
+                                        bool hasHauler = false;
+                                        registry.view<Hauler, HomeSettlement>().each(
+                                            [&](auto, const Hauler&, const HomeSettlement& hhs) {
+                                                if (hhs.settlement == home.settlement) hasHauler = true;
+                                            });
+                                        discussTrade = hasHauler;
+                                    }
+                                }
+                                if (discussTrade) {
+                                    msg = (myName ? myName->value : "NPC") +
+                                          " and " + oName.value + " discuss trade routes.";
+                                } else {
+                                    msg = (myName ? myName->value : "NPC") +
+                                          " greets " + oName.value;
+                                    // Complain about low need
+                                    for (int ni = 0; ni < 4; ++ni) {
+                                        if (needs.list[ni].value < 0.3f) {
+                                            const char* nn = (ni == 0) ? "hunger" :
+                                                             (ni == 1) ? "thirst" :
+                                                             (ni == 2) ? "fatigue" : "the cold";
+                                            msg += " (complains about ";
+                                            msg += nn;
+                                            msg += ")";
+                                            break;
+                                        }
                                     }
                                 }
                             }
