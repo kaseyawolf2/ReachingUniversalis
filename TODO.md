@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Grief badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool grieving = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::griefTimer > 0`. In `HUD.cpp`'s NPC tooltip, display "[Grieving]" in muted purple after the specialisation line. Makes NPC emotional state visible to the player without needing the event log.
+
+## Backlog
 
 - [ ] **Settlement harmony score** — In `SimThread::WriteSnapshot`'s settlement loop, compute `float harmony` as (friendshipPairs * 2.0f) / max(1, pop * (pop-1)) — the fraction of all possible NPC pairs that are mutual friends. Add `float harmony = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Harmony: X%" in green (>50%), yellow (25-50%), or red (<25%) after the morale line. Gives the player a social cohesion metric.
 
