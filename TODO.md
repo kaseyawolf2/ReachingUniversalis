@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
+
 ## Recently Done
 
 - [x] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block,
@@ -1162,8 +1164,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
 
 - [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
 
