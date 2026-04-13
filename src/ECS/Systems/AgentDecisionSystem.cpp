@@ -1911,6 +1911,46 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Shared grief affinity boost: grieving NPCs at the same settlement bond (staggered: 1/4 per frame) ----
+            if (isGrieving && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
+                static std::mt19937 s_griefBondRng{ std::random_device{}() };
+                static constexpr float GRIEF_BOND_RADIUS = 30.f;
+                registry.view<DeprivationTimer, HomeSettlement, Relations>(
+                    entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                    [&](auto other, DeprivationTimer& oTimer, const HomeSettlement& oHome, Relations& oRel) {
+                        if (other == entity) return;
+                        if (oTimer.griefTimer <= 0.f) return;
+                        if (oHome.settlement != home.settlement) return;
+                        // Proximity check
+                        if (const auto* oPos2 = registry.try_get<Position>(other)) {
+                            float gdx = oPos2->x - pos.x, gdy = oPos2->y - pos.y;
+                            if (gdx * gdx + gdy * gdy > GRIEF_BOND_RADIUS * GRIEF_BOND_RADIUS) return;
+                        } else return;
+                        // Boost mutual affinity by +0.05 (cap 1.0)
+                        auto* myRel2 = registry.try_get<Relations>(entity);
+                        if (myRel2)
+                            myRel2->affinity[other] = std::min(1.f, myRel2->affinity[other] + 0.05f);
+                        oRel.affinity[entity] = std::min(1.f, oRel.affinity[entity] + 0.05f);
+                        // Log at 1-in-6 frequency
+                        if (s_griefBondRng() % 6 == 0) {
+                            auto lv2 = registry.view<EventLog>();
+                            if (!lv2.empty()) {
+                                std::string who = "An NPC";
+                                if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                                std::string otherName = "another NPC";
+                                if (const auto* n = registry.try_get<Name>(other)) otherName = n->value;
+                                std::string where = "settlement";
+                                if (home.settlement != entt::null)
+                                    if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
+                                char buf[180];
+                                std::snprintf(buf, sizeof(buf), "%s and %s find comfort in shared loss at %s",
+                                              who.c_str(), otherName.c_str(), where.c_str());
+                                lv2.get<EventLog>(*lv2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                            }
+                        }
+                    });
+            }
+
             // ---- Thank player: NPCs with good rep nod respectfully near the player (staggered: 1/4 per frame) ----
             if (timer.thankCooldown > 0.f)
                 timer.thankCooldown = std::max(0.f, timer.thankCooldown - realDt);
