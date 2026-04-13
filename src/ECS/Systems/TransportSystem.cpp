@@ -499,18 +499,32 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             if (!InRange(pos, destPos, ARRIVE_RADIUS)) {
                 // Convoy check: nearby hauler headed to same destination → 25% speed bonus
                 static constexpr float CONVOY_RANGE = 60.f;
+                static constexpr float CONVOY_FRIEND_RANGE = 90.f;
                 bool wasInConvoy = hauler.inConvoy;
                 hauler.inConvoy = false;
                 entt::entity convoyPartner = entt::null;
+                bool friendConvoy = false;
+                const auto* myConvoyRel = registry.try_get<Relations>(entity);
                 registry.view<Hauler, Position>(entt::exclude<PlayerTag>).each(
                     [&](auto other, const Hauler& oh, const Position& op) {
                         if (other == entity || hauler.inConvoy) return;
                         if (oh.state != HaulerState::GoingToDeposit) return;
                         if (oh.targetSettlement != hauler.targetSettlement) return;
+                        // Extended range for friends (affinity >= 0.5)
+                        float range = CONVOY_RANGE;
+                        bool isFriend = false;
+                        if (myConvoyRel) {
+                            auto ait = myConvoyRel->affinity.find(other);
+                            if (ait != myConvoyRel->affinity.end() && ait->second >= 0.5f) {
+                                range = CONVOY_FRIEND_RANGE;
+                                isFriend = true;
+                            }
+                        }
                         float dx = op.x - pos.x, dy = op.y - pos.y;
-                        if (dx*dx + dy*dy < CONVOY_RANGE * CONVOY_RANGE) {
+                        if (dx*dx + dy*dy < range * range) {
                             hauler.inConvoy = true;
                             convoyPartner = other;
+                            friendConvoy = isFriend;
                         }
                     });
                 // Log convoy formation on transition false → true
@@ -533,6 +547,21 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         std::snprintf(buf, sizeof(buf), "%s formed convoy with %s on the way to %s.",
                                       who.c_str(), partner.c_str(), dest.c_str());
                         logV.get<EventLog>(*logV.begin()).Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                    }
+                    // Friend convoy log at 1-in-6 frequency
+                    if (friendConvoy) {
+                        static std::mt19937 s_friendConvoyRng{ std::random_device{}() };
+                        if (s_friendConvoyRng() % 6 == 0 && !logV.empty() && !tmV.empty()) {
+                            const auto& tmRef2 = tmV.get<TimeManager>(*tmV.begin());
+                            std::string who2 = "A hauler", partner2 = "a friend";
+                            if (const auto* n = registry.try_get<Name>(entity)) who2 = n->value;
+                            if (convoyPartner != entt::null)
+                                if (const auto* pn = registry.try_get<Name>(convoyPartner)) partner2 = pn->value;
+                            char buf2[180];
+                            std::snprintf(buf2, sizeof(buf2), "%s joins up with friend %s",
+                                          who2.c_str(), partner2.c_str());
+                            logV.get<EventLog>(*logV.begin()).Push(tmRef2.day, (int)tmRef2.hourOfDay, buf2);
+                        }
                     }
                 }
                 float convoySpeed = hauler.inConvoy ? speed * 1.25f : speed;
