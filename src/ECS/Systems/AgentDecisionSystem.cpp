@@ -289,6 +289,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         });
     }
 
+    // ---- Friendship decay over distance: once per game-day ----
+    {
+        static int s_lastFriendDecayDay = -1;
+        if (tm.day != s_lastFriendDecayDay) {
+            s_lastFriendDecayDay = tm.day;
+            registry.view<Relations, HomeSettlement>().each(
+                [&](entt::entity e, Relations& rel, const HomeSettlement& home) {
+                    for (auto& [other, aff] : rel.affinity) {
+                        if (aff <= 0.f) continue;
+                        auto* otherHome = registry.try_get<HomeSettlement>(other);
+                        if (!otherHome || otherHome->settlement != home.settlement) {
+                            aff = std::max(0.f, aff - 0.005f);
+                        }
+                    }
+                });
+        }
+    }
+
     // Cache player position for NPC-to-player proximity checks
     entt::entity playerEntity = entt::null;
     Position playerPos{};
