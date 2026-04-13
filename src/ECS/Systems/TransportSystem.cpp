@@ -587,18 +587,29 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                                 haulerName + " received local loyalty bonus at " + destSettl->name + ".");
                         }
                         if (allyTrade && !cargoSourceName.empty()) {
-                            // Calculate the bonus saved: ALLY_DISCOUNT fraction of gross
-                            float gross = 0.f;
-                            for (const auto& [type, qty] : inv.contents) {
-                                float sp = destMkt ? destMkt->GetPrice(type) : hauler.buyPrice;
-                                gross += sp * qty;
+                            // 1-in-3 frequency to avoid log spam
+                            static std::map<entt::entity, int> s_allyLogCounter;
+                            int& cnt = s_allyLogCounter[entity];
+                            if (++cnt % 3 == 1) {
+                                std::string hName = "Hauler";
+                                if (auto* nm = registry.try_get<Name>(entity))
+                                    hName = nm->value;
+                                int totalUnits = 0;
+                                std::string resName;
+                                for (const auto& [type, qty] : inv.contents) {
+                                    totalUnits += (int)qty;
+                                    if (resName.empty())
+                                        resName = (type == ResourceType::Food) ? "food" :
+                                                  (type == ResourceType::Water) ? "water" : "wood";
+                                }
+                                if (inv.contents.size() > 1) resName = "mixed goods";
+                                char abuf[180];
+                                std::snprintf(abuf, sizeof(abuf),
+                                    "Allied trade: %s delivers %d %s from %s to %s (boosted)",
+                                    hName.c_str(), totalUnits, resName.c_str(),
+                                    cargoSourceName.c_str(), destSettl->name.c_str());
+                                logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, abuf);
                             }
-                            float bonus = gross * ALLY_DISCOUNT;
-                            char abuf[120];
-                            std::snprintf(abuf, sizeof(abuf),
-                                "Ally trade: %s → %s (+%.1fg bonus)",
-                                cargoSourceName.c_str(), destSettl->name.c_str(), bonus);
-                            logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, abuf);
                         }
                     }
                 }
