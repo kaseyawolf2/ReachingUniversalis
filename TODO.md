@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC age-based skill growth** — In `AgentDecisionSystem.cpp` or a new system, adult NPCs (not children/elders) gain +0.001 per game-day in their active profession's matching skill (farming for Food workers, water for Water, woodcutting for Wood). Uses `Profession::current` and `Skills`. Capped at 1.0. Makes long-tenured workers increasingly productive. Gate computation to once per game-day.
+
 ## Recently Done
 
 - [x] **DeathSystem inheritance scan optimisation** — Three optimisations: (1) family dissolution
@@ -955,8 +957,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **NPC age-based skill growth** — In `AgentDecisionSystem.cpp` or a new system, adult NPCs (not children/elders) gain +0.001 per game-day in their active profession's matching skill (farming for Food workers, water for Water, woodcutting for Wood). Uses `Profession::current` and `Skills`. Capped at 1.0. Makes long-tenured workers increasingly productive. Gate computation to once per game-day.
 
 - [ ] **Death inheritance to best friend** — In `DeathSystem.cpp`, after the treasury estate deposit, if the deceased has `Relations::affinity` with anyone ≥ 0.6 at the same settlement, transfer 25% of their remaining balance to that friend (balance-to-balance, Gold Flow Rule). Log "[Friend] inherits Xg from [Deceased]'s estate." Uses the already-built `entitiesBySettlement` index for O(settlement_pop) lookup instead of full scan.
 
