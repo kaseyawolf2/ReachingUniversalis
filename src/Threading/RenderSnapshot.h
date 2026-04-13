@@ -168,6 +168,7 @@ struct RenderSnapshot {
         float        avgFarming = 0.f;  // average farming skill (0-1)
         float        avgWater   = 0.f;  // average water-drawing skill (0-1)
         float        avgWood    = 0.f;  // average woodcutting skill (0-1)
+        bool         diverse    = false; // all 3 profession types present
     };
 
     struct RoadEntry {

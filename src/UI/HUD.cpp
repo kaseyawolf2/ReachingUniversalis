@@ -1260,6 +1260,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
 
     // Trade hub badge: appended when settlement has ≥5 deliveries/day
     bool isTradeHub = (best->tradeVolume >= 5);
+    bool isDiverse  = best->diverse;
 
     // Line 2: resource stocks
     char line2[64];
@@ -1385,7 +1386,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                       + (showGivers ? 1 : 0) + (showBounty ? 1 : 0)
                       + (showOutput ? 1 : 0);
     int hubW = isTradeHub ? MeasureText("  [Trade Hub]", 12) : 0;
-    int w = std::max({ MeasureText(line1, 12) + hubW, MeasureText(line2, 11),
+    int divW = isDiverse  ? MeasureText("  [Diverse]", 12)  : 0;
+    int w = std::max({ MeasureText(line1, 12) + hubW + divW, MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
@@ -1413,8 +1415,13 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
 
     Color nameCol = (best->pop == 0) ? Fade(DARKGRAY, 0.8f) : WHITE;
     DrawText(line1, tx, ty,      12, nameCol);
-    if (isTradeHub)
-        DrawText("  [Trade Hub]", tx + MeasureText(line1, 12), ty, 12, Fade(GOLD, 0.8f));
+    int badgeOff = MeasureText(line1, 12);
+    if (isTradeHub) {
+        DrawText("  [Trade Hub]", tx + badgeOff, ty, 12, Fade(GOLD, 0.8f));
+        badgeOff += MeasureText("  [Trade Hub]", 12);
+    }
+    if (isDiverse)
+        DrawText("  [Diverse]", tx + badgeOff, ty, 12, Fade(GOLD, 0.9f));
     ty += 16;
     DrawText(line2, tx, ty,      11, LIGHTGRAY);           ty += 16;
     Color tresCol = (treasury < 50.f) ? RED : (treasury < 150.f) ? ORANGE : GOLD;

@@ -1395,6 +1395,7 @@ void SimThread::WriteSnapshot() {
         int   masterCount = 0;
         float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
+        int   profMask  = 0;  // bitmask: bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack
     };
     std::unordered_map<entt::entity, SettlAgg> settlAgg;
     // Single pass over all homed NPCs (excluding player)
@@ -1447,6 +1448,14 @@ void SimThread::WriteSnapshot() {
                     ag.skillWaterSum += sk->water_drawing;
                     ag.skillWoodSum  += sk->woodcutting;
                     ++ag.skillCount;
+                }
+                if (const auto* prof = m_registry.try_get<Profession>(e)) {
+                    switch (prof->type) {
+                        case ProfessionType::Farmer:      ag.profMask |= 1; break;
+                        case ProfessionType::WaterCarrier: ag.profMask |= 2; break;
+                        case ProfessionType::Lumberjack:   ag.profMask |= 4; break;
+                        default: break;
+                    }
                 }
             }
         });
@@ -1949,6 +1958,8 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        bool diverse = settlAgg.count(e) && (settlAgg[e].profMask & 7) == 7;
+
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
@@ -1957,7 +1968,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            avgFarming, avgWater, avgWood
+            avgFarming, avgWater, avgWood, diverse
         });
     });
 
