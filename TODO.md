@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family reunion greeting** — In `AgentDecisionSystem`'s greeting block, when two NPCs share a `FamilyTag::name`, use a special log: "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of +0.01.
+
 
 ## Recently Done
+
+- [x] **Family reunion greeting** — NPCs sharing FamilyTag::name get "[Name] embraces [Other] warmly." log and +0.08 mutual affinity (8× normal) in greeting block.
+
+
+
 
 - [x] **Family grief on death** — griefTimer on DeprivationTimer set to 4 game-hours when family member dies. Skips greeting/visiting, drains settlement morale -0.05/game-hour. Log: "[Name] mourns the loss of [Dead]."
 
@@ -1610,7 +1615,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (add the field). During grief, `AgentDecisionSystem` skips idle social actions (greeting, visiting)
   and drains morale by -0.05/game-hour on home settlement. Log "[Name] mourns the loss of [Dead]."
 
-- [ ] **Family reunion greeting** — In `AgentDecisionSystem`'s greeting block, when two NPCs share
+- [x] **Family reunion greeting** — In `AgentDecisionSystem`'s greeting block, when two NPCs share
   a `FamilyTag::name` and haven't greeted in the current `greetCooldown` window, use a special log:
   "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of the standard
   +0.01. Family reunions are emotionally significant encounters.
@@ -1690,6 +1695,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
   contribution by 0.5f (grieving workers produce at half rate). No new fields — reads existing
   griefTimer. Creates a visible economic impact when family members die.
+
+- [ ] **Family greeting clears grief early** — In `AgentDecisionSystem`'s greeting block, when a
+  family reunion greeting fires (`isFamilyReunion == true`) and either NPC has `griefTimer > 0`,
+  halve the griefTimer on both NPCs. Log "[Name] finds comfort in [Other]'s company." after the
+  embrace log. Family support helps NPCs recover from loss faster.
+
+- [ ] **NPC comforts grieving neighbour** — In `AgentDecisionSystem`'s idle block, after the
+  greeting section, when an idle NPC is within 25u of another idle NPC with `griefTimer > 0` and
+  `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours. Add
+  `float comfortCooldown = 0.f` to `DeprivationTimer` (180 real-sec cooldown). Log "[Name]
+  comforts [Grieving]." Close friends provide emotional support during grief.
 
 ---
 
