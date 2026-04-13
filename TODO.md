@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route shown in stockpile panel** — Show up to 3 haulers homed at the settlement with their current route in `DrawStockpilePanel`. Add `HaulerInfo` struct and `haulerRoutes` vector to `StockpilePanel`. Pipe from `WriteSnapshot`.
+
 
 ## Recently Done
+
+- [x] **Hauler route shown in stockpile panel** — HaulerInfo struct + haulerRoutes on StockpilePanel. Up to 3 haulers with "Home→Dest" routes in SKYBLUE (RED if struggling).
+
+
+
 
 - [x] **Family reunion greeting** — NPCs sharing FamilyTag::name get "[Name] embraces [Other] warmly." log and +0.08 mutual affinity (8× normal) in greeting block.
 
@@ -1620,7 +1625,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of the standard
   +0.01. Family reunions are emotionally significant encounters.
 
-- [ ] **Hauler route shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after the
+- [x] **Hauler route shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after the
   struggling haulers line, show up to 3 haulers homed at the settlement with their current route
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
@@ -1706,6 +1711,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours. Add
   `float comfortCooldown = 0.f` to `DeprivationTimer` (180 real-sec cooldown). Log "[Name]
   comforts [Grieving]." Close friends provide emotional support during grief.
+
+- [ ] **Hauler profit shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
+  each hauler route line, append profit info: " (+Xg)" in GREEN or " (-Xg)" in RED using
+  `Hauler::lifetimeProfit`. Add `float lifetimeProfit` to `StockpilePanel::HaulerInfo`. Pipe
+  from `SimThread::WriteSnapshot` by reading `h.lifetimeProfit`. Helps players see which haulers
+  are profitable at a glance.
+
+- [ ] **Idle NPCs discuss hauler routes** — In `AgentDecisionSystem`'s greeting block, when
+  both NPCs have `HomeSettlement` at a settlement with active haulers (check
+  `registry.view<Hauler, HomeSettlement>`), 20% chance to replace the greeting log with "[Name]
+  and [Other] discuss trade routes." No gameplay effect — purely flavour text that makes
+  settlements with haulers feel like trading hubs.
 
 ---
 
