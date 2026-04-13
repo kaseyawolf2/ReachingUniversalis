@@ -650,6 +650,53 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // ---- NPC work song: 3+ same-profession coworkers at same facility ----
+                    if (hourChanged) {
+                        const auto* mySongProf = registry.try_get<Profession>(entity);
+                        if (mySongProf && mySongProf->type != ProfessionType::Idle
+                            && mySongProf->type != ProfessionType::Hauler) {
+                            // Gather same-profession coworkers within WORK_ARRIVE of this facility
+                            std::vector<entt::entity> coworkers;
+                            coworkers.push_back(entity);
+                            registry.view<AgentState, Position, HomeSettlement, Profession>(
+                                entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                [&](auto other, const AgentState& oState, const Position& oPos,
+                                    const HomeSettlement& oHome, const Profession& oPr) {
+                                if (other == entity) return;
+                                if (oState.behavior != AgentBehavior::Working) return;
+                                if (oHome.settlement != home.settlement) return;
+                                if (oPr.type != mySongProf->type) return;
+                                float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
+                                if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
+                                coworkers.push_back(other);
+                            });
+                            if (coworkers.size() >= 3 && s_rng() % 30 == 0) {
+                                // Boost all coworkers' mutual affinity by +0.01
+                                for (size_t i = 0; i < coworkers.size(); ++i) {
+                                    auto* relI = registry.try_get<Relations>(coworkers[i]);
+                                    if (!relI) continue;
+                                    for (size_t j = i + 1; j < coworkers.size(); ++j) {
+                                        relI->affinity[coworkers[j]] = std::min(1.f, relI->affinity[coworkers[j]] + 0.01f);
+                                        if (auto* relJ = registry.try_get<Relations>(coworkers[j]))
+                                            relJ->affinity[coworkers[i]] = std::min(1.f, relJ->affinity[coworkers[i]] + 0.01f);
+                                    }
+                                }
+                                // Log the work song
+                                auto logVS = registry.view<EventLog>();
+                                if (!logVS.empty()) {
+                                    std::string who = "NPC";
+                                    if (const auto* nm = registry.try_get<Name>(entity)) who = nm->value;
+                                    std::string where = "settlement";
+                                    if (home.settlement != entt::null && registry.valid(home.settlement))
+                                        if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                            where = s->name;
+                                    logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour,
+                                        who + " leads a work song at " + where + ".");
+                                }
+                            }
+                        }
+                    }
+
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
