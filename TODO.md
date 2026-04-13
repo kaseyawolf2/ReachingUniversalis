@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
-
 ## Recently Done
+
+- [x] **Profession change event log** — Added `ProfessionType prevType` to `Profession` struct.
+  In `ScheduleSystem.cpp`, when a working NPC arrives at a facility of a different resource type,
+  updates their profession and logs the change at 1-in-2 frequency. Gated to `hourChanged`.
+  Also preserves `prevType` in `EconomicMobilitySystem.cpp` when NPCs become haulers.
+
+
 
 - [x] **Master NPC teaching bonus** — Added per-settlement master profession bitflags built once
   per game-day. Non-master NPCs at settlements with a master of the same profession gain
@@ -994,6 +999,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
 - [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
+
+- [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
+
+- [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
 
 - [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
