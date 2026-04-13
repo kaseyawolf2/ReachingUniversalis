@@ -11,8 +11,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Backlog
 
-- [ ] **Elder council influence on settlement decisions** — In `ConstructionSystem.cpp`'s facility-building block, count elders (age > 60) with skill >= 0.7 at the settlement. When 2+ skilled elders are present, reduce facility build cost by 10% (round down). Log "[Settlement]'s elders guide the construction effort" at 1-in-5 frequency. Uses existing `Age`, `Skills`, `HomeSettlement` components. Represents accumulated wisdom reducing waste.
-
 - [ ] **Nostalgic elder homesickness resistance** — In `AgentDecisionSystem.cpp`'s migration trigger block, elders (age > 60) with `Relations::affinity >= 0.5` toward 3+ NPCs at their current settlement get `effectiveMigrateThreshold *= 1.5f` (harder to uproot). Log "[Elder] has too many bonds to leave [Settlement]" at 1-in-8 frequency when migration is suppressed. Uses existing Relations scan. Keeps experienced elders rooted in their communities.
 
 - [ ] **Grief-born friendship persistence** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who previously bonded through shared grief (both have `Relations::affinity >= 0.6` AND both had `griefTimer > 0` within the last 5 game-days — track via a new `float lastGriefDay = -1.f` field on `DeprivationTimer` in `Components.h`, set when grief starts) chat idly, use `affinityGain = 0.03f` instead of the normal `0.02f`. Log "[Name] and [Other] share a knowing look at [Settlement]" at 1-in-8 frequency. Represents grief-forged bonds being deeper.
@@ -65,7 +63,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
 
+- [ ] **Elder council road maintenance discount** — In `ConstructionSystem.cpp`'s road maintenance block, when both endpoint settlements have 2+ skilled elders (age>60, skill>=0.7), reduce `ROAD_MAINT_COST_EACH` by 20% for that road. Log "[Road]'s upkeep eased by elder oversight" at 1-in-8 frequency. Reuses the `skilledElderCount` map. Extends the elder council theme to infrastructure maintenance.
+
+- [ ] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
+
 ## Recently Done
+
+- [x] **Elder council influence on settlement decisions** — In `ConstructionSystem.cpp`, settlements
+  with 2+ skilled elders (age>60, skill>=0.7) get 10% facility build cost reduction. Logs at 1-in-5.
 
 - [x] **Elder wisdom fading on death** — In `DeathSystem.cpp`, when an elder (age>60, skill>=0.8)
   dies, NPCs at the same settlement with affinity>=0.6 get `wisdomGriefDays = 3.f` on `Skills`.
