@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC age-based skill growth** — In `AgentDecisionSystem.cpp` or a new system, adult NPCs (not children/elders) gain +0.001 per game-day in their active profession's matching skill (farming for Food workers, water for Water, woodcutting for Wood). Uses `Profession::current` and `Skills`. Capped at 1.0. Makes long-tenured workers increasingly productive. Gate computation to once per game-day.
-
 ## Recently Done
+
+- [x] **NPC age-based skill growth** — Added once-per-game-day skill growth in
+  `AgentDecisionSystem.cpp`. Adult NPCs gain +0.001 in their profession's matching skill
+  (Farmer→farming, WaterCarrier→water_drawing, Lumberjack→woodcutting). Capped at 1.0.
+  Excludes children, elders (>60), haulers, bandits, and player.
+
+
 
 - [x] **DeathSystem inheritance scan optimisation** — Three optimisations: (1) family dissolution
   uses per-settlement entity index instead of two full registry scans, (2) friend grief inverted
@@ -962,7 +967,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Wanderer resettlement preference for friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block (~line 2465), when an exile with enough gold picks a settlement, add +20% score bonus to settlements where they have a friend (affinity ≥ 0.3 in `Relations`). Uses `s_entitySettlement` cache for O(1) settlement lookup per friend. Homeless NPCs preferentially resettle near friends.
 
+- [ ] **Skill specialisation title in tooltip** — In `SimThread::WriteSnapshot`, when writing `AgentEntry`, check if any `Skills` value ≥ 0.9. If so, set a new `std::string specialisation` field on `AgentEntry` (e.g. "Master Farmer", "Expert Lumberjack"). Display in `HUD.cpp` tooltip after profession line. Requires adding `std::string specialisation` to `AgentEntry` in `RenderSnapshot.h`.
 
+- [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
 ### NPC Social Behaviour
 
