@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
+
 ## Recently Done
 
 - [x] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
@@ -1027,8 +1029,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
 
 - [ ] **Master retention bonus** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with any skill ≥ 0.9 get a +0.5 boost to their `migrateThreshold` (need 50% more scarcity to migrate). Masters are more rooted in their communities. Apply once when the NPC first reaches mastery via a `bool masterSettled` on `DeprivationTimer`. Complements the exodus warning by making departures rarer.
 
