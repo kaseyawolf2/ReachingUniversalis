@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
+
 ## Recently Done
 
 - [x] **Hauler retirement event** — In `TransportSystem.cpp`, veteran haulers (lifetimeTrips >= 20,
@@ -1155,8 +1157,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
 
 - [ ] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with `Profession::careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f` — frequent career changers are 20% more likely to migrate. Log "[Name] feels restless at [Settlement]." at 1-in-10 frequency when the lowered threshold triggers migration. Uses existing `careerChanges` field.
 
