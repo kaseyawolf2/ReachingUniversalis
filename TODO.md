@@ -9,6 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Strike grievance log** — In `ScheduleSystem.cpp`, when `strikeDuration` transitions from
+  0 to >0 (strike begins), log "Workers strike at [Settlement] — [N] workers walk out (morale:
+  XX%)." When strike ends (>0 to 0), log "[Settlement] strike ends — morale recovering."
+
 ## Recently Done
 
 - [x] **Friendship bonus on birth** — Parent's friends (affinity ≥ 0.5, same settlement) each boost morale +0.01 (max 2). Logs "[Friend] celebrates [Parent]'s new child." In `BirthSystem.cpp`.
@@ -1979,12 +1983,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Strike grievance log** — In `ScheduleSystem.cpp`, when `strikeDuration` transitions from
-  0 to >0 (strike begins), log "Workers strike at [Settlement] — [N] workers walk out (morale:
-  XX%)." Count affected NPCs by iterating the same HomeSettlement view used elsewhere. When the
-  strike ends (transition >0 to 0, already handled for morale recovery), log "[Settlement] strike
-  ends — morale recovering." This makes strikes a proper story beat rather than a silent mechanic.
 
 - [ ] **Morale-driven migration push** — In `AgentDecisionSystem.cpp`'s migration scoring, add a
   morale push factor. When the NPC's home settlement morale < 0.25, add +0.3 to migration score
