@@ -1392,6 +1392,7 @@ void SimThread::WriteSnapshot() {
         float contentSum = 0.f;
         int   contentN   = 0;
         float pendingEstates = 0.f;
+        int   masterCount = 0;
     };
     std::unordered_map<entt::entity, SettlAgg> settlAgg;
     // Single pass over all homed NPCs (excluding player)
@@ -1436,6 +1437,10 @@ void SimThread::WriteSnapshot() {
                         if (const auto* money = m_registry.try_get<Money>(e))
                             ag.pendingEstates += money->balance * 0.8f;
                     }
+                }
+                if (const auto* sk = m_registry.try_get<Skills>(e)) {
+                    if (sk->farming >= 0.9f || sk->water_drawing >= 0.9f || sk->woodcutting >= 0.9f)
+                        ++ag.masterCount;
                 }
             }
         });
@@ -1897,14 +1902,8 @@ void SimThread::WriteSnapshot() {
         if (settlAgg.count(e) && settlAgg[e].contentN > 0)
             moodScore = settlAgg[e].contentSum / settlAgg[e].contentN;
 
-        // Count masters (any skill ≥ 0.9) at this settlement
-        int masterCount = 0;
-        m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, BanditTag, Hauler>).each(
-            [&](const Skills& sk, const HomeSettlement& hs) {
-                if (hs.settlement == e &&
-                    (sk.farming >= 0.9f || sk.water_drawing >= 0.9f || sk.woodcutting >= 0.9f))
-                    ++masterCount;
-            });
+        // Master count from pre-computed aggregate
+        int masterCount = settlAgg.count(e) ? settlAgg[e].masterCount : 0;
 
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
