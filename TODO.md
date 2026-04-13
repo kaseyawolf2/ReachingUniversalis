@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Evening gathering density ring** — During hours 18–21, draw a faint translucent circle
+  around each settlement showing gathered NPC count. In `GameState::Draw`, count agents with
+  matching `homeSettlName`, draw `DrawCircleLinesV` scaled by pop/popCap. No new snapshot fields.
 
 ## Recently Done
 
