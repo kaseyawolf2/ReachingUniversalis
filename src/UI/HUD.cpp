@@ -1649,7 +1649,8 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     char lines[20][64];
     std::snprintf(lines[0],  64, "[F1] DEBUG OVERLAY");
     std::snprintf(lines[1],  64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
-    std::snprintf(lines[2],  64, "Sim steps/s:  %d", simSteps);
+    int desiredSteps = 60 * tickSpeed;
+    std::snprintf(lines[2],  64, "Sim steps/s:  %d / %d", simSteps, desiredSteps);
     std::snprintf(lines[3],  64, "Tick speed:   %dx%s", tickSpeed, paused ? " (PAUSED)" : "");
     std::snprintf(lines[4],  64, "Entities:     %d", entities);
     std::snprintf(lines[5],  64, "Population:   %d  Deaths: %d", pop, deaths);
