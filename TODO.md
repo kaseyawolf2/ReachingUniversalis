@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family grief on death** — In `DeathSystem`, when an NPC dies, scan for other NPCs with matching `FamilyTag::name`. Set a `float griefTimer = 4.f` (game-hours) on their `DeprivationTimer` (add the field). During grief, `AgentDecisionSystem` skips idle social actions (greeting, visiting) and drains morale by -0.05/game-hour on home settlement. Log "[Name] mourns the loss of [Dead]."
+
 
 ## Recently Done
+
+- [x] **Family grief on death** — griefTimer on DeprivationTimer set to 4 game-hours when family member dies. Skips greeting/visiting, drains settlement morale -0.05/game-hour. Log: "[Name] mourns the loss of [Dead]."
+
+
+
 
 - [x] **Settlement skill summary in stockpile panel** — "Top skill: [Type] (N masters, M journeymen)" in faint GOLD. masterCount[3]/journeymanCount[3] on StockpilePanel piped from WriteSnapshot.
 
@@ -1600,7 +1605,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   or ≥ 0.5. Pick the type with the most combined masters+journeymen. Gives players visibility into
   settlement specialisation at a glance.
 
-- [ ] **Family grief on death** — In `DeathSystem`, when an NPC dies, scan for other NPCs with
+- [x] **Family grief on death** — In `DeathSystem`, when an NPC dies, scan for other NPCs with
   matching `FamilyTag::name`. Set a `float griefTimer = 4.f` (game-hours) on their `DeprivationTimer`
   (add the field). During grief, `AgentDecisionSystem` skips idle social actions (greeting, visiting)
   and drains morale by -0.05/game-hour on home settlement. Log "[Name] mourns the loss of [Dead]."
@@ -1675,6 +1680,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
   ORANGE below the milestone line. Read from existing `AgentEntry::behavior` and skill fields.
   No new piping needed — purely a display check on already-piped data.
+
+- [ ] **Grief shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `griefTimer > 0`,
+  show "Grieving (Xh left)" in faint PURPLE. Pipe `bool isGrieving` through
+  `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot` (check `timer.griefTimer > 0`).
+  Add the bool, the width variable, and DrawText line following the existing tooltip pattern.
+
+- [ ] **Grief reduces work output** — In `ProductionSystem`'s worker contribution block, after the
+  contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
+  contribution by 0.5f (grieving workers produce at half rate). No new fields — reads existing
+  griefTimer. Creates a visible economic impact when family members die.
 
 ---
 
