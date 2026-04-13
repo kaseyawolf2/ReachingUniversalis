@@ -668,6 +668,40 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     float tripProfit = earned - tripCost;
                     hauler.lifetimeTrips++;
                     hauler.lifetimeProfit += tripProfit;
+
+                    // Route loyalty tracking
+                    {
+                        std::string rsrc = cargoSourceName.empty() ? "???" : cargoSourceName;
+                        std::string rdst = destSettl ? destSettl->name : "???";
+                        std::string currentRoute = rsrc + "\xe2\x86\x92" + rdst;  // UTF-8 →
+                        if (currentRoute == hauler.lastRoute) {
+                            hauler.consecutiveRouteCount++;
+                        } else {
+                            hauler.lastRoute = currentRoute;
+                            hauler.consecutiveRouteCount = 1;
+                        }
+                        if (hauler.consecutiveRouteCount == 5) {
+                            // Log once per hauler via static set
+                            static std::set<entt::entity> s_routeLoyaltyLogged;
+                            if (s_routeLoyaltyLogged.find(entity) == s_routeLoyaltyLogged.end()) {
+                                s_routeLoyaltyLogged.insert(entity);
+                                auto logVR = registry.view<EventLog>();
+                                auto tmVR  = registry.view<TimeManager>();
+                                if (!logVR.empty() && !tmVR.empty()) {
+                                    const auto& tmR = tmVR.get<TimeManager>(*tmVR.begin());
+                                    std::string haulerName = "Hauler";
+                                    if (auto* nm = registry.try_get<Name>(entity))
+                                        haulerName = nm->value;
+                                    char rbuf[180];
+                                    std::snprintf(rbuf, sizeof(rbuf),
+                                        "%s is a regular on the %s route",
+                                        haulerName.c_str(), currentRoute.c_str());
+                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf);
+                                }
+                            }
+                        }
+                    }
+
                     // Log loss-making trips
                     if (tripProfit < 0.f) {
                         auto logV3 = registry.view<EventLog>();
