@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Master NPC teaching bonus** — In `AgentDecisionSystem.cpp`'s skill growth block (once per game-day), when a master (skill ≥ 0.9) works at the same settlement as a non-master NPC of the same profession (`Profession::type`), the non-master gains +0.002 per game-day instead of +0.001. Uses `s_entitySettlement` cache to find same-settlement entities. Log "[Master] inspires [Learner]'s [skill] at [Settlement]." at 1-in-10 frequency when triggered.
+
 ## Recently Done
 
 - [x] **Skill specialisation title in tooltip** — Added `std::string specialisation` to `AgentEntry`.
@@ -981,8 +983,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Master NPC teaching bonus** — In `AgentDecisionSystem.cpp`'s skill growth block (once per game-day), when a master (skill ≥ 0.9) works at the same settlement as a non-master NPC of the same profession (`Profession::type`), the non-master gains +0.002 per game-day instead of +0.001. Uses `s_entitySettlement` cache to find same-settlement entities. Log "[Master] inspires [Learner]'s [skill] at [Settlement]." at 1-in-10 frequency when triggered.
 
 - [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
 
