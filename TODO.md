@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
+
 ## Recently Done
 
 - [x] **Master exodus warning** — When a migrating NPC has any skill ≥ 0.9, logs
@@ -1007,8 +1009,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
 
 - [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
 
