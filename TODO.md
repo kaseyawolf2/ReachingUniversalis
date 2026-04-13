@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Stagger thank-player and teach scans** — In `AgentDecisionSystem.cpp`'s thank-player block (~line 1553) and elder teach block, gate with `entity % 4 == s_frameCounter % 4`. These do per-NPC distance checks against the player or other NPCs every tick. Same 1/4 stagger pattern as grief/comfort/chat.
+
 ## Recently Done
 
 - [x] **Cache FindNearestFacility results per settlement** — Added static cache in
@@ -1067,8 +1069,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **Stagger thank-player and teach scans** — In `AgentDecisionSystem.cpp`'s thank-player block (~line 1553) and elder teach block, gate with `entity % 4 == s_frameCounter % 4`. These do per-NPC distance checks against the player or other NPCs every tick. Same 1/4 stagger pattern as grief/comfort/chat.
 
 - [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
