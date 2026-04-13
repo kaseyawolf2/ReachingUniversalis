@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
-
 ## Recently Done
+
+- [x] **Hauler route preference memory** — Added `loyalRoute` parameter to `FindBestRoute` in
+  `TransportSystem.cpp`. When `consecutiveRouteCount >= 5`, passes `lastRoute` for a +15% score
+  bonus. Stacks with existing +10% bestRoute bonus.
 
 - [x] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block,
   skilled workers (same profession, both skill ≥ 0.7) at the same facility have 1-in-20 chance
@@ -1169,6 +1171,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
 
 - [ ] **Wealth milestone tiers** — In `AgentDecisionSystem.cpp`'s wealthy celebration block, extend to track multiple thresholds (500g, 1000g, 2000g) using an `int wealthTier = 0` on `DeprivationTimer` (replace bool). Log different messages: "prosperous" at 500, "wealthy" at 1000, "a merchant prince" at 2000. Each tier fires once.
+
+- [ ] **Hauler loyalty log** — In `TransportSystem.cpp`'s `consecutiveRouteCount` tracking (around line 677), when a hauler reaches exactly `consecutiveRouteCount == 10`, log "[Name] has become a regular on the [lastRoute] route." at full frequency. At `consecutiveRouteCount == 20`, log "[Name] is a veteran of the [lastRoute] route." Uses existing `Name`, `Hauler::lastRoute`.
+
+- [ ] **Hauler route disruption event** — In `TransportSystem.cpp`'s idle evaluation, when a hauler with `consecutiveRouteCount >= 5` picks a *different* route (loyalty broken), log "[Name] abandons the [lastRoute] route for [newRoute]." at 1-in-3 frequency. Detect by comparing pre-trip `lastRoute` with the newly chosen route label. Creates narrative around hauler behaviour shifts.
 
 - [ ] **NPC work gossip about neighbours** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs both have `Profession` components, 1-in-4 chance one comments on the other's profession: log "[Name] asks [Name] about life as a [profession] at [Settlement]." If the listener has skill < 0.3 in that profession's matching skill, 1-in-3 chance to boost it by +0.01 (knowledge transfer through conversation). Uses existing `Skills`, `Profession`, `Relations`.
 
