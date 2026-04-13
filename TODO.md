@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Workplace best friend** — In `ScheduleSystem.cpp`'s shared workplace affinity block, track per-NPC the coworker they've accumulated the most `s_workAffinityGain` with via a new `entt::entity workBestFriend = entt::null` field on `Relations` in `Components.h`. Update when cumulative gain exceeds the current best friend's gain. In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with their `workBestFriend`, use `affinityGain = 0.03f` instead of `0.02f`. Log "[Name] catches up with work buddy [Other] at [Settlement]" at 1-in-8 frequency.
-
 ## Backlog
 
 - [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
@@ -73,7 +71,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
 
+- [ ] **Work buddy grief support** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter's `Relations::workBestFriend` equals the grieving NPC, double the comfort effectiveness (reduce `griefTimer` by 1.0 instead of 0.5) and boost mutual affinity by +0.03. Log "[Comforter] stays by work buddy [Griever]'s side at [Settlement]" at 1-in-5 frequency. Uses existing `workBestFriend` field. Creates deeper emotional support between coworkers.
+
+- [ ] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
+
 ## Recently Done
+
+- [x] **Workplace best friend** — Added `workBestFriend` to `Relations` in `Components.h`. Tracked in
+  `ScheduleSystem.cpp` via highest cumulative `s_workAffinityGain`. Idle chat with work buddy uses
+  affinityGain 0.03 instead of 0.02. Logs at 1-in-8.
 
 - [x] **Grief vigil gathering** — Pre-computes grieving NPCs per settlement. 3+ grieving simultaneously
   boosts mutual affinity +0.02 and logs vigil once per day. Uses `s_lastVigilDay` static map.
