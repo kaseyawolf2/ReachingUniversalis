@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Facility crowding log** — When 4+ NPCs arrive at the same `ProductionFacility` in
-  the same tick, log a flavour event. In `ProductionSystem.cpp`, count workers per facility.
-  When count exceeds 3 for the first time this game-day, push the log. Track last-logged day
-  with `static std::map<entt::entity, int>`.
+
 
 ## Recently Done
+
+- [x] **Facility crowding log** — workerHeadCount per settlement. When ≥4 workers, log "[Settlement] is crowded — N workers competing." once per game-day via static s_lastCrowdLog.
 
 - [x] **Evening gathering scatter** — Idle adult NPCs wander at 0.4× radius during hours 18–22 in ScheduleSystem, clustering near settlement centre.
 
@@ -1903,7 +1902,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Replace `s_radius(s_rng)` with `s_radius(s_rng) * 0.4f` during evening hours so NPCs
   cluster near home in the evening — visible as a loose gathering on the world map.
 
-- [ ] **Facility crowding log** — When 4+ NPCs arrive at the same `ProductionFacility` in
+- [x] **Facility crowding log** — When 4+ NPCs arrive at the same `ProductionFacility` in
   the same tick, log a flavour event: `"Greenfield farm is crowded — 5 workers competing."`.
   In `ProductionSystem.cpp`, count workers per facility (already iterated in
   `registry.view<Position, AgentState, HomeSettlement>`). When the worker count for a facility
@@ -3485,3 +3484,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   hours 18–22, double the greeting chance (reduce `greetCooldown` reset from current value to
   half) so NPCs who are clustered in the evening gathering actually interact more frequently.
   No new components — just scale the cooldown by 0.5 when `currentHour >= 18 && currentHour < 22`.
+
+- [ ] **Crowded settlement morale drain** — In `ProductionSystem.cpp`, after the crowding log
+  block, when `workerHeadCount[settl] >= 6` (severely crowded), apply a small morale penalty:
+  `settlement.morale -= 0.005f * gameHoursDt` (capped at 0). This gives overcrowded settlements
+  a subtle negative pressure that encourages migration. No gold changes — pure morale.
+
+- [ ] **Worker arrives early log** — In `ScheduleSystem.cpp`, when an NPC transitions from
+  Idle to Working at the start of their work shift, if their `needs.list[2].value > 0.9`
+  (well-rested), 10% chance to log "[Name] arrives at work bright and early." Pure flavour
+  using existing Name and Needs — no new components.
