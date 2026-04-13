@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Hauler rival route competition** — In `TransportSystem.cpp`'s route selection (`FindBestRoute`), when two haulers from the same home settlement pick the same route consecutively (track via static map of `(homeSettlement, route) → lastHaulerEntity`), decrease their `Relations::affinity` by 0.02 (floor 0.0). Log "[HaulerA] undercuts [HaulerB] on the [Route] route" at 1-in-5 frequency. Creates economic rivalry between competing haulers.
+
+## Backlog
 
 - [ ] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection block (GoingToDeposit), when a hauler detects a potential convoy partner, if `Relations::affinity >= 0.5` toward that partner, increase convoy detection range from 60 to 90 units. Log "[HaulerA] joins up with friend [HaulerB]" at 1-in-6 frequency. Makes social bonds influence trade logistics.
 
