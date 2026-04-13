@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
+
 ## Recently Done
 
 - [x] **Bandit proximity spatial cache** — Added file-scope `s_banditPositions` vector, populated
@@ -931,8 +933,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
 
 - [ ] **Bandit encounter deduplication** — In `AgentDecisionSystem::Update`'s bandit section (~line 2400+), the `banditsPerRoad` density-cap loop also iterates all roads per bandit to find the nearest. Reuse `s_banditPositions` and pre-compute road midpoints once per tick to avoid repeated `registry.get<Position>` on road endpoints.
 
