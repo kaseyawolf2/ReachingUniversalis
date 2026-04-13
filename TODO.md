@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Goal progress milestone log** — In `AgentDecisionSystem`'s goal system section, when
-  `progress` crosses 50% of `target` for the first time (add a `bool halfwayLogged` field to `Goal`
-  in Components.h), push a brief log: "Aldric is halfway to their savings goal (50/100g)." Set
-  `halfwayLogged = true` after firing. Reset it to `false` when a new goal is assigned. Gives
-  players a mid-goal feedback signal.
+
 
 ## Recently Done
+
+- [x] **Goal progress milestone log** — `halfwayLogged` bool on `Goal` struct. EventLog push at 50% progress with type-appropriate units. Reset on new goal assignment.
 
 - [x] **Goal shown in NPC tooltip** — `goalDescription` string piped through AgentEntry from Goal component. Shows "Goal: Save Gold (42/100g)" in dim SKYBLUE. Units adapt per goal type.
 
@@ -1844,7 +1842,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   In `HUD::DrawHoverTooltip` (HUD.cpp), render it as an extra line in dim SKYBLUE below the skill
   line. Lets the player see at a glance what each NPC is striving for.
 
-- [ ] **Goal progress milestone log** — In `AgentDecisionSystem`'s goal system section, when
+- [x] **Goal progress milestone log** — In `AgentDecisionSystem`'s goal system section, when
   `progress` crosses 50% of `target` for the first time (add a `bool halfwayLogged` field to `Goal`
   in Components.h), push a brief log: "Aldric is halfway to their savings goal (50/100g)." Set
   `halfwayLogged = true` after firing. Reset it to `false` when a new goal is assigned. Gives
@@ -3392,3 +3390,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   add `std::string goalSummary`. In `SimThread::WriteSnapshot`'s stockpile residents block, populate
   from `Goal` component as "Save Gold 42%" (progress/target * 100). In `RenderSystem::DrawStockpilePanel`,
   append goal summary in dim SKYBLUE after the existing resident line. Pure display — no gameplay effect.
+
+- [ ] **NPC congratulates goal completion** — In `AgentDecisionSystem`'s goal system section, when
+  a goal completes (just before `celebrateTimer = 2.f`), scan idle NPCs within 30u via
+  `registry.view<Position, AgentState>`. If any have `Relations::affinity >= 0.2` toward the
+  achiever, log "[Friend] congratulates [Achiever]!" and boost mutual affinity by +0.02. Max 2
+  congratulators per completion. Uses existing Relations component — no new structs.
+
+- [ ] **Milestone halfway shown in tooltip** — Add `bool halfwayReached = false` to
+  `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`, set it from `Goal::halfwayLogged`.
+  In `HUD::DrawHoverTooltip`, when `halfwayReached` is true and `goalDescription` is non-empty,
+  append a small "(50%+)" suffix in `Fade(GOLD, 0.5f)` after the goal line. Pure display indicator.
