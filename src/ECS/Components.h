@@ -172,6 +172,7 @@ struct DeprivationTimer {
     bool                 wealthCelebrated     = false; // true once NPC's balance crosses 500g (one-time event)
     float                begTimer             = 0.f;  // game-hours until NPC can beg from a friend again (0 = ready)
     float                homesickTimer        = 0.f;  // game-hours since migration arrival; triggers return when > 72h and low satisfaction
+    bool                 masterSettled        = false; // true once any skill reaches 0.9; permanently boosts migrateThreshold
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

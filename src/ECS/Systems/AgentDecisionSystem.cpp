@@ -448,6 +448,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             break;
                         default: break;
                     }
+                    // Master retention: mark NPC as settled master when any skill reaches 0.9
+                    if (!registry.all_of<Hauler>(e)) {
+                        if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
+                            if (!dt->masterSettled && (sk.farming >= MASTER_THRESHOLD ||
+                                sk.water_drawing >= MASTER_THRESHOLD || sk.woodcutting >= MASTER_THRESHOLD))
+                                dt->masterSettled = true;
+                        }
+                    }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
                     float preFarm = sk.farming, preWater = sk.water_drawing, preWood = sk.woodcutting;
                     if (prof.type != ProfessionType::Farmer)
@@ -974,8 +982,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
 
         // -- Check migration trigger first --
-        // NPCs in a plague settlement are more fearful and migrate at half the normal threshold.
         float effectiveMigrateThreshold = timer.migrateThreshold;
+        // Master retention: masters need 50% more scarcity to migrate.
+        if (timer.masterSettled)
+            effectiveMigrateThreshold *= 1.5f;
+        // NPCs in a plague settlement are more fearful and migrate at half the normal threshold.
         if (const auto* hs = registry.try_get<Settlement>(home.settlement))
             if (hs->modifierName == "Plague")
                 effectiveMigrateThreshold *= 0.50f;
