@@ -866,6 +866,32 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showSkill = true;
     }
 
+    // Skill milestone title: "Journeyman [Type]" at ≥0.5, "Master [Type]" at ≥0.9
+    char milestoneLine[48] = {};
+    Color milestoneColor = Fade(GOLD, 0.7f);
+    bool showMilestone = false;
+    if (best->farmingSkill >= 0.f) {
+        float bestSk = -1.f;
+        const char* bestType = "";
+        struct { float val; const char* name; } skills[] = {
+            { best->farmingSkill, "Farmer" },
+            { best->waterSkill, "Water Carrier" },
+            { best->woodcuttingSkill, "Woodcutter" }
+        };
+        for (auto& s : skills) {
+            if (s.val > bestSk) { bestSk = s.val; bestType = s.name; }
+        }
+        if (bestSk >= 0.9f) {
+            std::snprintf(milestoneLine, sizeof(milestoneLine), "Master %s", bestType);
+            milestoneColor = Fade(GOLD, 0.9f);
+            showMilestone = true;
+        } else if (bestSk >= 0.5f) {
+            std::snprintf(milestoneLine, sizeof(milestoneLine), "Journeyman %s", bestType);
+            milestoneColor = Fade(GOLD, 0.6f);
+            showMilestone = true;
+        }
+    }
+
     // Mood comment based on contentment
     char moodLine[32] = {};
     Color moodColor = WHITE;
@@ -891,8 +917,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showCharity)  lineCount++;
     if (showBandit)   lineCount++;
     if (showStrike)   lineCount++;
-    if (showSkill)    lineCount++;
-    if (showMood)     lineCount++;
+    if (showSkill)     lineCount++;
+    if (showMilestone) lineCount++;
+    if (showMood)      lineCount++;
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
     if (showHarvest)  lineCount++;
@@ -939,7 +966,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int whm = showHomeMorale ? MeasureText(homeMoraleLine, 11) : 0;
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
     int wmd = showMood ? MeasureText(moodLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd}) + 10;
+    int wml = showMilestone ? MeasureText(milestoneLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -997,6 +1025,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showRumour)   { DrawText(rumourLine,                   tx, ly, 11, Fade(YELLOW, 0.6f));    ly += 16; }
     if (showHarvest)  { DrawText("Good harvest bonus",          tx, ly, 11, Fade(GOLD, 0.6f));     ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
+    if (showMilestone) { DrawText(milestoneLine, tx, ly, 11, milestoneColor); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);
