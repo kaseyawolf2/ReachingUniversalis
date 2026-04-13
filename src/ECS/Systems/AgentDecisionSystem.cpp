@@ -1038,6 +1038,27 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Master exodus warning: losing a master hurts the settlement ----
+                if (skills) {
+                    const char* masterSkill = nullptr;
+                    if (skills->farming >= 0.9f)       masterSkill = "farming";
+                    else if (skills->water_drawing >= 0.9f) masterSkill = "water-drawing";
+                    else if (skills->woodcutting >= 0.9f)   masterSkill = "woodcutting";
+                    if (masterSkill) {
+                        auto lv3 = registry.view<EventLog>();
+                        if (!lv3.empty()) {
+                            auto& tmE = registry.view<TimeManager>().get<TimeManager>(
+                                *registry.view<TimeManager>().begin());
+                            std::string who = "NPC";
+                            if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                            std::string from = "settlement";
+                            if (auto* s = registry.try_get<Settlement>(home.settlement)) from = s->name;
+                            lv3.get<EventLog>(*lv3.begin()).Push(tmE.day, (int)tmE.hourOfDay,
+                                who + ", a master " + masterSkill + ", leaves " + from + ".");
+                        }
+                    }
+                }
+
                 // ---- Friend co-migration: best friend (highest affinity ≥ 0.5) follows if they also want to migrate ----
                 if (const auto* rel = registry.try_get<Relations>(entity)) {
                     entt::entity bestFriend = entt::null;
