@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder wisdom fading on death** — In `DeathSystem.cpp`'s death handler, when an elder (age > 60) with skill >= 0.8 dies, scan NPCs at the same settlement with `Relations::affinity >= 0.6` toward the deceased. For each, log "[NPC] mourns the loss of [Elder]'s guidance at [Settlement]" at 1-in-3 frequency and apply a one-time `growth -= 0.0002f` penalty for 3 days via a new `float wisdomGriefDays = 0.f` field on `Skills` in `Components.h`. In `AgentDecisionSystem.cpp`'s skill growth block, tick down and apply the penalty. Represents the knowledge gap left by a skilled elder's passing.
-
 ## Backlog
 
 - [ ] **Elder council influence on settlement decisions** — In `ConstructionSystem.cpp`'s facility-building block, count elders (age > 60) with skill >= 0.7 at the settlement. When 2+ skilled elders are present, reduce facility build cost by 10% (round down). Log "[Settlement]'s elders guide the construction effort" at 1-in-5 frequency. Uses existing `Age`, `Skills`, `HomeSettlement` components. Represents accumulated wisdom reducing waste.
@@ -61,7 +59,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
+- [ ] **Wisdom lineage tracking** — In `DeathSystem.cpp`'s elder wisdom fading block, when `wisdomGriefDays` is applied to a mourner, also set a new `entt::entity wisdomLineage = entt::null` field on `Skills` in `Components.h` to the deceased elder's entity (for narrative tracking). In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with `wisdomLineage != entt::null` crosses skill >= 0.8, log "[NPC] carries on [Elder]'s legacy at [Settlement]" at full frequency and clear the field. Creates a narrative thread connecting elder deaths to future mastery.
+
+- [ ] **Mourning procession movement** — In `AgentDecisionSystem.cpp`'s grief block, when 3+ NPCs at the same settlement have `wisdomGriefDays > 0` simultaneously, set their `AgentState::behavior = Celebrating` (repurposed as gathering) for 1 game-hour and move them toward the settlement center. Log "[Settlement] gathers to honour [Elder]'s memory" once per elder death via `static std::set<entt::entity> s_honouredElders`. Boosts mutual affinity +0.02 among participants. Creates a visible group mourning event.
+
+- [ ] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
+
 ## Recently Done
+
+- [x] **Elder wisdom fading on death** — In `DeathSystem.cpp`, when an elder (age>60, skill>=0.8)
+  dies, NPCs at the same settlement with affinity>=0.6 get `wisdomGriefDays = 3.f` on `Skills`.
+  `AgentDecisionSystem.cpp` ticks down and applies `growth -= 0.0002f` while active. Logs at 1-in-3.
 
 - [x] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block,
   after each donation, all NPCs at the settlement gain +0.01 affinity toward the donor. Logs reputation
