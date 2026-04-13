@@ -760,6 +760,42 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                               who.c_str(), prideProfName, where.c_str());
                                 logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
                             }
+                            // Profession pride jealousy: nearby same-profession NPCs with skill 0.6–0.79 may envy
+                            if (hs.settlement != entt::null) {
+                                registry.view<Profession, Skills, HomeSettlement, Relations>(
+                                    entt::exclude<ChildTag, PlayerTag, BanditTag>).each(
+                                    [&](auto jealousE, const Profession& jPr, const Skills& jSk,
+                                        const HomeSettlement& jHs, Relations& jRel) {
+                                        if (jealousE == e) return;
+                                        if (jHs.settlement != hs.settlement) return;
+                                        if (jPr.type != prof.type) return;
+                                        float jSkill = 0.f;
+                                        switch (jPr.type) {
+                                            case ProfessionType::Farmer:      jSkill = jSk.farming; break;
+                                            case ProfessionType::WaterCarrier: jSkill = jSk.water_drawing; break;
+                                            case ProfessionType::Lumberjack:   jSkill = jSk.woodcutting; break;
+                                            default: break;
+                                        }
+                                        if (jSkill < 0.6f || jSkill >= 0.8f) return;
+                                        // 1-in-4 chance to feel jealousy
+                                        if (s_teachRng() % 4 != 0) return;
+                                        jRel.affinity[e] = std::max(0.f, jRel.affinity[e] - 0.01f);
+                                        // Log at 1-in-6 frequency
+                                        if (s_teachRng() % 6 == 0 && !logV2.empty()) {
+                                            std::string jName = "An NPC";
+                                            if (const auto* nm = registry.try_get<Name>(jealousE)) jName = nm->value;
+                                            std::string mName = "a master";
+                                            if (const auto* nm = registry.try_get<Name>(e)) mName = nm->value;
+                                            std::string where2 = "settlement";
+                                            if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                                where2 = s->name;
+                                            char jbuf[180];
+                                            std::snprintf(jbuf, sizeof(jbuf), "%s envies %s's skill at %s",
+                                                          jName.c_str(), mName.c_str(), where2.c_str());
+                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, jbuf);
+                                        }
+                                    });
+                            }
                         }
                     }
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
