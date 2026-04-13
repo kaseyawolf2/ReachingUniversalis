@@ -394,6 +394,29 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                             tmRef2.day, (int)tmRef2.hourOfDay, msg2);
                                     }
                                 }
+                                // Skill transfer: experienced workers carry knowledge to new careers
+                                if (auto* sk = registry.try_get<Skills>(entity)) {
+                                    // Check old profession's skill level
+                                    float oldSkill = 0.f;
+                                    switch (prof->type) {
+                                        case ProfessionType::Farmer:      oldSkill = sk->farming; break;
+                                        case ProfessionType::WaterCarrier: oldSkill = sk->water_drawing; break;
+                                        case ProfessionType::Lumberjack:   oldSkill = sk->woodcutting; break;
+                                        default: break;
+                                    }
+                                    if (oldSkill >= 0.5f) {
+                                        // Grant +0.05 to the new profession's skill (capped at 0.5)
+                                        switch (newProf) {
+                                            case ProfessionType::Farmer:
+                                                sk->farming = std::min(0.5f, sk->farming + 0.05f); break;
+                                            case ProfessionType::WaterCarrier:
+                                                sk->water_drawing = std::min(0.5f, sk->water_drawing + 0.05f); break;
+                                            case ProfessionType::Lumberjack:
+                                                sk->woodcutting = std::min(0.5f, sk->woodcutting + 0.05f); break;
+                                            default: break;
+                                        }
+                                    }
+                                }
                                 prof->prevType = prof->type;
                                 prof->type = newProf;
                             }
