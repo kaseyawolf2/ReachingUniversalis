@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), after applying drought, scan all NPCs at the settlement via `Relations`. For each pair with affinity ≥ 0.3, boost mutual affinity by +0.03 (cap 1.0). Log "[Settlement] residents pull together during the drought" once per drought. Shared hardship strengthens community bonds.
+
+## Backlog
 
 - [ ] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block, before the NPC leaves, scan `Relations::affinity` for friends (≥ 0.5) at the old settlement. For each friend, decrease both sides' affinity by 0.1 (floor 0.0) to represent distance strain. Log "[Migrant] says goodbye to [Friend] at [Settlement]" at 1-in-3 frequency per friend. Uses existing migration and Relations infrastructure.
 
