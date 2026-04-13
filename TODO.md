@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
-
 ## Recently Done
+
+- [x] **Skill rust from inactivity** — Added -0.0005/day decay for skills not matching the NPC's
+  current profession, floored at 0.3. Applied in the once-per-day skill growth block after
+  profession-specific growth. Makes career changes gradually cost accumulated expertise.
+
+
 
 - [x] **Profession change event log** — Added `ProfessionType prevType` to `Profession` struct.
   In `ScheduleSystem.cpp`, when a working NPC arrives at a facility of a different resource type,
@@ -1003,6 +1007,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
 
 - [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
+
+- [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
+
+- [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
 
 - [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
