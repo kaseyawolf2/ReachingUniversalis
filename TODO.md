@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
-
 ## Backlog
 
 - [ ] **Hauler rival route competition** — In `TransportSystem.cpp`'s route selection (`FindBestRoute`), when two haulers from the same home settlement pick the same route consecutively (track via static map of `(homeSettlement, route) → lastHaulerEntity`), decrease their `Relations::affinity` by 0.02 (floor 0.0). Log "[HaulerA] undercuts [HaulerB] on the [Route] route" at 1-in-5 frequency. Creates economic rivalry between competing haulers.
@@ -51,7 +49,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Lonely migrant morale drain** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (all friends are elsewhere), apply -0.005 to home `Settlement::morale` per game-day via a `static std::set<entt::entity> s_lonelyChecked` per-day guard. Log "[Name] feels lonely at [Settlement]" at 1-in-10 frequency. Creates a visible cost of social isolation after migration.
 
+- [ ] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
+
+- [ ] **Seasonal work shanty** — In `ScheduleSystem.cpp`'s work song block, check `TimeManager::season`. During harvest season (`Season::Autumn`), increase the work song chance from 1-in-30 to 1-in-15 (more singing during busy harvest). During winter (`Season::Winter`), boost the affinity gain from +0.01 to +0.02 (huddling together). Log variant: "[Name] leads a harvest shanty" (autumn) or "[Name] leads a fireside song" (winter). Uses existing `TimeManager` season field.
+
 ## Recently Done
+
+- [x] **NPC work song** — In `ScheduleSystem.cpp`'s working block, 3+ same-profession NPCs within
+  WORK_ARRIVE of a facility have 1-in-30 chance per hour to trigger a work song. Boosts all coworkers'
+  mutual affinity by +0.01 (cap 1.0). Logs work song event.
 
 - [x] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block,
   scans all friends (affinity >= 0.5) at the old settlement, decreases both sides' affinity by 0.1
