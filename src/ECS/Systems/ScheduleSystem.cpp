@@ -106,7 +106,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     entt::exclude<Hauler, PlayerTag>);
 
     for (auto entity : view) {
-        const auto& sched = view.get<Schedule>(entity);
+        auto& sched = view.get<Schedule>(entity);
         auto& state = view.get<AgentState>(entity);
         auto& pos   = view.get<Position>(entity);
         auto& vel   = view.get<Velocity>(entity);
@@ -226,6 +226,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                 state.behavior = AgentBehavior::Sleeping;
                 state.target   = home.settlement;
                 vel.vx = vel.vy = 0.f;
+                sched.consecutiveWorkHours = 0;
             }
 
             // Walk slowly toward settlement centre
@@ -291,6 +292,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
         // ---- Clear Working when outside work hours ----
         if (!workTime && state.behavior == AgentBehavior::Working) {
             state.behavior = AgentBehavior::Idle;
+            sched.consecutiveWorkHours = 0;
+        }
+
+        // ---- Track consecutive work hours for overwork penalty ----
+        if (hourChanged && state.behavior == AgentBehavior::Working) {
+            sched.consecutiveWorkHours++;
         }
 
         // ---- Move Working NPCs toward their skill-matched facility in their settlement ----

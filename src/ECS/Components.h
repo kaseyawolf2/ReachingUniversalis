@@ -272,6 +272,7 @@ struct Schedule {
     int workEnd   = 17;
     int sleepHour = 22;
     bool fatigued = false;   // energy < 0.2 while working → production penalty
+    int consecutiveWorkHours = 0;  // hours worked without sleep/idle — overwork penalty at ≥10
 };
 
 // ---- Rendering ----

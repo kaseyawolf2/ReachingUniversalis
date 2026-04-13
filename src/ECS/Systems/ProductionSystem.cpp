@@ -100,9 +100,12 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 workerContrib = std::min(2.0f, workerContrib);  // cap per-elder contribution
             }
             // Track fatigue: fatigued workers produce at 80% rate
+            // Overworked penalty: 10+ consecutive hours → 85% rate
             if (const auto* sched = registry.try_get<Schedule>(e)) {
                 if (sched->fatigued)
                     workerContrib *= 0.8f;
+                if (sched->consecutiveWorkHours >= 10)
+                    workerContrib *= 0.85f;
             }
             // Contentment factor: unhappy NPCs produce less
             if (const auto* needs = registry.try_get<Needs>(e)) {
