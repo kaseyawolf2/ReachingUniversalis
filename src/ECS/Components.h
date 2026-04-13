@@ -106,6 +106,7 @@ struct Settlement {
     std::string  rivalWith;              // name of rival settlement (empty = no rivalry)
     float        rivalryTimer = 0.f;     // game-hours remaining on rivalry effect
     entt::entity rivalEntity = entt::null;  // entity of rival settlement
+    float        afterglowHours = 0.f;  // game-hours of post-festival morale afterglow (halves drift)
 };
 
 struct Stockpile {

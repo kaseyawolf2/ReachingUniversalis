@@ -63,17 +63,27 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                 s.modifierDuration   = 0.f;
                 s.productionModifier = 1.f;
                 bool wasPlague = (s.modifierName == "Plague");
+                bool wasFestival = (s.modifierName == "Festival" || s.modifierName == "Harvest Festival");
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
                         s.modifierName + " ends at " + s.name +
                         (wasPlague ? " — plague contained" : " — production restored"));
+                // Post-festival afterglow: morale drift halved for 12 game-hours
+                if (wasFestival)
+                    s.afterglowHours = 12.f;
                 s.modifierName.clear();
                 if (wasPlague) m_plagueSpreadTimer.erase(e);
             }
         }
 
+        // Tick down post-festival afterglow
+        if (s.afterglowHours > 0.f)
+            s.afterglowHours = std::max(0.f, s.afterglowHours - gameHoursDt);
+
         // Morale drifts toward 0.5 baseline at ±0.5% per game-hour (slow, organic recovery)
-        float drift = (0.5f - s.morale) * 0.005f * gameHoursDt;
+        // During afterglow, drift is halved to preserve festival morale boost longer.
+        float driftRate = (s.afterglowHours > 0.f) ? 0.0025f : 0.005f;
+        float drift = (0.5f - s.morale) * driftRate * gameHoursDt;
         s.morale = std::max(0.f, std::min(1.f, s.morale + drift));
 
         // Trade volume counter: reset every 24 game-hours
