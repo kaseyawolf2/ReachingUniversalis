@@ -833,6 +833,44 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Hauler convoy camaraderie ----
+                // Haulers who arrived in convoy bond over the shared journey.
+                if (hauler.inConvoy) {
+                    static std::mt19937 s_convoyRng{std::random_device{}()};
+                    registry.view<Hauler, HomeSettlement, Position>(entt::exclude<PlayerTag>).each(
+                        [&](auto other, const Hauler& otherH, const HomeSettlement&, const Position& oPos) {
+                            if (other == entity) return;
+                            if (otherH.targetSettlement != hauler.targetSettlement) return;
+                            if (!otherH.inConvoy) return;
+                            // Must be near the destination (just arrived)
+                            float dx = oPos.x - pos.x, dy = oPos.y - pos.y;
+                            if (dx*dx + dy*dy > 80.f * 80.f) return;
+                            // Boost mutual affinity
+                            if (auto* rel = registry.try_get<Relations>(entity))
+                                rel->affinity[other] = std::min(1.f, rel->affinity[other] + 0.04f);
+                            if (auto* oRel = registry.try_get<Relations>(other))
+                                oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.04f);
+                            // Log at 1-in-4 frequency
+                            if (s_convoyRng() % 4 == 0) {
+                                auto logVC = registry.view<EventLog>();
+                                auto tmVC  = registry.view<TimeManager>();
+                                if (!logVC.empty() && !tmVC.empty()) {
+                                    const auto& tmC = tmVC.get<TimeManager>(*tmVC.begin());
+                                    std::string n1 = "A hauler", n2 = "another hauler";
+                                    if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                    if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
+                                    std::string dest = "settlement";
+                                    if (destSettl) dest = destSettl->name;
+                                    char cbuf[180];
+                                    std::snprintf(cbuf, sizeof(cbuf),
+                                        "%s and %s share a drink after their convoy to %s",
+                                        n1.c_str(), n2.c_str(), dest.c_str());
+                                    logVC.get<EventLog>(*logVC.begin()).Push(tmC.day, (int)tmC.hourOfDay, cbuf);
+                                }
+                            }
+                        });
+                }
+
                 inv.contents.clear();
 
                 // Return-trip opportunism: check if destination has profitable goods to
