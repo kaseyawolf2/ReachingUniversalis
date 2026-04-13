@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, check if any existing residents have `Relations::affinity > 0.3` with them. If so, boost both parties' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-2 frequency.
+
 ## Recently Done
 
 - [x] **Trade gift between friends** — NPCs with `Relations::affinity ≥ 0.6` at the same settlement
@@ -773,8 +775,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, check if any existing residents have `Relations::affinity > 0.3` with them. If so, boost both parties' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-2 frequency.
 
 - [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
 
