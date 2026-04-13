@@ -1663,6 +1663,10 @@ void SimThread::WriteSnapshot() {
         else if (woodSkill >= 0.9f) specTitle = "Master Lumberjack";
         else if (farmSkill >= 0.4f && waterSkill >= 0.4f && woodSkill >= 0.4f)
             specTitle = "Generalist";
+        else if (npcCareerChanges >= 2 &&
+                 (farmSkill >= 0.6f || waterSkill >= 0.6f || woodSkill >= 0.6f)) {
+            specTitle = "Veteran " + profession;
+        }
 
         // Reputation snapshot
         float reputationScore = 0.f;
