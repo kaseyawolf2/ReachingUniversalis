@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
+
 ## Recently Done
 
 - [x] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, counts mutual friendship
