@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
-
 ## Backlog
 
 - [ ] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, when two haulers travel in convoy (`inConvoy == true`) and complete delivery at the same settlement, boost their `Relations::affinity` by +0.04 (cap 1.0). Log "[HaulerA] and [HaulerB] share a drink after their convoy to [Settlement]" at 1-in-4 frequency. Uses existing `Hauler::inConvoy` flag and `Relations` component.
@@ -29,7 +27,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), after applying drought, scan all NPCs at the settlement via `Relations`. For each pair with affinity ≥ 0.3, boost mutual affinity by +0.03 (cap 1.0). Log "[Settlement] residents pull together during the drought" once per drought. Shared hardship strengthens community bonds.
 
+- [ ] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block, before the NPC leaves, scan `Relations::affinity` for friends (≥ 0.5) at the old settlement. For each friend, decrease both sides' affinity by 0.1 (floor 0.0) to represent distance strain. Log "[Migrant] says goodbye to [Friend] at [Settlement]" at 1-in-3 frequency per friend. Uses existing migration and Relations infrastructure.
+
+- [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
+
 ## Recently Done
+
+- [x] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, during
+  Harvest Festival affinity gain doubles from +0.02 to +0.04. Logs "[Name] and [Other] bond over
+  the festival at [Settlement]" at 1-in-6 frequency. Checks `Settlement::modifierName`.
 
 - [x] **Post-festival morale afterglow** — Added `float afterglowHours = 0.f` to `Settlement` in
   `Components.h`. In `RandomEventSystem.cpp`, when Festival/Harvest Festival expires, sets
