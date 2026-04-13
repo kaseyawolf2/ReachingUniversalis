@@ -237,8 +237,22 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                     onStrike = true;
                 } else {
                     // Strike just ended — nudge home settlement morale up
-                    if (auto* sett = registry.try_get<Settlement>(home.settlement))
+                    if (auto* sett = registry.try_get<Settlement>(home.settlement)) {
                         sett->morale = std::min(1.f, sett->morale + 0.05f);
+                        // Log strike end once per settlement per tick
+                        static std::map<entt::entity, int> s_strikeEndLogged;
+                        if (s_strikeEndLogged[home.settlement] != tm.day * 100 + hour) {
+                            s_strikeEndLogged[home.settlement] = tm.day * 100 + hour;
+                            auto logv = registry.view<EventLog>();
+                            if (!logv.empty()) {
+                                char buf[128];
+                                std::snprintf(buf, sizeof(buf),
+                                    "%s strike ends \xe2\x80\x94 morale recovering (%d%%).",
+                                    sett->name.c_str(), (int)(sett->morale * 100));
+                                logv.get<EventLog>(*logv.begin()).Push(tm.day, hour, buf);
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -283,10 +283,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                     });
 
                 if (log && strikerCount > 0) {
-                    char buf[100];
+                    char buf[140];
                     std::snprintf(buf, sizeof(buf),
-                        "WORK STOPPAGE at %s — %d workers downed tools (%dh)",
-                        s.name.c_str(), strikerCount, (int)STRIKE_DURATION_HOURS);
+                        "Workers strike at %s \xe2\x80\x94 %d workers walk out (morale: %d%%)",
+                        s.name.c_str(), strikerCount, (int)(s.morale * 100));
                     log->Push(tm.day, (int)tm.hourOfDay, buf);
                 }
             }
