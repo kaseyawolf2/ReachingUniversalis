@@ -11,8 +11,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Backlog
 
-- [ ] **Grief vigil gathering** — In `AgentDecisionSystem.cpp`'s grief block (where `isGrieving` is set), when 3+ NPCs at the same settlement are grieving simultaneously, log "[Settlement] holds a vigil for the fallen" once per grief cluster (track via `static std::map<entt::entity, int> s_lastVigilDay`). Boost all grieving NPCs' mutual `Relations::affinity` by +0.02 (cap 1.0) on top of the pairwise shared grief boost. Represents communal mourning rituals.
-
 - [ ] **Workplace best friend** — In `ScheduleSystem.cpp`'s shared workplace affinity block, track per-NPC the coworker they've accumulated the most `s_workAffinityGain` with via a new `entt::entity workBestFriend = entt::null` field on `Relations` in `Components.h`. Update when cumulative gain exceeds the current best friend's gain. In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with their `workBestFriend`, use `affinityGain = 0.03f` instead of `0.02f`. Log "[Name] catches up with work buddy [Other] at [Settlement]" at 1-in-8 frequency.
 
 - [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
@@ -71,7 +69,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
 
+- [ ] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
+
+- [ ] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
+
 ## Recently Done
+
+- [x] **Grief vigil gathering** — Pre-computes grieving NPCs per settlement. 3+ grieving simultaneously
+  boosts mutual affinity +0.02 and logs vigil once per day. Uses `s_lastVigilDay` static map.
 
 - [x] **Grief-born friendship persistence** — Added `lastGriefDay` to `DeprivationTimer`. Set in
   `DeathSystem.cpp` when grief starts. In idle chat, both grieving within 5 days + affinity>=0.6
