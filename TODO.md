@@ -11,8 +11,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Backlog
 
-- [ ] **Nostalgic elder homesickness resistance** — In `AgentDecisionSystem.cpp`'s migration trigger block, elders (age > 60) with `Relations::affinity >= 0.5` toward 3+ NPCs at their current settlement get `effectiveMigrateThreshold *= 1.5f` (harder to uproot). Log "[Elder] has too many bonds to leave [Settlement]" at 1-in-8 frequency when migration is suppressed. Uses existing Relations scan. Keeps experienced elders rooted in their communities.
-
 - [ ] **Grief-born friendship persistence** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who previously bonded through shared grief (both have `Relations::affinity >= 0.6` AND both had `griefTimer > 0` within the last 5 game-days — track via a new `float lastGriefDay = -1.f` field on `DeprivationTimer` in `Components.h`, set when grief starts) chat idly, use `affinityGain = 0.03f` instead of the normal `0.02f`. Log "[Name] and [Other] share a knowing look at [Settlement]" at 1-in-8 frequency. Represents grief-forged bonds being deeper.
 
 - [ ] **Grief vigil gathering** — In `AgentDecisionSystem.cpp`'s grief block (where `isGrieving` is set), when 3+ NPCs at the same settlement are grieving simultaneously, log "[Settlement] holds a vigil for the fallen" once per grief cluster (track via `static std::map<entt::entity, int> s_lastVigilDay`). Boost all grieving NPCs' mutual `Relations::affinity` by +0.02 (cap 1.0) on top of the pairwise shared grief boost. Represents communal mourning rituals.
@@ -67,7 +65,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
 
+- [ ] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
+
+- [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
+
 ## Recently Done
+
+- [x] **Nostalgic elder homesickness resistance** — In `AgentDecisionSystem.cpp`, elders (age>60) with
+  3+ friends (affinity>=0.5) at their settlement get 1.5x migration threshold. Logs at 1-in-8.
 
 - [x] **Elder council influence on settlement decisions** — In `ConstructionSystem.cpp`, settlements
   with 2+ skilled elders (age>60, skill>=0.7) get 10% facility build cost reduction. Logs at 1-in-5.
