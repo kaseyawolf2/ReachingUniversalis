@@ -1,3 +1,5 @@
 .vs
 .gitignore
 build/
+benchmark_history.csv
+benchmark_report.txt
