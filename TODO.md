@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Road safety indicator in road tooltip** — Add `int banditCount = 0` to
+  `RenderSnapshot::RoadEntry`. In `WriteSnapshot`, count `BanditTag` entities whose nearest road
+  is this road (use a simple proximity check: within 80 units of the midpoint). In
+  `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
+  meaningful route-safety information.
 
 
 
