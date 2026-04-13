@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block, before the NPC leaves, scan `Relations::affinity` for friends (≥ 0.5) at the old settlement. For each friend, decrease both sides' affinity by 0.1 (floor 0.0) to represent distance strain. Log "[Migrant] says goodbye to [Friend] at [Settlement]" at 1-in-3 frequency per friend. Uses existing migration and Relations infrastructure.
-
 ## Backlog
 
 - [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
@@ -49,7 +47,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Post-crisis community gathering** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration` reaches 0), when a "Drought" or "Plague" modifier expires, scan all NPC pairs at the settlement and boost mutual `Relations::affinity` by +0.02 for pairs with affinity >= 0.2 (cap 1.0). Log "[Settlement] celebrates surviving the [crisis]" once. Represents relief and community strengthening after hardship ends.
 
+- [ ] **Migration letter home** — In `AgentDecisionSystem.cpp`'s migration arrival block (where NPC arrives at new settlement), for each friend from the old settlement whose affinity dropped below 0.5 due to farewell strain, add +0.03 affinity recovery to both sides (cap at pre-farewell - 0.05). Track via a new `entt::entity previousSettlement = entt::null` field on `HomeSettlement` in `Components.h` (set before reassignment). Log "[Migrant] sends word back to [Friend]" at 1-in-4 frequency. Partially offsets farewell strain for strong bonds.
+
+- [ ] **Lonely migrant morale drain** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (all friends are elsewhere), apply -0.005 to home `Settlement::morale` per game-day via a `static std::set<entt::entity> s_lonelyChecked` per-day guard. Log "[Name] feels lonely at [Settlement]" at 1-in-10 frequency. Creates a visible cost of social isolation after migration.
+
 ## Recently Done
+
+- [x] **Friend farewell on migration** — In `AgentDecisionSystem.cpp`'s migration departure block,
+  scans all friends (affinity >= 0.5) at the old settlement, decreases both sides' affinity by 0.1
+  (floor 0.0). Logs farewell message at 1-in-3 per friend. Represents distance strain.
 
 - [x] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), NPC pairs at the
   settlement with mutual `Relations::affinity >= 0.3` get +0.03 boost (cap 1.0). Logs solidarity message
