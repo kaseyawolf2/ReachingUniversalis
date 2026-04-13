@@ -43,6 +43,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     // Also count elders (age > 60) at their home settlement for the wisdom/experience bonus.
     struct SkillAccum { float sum = 0.f; int count = 0; };
     std::map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
+    std::map<entt::entity, int>   workerHeadCount; // integer count for crowding detection
     std::map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::map<entt::entity, std::array<SkillAccum, 3>> skillData;
@@ -109,6 +110,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                     workerContrib *= 0.5f;
             }
             workers[hs.settlement] += workerContrib;
+            workerHeadCount[hs.settlement]++;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
                 arr[0].sum += skills->farming;       arr[0].count++;
@@ -116,6 +118,32 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 arr[2].sum += skills->woodcutting;   arr[2].count++;
             }
         });
+
+    // ---- Facility crowding log ----
+    // Log once per settlement per game-day when 4+ workers are competing.
+    {
+        static std::map<entt::entity, int> s_lastCrowdLog;
+        auto logView = registry.view<EventLog>();
+        EventLog* crowdLog = (logView.begin() != logView.end())
+                             ? &logView.get<EventLog>(*logView.begin()) : nullptr;
+        for (const auto& [settl, count] : workerHeadCount) {
+            if (count < 4) continue;
+            if (s_lastCrowdLog.count(settl) && s_lastCrowdLog[settl] == tm.day) continue;
+            s_lastCrowdLog[settl] = tm.day;
+            if (crowdLog) {
+                std::string settName = "A settlement";
+                if (const auto* s = registry.try_get<Settlement>(settl))
+                    settName = s->name;
+                char buf[120];
+                std::snprintf(buf, sizeof(buf), "%s is crowded — %d workers competing.",
+                              settName.c_str(), count);
+                crowdLog->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+        }
+        // Prune dead entities
+        for (auto it = s_lastCrowdLog.begin(); it != s_lastCrowdLog.end(); )
+            if (!registry.valid(it->first)) it = s_lastCrowdLog.erase(it); else ++it;
+    }
 
     // ---- Settlement specialisation: count masters per resource type per settlement ----
     // masterCount[settlement][0=Food,1=Water,2=Wood] = number of NPCs with skill >= 0.9
