@@ -1193,6 +1193,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         if (const auto* hs = registry.try_get<Settlement>(home.settlement))
             if (hs->modifierName == "Plague")
                 effectiveMigrateThreshold *= 0.50f;
+        // Career changer restlessness: frequent changers migrate more easily.
+        bool careerRestless = false;
+        if (const auto* prof = registry.try_get<Profession>(entity)) {
+            if (prof->careerChanges >= 3) {
+                effectiveMigrateThreshold *= 0.8f;
+                careerRestless = true;
+            }
+        }
 
         if (timer.stockpileEmpty >= effectiveMigrateThreshold) {
             const auto* skills     = registry.try_get<Skills>(entity);
@@ -1243,6 +1251,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
                             who + " migrating " + from + " → " + to);
+                    }
+                }
+
+                // ---- Career changer restlessness log ----
+                static std::mt19937 s_restlessRng{std::random_device{}()};
+                if (careerRestless && s_restlessRng() % 10 == 0) {
+                    auto lv5 = registry.view<EventLog>();
+                    if (!lv5.empty()) {
+                        std::string who = "NPC";
+                        if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                        std::string where = "settlement";
+                        if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
+                        lv5.get<EventLog>(*lv5.begin()).Push(
+                            tm.day, (int)tm.hourOfDay,
+                            who + " feels restless at " + where + ".");
                     }
                 }
 
