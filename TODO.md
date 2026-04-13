@@ -11,6 +11,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **NPC mood log on need satisfaction** — Snapshots worst need before consumption. When it rises
+  from < 0.3 to > 0.5, logs "[Name] feels relieved after [eating/drinking/resting/warming up] at
+  [Settlement]." at 1-in-5 frequency. In `ConsumptionSystem.cpp`.
+
+
+
 - [x] **Friendship decay over distance** — Once per game-day in `AgentDecisionSystem.cpp`, decay
   `Relations::affinity` by 0.005 for NPC pairs in different settlements. Same-settlement friends
   unaffected. Static day tracker for once-per-day execution.
@@ -756,8 +762,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Social Behaviour
 
-- [ ] **NPC mood log on need satisfaction** — In `ConsumptionSystem.cpp`, when an NPC's worst need rises from below 0.3 to above 0.5 after purchasing, log "[Name] feels relieved after eating at [Settlement]" at 1-in-5 frequency. Varies message by need type (eating/drinking/resting/warming up).
-
 - [ ] **Hauler rivalry complaint log** — In `TransportSystem.cpp`'s `FindBestRoute`, when a profitable route is penalised by the relations-based rivalry avoidance (score *= 0.6), track the best-rejected rival route. If a hauler ends up idle and the rejected rival route had profit > `MIN_TRIP_PROFIT`, log "[Hauler] avoids [Dest] due to rivalry — potential profit lost." at 1-in-3 frequency.
 
 - [ ] **Trade gift between friends** — In `AgentDecisionSystem.cpp`, once per 48 game-hours, an NPC with `Relations::affinity ≥ 0.6` toward another NPC in the same settlement and balance > 50g transfers 5g to the friend. Log "[Name] gifts gold to [Friend]." Gold flows from sender's `Money::balance` to friend's `Money::balance` (no treasury involved). Cooldown on `DeprivationTimer::charityTimer`.
@@ -765,6 +769,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, check if any existing residents have `Relations::affinity > 0.3` with them. If so, boost both parties' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-2 frequency.
 
 - [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
+
+- [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
+
+- [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
 
 ### NPC Crime & Consequence
 
