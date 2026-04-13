@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs with different professions have `Relations::affinity < 0.1` (strained by taunts) and work at the same facility for 3+ consecutive hours (track via a static map of pair → hour count), 1-in-10 chance to reconcile: boost mutual affinity by +0.05 and log "[Name] and [Other] put aside their differences at [Settlement]." Resets hour count after reconciliation.
+
+## Backlog
 
 - [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
 
