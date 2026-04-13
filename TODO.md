@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Skill training between NPCs** — In `AgentDecisionSystem`'s idle block, when two NPCs are within 30u and one has a skill ≥ 0.6 while the other has that same skill < 0.3, the higher-skilled NPC teaches the other: +0.005 per game-hour to the learner's skill, +0.02 affinity for both. Add `float teachCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown). Log "[Teacher] teaches [Learner] about farming/water/woodcutting."
 
 ## Recently Done
 
