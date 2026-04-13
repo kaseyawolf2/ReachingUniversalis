@@ -9,6 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, when both source and
+  destination settlements have `relations[other] > 0.5` (allied), log "Allied trade: [Hauler]
+  delivers [N] [resource] from [Source] to [Dest] (boosted)." at 1-in-3 frequency.
+
 ## Recently Done
 
 - [x] **Rivalry tariff shown in hauler tooltip** — `rivalryTariff` bool on `AgentEntry`, set when destination has `relations < -0.5` with cargo source. Shows "Rivalry tariff (+30%)" in red in tooltip.
@@ -1991,12 +1995,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Alliance trade log** — In `TransportSystem.cpp`'s delivery block, when both source and
-  destination settlements have `relations[other] > 0.5` (allied), log "Allied trade: [Hauler]
-  delivers [N] [resource] from [Source] to [Dest] (boosted)." at 1-in-3 frequency to avoid spam.
-  Use a static counter per hauler entity. This complements the rivalry log by making positive
-  relations also visible as story beats.
 
 - [ ] **Rivalry decay on successful trade** — In `TransportSystem.cpp`'s delivery completion block,
   after crediting the destination treasury, nudge `dest.relations[source]` by +0.02 per delivery.
