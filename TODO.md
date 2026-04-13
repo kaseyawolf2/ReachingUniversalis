@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Friendship bonus on birth** — In `BirthSystem.cpp`, when a birth occurs, check if the
+  parent NPC has any friends (Relations::affinity ≥ 0.5) at the same settlement. If so, give
+  those friends a small morale boost: `settl->morale = std::min(1.f, settl->morale + 0.01f)`
+  per friend (capped at 2 boosts). Log `"[FriendName] celebrates [Name]'s new child."`.
+
 ## Recently Done
 
 - [x] **Friend grief on death** — In `DeathSystem.cpp`, after family dissolution: scan NPCs with `Relations::affinity ≥ 0.5` toward deceased. Morale -0.03, helpedTimer cleared. Log for top 2 friends sorted by affinity.
@@ -1975,12 +1980,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Friendship bonus on birth** — In `BirthSystem.cpp`, when a birth occurs, check if the
-  parent NPC has any friends (Relations::affinity ≥ 0.5) at the same settlement. If so, give
-  those friends a small morale boost: `settl->morale = std::min(1.f, settl->morale + 0.01f)`
-  per friend (capped at 2 boosts). Log `"[FriendName] celebrates [Name]'s new child."` This
-  makes social bonds visible in the community's response to new births.
 
 - [ ] **Strike grievance log** — In `ScheduleSystem.cpp`, when `strikeDuration` transitions from
   0 to >0 (strike begins), log "Workers strike at [Settlement] — [N] workers walk out (morale:
