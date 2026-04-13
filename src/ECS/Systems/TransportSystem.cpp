@@ -125,6 +125,12 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             auto* homeSettl = registry.try_get<Settlement>(homeSettlement);
             if (homeSettl && homeSettl->rivalryTimer > 0.f && homeSettl->rivalEntity == destEnt)
                 score *= 0.8f;
+            // Relations-based rivalry avoidance: -40% when relations < -0.5
+            if (homeSettl) {
+                auto rit = homeSettl->relations.find(destEnt);
+                if (rit != homeSettl->relations.end() && rit->second < -0.5f)
+                    score *= 0.6f;
+            }
             // Preferred route bonus: +10% when this route matches the hauler's best route
             // Worst route penalty: -20% when this route matches recent worst loss
             if (!homeName.empty()) {
