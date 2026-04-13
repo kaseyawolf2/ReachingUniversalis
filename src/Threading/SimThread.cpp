@@ -1761,13 +1761,37 @@ void SimThread::WriteSnapshot() {
             if (npcCount > 0) moodScore = needSum / npcCount;
         }
 
+        // Count mutual friendship pairs at this settlement
+        int friendPairs = 0;
+        {
+            // Collect NPCs with Relations at this settlement
+            std::vector<entt::entity> residents;
+            m_registry.view<HomeSettlement, Relations>(entt::exclude<PlayerTag, BanditTag>).each(
+                [&](auto re, const HomeSettlement& rh, const Relations&) {
+                    if (rh.settlement == e) residents.push_back(re);
+                });
+            // Count pairs where both have affinity ≥ 0.5 toward each other
+            for (size_t i = 0; i < residents.size(); ++i) {
+                const auto& relA = m_registry.get<Relations>(residents[i]);
+                for (size_t j = i + 1; j < residents.size(); ++j) {
+                    auto itA = relA.affinity.find(residents[j]);
+                    if (itA == relA.affinity.end() || itA->second < 0.5f) continue;
+                    const auto& relB = m_registry.get<Relations>(residents[j]);
+                    auto itB = relB.affinity.find(residents[i]);
+                    if (itB != relB.affinity.end() && itB->second >= 0.5f)
+                        ++friendPairs;
+                }
+            }
+        }
+
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
             food, water, wood, spop, s.popCap, snapSeason, specialty,
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
-            s.importCount, s.exportCount, s.desperatePurchases, moodScore
+            s.importCount, s.exportCount, s.desperatePurchases, moodScore,
+            friendPairs
         });
     });
 
@@ -2188,6 +2212,13 @@ void SimThread::WriteSnapshot() {
             panel.workers          = workers;
             panel.idle             = idleCount.count(e) ? idleCount.at(e) : 0;
             panel.theftCount       = s.theftCount;
+            // Find matching SettlementEntry for friendshipPairs
+            for (const auto& se : settlements) {
+                if (se.entityId == static_cast<uint32_t>(e)) {
+                    panel.friendshipPairs = se.friendshipPairs;
+                    break;
+                }
+            }
             panel.modifierName     = s.modifierName;
             panel.modifierHoursLeft = s.modifierDuration;
             // Infer specialty from primary facility (same logic as SettlementEntry)

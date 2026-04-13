@@ -158,6 +158,7 @@ struct RenderSnapshot {
         int          exports    = 0;   // goods units exported (24h window)
         int          desperatePurchases = 0; // emergency market purchases this 24h cycle
         float        moodScore = 0.5f;     // 0-1 average NPC need satisfaction
+        int          friendshipPairs = 0; // count of mutual friendship pairs (affinity ≥ 0.5)
     };
 
     struct RoadEntry {
@@ -265,6 +266,7 @@ struct RenderSnapshot {
             float       lifetimeProfit = 0.f;
         };
         std::vector<HaulerInfo>       haulerRoutes;
+        int                           friendshipPairs = 0;
     };
 
     // ---- Data fields ----

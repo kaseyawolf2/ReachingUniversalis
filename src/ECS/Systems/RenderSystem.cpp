@@ -33,11 +33,13 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             if (cnt > largestFamCount) { largestFamCount = cnt; largestFamName = name; }
     }
     bool hasLargestFamily = (largestFamCount >= 2);
+    bool hasFriendships = (panel.friendshipPairs > 0);
     int haulerRouteH = (int)panel.haulerRoutes.size() * (LINE_H - 3);
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0)
                       + (hasSpecialty ? 1 : 0) + (hasTheft ? 1 : 0)
                       + (hasStruggling ? 1 : 0) + (hasSkillSummary ? 1 : 0)
-                      + (hasLargestFamily ? 1 : 0);
+                      + (hasLargestFamily ? 1 : 0)
+                      + (hasFriendships ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int barChartH   = 4 + 3 * (6 + 3);  // stockpile bar chart (3 bars + gaps)
@@ -131,6 +133,15 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         char pctBuf[8];
         std::snprintf(pctBuf, sizeof(pctBuf), "%d%%", (int)(fill * 100));
         DrawText(pctBuf, barX + barW + 4, y + 0, 11, barCol);
+        y += LINE_H;
+    }
+
+    // Friendship pairs
+    if (panel.friendshipPairs > 0) {
+        char fbuf[32];
+        std::snprintf(fbuf, sizeof(fbuf), "%d friendship%s",
+                      panel.friendshipPairs, panel.friendshipPairs == 1 ? "" : "s");
+        DrawText(fbuf, PX + 8, y, 11, Fade(LIME, 0.6f));
         y += LINE_H;
     }
 
