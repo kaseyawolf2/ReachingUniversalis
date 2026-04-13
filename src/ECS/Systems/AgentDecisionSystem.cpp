@@ -314,6 +314,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // ---- Wealthy NPC celebration: one-time log when balance crosses 500g ----
+    {
+        auto logV = registry.view<EventLog>();
+        registry.view<Money, DeprivationTimer, HomeSettlement, Name>(
+            entt::exclude<PlayerTag, Hauler, BanditTag>).each(
+            [&](auto e, const Money& m, DeprivationTimer& tmr,
+                const HomeSettlement& hs, const Name& name) {
+            if (tmr.wealthCelebrated) return;
+            if (m.balance < 500.f) return;
+            tmr.wealthCelebrated = true;
+            if (!logV.empty()) {
+                std::string stl = "their settlement";
+                if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                    if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                        stl = s->name;
+                char buf[160];
+                std::snprintf(buf, sizeof(buf), "%s has become wealthy at %s!",
+                              name.value.c_str(), stl.c_str());
+                logV.get<EventLog>(*logV.begin()).Push(tm.day, currentHour, buf);
+            }
+        });
+    }
+
     // Cache player position for NPC-to-player proximity checks
     entt::entity playerEntity = entt::null;
     Position playerPos{};
