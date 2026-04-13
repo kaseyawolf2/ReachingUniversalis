@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
+
+## Backlog
 
 - [ ] **Mastery teaching chain** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with skill >= 0.8 (from profession pride) is at the same settlement as an NPC with skill < 0.5 in the same profession, the lower-skilled NPC gets `growth += 0.0004f`. Different from master teaching (which requires 0.9): this lets near-masters pass on practical knowledge. Log "[Expert] shares tips with [Novice] at [Settlement]" at 1-in-10 frequency via `s_teachRng`. Pre-compute expert list alongside `masterFlags`.
 
