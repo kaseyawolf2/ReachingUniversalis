@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC comforts grieving neighbour** — In `AgentDecisionSystem`'s idle block, after the
+  greeting section, when an idle NPC is within 25u of another idle NPC with `griefTimer > 0` and
+  `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours. Add
+  `float comfortCooldown = 0.f` to `DeprivationTimer` (180 real-sec cooldown). Log "[Name]
+  comforts [Grieving]." Close friends provide emotional support during grief.
 
 
 
