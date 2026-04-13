@@ -489,6 +489,27 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
             static std::mt19937 s_rivalRng{ std::random_device{}() };
 
+            // Pre-compute skilled elders per settlement for elder wisdom boost.
+            // Key: settlement → vector of (entity, profFlag) for elders with skill >= 0.8
+            struct ElderInfo { entt::entity e; int profFlag; };
+            std::unordered_map<entt::entity, std::vector<ElderInfo>> skilledElders;
+            registry.view<Skills, Profession, Age, HomeSettlement>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](auto elder, const Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
+                    if (age.days <= 60.f || hs.settlement == entt::null) return;
+                    int flag = 0;
+                    float skill = 0.f;
+                    switch (prof.type) {
+                        case ProfessionType::Farmer:      flag = 1; skill = sk.farming; break;
+                        case ProfessionType::WaterCarrier: flag = 2; skill = sk.water_drawing; break;
+                        case ProfessionType::Lumberjack:   flag = 4; skill = sk.woodcutting; break;
+                        default: break;
+                    }
+                    if (flag && skill >= 0.8f)
+                        skilledElders[hs.settlement].push_back({elder, flag});
+                });
+            static std::mt19937 s_wisdomRng{ std::random_device{}() };
+
             // Log RNG
             static std::mt19937 s_teachRng{ std::random_device{}() };
             auto logV2 = registry.view<EventLog>();
@@ -527,6 +548,38 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             if (ait != activeMentoring.end() && (ait->second & profFlag)) {
                                 growth *= 1.1f;
                                 rivalryActive = true;
+                            }
+                        }
+                    }
+
+                    // Elder wisdom: adult NPCs with strong affinity toward a skilled
+                    // elder of the same profession get extra daily skill growth.
+                    if (profFlag && hs.settlement != entt::null) {
+                        auto eit = skilledElders.find(hs.settlement);
+                        if (eit != skilledElders.end()) {
+                            const auto* rel = registry.try_get<Relations>(e);
+                            if (rel) {
+                                for (const auto& info : eit->second) {
+                                    if (!(info.profFlag & profFlag)) continue;
+                                    auto ait2 = rel->affinity.find(info.e);
+                                    if (ait2 != rel->affinity.end() && ait2->second >= 0.6f) {
+                                        growth += 0.0003f;
+                                        // Log at 1-in-10
+                                        if (s_wisdomRng() % 10 == 0 && !logV2.empty()) {
+                                            std::string who = "An NPC";
+                                            if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                                            std::string elder = "an elder";
+                                            if (const auto* n = registry.try_get<Name>(info.e)) elder = n->value;
+                                            std::string where = "settlement";
+                                            if (const auto* s = registry.try_get<Settlement>(hs.settlement)) where = s->name;
+                                            char buf[180];
+                                            std::snprintf(buf, sizeof(buf), "%s draws on %s's wisdom at %s",
+                                                          who.c_str(), elder.c_str(), where.c_str());
+                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                        }
+                                        break;  // Only one elder wisdom bonus per NPC per day
+                                    }
+                                }
                             }
                         }
                     }
