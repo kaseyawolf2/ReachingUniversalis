@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC gossips about confrontation** — In `AgentDecisionSystem`'s greeting block, when an NPC
+  with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
+  `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
+  about the player's bravery." with `greetCooldown` gating. Word of heroic deeds spreads socially.
 
 
 
