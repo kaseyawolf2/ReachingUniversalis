@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block, when an NPC switches profession and had ≥ 0.5 skill in their old profession, grant +0.05 initial bonus to the new matching skill (capped at 0.5). Reflects transferable experience — a skilled farmer picking up woodcutting learns faster. Uses `Profession::prevType` to identify the old skill and `registry.try_get<Skills>` to apply the bonus.
+
 ## Recently Done
 
 - [x] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
@@ -1089,8 +1091,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block, when an NPC switches profession and had ≥ 0.5 skill in their old profession, grant +0.05 initial bonus to the new matching skill (capped at 0.5). Reflects transferable experience — a skilled farmer picking up woodcutting learns faster. Uses `Profession::prevType` to identify the old skill and `registry.try_get<Skills>` to apply the bonus.
 
 - [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
