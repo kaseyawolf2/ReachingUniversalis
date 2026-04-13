@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Gift reciprocity affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the gold transfer, boost `Relations::affinity` of the recipient toward the giver by +0.05 (capped at 1.0). Ensures gift-giving strengthens friendships over time, creating a positive feedback loop.
-
 ## Recently Done
+
+- [x] **Gift reciprocity affinity boost** — After gold transfer in trade gift block, recipient's
+  `Relations::affinity` toward giver boosted by +0.05 (capped at 1.0). Creates positive feedback
+  loop where gift-giving strengthens friendships bidirectionally.
+
+
 
 - [x] **NPC satisfaction memory** — `float lastSatisfaction` on `DeprivationTimer`, updated in
   `ConsumptionSystem.cpp` as average of 4 needs. `FindMigrationTarget` gives +0.2 push when < 0.3.
@@ -821,6 +825,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
 
 - [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
+
+- [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
+
+- [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
 
 - [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
 
