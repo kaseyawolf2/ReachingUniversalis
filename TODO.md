@@ -13,6 +13,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Goal shown in NPC tooltip** — `goalDescription` string piped through AgentEntry from Goal component. Shows "Goal: Save Gold (42/100g)" in dim SKYBLUE. Units adapt per goal type.
+
 - [x] **Road safety indicator in road tooltip** — `banditCount` piped through `RoadEntry` in `WriteSnapshot` by counting `BanditTag` entities per nearest road midpoint. Displayed as "Bandits: N" in RED in `DrawRoadTooltip`.
 
 - [x] **Idle NPCs discuss hauler routes** — 20% chance flavour greeting "discuss trade routes" when both NPCs share a settlement with haulers. No gameplay effect.
@@ -1832,7 +1834,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
   meaningful route-safety information.
 
-- [ ] **Goal shown in NPC tooltip** — Add `std::string goalDescription` to `RenderSnapshot::AgentEntry`
+- [x] **Goal shown in NPC tooltip** — Add `std::string goalDescription` to `RenderSnapshot::AgentEntry`
   (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity has a `Goal` component, set it to
   e.g. "Goal: Save Gold (42/100g)" using the `GoalLabel()` helper and `goal.progress`/`goal.target`.
   In `HUD::DrawHoverTooltip` (HUD.cpp), render it as an extra line in dim SKYBLUE below the skill
@@ -3375,3 +3377,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   greeting case, if either NPC has `lastHelper != entt::null` and the registry has any `BanditTag`
   entities, 15% chance to replace greeting with "[Name] warns [Other] about bandits on the roads."
   Pure flavour — NPCs reference the danger that bandits pose. No gameplay effect.
+
+- [ ] **Goal celebration visible to neighbours** — In `AgentDecisionSystem`, when
+  `goal.celebrateTimer` transitions from > 0 to <= 0 (goal just completed), scan idle NPCs within
+  30u. Those with `Relations::affinity >= 0.2` get a brief `chatTimer = 0.15` (game-hours) and log
+  "[Friend] congratulates [Achiever] on completing their goal." Uses existing celebrating block
+  pattern from skill celebrations. No new components needed.
+
+- [ ] **Goal progress shown in stockpile residents** — In `RenderSnapshot::StockpilePanel::AgentInfo`,
+  add `std::string goalSummary`. In `SimThread::WriteSnapshot`'s stockpile residents block, populate
+  from `Goal` component as "Save Gold 42%" (progress/target * 100). In `RenderSystem::DrawStockpilePanel`,
+  append goal summary in dim SKYBLUE after the existing resident line. Pure display — no gameplay effect.
