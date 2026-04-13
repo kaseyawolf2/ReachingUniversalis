@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
-
 ## Recently Done
+
+- [x] **Settlement master count in tooltip** — Added `int masterCount` to `SettlementEntry`. Counted
+  in `SimThread::WriteSnapshot` per settlement (skills ≥ 0.9, excluding player/bandits/haulers).
+  Displayed as "Masters: N" in gold after elders line in `HUD::DrawSettlementTooltip`.
+
+
 
 - [x] **Master retention bonus** — Added `bool masterSettled` to `DeprivationTimer`. Set true in
   skill growth block when any skill reaches 0.9. In migration trigger, masters get
@@ -1040,6 +1044,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
+- [ ] **Agent decision cooldown** — In `AgentDecisionSystem.cpp`'s main loop, add a `float decisionCooldown = 0` field on `DeprivationTimer` (or `AgentState`). After an NPC makes a behaviour decision (sets `state.behavior` to a new value), set cooldown to ~0.5 real-seconds. While cooldown > 0, skip the expensive decision evaluation and only tick down the cooldown and continue movement/current-action. This prevents 60/sec re-evaluation — NPCs commit to decisions for ~30 frames. Reset cooldown early if a critical need drops below 0.2 (emergency override). Dramatically reduces per-frame cost of the main decision loop.
+
 ### NPC Lifecycle & Identity
 
 - [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
@@ -1089,6 +1095,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Wealth milestone tiers** — In `AgentDecisionSystem.cpp`'s wealthy celebration block, extend to track multiple thresholds (500g, 1000g, 2000g) using an `int wealthTier = 0` on `DeprivationTimer` (replace bool). Log different messages: "prosperous" at 500, "wealthy" at 1000, "a merchant prince" at 2000. Each tier fires once.
 
 - [ ] **Wealthy NPC philanthropy** — In `AgentDecisionSystem.cpp`, NPCs with `wealthCelebrated == true` and `balance > 600g` contribute 10g to their settlement's `treasury` once per 72 game-hours (reuse `charityTimer`). Log "[Name] donates to [Settlement]'s treasury." Gold flows `Money::balance` → `Settlement::treasury`. Follows Gold Flow Rule.
+
+- [ ] **Master count change event log** — In `SimThread::WriteSnapshot` or a new lightweight system, track previous master count per settlement in a `static std::unordered_map<entt::entity, int>`. When master count increases, log "[Settlement] now has N masters." When it decreases, log "[Settlement] lost a master (N remain)." Fires once per change. Makes the teaching ecosystem dynamics visible without hovering.
+
+- [ ] **Settlement workforce breakdown in tooltip** — In `SimThread::WriteSnapshot`'s `settlAgg`, count workers by profession type (Farmer/WaterCarrier/Lumberjack). Store as `int farmers, waterCarriers, lumberjacks` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Workers: N farmers, N water, N wood" after the masters line. Gives quick profession diversity visibility.
 
 - [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
 
