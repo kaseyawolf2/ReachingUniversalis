@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement specialisation bonus** — In `ProductionSystem`, when a settlement's top skill
-  type (computed like in `WriteSnapshot`'s skill summary) matches the facility's output type and
-  has ≥ 3 masters, apply a +15% production bonus to all workers at matching facilities. Check via
-  `registry.view<Skills, HomeSettlement>` counting masters per type, cache per settlement entity.
-  Log "[Settlement] has a thriving [Type] tradition (+15% output)." once via a static set.
+
 
 
 
 ## Recently Done
+
+- [x] **Settlement specialisation bonus** — In ProductionSystem, +15% output when ≥3 masters in a settlement match a facility's resource type. One-time log per settlement+type.
 
 - [x] **Skill training builds mentor bond** — After successful teach, learner's `lastHelper = teacher entity`. Enables existing gratitude greeting for mentor-student bond.
 
@@ -1654,12 +1652,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **Settlement specialisation bonus** — In `ProductionSystem`, when a settlement's top skill
-  type (computed like in `WriteSnapshot`'s skill summary) matches the facility's output type and
-  has ≥ 3 masters, apply a +15% production bonus to all workers at matching facilities. Check via
-  `registry.view<Skills, HomeSettlement>` counting masters per type, cache per settlement entity.
-  Log "[Settlement] has a thriving [Type] tradition (+15% output)." once via a static set.
 
 - [ ] **Skill decay warning in tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
   NPC has `AgentState::behavior != Working` and any skill ≥ 0.5, show "Skills rusting" in faint
@@ -3299,3 +3291,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   std::map<uint64_t, int>` keyed by `(learner_id * 10000 + teacher_id)` to count mentoring sessions.
   When count >= 3, log "[Learner] considers [Teacher] a trusted mentor." Long-term relationships
   emerge from repeated interaction.
+
+- [ ] **Specialisation shown in settlement tooltip** — In `HUD.cpp`'s settlement tooltip (or
+  `RenderSystem::DrawWorldStatus`), when a settlement has ≥3 masters in a resource type, show
+  "Specialises in [Type]" in GOLD. Pipe `std::string specialisation` through
+  `RenderSnapshot::SettlementEntry` from `SimThread::WriteSnapshot` (count masters per type via
+  `registry.view<Skills, HomeSettlement>`). Visual feedback for the production bonus.
+
+- [ ] **Specialisation attracts migrants** — In `AgentDecisionSystem`'s migration block, when an
+  NPC is considering migration targets, settlements with ≥3 masters in any skill get a +20% score
+  bonus in the destination scoring. Access via a per-frame cache of master counts (same pattern as
+  `ProductionSystem`'s `masterCount` map). Skilled communities attract talent.
