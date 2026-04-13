@@ -44,6 +44,10 @@ struct TradeRoute {
     float        buyPrice = 0.f;
 };
 
+// Best rival-rejected route per home settlement (for complaint logging).
+struct RivalRejected { entt::entity dest = entt::null; float profit = 0.f; };
+static std::map<entt::entity, RivalRejected> s_rivalRejected;
+
 // Scan all reachable settlements for the most profitable trade, weighted by
 // proximity: profit-per-distance so close routes beat distant ones.
 static TradeRoute FindBestRoute(entt::registry& registry,
@@ -53,6 +57,7 @@ static TradeRoute FindBestRoute(entt::registry& registry,
                                  const std::string& avoidRoute = "") {
     TradeRoute best;
     float bestScore = 0.f;  // profit / max(100, distance) — avoids zero division
+    s_rivalRejected.erase(homeSettlement);  // reset for this evaluation
 
     auto* homeSp  = registry.try_get<Stockpile>(homeSettlement);
     auto* homeMkt = registry.try_get<Market>(homeSettlement);
@@ -126,10 +131,21 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             if (homeSettl && homeSettl->rivalryTimer > 0.f && homeSettl->rivalEntity == destEnt)
                 score *= 0.8f;
             // Relations-based rivalry avoidance: -40% when relations < -0.5
+            bool rivalPenalised = false;
             if (homeSettl) {
                 auto rit = homeSettl->relations.find(destEnt);
-                if (rit != homeSettl->relations.end() && rit->second < -0.5f)
+                if (rit != homeSettl->relations.end() && rit->second < -0.5f) {
                     score *= 0.6f;
+                    rivalPenalised = true;
+                }
+            }
+            // Track best rival-rejected route for complaint log
+            if (rivalPenalised && profit > MIN_TRIP_PROFIT) {
+                auto& rr = s_rivalRejected[homeSettlement];
+                if (profit > rr.profit) {
+                    rr.dest   = destEnt;
+                    rr.profit = profit;
+                }
             }
             // Preferred route bonus: +10% when this route matches the hauler's best route
             // Worst route penalty: -20% when this route matches recent worst loss
@@ -375,6 +391,30 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
                         evLog.Push(tmRef.day, (int)tmRef.hourOfDay,
                             who + " idle for 12h at " + where + " — no profitable routes.");
+                    }
+                }
+                // Rivalry complaint: log when a hauler misses a profitable rival route
+                auto rrIt = s_rivalRejected.find(home.settlement);
+                if (rrIt != s_rivalRejected.end() && rrIt->second.dest != entt::null) {
+                    static std::map<entt::entity, int> s_rivalComplaintCount;
+                    int& cnt = s_rivalComplaintCount[entity];
+                    if (++cnt % 3 == 1) {
+                        auto logV2 = registry.view<EventLog>();
+                        auto tmV2  = registry.view<TimeManager>();
+                        if (!logV2.empty() && !tmV2.empty()) {
+                            auto& evLog2 = logV2.get<EventLog>(*logV2.begin());
+                            const auto& tm2 = tmV2.get<TimeManager>(*tmV2.begin());
+                            std::string who = "A hauler";
+                            if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                            std::string destName = "a rival";
+                            if (auto* ds = registry.try_get<Settlement>(rrIt->second.dest))
+                                destName = ds->name;
+                            char buf[180];
+                            std::snprintf(buf, sizeof(buf),
+                                "%s avoids %s due to rivalry — potential profit lost.",
+                                who.c_str(), destName.c_str());
+                            evLog2.Push(tm2.day, (int)tm2.hourOfDay, buf);
+                        }
                     }
                 }
             }
