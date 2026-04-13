@@ -136,6 +136,8 @@ struct RenderSnapshot {
         float bestFriendAffinity = 0.f;
         bool rivalryTariff = false;
         float satisfaction = 0.5f;
+        // Skill specialisation title (e.g. "Master Farmer"); empty if no skill >= 0.9
+        std::string specialisation;
     };
 
     struct SettlementEntry {

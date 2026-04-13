@@ -880,11 +880,16 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         showSkill = true;
     }
 
-    // Skill milestone title: "Journeyman [Type]" at ≥0.5, "Master [Type]" at ≥0.9
+    // Skill milestone title from snapshot (computed in WriteSnapshot)
     char milestoneLine[48] = {};
     Color milestoneColor = Fade(GOLD, 0.7f);
     bool showMilestone = false;
-    if (best->farmingSkill >= 0.f) {
+    if (!best->specialisation.empty()) {
+        std::snprintf(milestoneLine, sizeof(milestoneLine), "%s", best->specialisation.c_str());
+        milestoneColor = Fade(GOLD, 0.9f);
+        showMilestone = true;
+    } else if (best->farmingSkill >= 0.f) {
+        // Journeyman title for skills >= 0.5 (below master threshold)
         float bestSk = -1.f;
         const char* bestType = "";
         struct { float val; const char* name; } skills[] = {
@@ -895,11 +900,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         for (auto& s : skills) {
             if (s.val > bestSk) { bestSk = s.val; bestType = s.name; }
         }
-        if (bestSk >= 0.9f) {
-            std::snprintf(milestoneLine, sizeof(milestoneLine), "Master %s", bestType);
-            milestoneColor = Fade(GOLD, 0.9f);
-            showMilestone = true;
-        } else if (bestSk >= 0.5f) {
+        if (bestSk >= 0.5f) {
             std::snprintf(milestoneLine, sizeof(milestoneLine), "Journeyman %s", bestType);
             milestoneColor = Fade(GOLD, 0.6f);
             showMilestone = true;

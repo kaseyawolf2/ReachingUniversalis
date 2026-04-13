@@ -1631,6 +1631,12 @@ void SimThread::WriteSnapshot() {
             }
         }
 
+        // Skill specialisation title
+        std::string specTitle;
+        if (farmSkill >= 0.9f) specTitle = "Master Farmer";
+        else if (waterSkill >= 0.9f) specTitle = "Master Water-drawer";
+        else if (woodSkill >= 0.9f) specTitle = "Master Lumberjack";
+
         // Reputation snapshot
         float reputationScore = 0.f;
         if (const auto* rep = m_registry.try_get<Reputation>(e))
@@ -1831,7 +1837,8 @@ void SimThread::WriteSnapshot() {
                             (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f),
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
-                           rivalryTariff, satisfaction });
+                           rivalryTariff, satisfaction,
+                           std::move(specTitle) });
     });
 
     // ---- Settlements ----
