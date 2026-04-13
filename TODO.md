@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
 ## Recently Done
 
@@ -887,8 +887,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Social Behaviour
 
-
-- [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
