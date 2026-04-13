@@ -5,6 +5,7 @@
 #include <chrono>
 #include <algorithm>
 #include <random>
+#include <unordered_map>
 
 // Fixed simulation timestep — every sim step advances game time by this much
 // regardless of render frame rate or tick speed multiplier.
@@ -1363,6 +1364,70 @@ void SimThread::WriteSnapshot() {
     std::vector<RenderSnapshot::SettlementStatus> worldStatus;
     RenderSnapshot::StockpilePanel                panel;
 
+    // ---- Pre-compute per-settlement aggregates in a single pass ----
+    struct SettlAgg {
+        int pop = 0;
+        int childPop = 0;
+        int elderPop = 0;
+        int workerCount = 0;
+        int idleCount = 0;
+        int haulerCount = 0;
+        int fatiguedWorkers = 0;
+        int recentGivers = 0;
+        float needSum = 0.f;
+        int   needCount = 0;
+        bool  hungerCrisis = false;
+        float contentSum = 0.f;
+        int   contentN   = 0;
+        float pendingEstates = 0.f;
+    };
+    std::unordered_map<entt::entity, SettlAgg> settlAgg;
+    // Single pass over all homed NPCs (excluding player)
+    m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+        [&](auto e, const HomeSettlement& hs) {
+            if (hs.settlement == entt::null || !m_registry.valid(hs.settlement)) return;
+            auto& ag = settlAgg[hs.settlement];
+            bool isHaulerE = m_registry.all_of<Hauler>(e);
+            bool isBanditE = m_registry.all_of<BanditTag>(e);
+            ++ag.pop;
+            if (m_registry.all_of<ChildTag>(e)) ++ag.childPop;
+            if (const auto* age = m_registry.try_get<Age>(e))
+                if (age->days > 60.f) ++ag.elderPop;
+            if (isHaulerE) ++ag.haulerCount;
+            if (!isHaulerE && !isBanditE) {
+                if (const auto* as = m_registry.try_get<AgentState>(e)) {
+                    if (as->behavior == AgentBehavior::Working) ++ag.workerCount;
+                    else if (as->behavior == AgentBehavior::Idle) ++ag.idleCount;
+                }
+                if (const auto* nd = m_registry.try_get<Needs>(e)) {
+                    float avg = 0.f;
+                    for (int i = 0; i < 4; ++i) {
+                        ag.needSum += nd->list[i].value;
+                        avg += nd->list[i].value;
+                    }
+                    ag.needCount += 4;
+                    avg *= 0.25f;
+                    ag.contentSum += avg;
+                    ++ag.contentN;
+                    if (nd->list[0].value < 0.15f) ag.hungerCrisis = true;
+                }
+                if (const auto* sc = m_registry.try_get<Schedule>(e)) {
+                    if (const auto* as2 = m_registry.try_get<AgentState>(e))
+                        if (sc->fatigued && as2->behavior == AgentBehavior::Working)
+                            ++ag.fatiguedWorkers;
+                }
+                if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
+                    if (dt->charityTimer > 0.f) ++ag.recentGivers;
+                }
+                if (const auto* age2 = m_registry.try_get<Age>(e)) {
+                    if (age2->days > 60.f) {
+                        if (const auto* money = m_registry.try_get<Money>(e))
+                            ag.pendingEstates += money->balance * 0.8f;
+                    }
+                }
+            }
+        });
+
     // ---- Agents ----
     m_registry.view<Position, AgentState, Renderable>().each(
         [&](auto e, const Position& pos, const AgentState& astate, const Renderable& rend) {
@@ -1790,9 +1855,7 @@ void SimThread::WriteSnapshot() {
             wood  = sp->quantities.count(ResourceType::Wood)
                     ? sp->quantities.at(ResourceType::Wood)  : 0.f;
         }
-        int spop = 0;
-        m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-            [&](const HomeSettlement& hs) { if (hs.settlement == e) ++spop; });
+        int spop = settlAgg.count(e) ? settlAgg[e].pop : 0;
 
         // Infer specialty from primary production facility
         std::string specialty;
@@ -1810,22 +1873,10 @@ void SimThread::WriteSnapshot() {
                             (primary == ResourceType::Water) ? "Water"   : "Lumber";
         }
 
-        // Compute mood score: average NPC need satisfaction (0–1)
+        // Compute mood score from pre-computed aggregates
         float moodScore = 0.5f;
-        {
-            float needSum = 0.f;
-            int npcCount = 0;
-            m_registry.view<HomeSettlement, Needs>(entt::exclude<Hauler, PlayerTag, BanditTag>).each(
-                [&](const HomeSettlement& nh, const Needs& nn) {
-                    if (nh.settlement != e) return;
-                    float avg = 0.f;
-                    for (int i = 0; i < 4; ++i) avg += nn.list[i].value;
-                    avg *= 0.25f;
-                    needSum += avg;
-                    ++npcCount;
-                });
-            if (npcCount > 0) moodScore = needSum / npcCount;
-        }
+        if (settlAgg.count(e) && settlAgg[e].contentN > 0)
+            moodScore = settlAgg[e].contentSum / settlAgg[e].contentN;
 
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
@@ -1993,9 +2044,7 @@ void SimThread::WriteSnapshot() {
                                  : &lvm.get<EventLog>(*lvm.begin());
                 m_registry.view<Settlement>().each(
                     [&](auto e, const Settlement& settl) {
-                    int curPop = 0;
-                    m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-                        [&](const HomeSettlement& hs) { if (hs.settlement == e) ++curPop; });
+                    int curPop = settlAgg.count(e) ? settlAgg[e].pop : 0;
                     m_popPrev[e] = curPop;
 
                     // Append to population history ring buffer
@@ -2032,20 +2081,9 @@ void SimThread::WriteSnapshot() {
         }
     }
 
-    // Hauler count per settlement (for status bar and panel)
-    std::map<entt::entity, int> haulerCount2;
-    m_registry.view<Hauler, HomeSettlement>().each(
-        [&](const Hauler&, const HomeSettlement& hs) {
-        ++haulerCount2[hs.settlement];
-    });
+    // Hauler count per settlement (from pre-computed aggregates)
 
-    // Current per-settlement worker and idle counts
-    std::map<entt::entity, int> workerCount, idleCount;
-    m_registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
-        [&](auto, const AgentState& as, const HomeSettlement& hs) {
-        if (as.behavior == AgentBehavior::Working) ++workerCount[hs.settlement];
-        else if (as.behavior == AgentBehavior::Idle) ++idleCount[hs.settlement];
-    });
+    // Worker and idle counts from pre-computed aggregates
 
     // Season modifier for production rate estimate
     Season curSeason = Season::Spring;
@@ -2082,16 +2120,14 @@ void SimThread::WriteSnapshot() {
             woodPrice  = mkt->GetPrice(ResourceType::Wood);
         }
 
+        auto sagIt = settlAgg.find(e);
         int pop = 0, childPop = 0, elderPop = 0;
-        m_registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-            [&](auto ne, const HomeSettlement& hs) {
-            if (hs.settlement != e) return;
-            ++pop;
-            if (m_registry.all_of<ChildTag>(ne)) ++childPop;
-            if (const auto* ag = m_registry.try_get<Age>(ne))
-                if (ag->days > 60.f) ++elderPop;
-        });
-        int hCount = haulerCount2.count(e) ? haulerCount2.at(e) : 0;
+        if (sagIt != settlAgg.end()) {
+            pop = sagIt->second.pop;
+            childPop = sagIt->second.childPop;
+            elderPop = sagIt->second.elderPop;
+        }
+        int hCount = settlAgg.count(e) ? settlAgg[e].haulerCount : 0;
 
         // Population trend ('+', '=', '-')
         char popTrend = '=';
@@ -2116,40 +2152,20 @@ void SimThread::WriteSnapshot() {
             woodPriceTrend  = getTrend(ResourceType::Wood,  woodPrice);
         }
 
-        bool hungerCrisis = false;
-        m_registry.view<HomeSettlement, Needs>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs, const Needs& nd) {
-            if (hs.settlement == e && nd.list[0].value < 0.15f) hungerCrisis = true;
-        });
+        bool hungerCrisis = (sagIt != settlAgg.end()) ? sagIt->second.hungerCrisis : false;
 
         float elderBonus = std::min(0.05f, elderPop * 0.005f);
 
-        // Average contentment of homed NPCs (same exclusions as hunger crisis)
-        float contentSum = 0.f;
-        int   contentN   = 0;
-        m_registry.view<HomeSettlement, Needs>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs, const Needs& nd) {
-            if (hs.settlement != e) return;
-            float avg = 0.f;
-            for (int i = 0; i < 4; ++i) avg += nd.list[i].value;
-            avg *= 0.25f;
-            contentSum += avg;
-            ++contentN;
-        });
-        float avgContentment = (contentN > 0) ? contentSum / contentN : 1.f;
+        float avgContentment = 1.f;
+        if (sagIt != settlAgg.end() && sagIt->second.contentN > 0)
+            avgContentment = sagIt->second.contentSum / sagIt->second.contentN;
 
-        // Sum pending estates: elder (age > 60) balances * 0.8 inheritance fraction
-        float pendingEstates = 0.f;
-        m_registry.view<HomeSettlement, Age, Money>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs, const Age& age, const Money& m) {
-                if (hs.settlement == e && age.days > 60.f)
-                    pendingEstates += m.balance * 0.8f;
-            });
+        float pendingEstates = (sagIt != settlAgg.end()) ? sagIt->second.pendingEstates : 0.f;
 
         // Estimate gross production rates per resource for this settlement
         float foodRate2 = 0.f, waterRate2 = 0.f, woodRate2 = 0.f;
         {
-            int wk = workerCount.count(e) ? workerCount.at(e) : 0;
+            int wk = (sagIt != settlAgg.end()) ? sagIt->second.workerCount : 0;
             float ws = std::min(2.f, std::max(0.1f, wk / BASE_WORKERS_EST));
             float sm = s.productionModifier * curSeasonMod;
             m_registry.view<ProductionFacility>().each(
@@ -2164,19 +2180,8 @@ void SimThread::WriteSnapshot() {
             });
         }
 
-        // Count fatigued workers
-        int fatiguedWorkers = 0;
-        int recentGivers = 0;
-        m_registry.view<HomeSettlement, Schedule, AgentState>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs, const Schedule& sc, const AgentState& as) {
-                if (hs.settlement == e && sc.fatigued && as.behavior == AgentBehavior::Working)
-                    ++fatiguedWorkers;
-            });
-        m_registry.view<HomeSettlement, DeprivationTimer>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs, const DeprivationTimer& dt) {
-                if (hs.settlement == e && dt.charityTimer > 0.f)
-                    ++recentGivers;
-            });
+        int fatiguedWorkers = (sagIt != settlAgg.end()) ? sagIt->second.fatiguedWorkers : 0;
+        int recentGivers = (sagIt != settlAgg.end()) ? sagIt->second.recentGivers : 0;
 
         worldStatus.push_back({ s.name, food, water, wood,
                                  foodPrice, waterPrice, woodPrice,
@@ -2193,7 +2198,7 @@ void SimThread::WriteSnapshot() {
             // Estimate per-resource net flow rate (game-hours)
             // Production: sum up facility output rates (adjusted for workers and season)
             std::map<ResourceType, float> prodRate, consRate;
-            int workers = workerCount.count(e) ? workerCount.at(e) : 0;
+            int workers = (sagIt != settlAgg.end()) ? sagIt->second.workerCount : 0;
             float wScale = std::min(2.f, std::max(0.1f, workers / BASE_WORKERS_EST));
             float smod   = s.productionModifier * curSeasonMod;
 
@@ -2221,15 +2226,9 @@ void SimThread::WriteSnapshot() {
                 netRate[res] -= cr;
 
             // Settlement stability score (0-1): composite of NPC health, stocks, treasury, trend
-            // -- NPC need satisfaction (average across residents)
-            float needSum = 0.f; int needCount = 0;
-            m_registry.view<Needs, HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
-                [&](const Needs& n, const HomeSettlement& hs) {
-                if (hs.settlement != e) return;
-                for (const auto& need : n.list) needSum += need.value;
-                needCount += 4;
-            });
-            float needStability = (needCount > 0) ? (needSum / needCount) : 0.f;
+            float needStability = 0.f;
+            if (sagIt != settlAgg.end() && sagIt->second.needCount > 0)
+                needStability = sagIt->second.needSum / sagIt->second.needCount;
 
             // -- Stockpile level (fraction of "safe" level = 30 units per NPC)
             float safeLevel = std::max(1.f, (float)pop * 30.f);
@@ -2276,7 +2275,7 @@ void SimThread::WriteSnapshot() {
             panel.stability        = stability;
             panel.morale           = s.morale;
             panel.workers          = workers;
-            panel.idle             = idleCount.count(e) ? idleCount.at(e) : 0;
+            panel.idle             = (sagIt != settlAgg.end()) ? sagIt->second.idleCount : 0;
             panel.theftCount       = s.theftCount;
             // Find matching SettlementEntry for friendshipPairs
             for (const auto& se : settlements) {
