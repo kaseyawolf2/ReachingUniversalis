@@ -162,6 +162,7 @@ struct DeprivationTimer {
     float                skillCelebrateTimer  = 0.f;    // game-hours remaining for skill milestone celebration
     float                thankCooldown        = 0.f;    // real-seconds until NPC can thank player again (0 = ready)
     float                teachCooldown        = 0.f;    // real-seconds until NPC can teach/learn again (0 = ready)
+    float                griefTimer           = 0.f;    // game-hours remaining of grief (skip social, drain morale)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

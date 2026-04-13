@@ -834,6 +834,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Grief: drain timer, skip social actions, drain settlement morale ----
+            if (timer.griefTimer > 0.f) {
+                float ghDtGrief = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                timer.griefTimer = std::max(0.f, timer.griefTimer - ghDtGrief);
+                // Drain home settlement morale while grieving
+                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                    if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                        settl->morale = std::max(0.f, settl->morale - 0.05f * ghDtGrief);
+                }
+            }
+            bool isGrieving = (timer.griefTimer > 0.f);
+
             // ---- Gossip idle animation (hours 20–22) ----
             // Idle NPCs visually gravitate toward a nearby same-settlement NPC.
             if (timer.gossipNudgeTimer > 0.f)
@@ -864,7 +876,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             // ---- Greeting: idle NPCs occasionally greet a nearby idle neighbour ----
             if (timer.greetCooldown > 0.f)
                 timer.greetCooldown = std::max(0.f, timer.greetCooldown - dt);
-            if (timer.greetCooldown <= 0.f &&
+            if (!isGrieving && timer.greetCooldown <= 0.f &&
                 home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float GREET_RADIUS = 40.f;
                 bool greeted = false;
@@ -1005,7 +1017,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
 
             // ---- Family visit: idle NPC may visit family at another settlement ----
-            if (auto* ft = registry.try_get<FamilyTag>(entity); ft) {
+            if (!isGrieving) if (auto* ft = registry.try_get<FamilyTag>(entity); ft) {
                 static std::mt19937 s_visitRng{ std::random_device{}() };
                 static std::uniform_real_distribution<float> s_visitChance(0.f, 1.f);
                 // 5% chance per game-hour

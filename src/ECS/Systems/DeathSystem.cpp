@@ -156,6 +156,27 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // ---- Family grief ----
+        // Surviving family members grieve: skip social actions, drain settlement morale
+        if (const auto* deadFt = registry.try_get<FamilyTag>(e)) {
+            std::string deadName = "Someone";
+            if (const auto* nm = registry.try_get<Name>(e)) deadName = nm->value;
+            registry.view<FamilyTag, DeprivationTimer, Name>(entt::exclude<BanditTag>).each(
+                [&](auto other, const FamilyTag& oFt, DeprivationTimer& oTmr, const Name& oNm) {
+                    if (other == e) return;
+                    for (auto dead : toRemove) if (dead == other) return;
+                    if (oFt.name != deadFt->name) return;
+                    oTmr.griefTimer = 4.f;  // 4 game-hours
+                    auto logView5 = registry.view<EventLog>();
+                    if (logView5.begin() != logView5.end()) {
+                        auto& tm5 = timeView.get<TimeManager>(*timeView.begin());
+                        std::string msg = oNm.value + " mourns the loss of " + deadName + ".";
+                        logView5.get<EventLog>(*logView5.begin()).Push(
+                            tm5.day, (int)tm5.hourOfDay, msg);
+                    }
+                });
+        }
+
         // ---- Family dissolution ----
         // When the last adult FamilyTag-holder with a given name dies, dissolve the family:
         // remove FamilyTag from surviving children so they can form new families later.
