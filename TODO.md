@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Idle NPCs discuss hauler routes** — In `AgentDecisionSystem`'s greeting block, when
+  both NPCs have `HomeSettlement` at a settlement with active haulers (check
+  `registry.view<Hauler, HomeSettlement>`), 20% chance to replace the greeting log with "[Name]
+  and [Other] discuss trade routes." No gameplay effect — purely flavour text that makes
+  settlements with haulers feel like trading hubs.
 
 
 
