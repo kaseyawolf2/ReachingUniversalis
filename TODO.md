@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
 ## Recently Done
+
+- [x] **Migration homesickness** — Added `float homesickTimer` to `DeprivationTimer` and
+  `entt::entity prevSettlement` to `HomeSettlement`. At migration trigger, stores previous home
+  and resets timer. After arrival, timer ticks in game-hours. When > 72h and satisfaction < 0.4,
+  NPC returns to previous settlement. Logged at 1-in-3: "[Name] feels homesick and returns to
+  [OldHome]."
 
 - [x] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the
   best friend follows, scans the best friend's friends (affinity ≥ 0.5, same settlement, not
@@ -3845,3 +3850,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Friend reunion celebration** — In `AgentDecisionSystem.cpp`, after an NPC migrates and arrives at a new settlement, scan `Relations::affinity` for friends (≥ 0.5) already living there (same `HomeSettlement`). If found, log "[Name] reunites with [Friend] at [Settlement]!" at 1-in-2 frequency and boost both affinities by +0.05 (capped at 1.0). Creates emotional payoff for the loneliness-driven migration system.
 
 - [ ] **Caravan safety bonus** — In `TransportSystem.cpp`, when multiple haulers are travelling the same road segment simultaneously (within 40u of each other, same route), reduce their banditry/loss risk by 50%. Check proximity to other haulers in the `GoingToDeposit` state each tick. Log "[Hauler1] and [Hauler2] travel together for safety on [Road]." at 1-in-5 frequency. No new components needed.
+
+- [ ] **Homesick return welcome-back log** — In `AgentDecisionSystem.cpp`'s migration arrival block, detect when the NPC is returning to a settlement they previously lived at (compare `home.settlement` with the arriving `state.target` against stored `prevSettlement`). Log "[Name] returns home to [Settlement] after time away." at 1-in-2 frequency. Distinct from normal arrival log, creating a narrative of homecoming.
+
+- [ ] **Nostalgia affinity decay prevention** — In `AgentDecisionSystem.cpp`, NPCs who have `prevSettlement != entt::null` and friends (Relations::affinity ≥ 0.4) still at that settlement decay affinity 50% slower than normal. Check `HomeSettlement::prevSettlement` against friend's `HomeSettlement::settlement` in the affinity decay loop. Keeps old friendships alive longer for homesick NPCs.
