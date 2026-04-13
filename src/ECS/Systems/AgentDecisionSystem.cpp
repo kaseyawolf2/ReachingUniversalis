@@ -529,16 +529,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             case ProfessionType::Lumberjack:   postActiveSkill2 = sk.woodcutting; recSkill = "woodcutting"; break;
                             default: break;
                         }
-                        if (recSkill && preActiveSkill < 0.5f && postActiveSkill2 >= 0.5f
-                            && !logV2.empty() && s_teachRng() % 5 == 0) {
-                            std::string who = "NPC";
-                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
-                            std::string where = "settlement";
+                        if (recSkill && preActiveSkill < 0.5f && postActiveSkill2 >= 0.5f) {
+                            // Morale boost: recovering NPCs lift community spirits
                             if (hs.settlement != entt::null && registry.valid(hs.settlement))
-                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
-                                    where = s->name;
-                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                who + " regains their " + recSkill + " proficiency at " + where + ".");
+                                if (auto* settl = registry.try_get<Settlement>(hs.settlement))
+                                    settl->morale = std::min(1.f, settl->morale + 0.02f);
+                            // Log at 1-in-5 frequency
+                            if (!logV2.empty() && s_teachRng() % 5 == 0) {
+                                std::string who = "NPC";
+                                if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                                std::string where = "settlement";
+                                if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                    if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                        where = s->name;
+                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    who + " regains their " + recSkill + " proficiency at " + where + ".");
+                            }
                         }
                     }
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
