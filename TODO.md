@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when an elder (age > 60) and a non-elder are both idle at the same settlement, 1-in-12 chance per hour to log "[Elder] tells [Listener] tales of the old days at [Settlement]." Boost listener's `Relations::affinity` toward elder by +0.03 (cap 1.0). Uses existing idle chat infrastructure and `Age` component.
-
 ## Backlog
 
 - [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
@@ -23,7 +21,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Novice hauler bankruptcy sympathy** — In `TransportSystem.cpp`'s bankruptcy block, when a novice hauler (`lifetimeTrips < 10`) goes bankrupt, nearby NPCs at the same home settlement with `Relations::affinity >= 0.4` toward the bankrupt hauler each donate 5g (deducted from `Money::balance`, credited to bankrupt hauler's balance — Gold Flow Rule: balance-to-balance). Log "[Friend] helps [Bankrupt] get back on their feet at [Settlement]" at 1-in-3 frequency. Cap at 3 donors max.
 
+- [ ] **Elder wisdom skill boost** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC (non-elder) has `Relations::affinity >= 0.6` toward an elder at the same settlement who has the same `Profession::type` and skill ≥ 0.8, the NPC gets `growth += 0.0003f` extra daily skill growth. Log "[NPC] draws on [Elder]'s wisdom at [Settlement]" at 1-in-10 frequency. Separate from mentor-apprentice (which targets children); this benefits adult workers with strong elder relationships.
+
+- [ ] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour block, when two NPCs are both grieving (`griefTimer > 0`) at the same settlement, boost their mutual `Relations::affinity` by +0.05 (cap 1.0). Log "[Name] and [Other] find comfort in shared loss at [Settlement]" at 1-in-6 frequency. Uses existing grief infrastructure and staggered frame scan.
+
 ## Recently Done
+
+- [x] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when elder
+  (age > 60) and non-elder pair up, 1-in-12 chance triggers storytelling. Listener's affinity
+  toward elder boosted by +0.03. Logs "[Elder] tells [Listener] tales of the old days at [Settlement]."
 
 - [x] **Hauler mentorship** — Added `float mentorBonus` to `Hauler` in `Components.h`. In
   `TransportSystem.cpp`, novice haulers (`lifetimeTrips < 5`) at the same home settlement as a
