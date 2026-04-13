@@ -166,6 +166,7 @@ struct DeprivationTimer {
     float                moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
     float                comfortCooldown      = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
     bool                 wisdomFired          = false; // true once elder wisdom transfer has fired (one-time event)
+    float                lastSatisfaction     = 0.5f;  // rolling average of all 4 needs (0-1); updated in ConsumptionSystem
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

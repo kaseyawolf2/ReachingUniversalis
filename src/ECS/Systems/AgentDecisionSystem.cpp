@@ -91,7 +91,8 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         const Skills* skills,
                                                         const Profession* profession,
                                                         const MigrationMemory* memory,
-                                                        int currentDay) {
+                                                        int currentDay,
+                                                        float lastSatisfaction) {
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -137,6 +138,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         if (homeSett->morale < 0.25f)      moralePush = 0.3f;
         else if (homeSett->morale > 0.7f)  moralePush = -0.2f;
     }
+
+    // Satisfaction push: consistently unsatisfied NPCs seek better settlements
+    float satisfactionPush = (lastSatisfaction < 0.3f) ? 0.2f : 0.f;
 
     entt::entity best      = entt::null;
     float        bestScore = -1.f;
@@ -252,6 +256,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
         // Morale push: low morale pushes NPCs out, high morale anchors them
         total += moralePush;
+
+        // Satisfaction push: unsatisfied NPCs more likely to migrate
+        total += satisfactionPush;
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
@@ -745,7 +752,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             mkt->GetPrice(ResourceType::Wood), tm.day);
             }
 
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;

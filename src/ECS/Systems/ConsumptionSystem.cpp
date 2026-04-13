@@ -161,6 +161,13 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // ---- Update satisfaction memory ----
+        {
+            float avg = 0.f;
+            for (int i = 0; i < 4; ++i) avg += needs.list[i].value;
+            timer.lastSatisfaction = avg * 0.25f;
+        }
+
         // ---- Starvation desperation log ----
         // Fires when hunger < 0.1, no money, and no food in stockpile (purchase impossible).
         if (needs.list[0].value < 0.1f && (!money || money->balance < 1.f) && !hadFood) {

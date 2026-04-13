@@ -17,5 +17,6 @@ private:
                                      const Skills* skills = nullptr,
                                      const Profession* profession = nullptr,
                                      const MigrationMemory* memory = nullptr,
-                                     int currentDay = 0);
+                                     int currentDay = 0,
+                                     float lastSatisfaction = 0.5f);
 };
