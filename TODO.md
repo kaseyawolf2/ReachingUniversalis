@@ -9,9 +9,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **WriteSnapshot selective update** — In `SimThread::WriteSnapshot()`, instead of copying every field of every entity every tick, track a `dirty` bitset per entity (set by systems that modify drawable state). Only copy dirty entities under the mutex lock. Reset dirty flags after write. Reduces the 5.5ms (21.2%) WriteSnapshot cost proportional to how many entities actually changed.
 
 ## Recently Done
+
+- [x] **WriteSnapshot selective update** — Instead of dirty-flag tracking (too invasive), built a
+  single-pass per-settlement aggregate cache at the top of `WriteSnapshot()`. Pre-computes pop,
+  children, elders, workers, idle, haulers, need sums, hunger crisis, fatigue, charity counts,
+  and pending estates. Replaced 10+ redundant O(n) HomeSettlement scans with O(1) lookups.
+  Benchmark: WriteSnapshot -62% (10.7ms → 4.1ms), 15.4% → 6.9% of total step time.
+
+
 
 - [x] **AgentDecision friendship scan spatial cache** — Built `unordered_map<entity, settlement>`
   once per tick. Replaced `try_get<HomeSettlement>` in 6 friend-scan loops with O(1) hash lookups.
@@ -3882,3 +3889,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gossip system spatial partitioning** — `AD:Gossip` scans all NPC pairs within 30u, which is O(n²). In `AgentDecisionSystem.cpp`'s gossip section, build a per-settlement resident position list once, then only check pairs within the same or adjacent settlements. Use the `s_entitySettlement` cache to bucket NPCs by settlement, eliminating cross-settlement distance checks.
 
 - [ ] **Settlement entity cache for systems** — Multiple systems (`ConsumptionSystem`, `ProductionSystem`, `PriceSystem`) independently iterate `registry.view<Settlement>()` each tick. Add a `std::vector<entt::entity> settlementEntities` member to `SimThread`, rebuilt once per tick before system calls, and pass it to system `Update()` methods. Avoids redundant view construction across 3+ systems.
+
+- [ ] **WriteSnapshot friendship pairs via pre-computed cache** — The friendship pair counting in `SimThread::WriteSnapshot()` (per-settlement O(n²) mutual affinity scan) was not covered by the `settlAgg` optimisation. Move it into the pre-compute pass: for each NPC with `Relations`, check if any friend at the same settlement has mutual affinity ≥ 0.5. Count pairs per settlement in `settlAgg.friendPairs`. Replaces the nested resident loop in the settlement section.
+
+- [ ] **NPC daily routine variety** — In `ScheduleSystem.cpp`, NPCs currently have fixed work/sleep/idle blocks. Add a `restDay` counter on `Schedule` (increments each game-day, resets at 7). On day 7, the NPC stays in `Idle` state all day instead of working. Log "[Name] takes a rest day at [Settlement]." at 1-in-5 frequency. Creates weekly rhythm variation without new components beyond one int field.
