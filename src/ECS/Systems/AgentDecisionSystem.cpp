@@ -393,6 +393,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             static constexpr float SKILL_GROWTH        = 0.001f;
             static constexpr float MASTER_SKILL_GROWTH = 0.002f;
             static constexpr float MASTER_THRESHOLD    = 0.9f;
+            static constexpr float SKILL_RUST          = 0.0005f;
+            static constexpr float SKILL_RUST_FLOOR    = 0.3f;
 
             // Build per-settlement master profession set
             // Bit flags: 1=Farmer, 2=WaterCarrier, 4=Lumberjack
@@ -442,6 +444,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             break;
                         default: break;
                     }
+                    // Skill rust: inactive skills decay slowly (floor 0.3)
+                    if (prof.type != ProfessionType::Farmer)
+                        sk.farming = std::max(SKILL_RUST_FLOOR, sk.farming - SKILL_RUST);
+                    if (prof.type != ProfessionType::WaterCarrier)
+                        sk.water_drawing = std::max(SKILL_RUST_FLOOR, sk.water_drawing - SKILL_RUST);
+                    if (prof.type != ProfessionType::Lumberjack)
+                        sk.woodcutting = std::max(SKILL_RUST_FLOOR, sk.woodcutting - SKILL_RUST);
+
                     // Log at 1-in-10 frequency
                     if (hasMaster && growth > SKILL_GROWTH && !logV2.empty()) {
                         if (s_teachRng() % 10 == 0) {
