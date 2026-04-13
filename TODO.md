@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when an elder (age > 60) and a non-elder are both idle at the same settlement, 1-in-12 chance per hour to log "[Elder] tells [Listener] tales of the old days at [Settlement]." Boost listener's `Relations::affinity` toward elder by +0.03 (cap 1.0). Uses existing idle chat infrastructure and `Age` component.
+
+## Backlog
 
 - [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
 
