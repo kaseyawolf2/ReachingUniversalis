@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Teaching shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `teachCooldown
-  > 0` on the hovered NPC's `DeprivationTimer`, show "Recently taught/learned" in faint SKYBLUE.
-  Pipe `bool recentlyTaught` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
-  (check `timer.teachCooldown > 0`). No new component needed — just a display flag.
+
 
 
 
 ## Recently Done
+
+- [x] **Teaching shown in NPC tooltip** — `recentlyTaught` bool piped through AgentEntry from teachCooldown > 0. Shows "Recently taught/learned" in faint SKYBLUE in HUD tooltip.
 
 - [x] **NPC waves at player when happy** — Content NPCs (avg needs > 0.8) within 50u wave at player with 1%/s chance. Gated by thankCooldown (60s). Logs "[NPC] waves at you cheerfully."
 
@@ -1650,11 +1649,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **Teaching shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `teachCooldown
-  > 0` on the hovered NPC's `DeprivationTimer`, show "Recently taught/learned" in faint SKYBLUE.
-  Pipe `bool recentlyTaught` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
-  (check `timer.teachCooldown > 0`). No new component needed — just a display flag.
-
 - [ ] **Skill training builds mentor bond** — In `AgentDecisionSystem`'s skill training block,
   after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
   This enables the existing gratitude greeting to fire later: the learner will thank their teacher
@@ -3279,3 +3273,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   when an idle NPC has avg needs < 0.3 and is within 40u of the player, 0.5% chance per real-second
   to log "[NPC] sighs wearily." Gate with `thankCooldown`. Struggling NPCs create ambient feedback
   that communicates the world's problems without explicit UI indicators.
+
+- [ ] **Teaching tooltip shows skill name** — In `SimThread::WriteSnapshot`'s agent loop, replace
+  `recentlyTaught` bool with `std::string teachingSkill` on `RenderSnapshot::AgentEntry`. When
+  `timer.teachCooldown > 0`, also check the NPC's `Skills` component to find which skill is highest
+  (farming/water/woodcutting) and set teachingSkill to that name. In `HUD.cpp`, show
+  "Recently taught [Skill]" instead of generic text. More informative tooltip.
+
+- [ ] **Mentor shown in NPC tooltip** — Add `std::string mentorName` to
+  `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`, when `timer.teachCooldown > 0`,
+  scan nearby NPCs (30u) with higher skill to find the probable mentor via `Relations::affinity`.
+  In `HUD.cpp`'s tooltip, show "Learned from [Mentor]" in faint SKYBLUE. Creates visible
+  mentor-student relationships in the UI.
