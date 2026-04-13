@@ -2,8 +2,11 @@
 #include "ECS/Components.h"
 #include <algorithm>
 #include <map>
+#include <random>
 #include <set>
 #include <unordered_map>
+
+static std::mt19937 s_prodRng(42);
 
 // At full workforce (BASE_WORKERS) production runs at baseline rate.
 // Fewer workers → proportional reduction; more workers → bonus up to 2×.
@@ -48,6 +51,8 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
     std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
+    // Profession diversity: bitmask per settlement (bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack)
+    std::unordered_map<entt::entity, uint8_t> profDiversity;
 
     auto resIdx = [](ResourceType rt) -> int {
         switch (rt) {
@@ -118,6 +123,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 if (skills->farming >= 0.4f && skills->water_drawing >= 0.4f && skills->woodcutting >= 0.4f)
                     workerContrib *= 1.05f;
             }
+            // Track profession diversity for settlement bonus
+            if (const auto* prof = registry.try_get<Profession>(e)) {
+                switch (prof->type) {
+                    case ProfessionType::Farmer:      profDiversity[hs.settlement] |= 1; break;
+                    case ProfessionType::WaterCarrier: profDiversity[hs.settlement] |= 2; break;
+                    case ProfessionType::Lumberjack:   profDiversity[hs.settlement] |= 4; break;
+                    default: break;
+                }
+            }
             workers[hs.settlement] += workerContrib;
             workerHeadCount[hs.settlement]++;
             if (const auto* skills = registry.try_get<Skills>(e)) {
@@ -127,6 +141,30 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 arr[2].sum += skills->woodcutting;   arr[2].count++;
             }
         });
+
+    // ---- Settlement profession diversity bonus ----
+    // Settlements with all 3 professions (Farmer, WaterCarrier, Lumberjack) get +3% production.
+    {
+        static std::map<entt::entity, int> s_diverseLogged;
+        for (auto& [settl, w] : workers) {
+            if (profDiversity.count(settl) && profDiversity[settl] == 7) {
+                w *= 1.03f;
+                // Log once per game-day at 1-in-10 frequency
+                if (s_diverseLogged.count(settl) == 0 || s_diverseLogged[settl] != tm.day) {
+                    if (s_prodRng() % 10 == 0) {
+                        auto logView2 = registry.view<EventLog>();
+                        if (logView2.begin() != logView2.end()) {
+                            std::string sname = "A settlement";
+                            if (const auto* s = registry.try_get<Settlement>(settl)) sname = s->name;
+                            logView2.get<EventLog>(*logView2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                sname + " benefits from a diverse workforce.");
+                        }
+                    }
+                    s_diverseLogged[settl] = tm.day;
+                }
+            }
+        }
+    }
 
     // ---- Facility crowding log ----
     // Log once per settlement per game-day when 4+ workers are competing.
