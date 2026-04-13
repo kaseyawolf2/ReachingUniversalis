@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Nearby NPCs join skill celebration** — In `AgentDecisionSystem`'s Celebrating block, when
+  an NPC is celebrating a skill milestone (`skillCelebrateTimer > 0`), scan for idle NPCs within
+  30u with `Relations::affinity >= 0.2`. Set those NPCs to `AgentBehavior::Celebrating` with
+  `skillCelebrateTimer = 0.25f` (half duration). Log "[Friend] joins [Celebrant]'s celebration."
+  Friends share in each other's achievements.
 
 
 
