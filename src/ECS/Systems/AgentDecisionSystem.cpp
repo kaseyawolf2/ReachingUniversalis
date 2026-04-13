@@ -1296,6 +1296,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Master loss morale penalty: settlement mourns departing master ----
+                if (timer.masterSettled && home.settlement != entt::null && registry.valid(home.settlement)) {
+                    if (auto* settl = registry.try_get<Settlement>(home.settlement)) {
+                        settl->morale = std::max(0.f, settl->morale - 0.03f);
+                        // Log at 1-in-2 frequency
+                        static int s_masterLossCounter = 0;
+                        if (++s_masterLossCounter % 2 == 0) {
+                            auto lv4 = registry.view<EventLog>();
+                            if (!lv4.empty()) {
+                                lv4.get<EventLog>(*lv4.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay,
+                                    settl->name + " mourns the loss of a master.");
+                            }
+                        }
+                    }
+                }
+
                 // ---- Friend co-migration: best friend (highest affinity ≥ 0.5) follows if they also want to migrate ----
                 if (const auto* rel = registry.try_get<Relations>(entity)) {
                     entt::entity bestFriend = entt::null;
