@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
+
 ## Recently Done
 
 - [x] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after
@@ -1166,8 +1168,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
 
 - [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
 
