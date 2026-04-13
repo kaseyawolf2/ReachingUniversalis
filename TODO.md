@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
-
 ## Backlog
 
 - [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when an elder (age > 60) and a non-elder are both idle at the same settlement, 1-in-12 chance per hour to log "[Elder] tells [Listener] tales of the old days at [Settlement]." Boost listener's `Relations::affinity` toward elder by +0.03 (cap 1.0). Uses existing idle chat infrastructure and `Age` component.
@@ -21,7 +19,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, when `Settlement::modifierName == "Harvest Festival"`, chatting NPCs get double the normal affinity boost (+0.04 instead of +0.02). Log "[Name] and [Other] bond over the festival at [Settlement]" at 1-in-6 frequency. Uses existing idle chat infrastructure and `Settlement::modifierName` check.
 
+- [ ] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, when two haulers travel in convoy (`inConvoy == true`) and complete delivery at the same settlement, boost their `Relations::affinity` by +0.04 (cap 1.0). Log "[HaulerA] and [HaulerB] share a drink after their convoy to [Settlement]" at 1-in-4 frequency. Uses existing `Hauler::inConvoy` flag and `Relations` component.
+
+- [ ] **Novice hauler bankruptcy sympathy** — In `TransportSystem.cpp`'s bankruptcy block, when a novice hauler (`lifetimeTrips < 10`) goes bankrupt, nearby NPCs at the same home settlement with `Relations::affinity >= 0.4` toward the bankrupt hauler each donate 5g (deducted from `Money::balance`, credited to bankrupt hauler's balance — Gold Flow Rule: balance-to-balance). Log "[Friend] helps [Bankrupt] get back on their feet at [Settlement]" at 1-in-3 frequency. Cap at 3 donors max.
+
 ## Recently Done
+
+- [x] **Hauler mentorship** — Added `float mentorBonus` to `Hauler` in `Components.h`. In
+  `TransportSystem.cpp`, novice haulers (`lifetimeTrips < 5`) at the same home settlement as a
+  veteran (`lifetimeTrips >= 15`) receive `mentorBonus = 0.1f`. Applied as 10% earnings boost
+  at next delivery, then consumed. Logged at 1-in-5 frequency.
 
 - [x] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`'s Update(), once per
   game-day checks each settlement for profMask == 7. 1-in-200 chance triggers "Harvest Festival":
