@@ -158,6 +158,10 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
         if (!registry.all_of<Schedule>(e))
             registry.emplace<Schedule>(e);
 
+        // Mark as bankruptcy survivor for extra skill growth
+        if (auto* dt = registry.try_get<DeprivationTimer>(e))
+            dt->bankruptSurvivor = true;
+
         // Log the event
         if (log) {
             std::string who = "Hauler";

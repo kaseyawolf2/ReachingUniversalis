@@ -584,6 +584,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // Bankruptcy survivor determination: extra growth for resilient NPCs
+                    if (const auto* dt = registry.try_get<DeprivationTimer>(e)) {
+                        if (dt->bankruptSurvivor) {
+                            growth += 0.0002f;
+                            // Log at 1-in-8 frequency (once per day per NPC)
+                            if (s_teachRng() % 8 == 0 && !logV2.empty()) {
+                                std::string who = "NPC";
+                                if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                                std::string where = "settlement";
+                                if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                    if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                        where = s->name;
+                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    who + " works with renewed determination at " + where + ".");
+                            }
+                        }
+                    }
+
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = 0.f;
                     switch (prof.type) {
