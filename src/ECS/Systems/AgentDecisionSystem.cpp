@@ -1935,6 +1935,86 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     }
 
     // ============================================================
+    // ORPHAN ADOPTION
+    // Adults with charityTimer == 0 at a settlement with pop < popCap-1
+    // adopt nearby orphans (ChildTag, no valid home, within 60 units).
+    // Gives the orphan the adopter's family name and home settlement.
+    // ============================================================
+    {
+        static constexpr float ADOPT_RANGE   = 60.f;
+        static constexpr float ADOPT_RANGE2  = ADOPT_RANGE * ADOPT_RANGE;
+        static constexpr float ADOPT_COOLDOWN = 120.f; // reuse charity cooldown (game-hours)
+
+        // Build per-settlement pop counts
+        std::map<entt::entity, int> adoptPopCount;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
+            [&](const HomeSettlement& hs) {
+            if (hs.settlement != entt::null) ++adoptPopCount[hs.settlement];
+        });
+
+        // Collect orphans: children with no valid home
+        struct OrphanInfo { entt::entity e; float x, y; bool adopted = false; };
+        std::vector<OrphanInfo> orphans;
+        registry.view<ChildTag, Position, HomeSettlement>().each(
+            [&](auto oe, const Position& op, const HomeSettlement& oh) {
+            if (oh.settlement == entt::null || !registry.valid(oh.settlement))
+                orphans.push_back({oe, op.x, op.y});
+        });
+
+        if (!orphans.empty()) {
+            // Iterate adults who could adopt
+            registry.view<Position, HomeSettlement, DeprivationTimer>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](auto ae, const Position& ap, const HomeSettlement& ahs,
+                    DeprivationTimer& atm) {
+                if (ahs.settlement == entt::null || !registry.valid(ahs.settlement)) return;
+                if (atm.charityTimer > 0.f) return;
+                // Check settlement has room
+                const auto* sett = registry.try_get<Settlement>(ahs.settlement);
+                if (!sett) return;
+                int curPop = adoptPopCount.count(ahs.settlement) ? adoptPopCount.at(ahs.settlement) : 0;
+                if (curPop >= sett->popCap - 1) return;
+
+                // Find nearest unadopted orphan within range
+                float bestD2 = ADOPT_RANGE2;
+                OrphanInfo* bestOrphan = nullptr;
+                for (auto& o : orphans) {
+                    if (o.adopted) continue;
+                    float dx = o.x - ap.x, dy = o.y - ap.y;
+                    float d2 = dx*dx + dy*dy;
+                    if (d2 < bestD2) { bestD2 = d2; bestOrphan = &o; }
+                }
+                if (!bestOrphan) return;
+
+                // Adopt: assign home and family
+                bestOrphan->adopted = true;
+                auto& orphanHome = registry.get<HomeSettlement>(bestOrphan->e);
+                orphanHome.settlement = ahs.settlement;
+                ++adoptPopCount[ahs.settlement];
+
+                // Give adopter's family name (or emplace new FamilyTag)
+                const auto* adopterFam = registry.try_get<FamilyTag>(ae);
+                if (adopterFam && !adopterFam->name.empty()) {
+                    registry.emplace_or_replace<FamilyTag>(bestOrphan->e, FamilyTag{adopterFam->name});
+                }
+
+                // Set charity cooldown on adopter
+                atm.charityTimer = ADOPT_COOLDOWN;
+
+                // Log
+                if (charityLog) {
+                    std::string adopterName = "An NPC";
+                    std::string orphanName  = "an orphan";
+                    if (const auto* an = registry.try_get<Name>(ae))             adopterName = an->value;
+                    if (const auto* on = registry.try_get<Name>(bestOrphan->e))  orphanName  = on->value;
+                    charityLog->Push(charityDay, charityHour,
+                        adopterName + " took in orphan " + orphanName + " at " + sett->name + ".");
+                }
+            });
+        }
+    }
+
+    // ============================================================
     // BANDIT PROMOTION & BEHAVIOUR
     // Exiles (home.settlement == entt::null) with balance < 2g for
     // 48+ game-hours become bandits (BanditTag). Bandits lurk near
