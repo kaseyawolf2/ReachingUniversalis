@@ -92,7 +92,8 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         const Profession* profession,
                                                         const MigrationMemory* memory,
                                                         int currentDay,
-                                                        float lastSatisfaction) {
+                                                        float lastSatisfaction,
+                                                        bool isLonely) {
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -141,6 +142,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
     // Satisfaction push: consistently unsatisfied NPCs seek better settlements
     float satisfactionPush = (lastSatisfaction < 0.3f) ? 0.2f : 0.f;
+
+    // Loneliness push: isolated NPCs seek communities
+    float lonelinessPush = isLonely ? 0.15f : 0.f;
 
     entt::entity best      = entt::null;
     float        bestScore = -1.f;
@@ -259,6 +263,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
         // Satisfaction push: unsatisfied NPCs more likely to migrate
         total += satisfactionPush;
+
+        // Loneliness push: isolated NPCs seek communities
+        total += lonelinessPush;
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
@@ -775,7 +782,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             mkt->GetPrice(ResourceType::Wood), tm.day);
             }
 
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction);
+            // Check loneliness: no friends (affinity >= 0.3) at current settlement
+            bool lonely = true;
+            if (const auto* rel = registry.try_get<Relations>(entity)) {
+                for (const auto& [fe, aff] : rel->affinity) {
+                    if (aff < 0.3f) continue;
+                    if (!registry.valid(fe)) continue;
+                    const auto* fh = registry.try_get<HomeSettlement>(fe);
+                    if (fh && fh->settlement == home.settlement) { lonely = false; break; }
+                }
+            }
+
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;

@@ -18,5 +18,6 @@ private:
                                      const Profession* profession = nullptr,
                                      const MigrationMemory* memory = nullptr,
                                      int currentDay = 0,
-                                     float lastSatisfaction = 0.5f);
+                                     float lastSatisfaction = 0.5f,
+                                     bool isLonely = false);
 };
