@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Family reunion greeting** — In `AgentDecisionSystem`'s greeting block, when two NPCs share a `FamilyTag::name`, use a special log: "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of +0.01.
 
 ## Recently Done
 
