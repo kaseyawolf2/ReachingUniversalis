@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
+
 ## Recently Done
 
 - [x] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after starvation desperation
