@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Family reunion log on founding** — When a new settlement is founded via the P key in
+  `SimThread::ProcessInput`, scan NPCs with `FamilyTag` at the founding player's nearest settlement.
+  If 2+ share the same family name, log "The [name] family helped found [settlement]."
 
 ## Recently Done
 
