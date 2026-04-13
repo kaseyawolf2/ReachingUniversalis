@@ -621,6 +621,9 @@ void SimThread::ProcessInput() {
                                 float wdx = wp.x - ppos3.x, wdy = wp.y - ppos3.y;
                                 if (wdx*wdx + wdy*wdy > WITNESS_RANGE * WITNESS_RANGE) return;
                                 wrep.score += 0.1f;
+                                // Witness remembers the player — enables gratitude greeting later
+                                auto& wTimer = m_registry.get_or_emplace<DeprivationTimer>(we);
+                                wTimer.lastHelper = pe3;
                                 ++witnessCount;
                             });
                         if (plog && witnessCount > 0) {
