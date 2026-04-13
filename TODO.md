@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC gossips about confrontation** — In `AgentDecisionSystem`'s greeting block, when an NPC
-  with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
-  `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
-  about the player's bravery." with `greetCooldown` gating. Word of heroic deeds spreads socially.
+
 
 
 
 ## Recently Done
+
+- [x] **NPC gossips about confrontation** — In greeting block, NPCs with `lastHelper == playerEntity` spread the memory to greeted NPCs. Logs "[NPC] tells [Other] about the player's bravery."
 
 - [x] **Confrontation witness remembers player** — Witnesses in SimThread's confrontation loop get `lastHelper = playerEntity` via `get_or_emplace<DeprivationTimer>`, enabling gratitude greetings later.
 
@@ -1644,11 +1643,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **NPC gossips about confrontation** — In `AgentDecisionSystem`'s greeting block, when an NPC
-  with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
-  `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
-  about the player's bravery." with `greetCooldown` gating. Word of heroic deeds spreads socially.
-
 - [ ] **NPC avoids player with bad reputation** — In `AgentDecisionSystem`'s idle block, after
   the thank-player check, when the player entity is within 30u and the NPC has `Reputation::score
   < -0.5`, apply flee velocity away from the player at 0.8× speed for 2 real-seconds (set
@@ -3255,3 +3249,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   clear `lastHelper` after 48 game-hours. Add `float lastHelperTimer = 0.f` to `DeprivationTimer`,
   set to 48.0 when `lastHelper` is assigned. Decrement by `gameHoursDt` each frame; when it reaches
   0, set `lastHelper = entt::null`. Memories fade — gratitude doesn't last forever.
+
+- [ ] **Gossip hop limit prevents infinite spread** — In `AgentDecisionSystem`'s greeting block
+  gossip propagation (where `lastHelper` is spread), add `int gossipHops = 0` to `DeprivationTimer`.
+  Set to 0 for direct witnesses (in `SimThread::ProcessInput`'s witness loop), increment by 1 when
+  spreading via gossip. Only spread when `gossipHops < 3`. This caps how far the player's fame
+  travels — direct witnesses are more credible than third-hand accounts.
+
+- [ ] **NPC greeting mentions shared knowledge** — In `AgentDecisionSystem`'s greeting block,
+  when both NPCs have `lastHelper == playerEntity`, replace the normal greeting log with
+  "[NPC] and [Other] discuss the player's deeds." (no gossip spread needed since both already know).
+  Use the existing `isGratitude`/`isFamilyReunion` priority pattern — check this before the normal
+  greeting case. Shared knowledge creates a sense of community narrative.
