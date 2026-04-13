@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC shares food with family first** — In `AgentDecisionSystem`'s charity block, before checking generic nearby NPCs, prioritize family members (check `FamilyTag::name` match). If a starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
+
 
 ## Recently Done
+
+- [x] **NPC shares food with family first** — Family members prioritized in charity via two-pass loop. Family helpers need only ≥1g, bypass reputation check. Log: "[Name] feeds family member [Other]."
+
+
+
 
 - [x] **Skill milestone shown in NPC tooltip** — "Journeyman/Master [Type]" line in HUD tooltip for skills ≥0.5/≥0.9.
 
@@ -1524,7 +1529,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Read from existing `farmSkill`, `waterSkill`, `woodSkill` in `RenderSnapshot::AgentEntry`. Find
   the highest skill that exceeds 0.5 and display the appropriate title. No new data piping needed.
 
-- [ ] **NPC shares food with family first** — In `AgentDecisionSystem`'s charity block, before
+- [x] **NPC shares food with family first** — In `AgentDecisionSystem`'s charity block, before
   checking generic nearby NPCs, prioritize family members (check `FamilyTag::name` match). If a
   starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always
   offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
@@ -1564,6 +1569,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Pipe from `SimThread::WriteSnapshot` by counting NPCs homed at the settlement with Skills ≥ 0.9
   or ≥ 0.5. Pick the type with the most combined masters+journeymen. Gives players visibility into
   settlement specialisation at a glance.
+
+- [ ] **Family grief on death** — In `DeathSystem`, when an NPC dies, scan for other NPCs with
+  matching `FamilyTag::name`. Set a `float griefTimer = 4.f` (game-hours) on their `DeprivationTimer`
+  (add the field). During grief, `AgentDecisionSystem` skips idle social actions (greeting, visiting)
+  and drains morale by -0.05/game-hour on home settlement. Log "[Name] mourns the loss of [Dead]."
+
+- [ ] **Family reunion greeting** — In `AgentDecisionSystem`'s greeting block, when two NPCs share
+  a `FamilyTag::name` and haven't greeted in the current `greetCooldown` window, use a special log:
+  "[Name] embraces [Other] warmly." Grant +0.08 mutual affinity (8× normal) instead of the standard
+  +0.01. Family reunions are emotionally significant encounters.
 
 ---
 
