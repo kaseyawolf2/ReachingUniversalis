@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs with different professions have `Relations::affinity < 0.1` (strained by taunts) and work at the same facility for 3+ consecutive hours (track via a static map of pair → hour count), 1-in-10 chance to reconcile: boost mutual affinity by +0.05 and log "[Name] and [Other] put aside their differences at [Settlement]." Resets hour count after reconciliation.
-
 ## Backlog
 
 - [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
@@ -41,7 +39,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Grief vigil gathering** — In `AgentDecisionSystem.cpp`'s grief block (where `isGrieving` is set), when 3+ NPCs at the same settlement are grieving simultaneously, log "[Settlement] holds a vigil for the fallen" once per grief cluster (track via `static std::map<entt::entity, int> s_lastVigilDay`). Boost all grieving NPCs' mutual `Relations::affinity` by +0.02 (cap 1.0) on top of the pairwise shared grief boost. Represents communal mourning rituals.
 
+- [ ] **Workplace best friend** — In `ScheduleSystem.cpp`'s shared workplace affinity block, track per-NPC the coworker they've accumulated the most `s_workAffinityGain` with via a new `entt::entity workBestFriend = entt::null` field on `Relations` in `Components.h`. Update when cumulative gain exceeds the current best friend's gain. In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with their `workBestFriend`, use `affinityGain = 0.03f` instead of `0.02f`. Log "[Name] catches up with work buddy [Other] at [Settlement]" at 1-in-8 frequency.
+
+- [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
+
 ## Recently Done
+
+- [x] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace block,
+  NPCs with different professions and `Relations::affinity < 0.1` working at the same facility for
+  3+ consecutive hours have 1-in-10 chance to reconcile (+0.05 mutual affinity). Tracked via static
+  pair→hour map. Resets after reconciliation.
 
 - [x] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour area,
   grieving NPCs (`griefTimer > 0`) within 30 units at the same settlement boost mutual affinity by +0.05
