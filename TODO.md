@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Family wealth total in stockpile panel** — Extend the family `×N` display to also show
+  the combined gold of all family members in the visible residents list. After `×N` add
+  `(total Xg)` in `Fade(GOLD, 0.6f)`. Sum `r.balance` for all residents sharing that
+  `familyName`. This makes family economic power visible at a glance.
+
 ## Recently Done
 
 - [x] **Largest family in settlement header** — "Largest family: Smith ×4" shown in `RenderSystem::DrawStockpilePanel` after treasury line when any family has ≥2 members. Computed from `panel.residents` familyName counts. Height calc updated.
@@ -1947,11 +1952,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Family wealth total in stockpile panel** — Extend the family `×N` display to also show
-  the combined gold of all family members in the visible residents list. After `×N` add
-  `(total Xg)` in `Fade(GOLD, 0.6f)`. Sum `r.balance` for all residents sharing that
-  `familyName`. This makes family economic power visible at a glance.
 
 - [ ] **Skill degradation with age** — In `ScheduleSystem.cpp`'s skill decay block (the adult
   `!Working` decay path, lines ~310–318), add an additional age-based multiplier: when
