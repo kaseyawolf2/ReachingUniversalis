@@ -372,6 +372,28 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                             tmRef.day, (int)tmRef.hourOfDay, msg);
                                     }
                                 }
+                                // Career changer adaptation: second+ career change
+                                if (prof->prevType != ProfessionType::Idle &&
+                                    prof->prevType != prof->type &&
+                                    s_profRng() % 3 == 0) {
+                                    auto logV2 = registry.view<EventLog>();
+                                    if (!logV2.empty()) {
+                                        std::string who2 = "NPC";
+                                        if (const auto* nm = registry.try_get<Name>(entity))
+                                            who2 = nm->value;
+                                        std::string settlName2 = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                settlName2 = s->name;
+                                        auto& tmRef2 = registry.view<TimeManager>().get<TimeManager>(
+                                            *registry.view<TimeManager>().begin());
+                                        std::string msg2 = who2 + " is finding their calling as a " +
+                                            ProfessionLabel(newProf) + " after trying " +
+                                            ProfessionLabel(prof->type) + " at " + settlName2 + ".";
+                                        logV2.get<EventLog>(*logV2.begin()).Push(
+                                            tmRef2.day, (int)tmRef2.hourOfDay, msg2);
+                                    }
+                                }
                                 prof->prevType = prof->type;
                                 prof->type = newProf;
                             }
