@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
+
+## Backlog
 
 - [ ] **Afterglow tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool afterglow = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::afterglowHours > 0`. In `HUD.cpp`'s settlement tooltip, display "[Afterglow]" in warm yellow after the name badges (alongside "[Diverse]", "[Trade Hub]"). Makes the lingering festival effect visible.
 
