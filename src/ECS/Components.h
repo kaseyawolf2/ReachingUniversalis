@@ -498,6 +498,7 @@ struct Goal {
     float    progress      = 0.f;   // current measured value
     float    target        = 100.f; // threshold to complete
     float    celebrateTimer = 0.f;  // game-hours remaining for personal celebration
+    bool     halfwayLogged = false; // true once the 50% milestone log has fired
 };
 
 // Helper: human-readable goal description (e.g. for the event log)

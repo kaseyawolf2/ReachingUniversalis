@@ -2230,6 +2230,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     break;
             }
 
+            // ---- Halfway milestone log ----
+            if (!goal.halfwayLogged && goal.target > 0.f &&
+                goal.progress >= goal.target * 0.5f) {
+                goal.halfwayLogged = true;
+                auto hmlv = registry.view<EventLog>();
+                if (hmlv.begin() != hmlv.end()) {
+                    std::string who = "An NPC";
+                    if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                    const char* unit = (goal.type == GoalType::SaveGold) ? "g" :
+                                       (goal.type == GoalType::ReachAge) ? "d" : "";
+                    char buf[160];
+                    std::snprintf(buf, sizeof(buf),
+                        "%s is halfway to their %s goal (%.0f/%.0f%s).",
+                        who.c_str(), GoalLabel(goal.type),
+                        goal.progress, goal.target, unit);
+                    hmlv.get<EventLog>(*hmlv.begin()).Push(charityDay, charityHour, buf);
+                }
+            }
+
             if (goal.progress < goal.target) return;  // not yet met
 
             // ---- Goal completed! ----
@@ -2266,6 +2285,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             goal.type     = newType;
             goal.progress = 0.f;
+            goal.halfwayLogged = false;
             switch (newType) {
                 case GoalType::SaveGold: {
                     float bal = registry.try_get<Money>(e)
