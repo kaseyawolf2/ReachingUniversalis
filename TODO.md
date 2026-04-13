@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC thanks player after witnessing** — In `AgentDecisionSystem`, idle NPCs with `Reputation::score > 0.3` who are within 40 units of the player occasionally log "[NPC] nods respectfully at you." Add `float thankCooldown = 0.f` to `DeprivationTimer` (60 game-sec cooldown). Only fires if the NPC has the Reputation component.
 
 ## Recently Done
 
