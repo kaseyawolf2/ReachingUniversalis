@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Teaching shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `teachCooldown
+  > 0` on the hovered NPC's `DeprivationTimer`, show "Recently taught/learned" in faint SKYBLUE.
+  Pipe `bool recentlyTaught` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
+  (check `timer.teachCooldown > 0`). No new component needed — just a display flag.
 
 
 
