@@ -352,6 +352,10 @@ struct RenderSnapshot {
     int simStepsPerSec = 0;   // sim steps executed in the last real second
     int totalEntities  = 0;   // total live entities in the registry
 
+    // Per-system profiling: name → average microseconds per step (smoothed over 1s)
+    struct ProfileEntry { std::string name; float avgUs = 0.f; };
+    std::vector<ProfileEntry> profiling;
+
     // ---- Synchronisation ----
     mutable std::mutex mutex;
 

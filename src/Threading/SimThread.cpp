@@ -65,7 +65,13 @@ void SimThread::Run() {
         accumulator += realDt;
 
         // --- Input (once per real frame) ---
-        ProcessInput();
+        {
+            using hrc = std::chrono::high_resolution_clock;
+            auto t0 = hrc::now();
+            ProcessInput();
+            auto t1 = hrc::now();
+            m_profile[15].accumUs += std::chrono::duration<float, std::micro>(t1 - t0).count();
+        }
 
         // --- How many virtual 60 Hz frames have elapsed? ---
         int virtualFrames = 0;
@@ -95,8 +101,13 @@ void SimThread::Run() {
             int snapshotInterval = std::max(1, totalSteps / 4);
             for (int i = 0; i < totalSteps; ++i) {
                 RunSimStep(SIM_STEP_DT);
-                if ((i + 1) % snapshotInterval == 0 || i == totalSteps - 1)
+                if ((i + 1) % snapshotInterval == 0 || i == totalSteps - 1) {
+                    using hrc = std::chrono::high_resolution_clock;
+                    auto t0 = hrc::now();
                     WriteSnapshot();
+                    auto t1 = hrc::now();
+                    m_profile[14].accumUs += std::chrono::duration<float, std::micro>(t1 - t0).count();
+                }
             }
             m_stepCounter += totalSteps;
 
@@ -105,17 +116,27 @@ void SimThread::Run() {
             if (pv.empty()) RespawnPlayer();
         }
 
-        // Track steps per second using wall clock
-        m_statAccum += realDt;
+        // Track steps per second and flush profiler using wall clock
+        m_statAccum    += realDt;
+        m_profileAccum += realDt;
         if (m_statAccum >= 1.f) {
             m_stepsLastSec = m_stepCounter;
             m_stepCounter  = 0;
             m_statAccum   -= 1.f;
         }
+        if (m_profileAccum >= 1.f) {
+            ProfileFlush(m_profileAccum);
+            m_profileAccum = 0.f;
+        }
 
         // --- Write drawable state when paused or no steps ran ---
-        if (paused || virtualFrames == 0)
+        if (paused || virtualFrames == 0) {
+            using hrc = std::chrono::high_resolution_clock;
+            auto t0 = hrc::now();
             WriteSnapshot();
+            auto t1 = hrc::now();
+            m_profile[14].accumUs += std::chrono::duration<float, std::micro>(t1 - t0).count();
+        }
 
         // Yield so we don't pin the core when running faster than real time
         std::this_thread::yield();
@@ -184,21 +205,53 @@ void SimThread::RespawnPlayer() {
 
 // ---- One simulation step ----------------------------------------------
 
+void SimThread::ProfileFlush(float elapsed) {
+    if (m_profileSteps > 0) {
+        float invSteps = 1.f / m_profileSteps;
+        for (int i = 0; i < PROFILE_COUNT; ++i) {
+            m_profile[i].avgUs = m_profile[i].accumUs * invSteps;
+            m_profile[i].accumUs = 0.f;
+        }
+    }
+    m_profileSteps = 0;
+}
+
 void SimThread::RunSimStep(float dt) {
-    m_timeSystem.Advance(m_registry, dt);
-    m_needDrainSystem.Update(m_registry, dt);
-    m_consumptionSystem.Update(m_registry, dt);
-    m_scheduleSystem.Update(m_registry, dt);
-    m_agentDecisionSystem.Update(m_registry, dt);
-    m_movementSystem.Update(m_registry, dt);
-    m_productionSystem.Update(m_registry, dt);
-    m_transportSystem.Update(m_registry, dt);
-    m_priceSystem.Update(m_registry, dt);         // adjust prices after stockpile changes
-    m_randomEventSystem.Update(m_registry, dt);       // fire events and tick active timers
-    m_economicMobilitySystem.Update(m_registry, dt);  // hauler graduation / bankruptcy
-    m_constructionSystem.Update(m_registry, dt);       // settlement facility expansion
-    m_deathSystem.Update(m_registry, dt);
-    m_birthSystem.Update(m_registry, dt);
+    using hrc = std::chrono::high_resolution_clock;
+    auto timeCall = [](auto& accum, auto fn) {
+        auto t0 = hrc::now();
+        fn();
+        auto t1 = hrc::now();
+        accum += std::chrono::duration<float, std::micro>(t1 - t0).count();
+    };
+
+    // Initialise names on first call
+    if (m_profile[0].name == nullptr) {
+        const char* names[PROFILE_COUNT] = {
+            "Time", "NeedDrain", "Consumption", "Schedule",
+            "AgentDecision", "Movement", "Production", "Transport",
+            "Price", "RandomEvent", "EconMobility", "Construction",
+            "Death", "Birth", "WriteSnapshot", "ProcessInput"
+        };
+        for (int i = 0; i < PROFILE_COUNT; ++i)
+            m_profile[i].name = names[i];
+    }
+
+    timeCall(m_profile[0].accumUs,  [&]{ m_timeSystem.Advance(m_registry, dt); });
+    timeCall(m_profile[1].accumUs,  [&]{ m_needDrainSystem.Update(m_registry, dt); });
+    timeCall(m_profile[2].accumUs,  [&]{ m_consumptionSystem.Update(m_registry, dt); });
+    timeCall(m_profile[3].accumUs,  [&]{ m_scheduleSystem.Update(m_registry, dt); });
+    timeCall(m_profile[4].accumUs,  [&]{ m_agentDecisionSystem.Update(m_registry, dt); });
+    timeCall(m_profile[5].accumUs,  [&]{ m_movementSystem.Update(m_registry, dt); });
+    timeCall(m_profile[6].accumUs,  [&]{ m_productionSystem.Update(m_registry, dt); });
+    timeCall(m_profile[7].accumUs,  [&]{ m_transportSystem.Update(m_registry, dt); });
+    timeCall(m_profile[8].accumUs,  [&]{ m_priceSystem.Update(m_registry, dt); });
+    timeCall(m_profile[9].accumUs,  [&]{ m_randomEventSystem.Update(m_registry, dt); });
+    timeCall(m_profile[10].accumUs, [&]{ m_economicMobilitySystem.Update(m_registry, dt); });
+    timeCall(m_profile[11].accumUs, [&]{ m_constructionSystem.Update(m_registry, dt); });
+    timeCall(m_profile[12].accumUs, [&]{ m_deathSystem.Update(m_registry, dt); });
+    timeCall(m_profile[13].accumUs, [&]{ m_birthSystem.Update(m_registry, dt); });
+    ++m_profileSteps;
 
     // ---- Player work: skill advancement + auto-cancel if player moves ----
     // The player's Working state is set via E key (ProcessInput).
@@ -2638,5 +2691,12 @@ void SimThread::WriteSnapshot() {
         m_snapshot.econHaulerCount   = econHaulerCount;
         m_snapshot.simStepsPerSec = m_stepsLastSec;
         m_snapshot.totalEntities  = (int)m_registry.storage<entt::entity>().size();
+
+        // Copy profiling data
+        m_snapshot.profiling.clear();
+        for (int i = 0; i < PROFILE_COUNT; ++i) {
+            if (m_profile[i].name)
+                m_snapshot.profiling.push_back({ m_profile[i].name, m_profile[i].avgUs });
+        }
     }
 }

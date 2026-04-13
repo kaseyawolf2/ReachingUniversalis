@@ -1727,6 +1727,52 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
             sy += SLH;
         }
     }
+
+    // ---- Per-system profiler (appended below settlements) ----
+    {
+        std::lock_guard<std::mutex> lock(snap.mutex);
+        if (!snap.profiling.empty()) {
+            // Compute panel position below global debug + settlement panels
+            int profY = OY + rows * OLH + 14;
+            if (!settlCopy.empty()) {
+                int sph = (int)settlCopy.size() * 15 * 2 + 15 + 10;
+                profY += sph + 6;
+            }
+            int profRows = (int)snap.profiling.size() + 2;  // header + total + entries
+            int profH = profRows * 15 + 8;
+            int profW = OW + 60;
+
+            DrawRectangle(OX, profY, profW, profH, Fade(BLACK, 0.75f));
+            DrawRectangleLines(OX, profY, profW, profH, DARKGRAY);
+            DrawText("--- Profiler (us/step) ---", OX + 4, profY + 4, 11, Fade(YELLOW, 0.8f));
+
+            int py = profY + 4 + 15;
+            float totalUs = 0.f;
+
+            // Sort by cost descending for display
+            auto sorted = snap.profiling;
+            std::sort(sorted.begin(), sorted.end(),
+                [](const auto& a, const auto& b) { return a.avgUs > b.avgUs; });
+
+            for (const auto& entry : sorted) {
+                totalUs += entry.avgUs;
+                char pbuf[64];
+                if (entry.avgUs >= 1000.f)
+                    std::snprintf(pbuf, sizeof(pbuf), "%-15s %7.1f ms", entry.name.c_str(), entry.avgUs / 1000.f);
+                else
+                    std::snprintf(pbuf, sizeof(pbuf), "%-15s %7.0f us", entry.name.c_str(), entry.avgUs);
+                Color pcol = (entry.avgUs > 500.f) ? Fade(RED, 0.9f) :
+                             (entry.avgUs > 100.f) ? Fade(ORANGE, 0.8f) :
+                             Fade(LIGHTGRAY, 0.7f);
+                DrawText(pbuf, OX + 4, py, 11, pcol);
+                py += 15;
+            }
+            // Total line
+            char tbuf[64];
+            std::snprintf(tbuf, sizeof(tbuf), "TOTAL           %7.1f ms", totalUs / 1000.f);
+            DrawText(tbuf, OX + 4, py, 11, Fade(WHITE, 0.9f));
+        }
+    }
 }
 
 // ---- Minimap ----

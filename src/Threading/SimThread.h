@@ -110,4 +110,16 @@ private:
     // Maximum POPHISTORY_MAX entries (oldest overwritten).
     static constexpr int POPHISTORY_MAX = 30;
     std::map<entt::entity, std::vector<int>> m_popHistory;  // newest at back
+
+    // Per-system profiling: accumulate microseconds per 1-second window
+    static constexpr int PROFILE_COUNT = 16;  // systems + WriteSnapshot + ProcessInput
+    struct ProfileAccum {
+        const char* name;
+        float       accumUs = 0.f;  // total microseconds this window
+        float       avgUs   = 0.f;  // smoothed result from last window
+    };
+    ProfileAccum m_profile[PROFILE_COUNT] = {};
+    float        m_profileAccum = 0.f;
+    int          m_profileSteps = 0;
+    void         ProfileFlush(float elapsed);
 };
