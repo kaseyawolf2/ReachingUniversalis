@@ -9,6 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Family size shown in stockpile residents panel** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the existing resident name+profession+gold line, append " ×N" in
+  `Fade(GRAY, 0.7f)` when N ≥ 2 members of the same family are resident. Requires adding
+  `familyName` (std::string) to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`; populate
+  it in `SimThread::WriteSnapshot` near the `StockpilePanel` residents block via
+  `registry.try_get<FamilyTag>(npcEntity)->name`.
+
 ## Recently Done
 
 - [x] **Family reunion log on founding** — When a new settlement is founded (P key), scan NPCs assigned to the new settlement for shared `FamilyTag` names. If 2+ members share a family name, log "The [name] family helped found [settlement]." Pure flavour log in `SimThread::ProcessInput`.
@@ -1935,13 +1942,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Family size shown in stockpile residents panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after the existing resident name+profession+gold line, append " ×N" in
-  `Fade(GRAY, 0.7f)` when N ≥ 2 members of the same family are resident. Requires adding
-  `familyName` (std::string) to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`; populate
-  it in `SimThread::WriteSnapshot` near the `StockpilePanel` residents block via
-  `registry.try_get<FamilyTag>(npcEntity)->name`.
 
 - [ ] **Orphan adoption** — When a child has `ChildTag` but no valid `HomeSettlement` (orphaned
   by family dissolution or settlement collapse), any adult NPC at a settlement with `pop < popCap - 1`
