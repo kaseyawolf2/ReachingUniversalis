@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
-
 ## Recently Done
+
+- [x] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block, scans
+  departing NPC's friends (affinity ≥ 0.4) at the current settlement. Finds top friend by affinity
+  and logs "[Name] says farewell to [Friend] before leaving [Settlement]." at 1-in-3 frequency.
+  Fires before co-migration check.
+
+
 
 - [x] **Rivalry softening on shared crisis** — Added `SoftenRivalryOnSharedCrisis()` static helper
   in `RandomEventSystem.cpp`. Called after drought and plague events. When a rival settlement
@@ -835,8 +840,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
-
 - [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
 
 - [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
@@ -870,6 +873,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Wealth milestone tiers** — In `AgentDecisionSystem.cpp`'s wealthy celebration block, extend to track multiple thresholds (500g, 1000g, 2000g) using an `int wealthTier = 0` on `DeprivationTimer` (replace bool). Log different messages: "prosperous" at 500, "wealthy" at 1000, "a merchant prince" at 2000. Each tier fires once.
 
 - [ ] **Wealthy NPC philanthropy** — In `AgentDecisionSystem.cpp`, NPCs with `wealthCelebrated == true` and `balance > 600g` contribute 10g to their settlement's `treasury` once per 72 game-hours (reuse `charityTimer`). Log "[Name] donates to [Settlement]'s treasury." Gold flows `Money::balance` → `Settlement::treasury`. Follows Gold Flow Rule.
+
+- [ ] **Migration welcome log** — In `AgentDecisionSystem.cpp`'s migration arrival block (when NPC arrives at destination and `HomeSettlement` is reassigned), scan residents at the new settlement for the NPC with highest `Relations::affinity` toward the newcomer. If affinity ≥ 0.3, log "[Resident] welcomes [Name] to [Settlement]." at 1-in-3 frequency. Complements the farewell log.
+
+- [ ] **Friend mourning on death** — In `DeathSystem.cpp`, when an NPC dies, scan their `Relations::affinity` map for friends (affinity ≥ 0.5) at the same settlement. The top friend by affinity gets -0.03 morale on their home settlement and logs "[Friend] mourns the loss of [Name] at [Settlement]." at 1-in-2 frequency. Death has social consequences.
 
 ### NPC Crime & Consequence
 
