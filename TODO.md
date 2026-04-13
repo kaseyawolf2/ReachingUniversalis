@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
-
 ## Recently Done
+
+- [x] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block,
+  skilled workers (same profession, both skill ≥ 0.7) at the same facility have 1-in-20 chance
+  per hour to decrease mutual affinity by 0.02 (floor 0.0). Logged at 1-in-5 frequency.
 
 - [x] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`, tracked profession
   bitmask per settlement in worker loop. Settlements with all 3 professions get `workers *= 1.03f`.
@@ -1155,6 +1157,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Profession diversity tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, check if all 3 profession types are present among homed NPCs (reuse or mirror the bitmask from `ProductionSystem.cpp`). Add `bool diverse = false` to `SettlementEntry` in `RenderSnapshot.h`. Display "[Diverse]" tag in gold after settlement name in `HUD.cpp`'s settlement tooltip when true. Makes the diversity bonus visible to the player.
 
 - [ ] **Monoculture warning** — In `ProductionSystem.cpp`'s diversity check, when a settlement has 3+ workers but `profDiversity` bitmask has only 1 bit set (all workers same profession), log "[Settlement] lacks workforce diversity." once per game-day at 1-in-10 frequency. Counterpart to the diversity bonus message — warns player about overspecialised settlements.
+
+- [ ] **Rivalry reconciliation** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs have `Relations::affinity` < 0.2 (rivals from workplace competition) and both have `Needs` contentment > 0.7, 1-in-15 chance per chat to increase affinity by +0.05 and log "[Name] and [Name] make amends at [Settlement]." at 1-in-3 frequency. Happy NPCs are more forgiving. Uses existing `Relations`, `Needs`, proximity scan.
+
+- [ ] **Rivalry production penalty** — In `ProductionSystem.cpp`'s worker contribution block, after the contentment factor, check if this worker has any coworker at the same settlement with `Relations::affinity` < 0.1. If so, apply `workerContrib *= 0.9f`. Log "[Name] is distracted by workplace tensions." once per game-day per NPC at 1-in-10 frequency. Makes rivalry have gameplay consequences beyond just the social layer.
 
 - [ ] **Crisis aid between allied settlements** — In `RandomEventSystem.cpp`, after a drought or plague hits a settlement, check allied settlements (relations > 0.5). The closest ally with treasury > 100g donates 30g to the afflicted settlement's treasury. Log "[Ally] sends aid to [Settlement] during [crisis]." Gold flows treasury-to-treasury. Boosts relations by +0.05 for both sides.
 
