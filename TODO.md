@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Wealthy NPC celebration log** — In `AgentDecisionSystem.cpp`, when an NPC's `Money::balance` crosses 500g for the first time, log "[Name] has become wealthy at [Settlement]!" Use a `bool wealthCelebrated` on `DeprivationTimer`. One-time event per NPC that marks economic success.
+
 ## Recently Done
 
 - [x] **Gift reciprocity affinity boost** — After gold transfer in trade gift block, recipient's
@@ -803,8 +805,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Wealthy NPC celebration log** — In `AgentDecisionSystem.cpp`, when an NPC's `Money::balance` crosses 500g for the first time, log "[Name] has become wealthy at [Settlement]!" Use a `bool wealthCelebrated` on `DeprivationTimer`. One-time event per NPC that marks economic success.
 
 - [ ] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an NPC decides to migrate, check if their best friend (highest `Relations::affinity ≥ 0.5`, same settlement) also has migration score > 0. If so, set the friend's `HomeSettlement` to the same target and log "[Name] and [Friend] migrate together to [Dest]." at 1-in-2 frequency.
 
