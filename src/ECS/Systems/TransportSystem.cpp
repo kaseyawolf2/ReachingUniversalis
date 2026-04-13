@@ -343,6 +343,45 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                 hauler.waitCycles       = 0;
                 s_loggedIdle.erase(entity);
 
+                // ---- Hauler rival route competition ----
+                // Track which hauler last picked each route from each home settlement.
+                // When two haulers from the same home pick the same route consecutively,
+                // decrease their mutual affinity (economic rivalry).
+                {
+                    static std::map<std::pair<entt::entity, entt::entity>, entt::entity> s_lastRouteHauler;
+                    auto routeKey = std::make_pair(home.settlement, best.dest);
+                    auto rit = s_lastRouteHauler.find(routeKey);
+                    if (rit != s_lastRouteHauler.end() && rit->second != entity
+                        && registry.valid(rit->second)) {
+                        entt::entity rival = rit->second;
+                        // Decrease mutual affinity by 0.02 (floor 0.0)
+                        if (auto* myRel = registry.try_get<Relations>(entity)) {
+                            myRel->affinity[rival] = std::max(0.f, myRel->affinity[rival] - 0.02f);
+                        }
+                        if (auto* rivalRel = registry.try_get<Relations>(rival)) {
+                            rivalRel->affinity[entity] = std::max(0.f, rivalRel->affinity[entity] - 0.02f);
+                        }
+                        // Log at 1-in-5 frequency
+                        static std::mt19937 s_routeRivalRng{ std::random_device{}() };
+                        if (s_routeRivalRng() % 5 == 0) {
+                            auto logV = registry.view<EventLog>();
+                            auto tmV = registry.view<TimeManager>();
+                            if (!logV.empty() && !tmV.empty()) {
+                                const auto& tmR = tmV.get<TimeManager>(*tmV.begin());
+                                std::string n1 = "Hauler", n2 = "Hauler", routeName = "a route";
+                                if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                if (const auto* nm = registry.try_get<Name>(rival)) n2 = nm->value;
+                                if (const auto* ds = registry.try_get<Settlement>(best.dest)) routeName = ds->name;
+                                char buf[180];
+                                std::snprintf(buf, sizeof(buf), "%s undercuts %s on the %s route",
+                                              n1.c_str(), n2.c_str(), routeName.c_str());
+                                logV.get<EventLog>(*logV.begin()).Push(tmR.day, (int)tmR.hourOfDay, buf);
+                            }
+                        }
+                    }
+                    s_lastRouteHauler[routeKey] = entity;
+                }
+
                 // Log nervous warning if route has bandits
                 {
                     int routeBandits = 0;
