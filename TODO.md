@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
+- [ ] **Benchmark history tracking** — After each benchmark run (`bash benchmark.sh`), append a one-line summary to `benchmark_history.csv` (date, git hash, duration, avg steps/s, final pop, final day, total deaths, avg gold, gini). Create the CSV header if the file doesn't exist. Modify `benchmark.sh` to parse `benchmark_report.txt` after the run and append the row. Also add a long-duration stability test: `bash benchmark.sh 1800` (30 min) to verify the sim stays healthy at full speed over extended play. Track results in the same CSV.
 
 ## Recently Done
 
@@ -1074,6 +1074,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
+
+- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
 ### NPC Lifecycle & Identity
 
@@ -4102,8 +4104,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **ScheduleSystem child-follow caching** — In `ScheduleSystem.cpp`'s leisure wandering block (line ~514), each child scans all adults at the same settlement to find the nearest to follow. Cache the follow target per child, only re-evaluate when `hourChanged` is true or the target becomes invalid. Eliminates per-tick O(children × adults) scan during leisure hours.
 
 - [ ] **Settlement event memory** — Add `std::vector<std::pair<int, std::string>> eventHistory` to `Settlement` in `Components.h` (max 5 entries, oldest dropped). In `RandomEventSystem.cpp`, push `{day, modifierName}` when a new event starts. Display in the stockpile panel tooltip in `HUD.cpp` as "Recent events: Plague (day 12), Festival (day 15)". Gives settlements visible history.
-
-- [ ] **Benchmark history tracking** — After each benchmark run (`bash benchmark.sh`), append a one-line summary to `benchmark_history.csv` (date, git hash, duration, avg steps/s, final pop, final day, total deaths, avg gold, gini). Create the CSV header if the file doesn't exist. Modify `benchmark.sh` to parse `benchmark_report.txt` after the run and append the row. Also add a long-duration stability test: `bash benchmark.sh 1800` (30 min) to verify the sim stays healthy at full speed over extended play. Track results in the same CSV.
 
 - [ ] **NPC workplace camaraderie** — In `AgentDecisionSystem.cpp`'s social block, when two NPCs are both in `AgentBehavior::Working` state at the same `ProductionFacility` (same `state.target`), boost `Relations::affinity` by +0.01 per game-day (capped at 1.0). Log "[Name] and [Name] bond over work at [Settlement]." at 1-in-10 frequency. Gate with `entity % 4 == s_frameCounter % 4`. Uses existing `AgentState::target`, `Relations`, `HomeSettlement`.
 
