@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **NPC mentorship rivalry** — In `AgentDecisionSystem.cpp`'s skill growth block, when two NPCs at the same settlement both have the same skill ≥ 0.7 and one is training a child (mentor), the non-mentor gets `effectiveGrowthRate *= 1.1f` competitive boost. Log "[Name] trains harder, inspired by [Mentor]'s teaching" at 1-in-8 frequency. Uses existing mentor-apprentice infrastructure.
+
+## Backlog
 
 - [ ] **Settlement festival event on diversity** — In `RandomEventSystem.cpp`, settlements with `profMask == 7` (all 3 professions) have 1-in-200 chance per game-day to trigger a "Harvest Festival" event: +0.05 morale, +0.02 affinity between all residents, lasts 4 game-hours. Log "[Settlement] celebrates its diverse workforce!" Requires checking `SettlAgg.profMask` or mirroring the bitmask.
 
