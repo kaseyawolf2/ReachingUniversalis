@@ -103,6 +103,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                                       (contentment >= 0.4f) ? 0.85f : 0.65f;
                 workerContrib *= contentFactor;
             }
+            // Grief penalty: grieving workers produce at half rate
+            if (const auto* dt = registry.try_get<DeprivationTimer>(e)) {
+                if (dt->griefTimer > 0.f)
+                    workerContrib *= 0.5f;
+            }
             workers[hs.settlement] += workerContrib;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
