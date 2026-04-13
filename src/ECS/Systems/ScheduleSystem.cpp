@@ -588,6 +588,68 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // ---- Workplace reconciliation after taunt ----
+                    // NPCs with different professions and strained relations (affinity < 0.1)
+                    // who work together for 3+ consecutive hours may reconcile.
+                    if (hourChanged) {
+                        static std::map<std::pair<entt::entity, entt::entity>, int> s_reconHours;
+                        // Prune stale entries periodically (when map gets large)
+                        if (s_reconHours.size() > 500) {
+                            for (auto it = s_reconHours.begin(); it != s_reconHours.end(); ) {
+                                if (!registry.valid(it->first.first) || !registry.valid(it->first.second))
+                                    it = s_reconHours.erase(it);
+                                else ++it;
+                            }
+                        }
+                        const auto* myProfR = registry.try_get<Profession>(entity);
+                        auto* myRelR = registry.try_get<Relations>(entity);
+                        if (myProfR && myRelR
+                            && myProfR->type != ProfessionType::Idle
+                            && myProfR->type != ProfessionType::Hauler) {
+                            registry.view<AgentState, Position, HomeSettlement, Profession>(
+                                entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                [&](auto other, const AgentState& oState, const Position& oPos,
+                                    const HomeSettlement& oHome, const Profession& oPr) {
+                                if (other <= entity) return;
+                                if (oState.behavior != AgentBehavior::Working) return;
+                                if (oHome.settlement != home.settlement) return;
+                                if (oPr.type == myProfR->type) return; // same profession — not applicable
+                                if (oPr.type == ProfessionType::Idle || oPr.type == ProfessionType::Hauler) return;
+                                float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
+                                if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
+                                // Check if both have strained relations
+                                auto ait = myRelR->affinity.find(other);
+                                float aff = (ait != myRelR->affinity.end()) ? ait->second : 0.f;
+                                if (aff >= 0.1f) return; // Not strained enough
+                                auto key = (entity < other)
+                                    ? std::make_pair(entity, other)
+                                    : std::make_pair(other, entity);
+                                ++s_reconHours[key];
+                                if (s_reconHours[key] < 3) return;
+                                // 1-in-10 chance to reconcile
+                                if (s_rng() % 10 != 0) return;
+                                // Reconcile: boost mutual affinity by +0.05
+                                myRelR->affinity[other] = std::min(1.f, aff + 0.05f);
+                                if (auto* oRel = registry.try_get<Relations>(other))
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.05f);
+                                s_reconHours.erase(key);
+                                // Log
+                                auto logVR = registry.view<EventLog>();
+                                if (!logVR.empty()) {
+                                    std::string n1 = "NPC", n2 = "NPC";
+                                    if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                    if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
+                                    std::string where = "settlement";
+                                    if (home.settlement != entt::null && registry.valid(home.settlement))
+                                        if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                            where = s->name;
+                                    logVR.get<EventLog>(*logVR.begin()).Push(tm.day, hour,
+                                        n1 + " and " + n2 + " put aside their differences at " + where + ".");
+                                }
+                            });
+                        }
+                    }
+
                     // Skill advancement while at the work site (very slow: ~0.1 gain per game-day)
                     static constexpr float SKILL_GAIN_PER_GAME_HOUR = 0.1f / 24.f;
                     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
