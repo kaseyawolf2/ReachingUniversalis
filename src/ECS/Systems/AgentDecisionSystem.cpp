@@ -2410,27 +2410,36 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     EventLog* banditLog = (banditELV.begin() == banditELV.end())
                           ? nullptr : &banditELV.get<EventLog>(*banditELV.begin());
 
+    // Pre-compute road midpoints once — reused for banditsPerRoad, lurk target, and gang checks.
+    struct RoadMid { entt::entity entity; float mx; float my; bool blocked; };
+    static std::vector<RoadMid> s_roadMids;
+    s_roadMids.clear();
+    registry.view<Road>().each([&](auto re, const Road& road) {
+        const auto* pa = registry.try_get<Position>(road.from);
+        const auto* pb = registry.try_get<Position>(road.to);
+        if (pa && pb)
+            s_roadMids.push_back({re, (pa->x + pb->x) * 0.5f, (pa->y + pb->y) * 0.5f, road.blocked});
+    });
+
+    // Helper: find nearest non-blocked road midpoint to a position.
+    auto findNearestRoad = [](float px, float py) -> std::pair<entt::entity, std::pair<float,float>> {
+        entt::entity nearest = entt::null;
+        float bestD2 = std::numeric_limits<float>::max();
+        float bestMx = 0.f, bestMy = 0.f;
+        for (const auto& rm : s_roadMids) {
+            if (rm.blocked) continue;
+            float dx = rm.mx - px, dy = rm.my - py;
+            float d2 = dx*dx + dy*dy;
+            if (d2 < bestD2) { bestD2 = d2; nearest = rm.entity; bestMx = rm.mx; bestMy = rm.my; }
+        }
+        return {nearest, {bestMx, bestMy}};
+    };
+
     // Pre-count bandits per road for density cap (max 3 per road midpoint).
     std::map<entt::entity, int> banditsPerRoad;
-    {
-        auto roadView = registry.view<Road>();
-        registry.view<Position, BanditTag>(entt::exclude<Hauler, PlayerTag>).each(
-            [&](auto /*be*/, const Position& bpos) {
-                entt::entity nearest = entt::null;
-                float bestD2 = std::numeric_limits<float>::max();
-                roadView.each([&](auto re, const Road& road) {
-                    if (road.blocked) return;
-                    const auto* pa = registry.try_get<Position>(road.from);
-                    const auto* pb = registry.try_get<Position>(road.to);
-                    if (!pa || !pb) return;
-                    float mx = (pa->x + pb->x) * 0.5f;
-                    float my = (pa->y + pb->y) * 0.5f;
-                    float dx = mx - bpos.x, dy = my - bpos.y;
-                    float d2 = dx*dx + dy*dy;
-                    if (d2 < bestD2) { bestD2 = d2; nearest = re; }
-                });
-                if (nearest != entt::null) banditsPerRoad[nearest]++;
-            });
+    for (const auto& [bx, by] : s_banditPositions) {
+        auto [roadEnt, mid] = findNearestRoad(bx, by);
+        if (roadEnt != entt::null) banditsPerRoad[roadEnt]++;
     }
 
     // Iterate all NPCs that could be bandits (includes current BanditTag entities).
@@ -2529,18 +2538,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             float bestRoadD2 = std::numeric_limits<float>::max();
             float lurk_x = pos.x, lurk_y = pos.y;
             entt::entity lurkRoad = entt::null;
-            registry.view<Road>().each([&](auto re, const Road& road) {
-                if (road.blocked) return;
-                if (banditsPerRoad[re] >= BANDIT_CAP_PER_ROAD) return;
-                const auto* pa = registry.try_get<Position>(road.from);
-                const auto* pb = registry.try_get<Position>(road.to);
-                if (!pa || !pb) return;
-                float mx = (pa->x + pb->x) * 0.5f;
-                float my = (pa->y + pb->y) * 0.5f;
-                float dx2 = mx - pos.x, dy2 = my - pos.y;
+            for (const auto& rm : s_roadMids) {
+                if (rm.blocked) continue;
+                if (banditsPerRoad[rm.entity] >= BANDIT_CAP_PER_ROAD) continue;
+                float dx2 = rm.mx - pos.x, dy2 = rm.my - pos.y;
                 float d2  = dx2*dx2 + dy2*dy2;
-                if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = mx; lurk_y = my; lurkRoad = re; }
-            });
+                if (d2 < bestRoadD2) { bestRoadD2 = d2; lurk_x = rm.mx; lurk_y = rm.my; lurkRoad = rm.entity; }
+            }
             if (lurkRoad != entt::null) {
                 banditsPerRoad[lurkRoad]++;
                 // Assign gang name when 2+ bandits share a road
@@ -2554,18 +2558,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             if (other == e || !existingGang.empty()) return;
                             if (odt.gangName.empty()) return;
                             // Check if this bandit is also targeting the same road
-                            float bestD = std::numeric_limits<float>::max();
-                            entt::entity otherRoad = entt::null;
-                            registry.view<Road>().each([&](auto re2, const Road& rd2) {
-                                if (rd2.blocked) return;
-                                const auto* a2 = registry.try_get<Position>(rd2.from);
-                                const auto* b2 = registry.try_get<Position>(rd2.to);
-                                if (!a2 || !b2) return;
-                                float mx2 = (a2->x + b2->x) * 0.5f;
-                                float my2 = (a2->y + b2->y) * 0.5f;
-                                float d2 = (mx2 - op.x)*(mx2 - op.x) + (my2 - op.y)*(my2 - op.y);
-                                if (d2 < bestD) { bestD = d2; otherRoad = re2; }
-                            });
+                            auto [otherRoad, otherMid] = findNearestRoad(op.x, op.y);
                             if (otherRoad == lurkRoad) existingGang = odt.gangName;
                         });
                     if (!existingGang.empty()) {
