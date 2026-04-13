@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
+
 ## Recently Done
 
 - [x] **Friendship shown in settlement tooltip** — Counts mutual friendship pairs (`Relations::affinity
@@ -785,8 +787,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
 
 - [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
 
