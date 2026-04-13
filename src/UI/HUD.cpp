@@ -894,6 +894,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         }
     }
 
+    // Skill decay warning: non-working NPCs with any skill >= 0.5
+    bool showSkillDecay = false;
+    if (best->behavior != AgentBehavior::Working &&
+        best->role != RenderSnapshot::AgentRole::Player &&
+        (best->farmingSkill >= 0.5f || best->waterSkill >= 0.5f || best->woodcuttingSkill >= 0.5f)) {
+        showSkillDecay = true;
+    }
+
     // Mood comment based on contentment
     char moodLine[32] = {};
     Color moodColor = WHITE;
@@ -921,6 +929,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showStrike)   lineCount++;
     if (showSkill)     lineCount++;
     if (showMilestone) lineCount++;
+    if (showSkillDecay) lineCount++;
     if (showMood)      lineCount++;
     if (showCargo)    lineCount++;
     if (showRumour)   lineCount++;
@@ -971,7 +980,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wrp = showRep ? MeasureText(repLine, 11) : 0;
     int wmd = showMood ? MeasureText(moodLine, 11) : 0;
     int wml = showMilestone ? MeasureText(milestoneLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml}) + 10;
+    int wsd = showSkillDecay ? MeasureText("Skills rusting", 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wmd, wml}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1031,6 +1041,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showTaught)   { DrawText("Recently taught/learned",    tx, ly, 11, Fade(SKYBLUE, 0.6f));  ly += 16; }
     if (showSkill)    { DrawText(line6,                         tx, ly, 11, skillColor);             ly += 16; }
     if (showMilestone) { DrawText(milestoneLine, tx, ly, 11, milestoneColor); ly += 16; }
+    if (showSkillDecay) { DrawText("Skills rusting", tx, ly, 11, Fade(ORANGE, 0.6f)); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);
