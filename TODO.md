@@ -9,13 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Friendship shown in NPC tooltip** — Surface the strongest friendship in the hover tooltip.
-  Add `std::string bestFriendName` and `float bestFriendAffinity` to `AgentEntry` in
-  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, iterate the NPC's `Relations::affinity` map,
-  find the highest-affinity valid entity, and set both fields. In `HUD::DrawHoverTooltip`, when
-  `bestFriendAffinity >= 0.5`, show `"Friend: Aldric (82%)"` in `Fade(LIME, 0.75f)`.
-
 ## Recently Done
+
+- [x] **Friendship shown in NPC tooltip** — `bestFriendName` + `bestFriendAffinity` on `AgentEntry`. WriteSnapshot iterates `Relations::affinity`. Tooltip shows "Friend: Name (X%)" in LIME when affinity ≥ 0.5.
+
+
 
 - [x] **Elder wisdom event** — One-time wisdom transfer for elders (age > 70, skill ≥ 0.6): +0.1 to random younger co-settled NPC's matching skill, capped at 0.8. `wisdomFired` bool on `DeprivationTimer`. In `RandomEventSystem.cpp`.
 
@@ -3599,3 +3597,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   block (~line 1304), when one chat partner is an elder (age > 65) and the other is younger,
   10% chance to log "[Elder] tells [Younger] a story of the old days at [settlement]." Uses
   existing `Age` component and `chatTimer`. Pure flavour, no gameplay effect.
+
+- [ ] **Friendship strength indicator colour** — In `HUD.cpp`'s friend tooltip line, vary the
+  colour by affinity strength: `Fade(LIME, 0.75f)` for ≥ 0.7, `Fade(GREEN, 0.6f)` for ≥ 0.5,
+  and label "Close friend" vs "Friend" accordingly. No new snapshot fields — uses existing
+  `bestFriendAffinity` on `AgentEntry`.
+
+- [ ] **Friends migrate together** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, when
+  an NPC decides to migrate, check if they have a friend (affinity ≥ 0.6) at the same settlement
+  who is also Idle. If so, set the friend's migration target to the same destination and log
+  "[Name] convinced [Friend] to migrate to [settlement] together." Uses existing `Relations`
+  and `AgentState`. No new components.
