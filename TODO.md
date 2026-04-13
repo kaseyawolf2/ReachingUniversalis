@@ -11,7 +11,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 
+
 ## Recently Done
+
+- [x] **NPC mood contagion in idle** — Happy NPCs (avg needs > 0.8) cheer up struggling NPCs (avg needs < 0.4) within 25u, boosting home settlement morale +0.01/game-hour. 120s cooldown via moodContagionCooldown.
 
 - [x] **Hauler route shown in stockpile panel** — HaulerInfo struct + haulerRoutes on StockpilePanel. Up to 3 haulers with "Home→Dest" routes in SKYBLUE (RED if struggling).
 
@@ -1631,12 +1634,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **NPC mood contagion in idle** — In `AgentDecisionSystem`'s idle block, when two NPCs are
-  within 25u and one has avg needs > 0.8 while the other has avg needs < 0.4, the happy NPC's
-  presence slightly boosts the struggling NPC's morale: +0.01 to home `Settlement::morale` per
-  game-hour. Add `float moodContagionCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown).
-  Log "[Happy NPC] cheers up [Sad NPC]." Positive moods are socially infectious.
-
 - [ ] **Nearby NPCs join skill celebration** — In `AgentDecisionSystem`'s Celebrating block, when
   an NPC is celebrating a skill milestone (`skillCelebrateTimer > 0`), scan for idle NPCs within
   30u with `Relations::affinity >= 0.2`. Set those NPCs to `AgentBehavior::Celebrating` with
@@ -3213,3 +3210,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot::SettlementEntry`). If > 0, show "Bandits nearby: X" in `Fade(RED, 0.8f)`.
   Compute in `SimThread::WriteSnapshot` by scanning `BanditTag, Position` vs settlement position.
   Makes the bandit threat visible without needing to hover individual NPCs.
+
+- [ ] **Mood contagion shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when
+  `moodContagionCooldown > 0` on the hovered NPC, show "Recently cheered up" in faint GREEN.
+  Pipe `bool recentlyCheered` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
+  (set true when `timer.moodContagionCooldown > 0`). Struggling NPCs who received a boost get
+  visual feedback in the tooltip.
+
+- [ ] **Happy NPCs attract idle neighbours** — In `AgentDecisionSystem`'s idle block, after the
+  mood contagion check, when an idle NPC has avg needs < 0.3 and there is a happy NPC (avg > 0.8)
+  within 60u, set velocity toward the happy NPC at 0.3× speed for up to 30 game-seconds (use
+  `chatTimer`). Log nothing (ambient drift only). Miserable NPCs naturally gravitate toward cheerful
+  neighbours, creating visible social clustering around happy NPCs.
+
+- [ ] **Mood contagion chain reaction** — In `AgentDecisionSystem`'s mood contagion block, when an
+  NPC receives mood contagion (morale boost applied), also boost the receiving NPC's lowest need by
+  +0.02 (one-time). This creates a small direct benefit beyond morale — the happy NPC's presence
+  genuinely helps. Cap the boost so the need doesn't exceed 0.5. Emotional support has tangible
+  health benefits.
