@@ -2117,11 +2117,33 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         timer.chatTimer  = dur;
                         oTimer.chatTimer = dur;
                         // Build affinity: proximity → friendship over time
+                        // During a Harvest Festival, double the affinity gain
                         static constexpr float AFFINITY_GAIN = 0.02f;
+                        bool festivalActive = false;
+                        if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                            const auto* settl = registry.try_get<Settlement>(home.settlement);
+                            if (settl && settl->modifierName == "Harvest Festival")
+                                festivalActive = true;
+                        }
+                        float affinityGain = festivalActive ? 0.04f : AFFINITY_GAIN;
                         if (auto* rel = registry.try_get<Relations>(entity))
-                            rel->affinity[other] = std::min(1.f, rel->affinity[other] + AFFINITY_GAIN);
+                            rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                         if (auto* oRel = registry.try_get<Relations>(other))
-                            oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + AFFINITY_GAIN);
+                            oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
+                        // Festival bonding log at 1-in-6 frequency
+                        if (festivalActive && s_chatRng() % 6 == 0) {
+                            auto flv = registry.view<EventLog>();
+                            if (!flv.empty()) {
+                                std::string nA = "An NPC", nB = "another NPC";
+                                if (const auto* nmA = registry.try_get<Name>(entity)) nA = nmA->value;
+                                if (const auto* nmB = registry.try_get<Name>(other)) nB = nmB->value;
+                                std::string where = "settlement";
+                                if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                    where = stt->name;
+                                flv.get<EventLog>(*flv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    nA + " and " + nB + " bond over the festival at " + where + ".");
+                            }
+                        }
                         // Log ~10% of chats for social flavour
                         static std::uniform_real_distribution<float> s_chatLogDist(0.f, 1.f);
                         if (s_chatLogDist(s_chatRng) < 0.1f) {
