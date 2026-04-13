@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC remembers who helped them** — lastHelper on DeprivationTimer. Gratitude greeting with +0.05 affinity.
+
 
 ## Recently Done
+
+- [x] **NPC remembers who helped them** — lastHelper on DeprivationTimer. Gratitude greeting replaces plain greeting with +0.05 mutual affinity (5x normal). Clears after expression.
+
 
 - [x] **Hauler avoids recently unprofitable routes** — worstRoute/worstLoss/worstRouteTimer on Hauler. -20% score penalty in FindBestRoute for 24 game-hours after a loss. Timer auto-clears.
 
@@ -1498,7 +1501,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   loss. In `FindBestRoute`, penalize routes matching `worstRoute` by -20% score for 24 game-hours
   (add `float worstRouteTimer = 0.f`). Haulers learn from mistakes and avoid known bad trades.
 
-- [ ] **NPC remembers who helped them** — Add `entt::entity lastHelper = entt::null` to
+- [x] **NPC remembers who helped them** — Add `entt::entity lastHelper = entt::null` to
   `DeprivationTimer`. In `AgentDecisionSystem`'s charity block, when an NPC receives charity, set
   `lastHelper` to the donor's entity. In the greeting block, if the greeter's `lastHelper` matches
   the other NPC, log "[Name] thanks [Helper] for past kindness" instead of a plain greeting and
@@ -3008,3 +3011,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   hauler's `worstRoute`, set that hauler's `worstRoute` to match and `worstRouteTimer = 12.f`
   (half duration — secondhand info). Log "[Hauler A] warns [Hauler B] about [route]." Creates
   information sharing between haulers — bad news travels through the trade network.
+
+- [ ] **Gratitude chain: helped NPC helps others sooner** — In `AgentDecisionSystem`'s charity
+  block, when setting `starvingTmr->lastHelper`, also reduce the starving NPC's `charityTimer`
+  by 50% (halve any remaining cooldown). This means recently helped NPCs "pay it forward" faster.
+  Log nothing — purely mechanical. Check `starvingTmr->charityTimer > 0` before halving.
+
+- [ ] **NPC avoids past thieves** — In `AgentDecisionSystem`'s greeting block, add a check: if
+  the other NPC has `Reputation::score < -0.3` and `timer.lastHelper == entt::null` (no gratitude
+  override), skip the greeting entirely and log "[Name] avoids [Other] (mistrusted)". Uses existing
+  `try_get<Reputation>`. Creates visible social shunning where low-rep NPCs are frozen out of
+  casual interactions, complementing the existing charity refusal for bad-rep NPCs.
