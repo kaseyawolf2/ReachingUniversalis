@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
-
 ## Recently Done
+
+- [x] **ProductionSystem container optimisation** — System was already well-structured with
+  single-pass per-settlement worker aggregation (no per-worker facility lookups needed). Replaced
+  5 `std::map` containers with `std::unordered_map` for O(1) settlement lookups instead of O(log n).
+
+
 
 - [x] **Bandit proximity spatial cache** — Added file-scope `s_banditPositions` vector, populated
   once per tick in `Update()`. Replaced `registry.view<BanditTag, Position>().each()` calls in
@@ -945,7 +949,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Friendship decay on distance** — In `AgentDecisionSystem.cpp`'s gossip/social block, when two NPCs with `Relations::affinity >= 0.3` are at different settlements, decay their affinity by `0.002 * gameHoursDt` per tick. Friends who migrate apart slowly drift unless they reunite. Adds consequence to migration decisions and makes reunion meaningful.
+- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency. Complements the existing friendship decay on distance (already implemented) by rewarding reunions.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
