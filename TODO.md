@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
-
 ## Recently Done
+
+- [x] **Settlement skill summary in tooltip** — Added `float avgFarming, avgWater, avgWood` to
+  `SettlementEntry` in `RenderSnapshot.h`. Computed in `settlAgg` single-pass loop via
+  `skillFarmSum/skillWaterSum/skillWoodSum/skillCount`. Displayed in `HUD.cpp`'s settlement
+  tooltip as "Skills: Farm X% Water Y% Wood Z%" in sky blue after masters line.
 
 - [x] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block,
   when an NPC switches profession and had ≥ 0.5 skill in their old profession, grants +0.05
@@ -4135,3 +4138,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Career change skill transfer log** — In `ScheduleSystem.cpp`'s profession change block, after the new skill transfer code, log "[Name] applies their [old profession] experience to [new profession] at [Settlement]." at 1-in-3 frequency when the +0.05 bonus is actually applied (oldSkill >= 0.5). Uses the existing `s_profRng` and `EventLog`. Makes the skill transfer mechanic visible to players.
 
 - [ ] **Multi-career veteran bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, add `int careerChanges` to `Profession` in `Components.h`. Increment in `ScheduleSystem.cpp` on each profession change. NPCs with `careerChanges >= 3` get a flat +0.0003 growth bonus to ALL skills (versatility through breadth of experience). Log "[Name] draws on diverse experience at [Settlement]." once when crossing 3 changes, at 1-in-5 frequency.
+
+- [ ] **Settlement skill specialisation indicator** — In `SimThread::WriteSnapshot`'s settlement section, after computing `avgFarming/avgWater/avgWood` from `settlAgg`, determine if one skill is dominant (>= 1.5x the average of the other two). If so, set a new `std::string skillSpeciality` field on `SettlementEntry` (e.g. "Farming Hub", "Forestry Hub"). Display in `HUD.cpp`'s tooltip after the skills line in a distinct colour. Highlights natural skill clustering.
+
+- [ ] **Settlement skill growth trend** — Add `float prevAvgFarming, prevAvgWater, prevAvgWood` to `SettlementEntry` in `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, store the current averages and compare with a cached previous snapshot (use a `static std::map<entt::entity, std::array<float,3>>` keyed by settlement entity, updated once per game-day). Display arrows in tooltip: "Skills: Farm 45% ↑ Water 30% ↓ Wood 20% →" using `settlAgg` data. Shows whether settlement workforce is improving.
