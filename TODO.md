@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's profession skill crosses 0.8 upward, log "[Name] proudly declares mastery of [profession] at [Settlement]" and boost affinity by +0.02 toward all same-profession NPCs at the same settlement (via `Relations`). 1-in-3 log frequency. Creates positive same-profession bonding to counterbalance rivalry.
-
 ## Backlog
 
 - [ ] **Afterglow tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool afterglow = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::afterglowHours > 0`. In `HUD.cpp`'s settlement tooltip, display "[Afterglow]" in warm yellow after the name badges (alongside "[Diverse]", "[Trade Hub]"). Makes the lingering festival effect visible.
@@ -43,7 +41,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
 
+- [ ] **Mastery teaching chain** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with skill >= 0.8 (from profession pride) is at the same settlement as an NPC with skill < 0.5 in the same profession, the lower-skilled NPC gets `growth += 0.0004f`. Different from master teaching (which requires 0.9): this lets near-masters pass on practical knowledge. Log "[Expert] shares tips with [Novice] at [Settlement]" at 1-in-10 frequency via `s_teachRng`. Pre-compute expert list alongside `masterFlags`.
+
+- [ ] **Profession pride jealousy** — In `AgentDecisionSystem.cpp`'s skill growth block, right after the profession pride announcement triggers (skill crosses 0.8), scan NPCs at the same settlement with the same `Profession::type` and skill between 0.6–0.79. For each, 1-in-4 chance to decrease their `Relations::affinity` toward the announcing NPC by 0.01 (floor 0.0). Log "[Jealous NPC] envies [Master]'s skill at [Settlement]" at 1-in-6 frequency. Creates nuanced social dynamics around skill progression.
+
 ## Recently Done
+
+- [x] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when
+  skill crosses 0.8 upward, boost `Relations::affinity` by +0.02 toward all same-profession NPCs at
+  the same settlement. Logs mastery declaration at 1-in-3 frequency.
 
 - [x] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace block,
   NPCs with different professions and `Relations::affinity < 0.1` working at the same facility for
