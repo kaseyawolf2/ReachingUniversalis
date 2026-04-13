@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC celebrates skill milestone** — In `ScheduleSystem`'s skill milestone check (the `checkMilestone` lambda), when an NPC reaches Journeyman or Master, set their `AgentState::behavior` to `AgentBehavior::Celebrating` for 30 game-seconds (add `float celebrateTimer = 0.f` to `DeprivationTimer`). The existing celebration glow in `GameState::Draw` will automatically show.
 
 ## Recently Done
 
