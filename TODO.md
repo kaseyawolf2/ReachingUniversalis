@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Afterglow tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool afterglow = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::afterglowHours > 0`. In `HUD.cpp`'s settlement tooltip, display "[Afterglow]" in warm yellow after the name badges (alongside "[Diverse]", "[Trade Hub]"). Makes the lingering festival effect visible.
-
 ## Backlog
 
 - [ ] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), after applying drought, scan all NPCs at the settlement via `Relations`. For each pair with affinity ≥ 0.3, boost mutual affinity by +0.03 (cap 1.0). Log "[Settlement] residents pull together during the drought" once per drought. Shared hardship strengthens community bonds.
@@ -45,7 +43,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Profession pride jealousy** — In `AgentDecisionSystem.cpp`'s skill growth block, right after the profession pride announcement triggers (skill crosses 0.8), scan NPCs at the same settlement with the same `Profession::type` and skill between 0.6–0.79. For each, 1-in-4 chance to decrease their `Relations::affinity` toward the announcing NPC by 0.01 (floor 0.0). Log "[Jealous NPC] envies [Master]'s skill at [Settlement]" at 1-in-6 frequency. Creates nuanced social dynamics around skill progression.
 
+- [ ] **Grief badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool grieving = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::griefTimer > 0`. In `HUD.cpp`'s NPC tooltip, display "[Grieving]" in muted purple after the specialisation line. Makes NPC emotional state visible to the player without needing the event log.
+
+- [ ] **Settlement harmony score** — In `SimThread::WriteSnapshot`'s settlement loop, compute `float harmony` as (friendshipPairs * 2.0f) / max(1, pop * (pop-1)) — the fraction of all possible NPC pairs that are mutual friends. Add `float harmony = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Harmony: X%" in green (>50%), yellow (25-50%), or red (<25%) after the morale line. Gives the player a social cohesion metric.
+
 ## Recently Done
+
+- [x] **Afterglow tooltip indicator** — Added `bool afterglow` to `SettlementEntry` in `RenderSnapshot.h`.
+  Set in `SimThread::WriteSnapshot` when `Settlement::afterglowHours > 0`. Displayed as "[Afterglow]"
+  in warm orange in `HUD.cpp`'s settlement tooltip after [Diverse] badge.
 
 - [x] **Profession pride announcement** — In `AgentDecisionSystem.cpp`'s skill growth block, when
   skill crosses 0.8 upward, boost `Relations::affinity` by +0.02 toward all same-profession NPCs at
