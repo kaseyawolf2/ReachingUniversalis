@@ -113,6 +113,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 if (dt->griefTimer > 0.f)
                     workerContrib *= 0.5f;
             }
+            // Jack-of-all-trades: generalists with all skills ≥ 0.4 get +5%
+            if (const auto* skills = registry.try_get<Skills>(e)) {
+                if (skills->farming >= 0.4f && skills->water_drawing >= 0.4f && skills->woodcutting >= 0.4f)
+                    workerContrib *= 1.05f;
+            }
             workers[hs.settlement] += workerContrib;
             workerHeadCount[hs.settlement]++;
             if (const auto* skills = registry.try_get<Skills>(e)) {
