@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Bandit intimidation aura** — Idle NPCs near bandits drain home settlement morale. intimidationCooldown on DeprivationTimer.
 
 ## Recently Done
 
