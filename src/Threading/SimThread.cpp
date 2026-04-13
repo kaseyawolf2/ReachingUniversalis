@@ -348,15 +348,30 @@ void SimThread::ProcessInput() {
                     if (bestQty > 0 && mon.balance >= bestBuy * bestQty) {
                         sp2->quantities[bestRes] -= bestQty;
                         inv.contents[bestRes]     = bestQty;
-                        float cost = bestBuy * bestQty;
+                        float baseCost = bestBuy * bestQty;
+                        // Reputation discount/markup on purchases
+                        float repFactor = 1.0f;
+                        if (m_playerReputation >= 100)     repFactor = 0.90f;
+                        else if (m_playerReputation >= 50) repFactor = 0.95f;
+                        else if (m_playerReputation <= -20) repFactor = 1.10f;
+                        float cost = baseCost * repFactor;
                         mon.balance -= cost;
                         // Purchase price goes to the selling settlement's treasury
                         settl.treasury += cost;
                         const char* rn2 = (bestRes == ResourceType::Food)  ? "food"  :
                                           (bestRes == ResourceType::Water) ? "water" : "wood";
-                        if (log2) log2->Push(day2, hr2,
-                            "Bought " + std::to_string(bestQty) + " goods at "
-                            + settl.name + " for " + std::to_string((int)cost) + "g");
+                        if (log2) {
+                            log2->Push(day2, hr2,
+                                "Bought " + std::to_string(bestQty) + " goods at "
+                                + settl.name + " for " + std::to_string((int)cost) + "g");
+                            // One-time reputation discount announcement
+                            static bool s_discountLogged = false;
+                            if (!s_discountLogged && repFactor < 1.0f) {
+                                s_discountLogged = true;
+                                log2->Push(day2, hr2,
+                                    "Your reputation earns you a discount at " + settl.name);
+                            }
+                        }
                         char ledg2[80];
                         std::snprintf(ledg2, sizeof(ledg2), "Bought %dx%s @%s -%.0fg",
                                       bestQty, rn2, settl.name.c_str(), cost);
@@ -708,7 +723,13 @@ void SimThread::ProcessInput() {
                     if (buyQty > 0) {
                         sp4->quantities[cheapRes]   -= (float)buyQty;
                         inv4.contents[cheapRes]     += buyQty;
-                        float totalCost = cheapPrice * buyQty;
+                        float baseCost4 = cheapPrice * buyQty;
+                        // Reputation discount/markup on purchases
+                        float repFactor4 = 1.0f;
+                        if (m_playerReputation >= 100)     repFactor4 = 0.90f;
+                        else if (m_playerReputation >= 50) repFactor4 = 0.95f;
+                        else if (m_playerReputation <= -20) repFactor4 = 1.10f;
+                        float totalCost = baseCost4 * repFactor4;
                         mon4.balance                -= totalCost;
                         // Purchase price goes to the selling settlement's treasury
                         if (auto* settl4 = m_registry.try_get<Settlement>(nearS))
@@ -718,7 +739,16 @@ void SimThread::ProcessInput() {
                         char buf[120];
                         std::snprintf(buf, sizeof(buf), "Bought %d %s at %s for %.2fg (%.2fg/unit)",
                                       buyQty, rname, sname.c_str(), totalCost, cheapPrice);
-                        if (blog) blog->Push(tm.day, (int)tm.hourOfDay, buf);
+                        if (blog) {
+                            blog->Push(tm.day, (int)tm.hourOfDay, buf);
+                            // One-time reputation discount announcement
+                            static bool s_discountLoggedQ = false;
+                            if (!s_discountLoggedQ && repFactor4 < 1.0f) {
+                                s_discountLoggedQ = true;
+                                blog->Push(tm.day, (int)tm.hourOfDay,
+                                    "Your reputation earns you a discount at " + sname);
+                            }
+                        }
                         char ledg[80];
                         std::snprintf(ledg, sizeof(ledg), "Bought %dx%s @%s -%.0fg",
                                       buyQty, rname, sname.c_str(), totalCost);
