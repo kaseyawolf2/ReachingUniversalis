@@ -251,6 +251,7 @@ struct RenderSnapshot {
             std::string name;
             std::string route;       // "A→B" or "Idle"
             bool        struggling;  // bankruptWarned
+            float       lifetimeProfit = 0.f;
         };
         std::vector<HaulerInfo>       haulerRoutes;
     };

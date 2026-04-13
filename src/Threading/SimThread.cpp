@@ -2181,6 +2181,7 @@ void SimThread::WriteSnapshot() {
                     RenderSnapshot::StockpilePanel::HaulerInfo hi;
                     hi.name = hn.value;
                     hi.struggling = h.bankruptWarned;
+                    hi.lifetimeProfit = h.lifetimeProfit;
                     if (h.state == HaulerState::Idle) {
                         hi.route = "Idle";
                     } else if (h.targetSettlement != entt::null &&

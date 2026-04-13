@@ -396,6 +396,17 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         std::snprintf(hrBuf, sizeof(hrBuf), "  %s: %s", hi.name.c_str(), hi.route.c_str());
         Color hrCol = hi.struggling ? Fade(RED, 0.7f) : Fade(SKYBLUE, 0.7f);
         DrawText(hrBuf, PX + 8, y, 11, hrCol);
+        // Append lifetime profit after route text
+        if (hi.lifetimeProfit != 0.f) {
+            int routeW = MeasureText(hrBuf, 11);
+            char profBuf[32];
+            if (hi.lifetimeProfit > 0.f)
+                std::snprintf(profBuf, sizeof(profBuf), " (+%.0fg)", hi.lifetimeProfit);
+            else
+                std::snprintf(profBuf, sizeof(profBuf), " (%.0fg)", hi.lifetimeProfit);
+            Color profCol = (hi.lifetimeProfit > 0.f) ? Fade(GREEN, 0.8f) : Fade(RED, 0.8f);
+            DrawText(profBuf, PX + 8 + routeW, y, 11, profCol);
+        }
         y += LINE_H - 3;
     }
 
