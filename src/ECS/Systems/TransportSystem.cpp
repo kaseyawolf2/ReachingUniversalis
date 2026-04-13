@@ -257,6 +257,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
     auto view = registry.view<Hauler, Inventory, Position, Velocity,
                                MoveSpeed, HomeSettlement>();
 
+    std::vector<entt::entity> retireList;  // deferred hauler retirement
+
     for (auto entity : view) {
         auto& hauler = view.get<Hauler>(entity);
         auto& inv    = view.get<Inventory>(entity);
@@ -707,6 +709,32 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // ---- Hauler retirement: veteran haulers may retire after delivery ----
+                    if (hauler.lifetimeTrips >= 20) {
+                        if (const auto* money = registry.try_get<Money>(entity)) {
+                            if (money->balance >= 200.f) {
+                                static std::mt19937 s_retireRng{std::random_device{}()};
+                                if (s_retireRng() % 50 == 0) {
+                                    retireList.push_back(entity);
+                                    auto logVRet = registry.view<EventLog>();
+                                    auto tmVRet  = registry.view<TimeManager>();
+                                    if (!logVRet.empty() && !tmVRet.empty()) {
+                                        const auto& tmRet = tmVRet.get<TimeManager>(*tmVRet.begin());
+                                        std::string who = "A hauler";
+                                        if (const auto* nm = registry.try_get<Name>(entity))
+                                            who = nm->value;
+                                        char rbuf[200];
+                                        std::snprintf(rbuf, sizeof(rbuf),
+                                            "%s retires from hauling after %d trips with %.0fg saved.",
+                                            who.c_str(), hauler.lifetimeTrips, money->balance);
+                                        logVRet.get<EventLog>(*logVRet.begin()).Push(
+                                            tmRet.day, (int)tmRet.hourOfDay, rbuf);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Log loss-making trips
                     if (tripProfit < 0.f) {
                         auto logV3 = registry.view<EventLog>();
@@ -804,6 +832,21 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             }
             break;
         }
+        }
+    }
+
+    // Process deferred hauler retirements
+    for (auto e : retireList) {
+        if (registry.valid(e) && registry.all_of<Hauler>(e)) {
+            registry.remove<Hauler>(e);
+            // Set to idle worker
+            if (auto* as = registry.try_get<AgentState>(e)) {
+                as->behavior = AgentBehavior::Idle;
+                as->target   = entt::null;
+            }
+            if (auto* v = registry.try_get<Velocity>(e)) {
+                v->vx = v->vy = 0.f;
+            }
         }
     }
 }
