@@ -143,6 +143,26 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
                                     friendName.c_str(), bankruptName.c_str(), where.c_str());
                                 log->Push(tm.day, (int)tm.hourOfDay, sbuf);
                             }
+                            // Community reputation: other NPCs at settlement respect the donor
+                            registry.view<Relations, HomeSettlement>(
+                                entt::exclude<PlayerTag>).each(
+                                [&](auto witness, Relations& wRel, const HomeSettlement& wHome) {
+                                    if (witness == other || witness == e) return;
+                                    if (wHome.settlement != home.settlement) return;
+                                    wRel.affinity[other] = std::min(1.f, wRel.affinity[other] + 0.01f);
+                                });
+                            // Log reputation at 1-in-5 frequency
+                            if (s_sympathyRng() % 5 == 0 && log) {
+                                std::string donorName = "A donor";
+                                if (const auto* nm = registry.try_get<Name>(other)) donorName = nm->value;
+                                std::string bankruptName2 = "a hauler";
+                                if (const auto* nm = registry.try_get<Name>(e)) bankruptName2 = nm->value;
+                                char rbuf[180];
+                                std::snprintf(rbuf, sizeof(rbuf),
+                                    "%s earns respect for helping %s",
+                                    donorName.c_str(), bankruptName2.c_str());
+                                log->Push(tm.day, (int)tm.hourOfDay, rbuf);
+                            }
                         });
                 }
             }
