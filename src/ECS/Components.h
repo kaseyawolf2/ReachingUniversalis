@@ -39,6 +39,7 @@ enum class AgentBehavior { Idle, SeekingFood, SeekingWater, SeekingSleep, Satisf
 struct AgentState {
     AgentBehavior behavior = AgentBehavior::Idle;
     entt::entity  target   = entt::null;
+    float         decisionCooldown = 0.f;  // real-seconds until next full decision re-evaluation
 };
 
 // ---- Profession ----

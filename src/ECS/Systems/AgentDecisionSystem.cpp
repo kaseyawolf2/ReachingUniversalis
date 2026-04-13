@@ -981,6 +981,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // -- Decision cooldown: skip expensive re-evaluation while committed --
+        if (state.decisionCooldown > 0.f) {
+            state.decisionCooldown -= realDt;
+            // Emergency override: if any need is critical, force re-evaluation
+            bool emergency = false;
+            for (const auto& n : needs.list)
+                if (n.value < 0.2f) { emergency = true; break; }
+            if (!emergency) continue;
+            state.decisionCooldown = 0.f;
+        }
+        // Set cooldown: NPC won't re-evaluate for ~0.5 real-seconds (~30 frames)
+        state.decisionCooldown = 0.5f;
+
         // -- Check migration trigger first --
         float effectiveMigrateThreshold = timer.migrateThreshold;
         // Master retention: masters need 50% more scarcity to migrate.
