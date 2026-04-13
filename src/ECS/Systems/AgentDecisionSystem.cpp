@@ -830,22 +830,31 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     // Greet — 120 game-seconds cooldown = 2 real-seconds
                     timer.greetCooldown  = 2.f;
                     oTimer.greetCooldown = 2.f;
+                    // Check if this is a gratitude greeting (greeter's lastHelper == other)
+                    bool isGratitude = (timer.lastHelper != entt::null && timer.lastHelper == other);
                     {
                         auto lv = registry.view<EventLog>();
                         if (lv.begin() != lv.end()) {
                             const auto* myName = registry.try_get<Name>(entity);
-                            std::string msg = (myName ? myName->value : "NPC") +
-                                              " greets " + oName.value;
-                            // Complain about low need
-                            for (int ni = 0; ni < 4; ++ni) {
-                                if (needs.list[ni].value < 0.3f) {
-                                    const char* nn = (ni == 0) ? "hunger" :
-                                                     (ni == 1) ? "thirst" :
-                                                     (ni == 2) ? "fatigue" : "the cold";
-                                    msg += " (complains about ";
-                                    msg += nn;
-                                    msg += ")";
-                                    break;
+                            std::string msg;
+                            if (isGratitude) {
+                                msg = (myName ? myName->value : "NPC") +
+                                      " thanks " + oName.value + " for past kindness";
+                                timer.lastHelper = entt::null;  // gratitude expressed, clear
+                            } else {
+                                msg = (myName ? myName->value : "NPC") +
+                                      " greets " + oName.value;
+                                // Complain about low need
+                                for (int ni = 0; ni < 4; ++ni) {
+                                    if (needs.list[ni].value < 0.3f) {
+                                        const char* nn = (ni == 0) ? "hunger" :
+                                                         (ni == 1) ? "thirst" :
+                                                         (ni == 2) ? "fatigue" : "the cold";
+                                        msg += " (complains about ";
+                                        msg += nn;
+                                        msg += ")";
+                                        break;
+                                    }
                                 }
                             }
                             lv.get<EventLog>(*lv.begin()).Push(
@@ -853,11 +862,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                     // Build affinity: casual greetings slowly build familiarity
-                    static constexpr float GREET_AFFINITY = 0.01f;
+                    // Gratitude greetings give a stronger +0.05 bonus
+                    float affinityGain = isGratitude ? 0.05f : 0.01f;
                     if (auto* rel = registry.try_get<Relations>(entity))
-                        rel->affinity[other] = std::min(1.f, rel->affinity[other] + GREET_AFFINITY);
+                        rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                     if (auto* oRel = registry.try_get<Relations>(other))
-                        oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + GREET_AFFINITY);
+                        oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
                     greeted = true;
                 });
             }
@@ -1467,6 +1477,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 starvingTmr->purchaseTimer   = 0.f;
                 starvingTmr->helpedTimer     = 1.f;   // 1 game-hour display window
                 starvingTmr->gratitudeTarget = helper.entity;
+                starvingTmr->lastHelper      = helper.entity;
                 static std::uniform_real_distribution<float> s_gratDist(30.f, 60.f);
                 static std::mt19937 s_gratRng{ std::random_device{}() };
                 starvingTmr->gratitudeTimer  = s_gratDist(s_gratRng);

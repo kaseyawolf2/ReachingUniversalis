@@ -157,6 +157,7 @@ struct DeprivationTimer {
     float                panicTimer = 0.f;               // real-seconds remaining of panic flight (skip decisions while > 0)
     float                visitTimer = 0.f;               // game-minutes remaining on family visit (0 = not visiting)
     entt::entity         visitTarget = entt::null;       // settlement entity being visited
+    entt::entity         lastHelper = entt::null;        // entity who last gave charity; for gratitude greeting
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
