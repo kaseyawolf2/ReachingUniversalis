@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Morale-driven migration push** — In `AgentDecisionSystem.cpp`'s migration scoring, add a
-  morale push factor. When home morale < 0.25, add +0.3 to score. When > 0.7, add -0.2.
-
 ## Recently Done
+
+- [x] **Morale-driven migration push** — In `FindMigrationTarget`: morale < 0.25 → +0.3 push, morale > 0.7 → -0.2 anchor. Creates emigration pressure from unhappy settlements.
+
+
 
 - [x] **Strike grievance log** — Strike begin log updated with morale % in `RandomEventSystem.cpp`. Strike end log added in `ScheduleSystem.cpp` with once-per-settlement dedup. Makes strikes a visible story beat.
 
@@ -3630,3 +3631,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   boost `Relations::affinity` by +0.05 between all NPCs who were on strike at the same settlement
   (shared hardship builds bonds). Cap affinity at 1.0. Iterate via `HomeSettlement` matching.
   No new components — modifies existing `Relations::affinity` map.
+
+- [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`, when an NPC begins migrating
+  (behavior set to `Migrating`, ~line 675), if they have any friends (Relations::affinity ≥ 0.5)
+  at the settlement they're leaving, 30% chance to log "[Name] bids farewell to [Friend] before
+  leaving [Settlement]." Pick the highest-affinity friend. Pure flavour, no gameplay effect.
+
+- [ ] **Morale shown in settlement tooltip** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), after the morale bar, when morale < 0.3 add a red text line
+  "Unrest — NPCs may leave" in `Fade(RED, 0.7f)`. When morale > 0.8, show "Thriving" in
+  `Fade(GREEN, 0.6f)`. No new snapshot fields — uses existing `panel.morale`.
