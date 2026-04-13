@@ -11,8 +11,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Backlog
 
-- [ ] **Grief-born friendship persistence** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who previously bonded through shared grief (both have `Relations::affinity >= 0.6` AND both had `griefTimer > 0` within the last 5 game-days — track via a new `float lastGriefDay = -1.f` field on `DeprivationTimer` in `Components.h`, set when grief starts) chat idly, use `affinityGain = 0.03f` instead of the normal `0.02f`. Log "[Name] and [Other] share a knowing look at [Settlement]" at 1-in-8 frequency. Represents grief-forged bonds being deeper.
-
 - [ ] **Grief vigil gathering** — In `AgentDecisionSystem.cpp`'s grief block (where `isGrieving` is set), when 3+ NPCs at the same settlement are grieving simultaneously, log "[Settlement] holds a vigil for the fallen" once per grief cluster (track via `static std::map<entt::entity, int> s_lastVigilDay`). Boost all grieving NPCs' mutual `Relations::affinity` by +0.02 (cap 1.0) on top of the pairwise shared grief boost. Represents communal mourning rituals.
 
 - [ ] **Workplace best friend** — In `ScheduleSystem.cpp`'s shared workplace affinity block, track per-NPC the coworker they've accumulated the most `s_workAffinityGain` with via a new `entt::entity workBestFriend = entt::null` field on `Relations` in `Components.h`. Update when cumulative gain exceeds the current best friend's gain. In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with their `workBestFriend`, use `affinityGain = 0.03f` instead of `0.02f`. Log "[Name] catches up with work buddy [Other] at [Settlement]" at 1-in-8 frequency.
@@ -69,7 +67,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
 
+- [ ] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
+
+- [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
+
 ## Recently Done
+
+- [x] **Grief-born friendship persistence** — Added `lastGriefDay` to `DeprivationTimer`. Set in
+  `DeathSystem.cpp` when grief starts. In idle chat, both grieving within 5 days + affinity>=0.6
+  gets boosted gain (0.03). Logs at 1-in-8.
 
 - [x] **Nostalgic elder homesickness resistance** — In `AgentDecisionSystem.cpp`, elders (age>60) with
   3+ friends (affinity>=0.5) at their settlement get 1.5x migration threshold. Logs at 1-in-8.
