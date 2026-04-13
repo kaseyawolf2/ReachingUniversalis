@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block, when an NPC switches profession and had ≥ 0.5 skill in their old profession, grant +0.05 initial bonus to the new matching skill (capped at 0.5). Reflects transferable experience — a skilled farmer picking up woodcutting learns faster. Uses `Profession::prevType` to identify the old skill and `registry.try_get<Skills>` to apply the bonus.
-
 ## Recently Done
+
+- [x] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block,
+  when an NPC switches profession and had ≥ 0.5 skill in their old profession, grants +0.05
+  initial bonus to the new matching skill (capped at 0.5). Placed before `prevType` overwrite.
 
 - [x] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
   pre-growth skill value for the active profession. After growth, if a loyal NPC (prevType ==
@@ -4129,3 +4131,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Loyalty milestone title in tooltip** — In `SimThread::WriteSnapshot`'s agent specialisation logic, when a loyal NPC (prevType == type or prevType == Idle) has active skill ≥ 0.7, prepend "Dedicated " to their specialisation string (e.g. "Dedicated Journeyman Farmer"). Uses existing `Profession::prevType` check and `AgentEntry::specialisation` field in `RenderSnapshot.h`. No new components needed.
 
 - [ ] **Loyal NPC homesickness resistance** — In `AgentDecisionSystem.cpp`'s migration trigger block, loyal NPCs (prevType == type or Idle) with active skill ≥ 0.7 get an additional migration threshold boost: `effectiveMigrateThreshold *= 1.3f` (stacks with master retention 1.5x). Rewards long-term career commitment with stronger settlement attachment. Uses existing `Profession`, `Skills`, `DeprivationTimer` components.
+
+- [ ] **Career change skill transfer log** — In `ScheduleSystem.cpp`'s profession change block, after the new skill transfer code, log "[Name] applies their [old profession] experience to [new profession] at [Settlement]." at 1-in-3 frequency when the +0.05 bonus is actually applied (oldSkill >= 0.5). Uses the existing `s_profRng` and `EventLog`. Makes the skill transfer mechanic visible to players.
+
+- [ ] **Multi-career veteran bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, add `int careerChanges` to `Profession` in `Components.h`. Increment in `ScheduleSystem.cpp` on each profession change. NPCs with `careerChanges >= 3` get a flat +0.0003 growth bonus to ALL skills (versatility through breadth of experience). Log "[Name] draws on diverse experience at [Settlement]." once when crossing 3 changes, at 1-in-5 frequency.
