@@ -452,6 +452,20 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     if (flag) masterFlags[hs.settlement] |= flag;
                 });
 
+            // Pre-compute expert flags: settlement → profBits for NPCs with skill >= 0.8
+            // (distinct from masterFlags which requires 0.9 — this is for teaching chain)
+            std::unordered_map<entt::entity, int> expertFlags;
+            registry.view<Skills, Profession, HomeSettlement>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
+                    if (hs.settlement == entt::null) return;
+                    int flag = 0;
+                    if (prof.type == ProfessionType::Farmer && sk.farming >= 0.8f) flag = 1;
+                    else if (prof.type == ProfessionType::WaterCarrier && sk.water_drawing >= 0.8f) flag = 2;
+                    else if (prof.type == ProfessionType::Lumberjack && sk.woodcutting >= 0.8f) flag = 4;
+                    if (flag) expertFlags[hs.settlement] |= flag;
+                });
+
             // Pre-compute active mentoring: settlement → profMask of professions
             // where an elder (age > 60) AND a child (age 12-14) of matching profession coexist.
             // Used for mentorship rivalry: non-mentor skilled NPCs train harder.
@@ -606,6 +620,34 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     if (sk.wisdomGriefDays > 0.f) {
                         sk.wisdomGriefDays = std::max(0.f, sk.wisdomGriefDays - 1.f); // tick down 1 day per day
                         growth = std::max(0.f, growth - 0.0002f);
+                    }
+
+                    // Mastery teaching chain: experts (skill >= 0.8) teach novices (skill < 0.5)
+                    if (profFlag && hs.settlement != entt::null) {
+                        float activeSkill2 = 0.f;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      activeSkill2 = sk.farming; break;
+                            case ProfessionType::WaterCarrier: activeSkill2 = sk.water_drawing; break;
+                            case ProfessionType::Lumberjack:   activeSkill2 = sk.woodcutting; break;
+                            default: break;
+                        }
+                        if (activeSkill2 < 0.5f) {
+                            auto xit = expertFlags.find(hs.settlement);
+                            if (xit != expertFlags.end() && (xit->second & profFlag)) {
+                                growth += 0.0004f;
+                                if (s_teachRng() % 10 == 0 && !logV2.empty()) {
+                                    std::string who = "An expert";
+                                    std::string novice = "a novice";
+                                    if (const auto* n = registry.try_get<Name>(e)) novice = n->value;
+                                    std::string where = "settlement";
+                                    if (const auto* s = registry.try_get<Settlement>(hs.settlement)) where = s->name;
+                                    char buf[180];
+                                    std::snprintf(buf, sizeof(buf), "An expert shares tips with %s at %s",
+                                                  novice.c_str(), where.c_str());
+                                    logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                }
+                            }
+                        }
                     }
 
                     // Capture pre-growth skill for loyalty streak crossing detection
