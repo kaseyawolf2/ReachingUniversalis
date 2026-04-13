@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
+
 ## Recently Done
 
 - [x] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who
@@ -1014,8 +1016,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when an NPC changes profession for the second time (`Profession::prevType != Idle` and `prevType != type`), log "[Name] is finding their calling as a [New] after trying [Old] at [Settlement]." at 1-in-3 frequency. Shows NPCs with complex career histories.
 
 - [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
 
