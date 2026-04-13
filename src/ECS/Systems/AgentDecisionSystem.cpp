@@ -4,6 +4,7 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <unordered_map>
 #include "ECS/Components.h"
 
 // Radius within which an NPC can interact with a production facility.
@@ -310,6 +311,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     if (dt <= 0.f) return;
     int currentHour = (int)tm.hourOfDay;
 
+    // ---- Per-entity settlement cache: avoids repeated try_get<HomeSettlement> in friend scans ----
+    static std::unordered_map<entt::entity, entt::entity> s_entitySettlement;
+    s_entitySettlement.clear();
+    registry.view<HomeSettlement>().each(
+        [&](entt::entity e, const HomeSettlement& hs) {
+            s_entitySettlement[e] = hs.settlement;
+        });
+
     // ---- Reputation decay: all NPCs drift toward 0 over time ----
     static constexpr float REP_DECAY_PER_HOUR = 0.01f;
     {
@@ -332,8 +341,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 [&](entt::entity e, Relations& rel, const HomeSettlement& home) {
                     for (auto& [other, aff] : rel.affinity) {
                         if (aff <= 0.f) continue;
-                        auto* otherHome = registry.try_get<HomeSettlement>(other);
-                        if (!otherHome || otherHome->settlement != home.settlement) {
+                        auto sit = s_entitySettlement.find(other);
+                        if (sit == s_entitySettlement.end() || sit->second != home.settlement) {
                             aff = std::max(0.f, aff - 0.005f);
                         }
                     }
@@ -845,9 +854,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (const auto* rel = registry.try_get<Relations>(entity)) {
                 for (const auto& [fe, aff] : rel->affinity) {
                     if (aff < 0.3f) continue;
-                    if (!registry.valid(fe)) continue;
-                    const auto* fh = registry.try_get<HomeSettlement>(fe);
-                    if (fh && fh->settlement == home.settlement) { lonely = false; break; }
+                    auto sit = s_entitySettlement.find(fe);
+                    if (sit != s_entitySettlement.end() && sit->second == home.settlement) { lonely = false; break; }
                 }
             }
 
@@ -887,9 +895,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         float topAff = 0.4f - 0.01f;
                         for (const auto& [fe, aff] : rel->affinity) {
                             if (aff < 0.4f) continue;
-                            if (!registry.valid(fe)) continue;
-                            auto* fh = registry.try_get<HomeSettlement>(fe);
-                            if (!fh || fh->settlement != home.settlement) continue;
+                            auto sit = s_entitySettlement.find(fe);
+                            if (sit == s_entitySettlement.end() || sit->second != home.settlement) continue;
                             if (aff > topAff) { topAff = aff; topFriend = fe; }
                         }
                         if (topFriend != entt::null) {
@@ -914,11 +921,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     float bestAffinity = FRIEND_THRESHOLD - 0.01f;
                     for (const auto& [friendEnt, affinity] : rel->affinity) {
                         if (affinity < FRIEND_THRESHOLD) continue;
-                        if (!registry.valid(friendEnt)) continue;
-                        auto* fHome  = registry.try_get<HomeSettlement>(friendEnt);
+                        auto sit = s_entitySettlement.find(friendEnt);
+                        if (sit == s_entitySettlement.end() || sit->second != home.settlement) continue;
                         auto* fState = registry.try_get<AgentState>(friendEnt);
-                        if (!fHome || !fState) continue;
-                        if (fHome->settlement != home.settlement) continue;
+                        if (!fState) continue;
                         if (fState->behavior == AgentBehavior::Migrating) continue;
                         if (affinity > bestAffinity) {
                             bestAffinity = affinity;
@@ -951,11 +957,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 for (const auto& [candidate, aff] : fRel->affinity) {
                                     if (aff < FRIEND_THRESHOLD) continue;
                                     if (candidate == entity) continue; // already the initiator
-                                    if (!registry.valid(candidate)) continue;
-                                    auto* cHome  = registry.try_get<HomeSettlement>(candidate);
+                                    auto sit = s_entitySettlement.find(candidate);
+                                    if (sit == s_entitySettlement.end() || sit->second != home.settlement) continue;
                                     auto* cState = registry.try_get<AgentState>(candidate);
-                                    if (!cHome || !cState) continue;
-                                    if (cHome->settlement != home.settlement) continue;
+                                    if (!cState) continue;
                                     if (cState->behavior == AgentBehavior::Migrating) continue;
                                     if (aff > bestThirdAff) {
                                         // Check if candidate has a valid migration target
@@ -964,7 +969,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                         auto* cMemory     = registry.try_get<MigrationMemory>(candidate);
                                         auto* cTimerPtr   = registry.try_get<DeprivationTimer>(candidate);
                                         float cSat = cTimerPtr ? cTimerPtr->lastSatisfaction : 0.5f;
-                                        entt::entity cDest = FindMigrationTarget(registry, cHome->settlement,
+                                        entt::entity cDest = FindMigrationTarget(registry, home.settlement,
                                             cSkills, cProfession, cMemory, tm.day, cSat);
                                         if (cDest != entt::null) {
                                             bestThirdAff = aff;
@@ -2324,9 +2329,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             float bestAff = 0.f;
             for (const auto& [other, aff] : rel.affinity) {
                 if (aff < GIFT_AFFINITY) continue;
-                if (!registry.valid(other)) continue;
-                auto* otherHome = registry.try_get<HomeSettlement>(other);
-                if (!otherHome || otherHome->settlement != giverHome.settlement) continue;
+                auto sit = s_entitySettlement.find(other);
+                if (sit == s_entitySettlement.end() || sit->second != giverHome.settlement) continue;
                 auto* otherMoney = registry.try_get<Money>(other);
                 if (!otherMoney) continue;
                 if (aff > bestAff) { bestAff = aff; bestFriend = other; }
