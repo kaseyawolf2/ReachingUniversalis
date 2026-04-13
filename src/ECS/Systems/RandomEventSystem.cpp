@@ -603,6 +603,61 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                     break;
                 }
             }
+
+            // Elder wisdom transfer — one-time event for elders age > 70 with a skill ≥ 0.6
+            if (!dt.wisdomFired) {
+                const auto* age = registry.try_get<Age>(e);
+                if (age && age->days > 70.f) {
+                    float bestSkill = std::max({skills.farming, skills.water_drawing, skills.woodcutting});
+                    if (bestSkill >= 0.6f) {
+                        // Find the best skill type to transfer
+                        ResourceType bestType = ResourceType::Food;
+                        if (skills.water_drawing >= skills.farming && skills.water_drawing >= skills.woodcutting)
+                            bestType = ResourceType::Water;
+                        else if (skills.woodcutting >= skills.farming)
+                            bestType = ResourceType::Wood;
+
+                        // Find a younger co-settled NPC to receive the knowledge
+                        const auto* hs = registry.try_get<HomeSettlement>(e);
+                        if (hs && hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                            std::vector<entt::entity> candidates;
+                            registry.view<Age, Skills, HomeSettlement, Name>(
+                                entt::exclude<PlayerTag, BanditTag>).each(
+                                [&](auto ce, const Age& ca, const Skills&, const HomeSettlement& chs, const Name&) {
+                                if (ce == e) return;
+                                if (chs.settlement != hs->settlement) return;
+                                if (ca.days >= 60.f) return;  // only younger NPCs
+                                candidates.push_back(ce);
+                            });
+                            if (!candidates.empty()) {
+                                std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
+                                auto target = candidates[pick(m_rng)];
+                                auto* tSkills = registry.try_get<Skills>(target);
+                                if (tSkills) {
+                                    float& tVal = (bestType == ResourceType::Food) ? tSkills->farming :
+                                                  (bestType == ResourceType::Water) ? tSkills->water_drawing :
+                                                  tSkills->woodcutting;
+                                    tVal = std::min(0.8f, tVal + 0.1f);
+                                    dt.wisdomFired = true;
+
+                                    if (log) {
+                                        const auto* stt = registry.try_get<Settlement>(hs->settlement);
+                                        const char* settName = stt ? stt->name.c_str() : "the wilds";
+                                        const auto* tName = registry.try_get<Name>(target);
+                                        char buf[160];
+                                        std::snprintf(buf, sizeof(buf),
+                                            "Elder %s passed their knowledge to %s at %s.",
+                                            name.value.c_str(),
+                                            tName ? tName->value.c_str() : "a younger worker",
+                                            settName);
+                                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         });
 }
 
