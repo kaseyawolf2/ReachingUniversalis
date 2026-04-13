@@ -9,7 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
+  12–48 game-hours per NPC (jittered by entity ID). Small events: skill discovery (+0.1 to a
+  random skill), windfall (find 5–15g — no gold source needed, treat as lucky find), minor illness
+  (one need drains 2× for 6 game-hours via a `illnessTimer` float on `DeprivationTimer`), good
+  harvest (working NPC produces 1.5× for 4 hours via a `harvestBonus` float). Log the notable
+  ones. Use `entt::to_integral(e) % period` for deterministic per-entity jitter.
 
 ## Recently Done
 
