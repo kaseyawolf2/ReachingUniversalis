@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Hauler route shown in stockpile panel** — Show up to 3 haulers homed at the settlement with their current route in `DrawStockpilePanel`. Add `HaulerInfo` struct and `haulerRoutes` vector to `StockpilePanel`. Pipe from `WriteSnapshot`.
 
 ## Recently Done
 
