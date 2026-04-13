@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC remembers who helped them** — lastHelper on DeprivationTimer. Gratitude greeting with +0.05 affinity.
 
 ## Recently Done
 
