@@ -84,6 +84,16 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // Snapshot worst need before consumption for mood log
+        float worstNeedBefore = 1.f;
+        int   worstNeedIdx    = -1;
+        for (int i = 0; i < 4; ++i) {
+            if (needs.list[i].value < worstNeedBefore) {
+                worstNeedBefore = needs.list[i].value;
+                worstNeedIdx    = i;
+            }
+        }
+
         // ---- Food / Hunger ----
         bool hadFood = (foodStock > STOCK_LOW);
         if (hadFood) {
@@ -122,6 +132,33 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             waterStock -= draw;
             needs.list[1].value += needs.list[1].drainRate * gameDt;
             needs.list[1].value  = std::min(needs.list[1].value, 1.f);
+        }
+
+        // ---- Mood log on need satisfaction ----
+        // When the worst need rises from < 0.3 to > 0.5, log relief at 1-in-5 frequency.
+        if (worstNeedIdx >= 0 && worstNeedBefore < 0.3f) {
+            float afterVal = needs.list[worstNeedIdx].value;
+            if (afterVal > 0.5f) {
+                static int s_moodLogCounter = 0;
+                if (++s_moodLogCounter % 5 == 1) {
+                    auto logV = registry.view<EventLog>();
+                    auto tmV  = registry.view<TimeManager>();
+                    if (!logV.empty() && !tmV.empty()) {
+                        const auto& tm2 = tmV.get<TimeManager>(*tmV.begin());
+                        std::string who = "An NPC";
+                        if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                        std::string stlName = "a settlement";
+                        if (settl) stlName = settl->name;
+                        static const char* verbs[] = { "eating", "drinking", "resting", "warming up" };
+                        const char* verb = (worstNeedIdx >= 0 && worstNeedIdx < 4)
+                                           ? verbs[worstNeedIdx] : "recovering";
+                        char buf[160];
+                        std::snprintf(buf, sizeof(buf), "%s feels relieved after %s at %s.",
+                                      who.c_str(), verb, stlName.c_str());
+                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                    }
+                }
+            }
         }
 
         // Drain desperation log cooldown
