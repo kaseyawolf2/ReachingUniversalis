@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
+
 ## Recently Done
 
 - [x] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, NPCs both in `Working` state
