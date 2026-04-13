@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Rival profession taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility have *different* professions (e.g. Farmer vs Lumberjack) and both skill ≥ 0.5, 1-in-25 chance per hour to log a playful taunt "[Name] teases [Other] about their [profession]." Decrease mutual affinity by 0.01 (floor 0.0). Adds cross-profession social friction.
+
+## Backlog
 
 - [ ] **Post-festival morale afterglow** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration <= 0`), when `modifierName == "Harvest Festival"` or `modifierName == "Festival"`, set a new `Settlement::afterglowHours` field (add `float afterglowHours = 0.f` to `Settlement` in `Components.h`). While `afterglowHours > 0`, settlement morale drift toward 0.5 is halved. Tick down in the same modifier block. Creates lingering social effect from celebrations.
 
