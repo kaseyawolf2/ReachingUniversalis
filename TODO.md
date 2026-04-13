@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Grief badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool grieving = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::griefTimer > 0`. In `HUD.cpp`'s NPC tooltip, display "[Grieving]" in muted purple after the specialisation line. Makes NPC emotional state visible to the player without needing the event log.
-
 ## Backlog
 
 - [ ] **Settlement harmony score** — In `SimThread::WriteSnapshot`'s settlement loop, compute `float harmony` as (friendshipPairs * 2.0f) / max(1, pop * (pop-1)) — the fraction of all possible NPC pairs that are mutual friends. Add `float harmony = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Harmony: X%" in green (>50%), yellow (25-50%), or red (<25%) after the morale line. Gives the player a social cohesion metric.
@@ -82,6 +80,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
 
 ## Recently Done
+
+- [x] **Grief badge on NPC tooltip** — Already implemented: `isGrieving` field in `AgentEntry`, set in
+  `SimThread::WriteSnapshot`, rendered as "Grieving (Xh left)" in muted purple in `HUD.cpp`.
 
 - [x] **Profession pride jealousy** — When NPC crosses skill 0.8, same-profession NPCs at settlement
   with skill 0.6-0.79 have 1-in-4 chance to lose 0.01 affinity. Logs envy at 1-in-6.
