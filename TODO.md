@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family wealth total in stockpile panel** — Extend the family `×N` display to also show
-  the combined gold of all family members in the visible residents list. After `×N` add
-  `(total Xg)` in `Fade(GOLD, 0.6f)`. Sum `r.balance` for all residents sharing that
-  `familyName`. This makes family economic power visible at a glance.
-
 ## Recently Done
+
+- [x] **Family wealth total in stockpile panel** — After " ×N" suffix, shows " (Xg)" in `Fade(GOLD, 0.6f)` with combined balance of all family members in visible residents. Uses `familyWealth` map built alongside `familyCount`.
+
+
 
 - [x] **Largest family in settlement header** — "Largest family: Smith ×4" shown in `RenderSystem::DrawStockpilePanel` after treasury line when any family has ≥2 members. Computed from `panel.residents` familyName counts. Height calc updated.
 
@@ -3569,3 +3568,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `registry.get_or_emplace<DeprivationTimer>(orphan).lastHelper = adopter entity`. This enables
   the existing gratitude greeting path so adopted children will eventually thank their adopter.
   Pure wiring — no new components or systems.
+
+- [ ] **Wealthiest family highlighted in header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), extend the existing "Largest family" header line: if the wealthiest family
+  (by `familyWealth` sum, already computed) differs from the largest, append " | Richest: Jones
+  (Xg)" in `Fade(GOLD, 0.5f)`. Reuse the `familyWealth` map from the pre-computation block
+  (move it up to the header section scope). No new snapshot fields.
+
+- [ ] **Family rivalry log** — In `AgentDecisionSystem.cpp`, after the chat pairing block (~line
+  1304), when two chatting NPCs belong to different families that are both ≥2 members at the same
+  settlement, 5% chance to log "[Name] and [Other] argue over family matters." Uses existing
+  `FamilyTag` and `HomeSettlement` checks. Pure flavour, no gameplay effect.
