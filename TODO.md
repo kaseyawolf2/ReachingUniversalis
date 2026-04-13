@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Workplace best friend** — In `ScheduleSystem.cpp`'s shared workplace affinity block, track per-NPC the coworker they've accumulated the most `s_workAffinityGain` with via a new `entt::entity workBestFriend = entt::null` field on `Relations` in `Components.h`. Update when cumulative gain exceeds the current best friend's gain. In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with their `workBestFriend`, use `affinityGain = 0.03f` instead of `0.02f`. Log "[Name] catches up with work buddy [Other] at [Settlement]" at 1-in-8 frequency.
+
+## Backlog
 
 - [ ] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`'s new reconciliation block, after a successful reconciliation, apply +0.01 morale to the home `Settlement` (cap 1.0). Log "[Settlement] feels more harmonious" at 1-in-4 frequency. Also set a `float reconcileGlow = 2.f` (game-hours) on both NPCs' `DeprivationTimer` in `Components.h`; while active, their work output gets +5% in `ProductionSystem.cpp`. Represents the positive energy of making amends.
 
