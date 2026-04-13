@@ -1027,6 +1027,47 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Mood contagion: happy NPCs cheer up struggling neighbours ----
+            if (timer.moodContagionCooldown > 0.f)
+                timer.moodContagionCooldown = std::max(0.f, timer.moodContagionCooldown - realDt);
+            {
+                float avgNeeds = 0.f;
+                for (int i = 0; i < 4; ++i) avgNeeds += needs.list[i].value;
+                avgNeeds *= 0.25f;
+                // Only struggling NPCs (avg < 0.4) can receive mood contagion
+                if (avgNeeds < 0.4f && timer.moodContagionCooldown <= 0.f) {
+                    registry.view<Needs, Position, AgentState, DeprivationTimer, Name>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                        [&](auto other, const Needs& oNeeds, const Position& oPos,
+                            const AgentState& oState, DeprivationTimer&, const Name& oName) {
+                            if (other == entity) return;
+                            if (oState.behavior != AgentBehavior::Idle) return;
+                            float oAvg = 0.f;
+                            for (int i = 0; i < 4; ++i) oAvg += oNeeds.list[i].value;
+                            oAvg *= 0.25f;
+                            if (oAvg <= 0.8f) return;
+                            float ddx = oPos.x - pos.x, ddy = oPos.y - pos.y;
+                            if (ddx * ddx + ddy * ddy > 25.f * 25.f) return;
+                            // Boost home settlement morale
+                            float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                            if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                                if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                                    settl->morale = std::min(1.f, settl->morale + 0.01f * ghDt);
+                            }
+                            timer.moodContagionCooldown = 120.f; // 120 game-seconds
+                            // Log
+                            auto lv = registry.view<EventLog>();
+                            if (lv.begin() != lv.end()) {
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = oName.value + " cheers up " +
+                                    (myName ? myName->value : "an NPC") + ".";
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                        });
+                }
+            }
+
             // ---- Family visit: idle NPC may visit family at another settlement ----
             if (!isGrieving) if (auto* ft = registry.try_get<FamilyTag>(entity); ft) {
                 static std::mt19937 s_visitRng{ std::random_device{}() };

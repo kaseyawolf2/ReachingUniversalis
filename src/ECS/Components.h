@@ -163,6 +163,7 @@ struct DeprivationTimer {
     float                thankCooldown        = 0.f;    // real-seconds until NPC can thank player again (0 = ready)
     float                teachCooldown        = 0.f;    // real-seconds until NPC can teach/learn again (0 = ready)
     float                griefTimer           = 0.f;    // game-hours remaining of grief (skip social, drain morale)
+    float                moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
