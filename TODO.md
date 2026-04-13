@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Trade gift between friends** — In `AgentDecisionSystem.cpp`, once per 48 game-hours, an NPC with `Relations::affinity ≥ 0.6` toward another NPC in the same settlement and balance > 50g transfers 5g to the friend. Log "[Name] gifts gold to [Friend]." Gold flows from sender's `Money::balance` to friend's `Money::balance` (no treasury involved). Cooldown on `DeprivationTimer::charityTimer`.
-
 ## Recently Done
+
+- [x] **Trade gift between friends** — NPCs with `Relations::affinity ≥ 0.6` at the same settlement
+  and balance > 50g gift 5g to their best friend. 48h cooldown via `charityTimer`. Gold flows
+  balance-to-balance. Logged to EventLog. In `AgentDecisionSystem.cpp` after orphan adoption block.
+
+
 
 - [x] **Hauler rivalry complaint log** — `FindBestRoute` tracks best rival-penalised route in
   `s_rivalRejected` map. When hauler enters idle wait with a profitable rival route rejected,
@@ -777,6 +781,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Starvation desperation log escalation** — In `ConsumptionSystem.cpp`, when an NPC's hunger need drops below 0.1 and they have no money (balance < 1g) and stockpile food is empty, log "[Name] is starving and desperate at [Settlement]." with 1-in-10 frequency. Different from existing desperation purchase log — this fires when purchase is impossible.
 
 - [ ] **NPC satisfaction memory** — Add `float lastSatisfaction = 0.f` to `DeprivationTimer`. In `ConsumptionSystem.cpp`, after the mood log block, set it to the average of all 4 needs. In `FindMigrationTarget`, NPCs with `lastSatisfaction < 0.3` get +0.2 migration push. Creates a feedback loop: consistently unsatisfied NPCs seek better settlements.
+
+- [ ] **Gift reciprocity affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the gold transfer, boost `Relations::affinity` of the recipient toward the giver by +0.05 (capped at 1.0). Ensures gift-giving strengthens friendships over time, creating a positive feedback loop.
+
+- [ ] **Wealthy NPC celebration log** — In `AgentDecisionSystem.cpp`, when an NPC's `Money::balance` crosses 500g for the first time, log "[Name] has become wealthy at [Settlement]!" Use a `bool wealthCelebrated` on `DeprivationTimer`. One-time event per NPC that marks economic success.
+
+- [ ] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an NPC decides to migrate, check if their best friend (highest `Relations::affinity ≥ 0.5`, same settlement) also has migration score > 0. If so, set the friend's `HomeSettlement` to the same target and log "[Name] and [Friend] migrate together to [Dest]." at 1-in-2 frequency.
 
 - [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
 
