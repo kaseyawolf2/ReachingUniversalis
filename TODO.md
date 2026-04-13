@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
+
 ## Recently Done
 
 - [x] **Master NPC teaching bonus** — Added per-settlement master profession bitflags built once
@@ -988,8 +990,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
 
 - [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
