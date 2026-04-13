@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Grief shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `griefTimer > 0`,
+  show "Grieving (Xh left)" in faint PURPLE. Pipe `bool isGrieving` through
+  `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot` (check `timer.griefTimer > 0`).
+  Add the bool, the width variable, and DrawText line following the existing tooltip pattern.
 
 
 
