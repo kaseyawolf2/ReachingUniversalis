@@ -2347,10 +2347,39 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 festivalActive = true;
                         }
                         float affinityGain = festivalActive ? 0.04f : AFFINITY_GAIN;
+                        // Grief-born friendship persistence: shared grief deepens bonds
+                        bool griefBond = false;
+                        if (timer.lastGriefDay >= 0.f && oTimer.lastGriefDay >= 0.f
+                            && (tm.day - timer.lastGriefDay) <= 5.f
+                            && (tm.day - oTimer.lastGriefDay) <= 5.f) {
+                            const auto* relA = registry.try_get<Relations>(entity);
+                            const auto* relB = registry.try_get<Relations>(other);
+                            float affAB = 0.f, affBA = 0.f;
+                            if (relA) { auto it = relA->affinity.find(other);  if (it != relA->affinity.end()) affAB = it->second; }
+                            if (relB) { auto it = relB->affinity.find(entity); if (it != relB->affinity.end()) affBA = it->second; }
+                            if (affAB >= 0.6f && affBA >= 0.6f) {
+                                affinityGain = std::max(affinityGain, 0.03f);
+                                griefBond = true;
+                            }
+                        }
                         if (auto* rel = registry.try_get<Relations>(entity))
                             rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                         if (auto* oRel = registry.try_get<Relations>(other))
                             oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
+                        // Grief-born friendship log at 1-in-8
+                        if (griefBond && s_chatRng() % 8 == 0) {
+                            auto glv = registry.view<EventLog>();
+                            if (!glv.empty()) {
+                                std::string nA = "An NPC", nB = "another NPC";
+                                if (const auto* nmA = registry.try_get<Name>(entity)) nA = nmA->value;
+                                if (const auto* nmB = registry.try_get<Name>(other)) nB = nmB->value;
+                                std::string where = "settlement";
+                                if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                    where = stt->name;
+                                glv.get<EventLog>(*glv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    nA + " and " + nB + " share a knowing look at " + where);
+                            }
+                        }
                         // Festival bonding log at 1-in-6 frequency
                         if (festivalActive && s_chatRng() % 6 == 0) {
                             auto flv = registry.view<EventLog>();

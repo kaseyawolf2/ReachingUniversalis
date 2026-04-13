@@ -270,6 +270,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                     for (auto dead : toRemove) if (dead == other) return;
                     if (oFt.name != deadFt->name) return;
                     oTmr.griefTimer = 4.f;  // 4 game-hours
+                    oTmr.lastGriefDay = timeView.get<TimeManager>(*timeView.begin()).day;
                     auto logView5 = registry.view<EventLog>();
                     if (logView5.begin() != logView5.end()) {
                         auto& tm5 = timeView.get<TimeManager>(*timeView.begin());

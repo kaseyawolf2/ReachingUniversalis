@@ -177,6 +177,7 @@ struct DeprivationTimer {
     float                homesickTimer        = 0.f;  // game-hours since migration arrival; triggers return when > 72h and low satisfaction
     bool                 masterSettled        = false; // true once any skill reaches 0.9; permanently boosts migrateThreshold
     bool                 bankruptSurvivor    = false; // true after hauler bankruptcy; grants extra skill growth
+    float                lastGriefDay        = -1.f; // game-day when grief last started (-1 = never)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
