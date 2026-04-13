@@ -11,6 +11,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Skill recovery celebration** — Added in `AgentDecisionSystem.cpp`'s skill growth block.
+  Detects when active profession skill crosses 0.5 upward (using existing `preActiveSkill`).
+  Logs "[Name] regains their [skill] proficiency at [Settlement]." at 1-in-5 frequency.
+
 - [x] **Career history count on AgentEntry** — Added `int careerChanges = 0` to `Profession` struct
   in `Components.h`. Incremented in `ScheduleSystem.cpp`'s profession change block. Written to
   `AgentEntry` in `SimThread::WriteSnapshot`. Displayed as "Career changes: N" in `HUD.cpp`'s
@@ -1120,8 +1124,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 
-- [ ] **Skill recovery celebration** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill rises back above 0.5 after having been below (track via a `bool skillRecovered` flag or compare pre-growth to post-growth crossing 0.5 upward), log "[Name] regains their [skill] proficiency at [Settlement]." at 1-in-5 frequency. Mirrors the rust notification — shows NPCs bouncing back after career changes.
-
 - [ ] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`'s per-settlement production loop, count distinct `ProfessionType` values among workers (Farmer/WaterCarrier/Lumberjack). If all 3 are present, apply +3% production bonus to every worker at that settlement (`workerContrib *= 1.03f`). Log "[Settlement] benefits from a diverse workforce." once per game-day at 1-in-10 frequency via a `static std::set<entt::entity> s_diverseLogged`. Rewards balanced economies.
 
 - [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
@@ -1145,6 +1147,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after master and generalist title checks, if `Profession::careerChanges >= 2` and any skill ≥ 0.6, set `ae.specialisation = "Veteran [profession]"`. Veteran workers who've changed careers multiple times but achieved competence earn a unique title. Displayed in existing HUD milestone line.
 
 - [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
+
+- [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
 
 - [ ] **Crisis aid between allied settlements** — In `RandomEventSystem.cpp`, after a drought or plague hits a settlement, check allied settlements (relations > 0.5). The closest ally with treasury > 100g donates 30g to the afflicted settlement's treasury. Log "[Ally] sends aid to [Settlement] during [crisis]." Gold flows treasury-to-treasury. Boosts relations by +0.05 for both sides.
 
