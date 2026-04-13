@@ -37,6 +37,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     float gameHoursDt  = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
     float heatDrainMult = SeasonHeatDrainMult(tm.CurrentSeason());
 
+    // Per-settlement starvation tracking for food crisis warning
+    std::map<entt::entity, int> starvingPerSettlement;
+
     auto view = registry.view<Needs, HomeSettlement, DeprivationTimer>();
     for (auto entity : view) {
         auto& needs  = view.get<Needs>(entity);
@@ -234,6 +237,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
         }
+
+        // Track starving NPCs per settlement for food crisis warning
+        if (needs.list[0].value < 0.15f)
+            starvingPerSettlement[home.settlement]++;
 
         // Drain desperation log cooldown
         if (auto cdIt = s_desperateCooldown.find(entity); cdIt != s_desperateCooldown.end()) {
@@ -448,6 +455,28 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             timer.stockpileEmpty += gameDt;
         else
             timer.stockpileEmpty = std::max(0.f, timer.stockpileEmpty - gameDt * 0.5f);
+    }
+
+    // ---- Settlement food crisis warning ----
+    // Log once per game-day when ≥ 3 NPCs are starving at one settlement.
+    {
+        static std::map<entt::entity, int> s_crisisLogDay;
+        for (const auto& [settlEnt, count] : starvingPerSettlement) {
+            if (count < 3) continue;
+            if (s_crisisLogDay[settlEnt] == tm.day) continue;  // already logged today
+            s_crisisLogDay[settlEnt] = tm.day;
+            auto logV = registry.view<EventLog>();
+            if (!logV.empty()) {
+                std::string sName = "A settlement";
+                if (const auto* s = registry.try_get<Settlement>(settlEnt))
+                    sName = s->name;
+                char buf[160];
+                std::snprintf(buf, sizeof(buf),
+                    "%s faces a food crisis \xe2\x80\x94 %d residents starving.",
+                    sName.c_str(), count);
+                logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+            }
+        }
     }
 
     // ---- Per-settlement stockpile alerts (log once on crossing thresholds) ----
