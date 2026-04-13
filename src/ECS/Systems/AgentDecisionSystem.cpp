@@ -1470,6 +1470,35 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Friend farewell on migration: distance strain weakens bonds ----
+                if (auto* myRelFw = registry.try_get<Relations>(entity)) {
+                    static std::mt19937 s_farewellStrainRng{ std::random_device{}() };
+                    for (auto& [friendEnt, aff] : myRelFw->affinity) {
+                        if (aff < 0.5f) continue;
+                        // Check friend is at the same (old) settlement
+                        auto sit = s_entitySettlement.find(friendEnt);
+                        if (sit == s_entitySettlement.end() || sit->second != home.settlement) continue;
+                        // Decrease both sides by 0.1 (floor 0.0)
+                        aff = std::max(0.f, aff - 0.1f);
+                        if (auto* fRel = registry.try_get<Relations>(friendEnt))
+                            fRel->affinity[entity] = std::max(0.f, fRel->affinity[entity] - 0.1f);
+                        // Log at 1-in-3 frequency per friend
+                        if (s_farewellStrainRng() % 3 == 0) {
+                            auto lv5 = registry.view<EventLog>();
+                            if (!lv5.empty()) {
+                                std::string who = "NPC", fname = "a friend", where = "settlement";
+                                if (auto* n = registry.try_get<Name>(entity)) who = n->value;
+                                if (auto* n = registry.try_get<Name>(friendEnt)) fname = n->value;
+                                if (auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
+                                char buf[180];
+                                std::snprintf(buf, sizeof(buf), "%s says goodbye to %s at %s",
+                                              who.c_str(), fname.c_str(), where.c_str());
+                                lv5.get<EventLog>(*lv5.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                            }
+                        }
+                    }
+                }
+
                 // ---- Master exodus warning: losing a master hurts the settlement ----
                 if (skills) {
                     const char* masterSkill = nullptr;
