@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Player reputation affects trade prices** — Rep-based discount/markup on T and Q key purchases in SimThread::ProcessInput.
+
 
 ## Recently Done
+
+- [x] **Player reputation affects trade prices** — Rep ≥100 = 10% discount, ≥50 = 5%, ≤-20 = 10% markup on T/Q key purchases. Gold flow to treasury preserved.
+
 
 - [x] **NPC contentment affects work output** — Worker contribution in ProductionSystem multiplied by contentment factor from avg Needs: ≥0.7 = 1.0×, 0.4–0.7 = 0.85×, <0.4 = 0.65×.
 
@@ -1481,7 +1484,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   0.85×, < 0.4 gives 0.65×. Read contentment from `Needs` (weighted average). Unhappy NPCs
   produce less, creating pressure on settlements to maintain quality of life.
 
-- [ ] **Player reputation affects trade prices** — In `SimThread::ProcessInput`'s player trade
+- [x] **Player reputation affects trade prices** — In `SimThread::ProcessInput`'s player trade
   blocks (T and Q keys), apply a discount/markup based on `m_playerReputation`. At 50+ rep, 5%
   discount on purchases; at 100+, 10%. At -20 rep, 10% markup. Multiply the purchase price by
   `(1.0 - repDiscount)`. Gold flow: discount reduces gold paid to settlement treasury. Log when
@@ -2978,3 +2981,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   at the same settlement via `registry.view<Reputation, HomeSettlement, Name>`. Log "[NPC]
   complains to [Leader] about conditions." Set greetCooldown = 5.f to rate-limit. Gives settlements
   a sense of social hierarchy where discontented citizens voice grievances to respected members.
+
+- [ ] **Reputation discount shown in trade log** — In `SimThread::ProcessInput`'s T-key and Q-key
+  purchase log messages, when `repFactor < 1.0f`, append " (X% rep discount)" to the existing buy
+  message. E.g. "Bought 5 food at Riverside for 40g (5% rep discount)". Pure log enhancement —
+  no new gameplay effect. Uses existing `repFactor`/`repFactor4` variables.
+
+- [ ] **Negative reputation blocks settlement entry** — In `SimThread::ProcessInput`, when
+  `m_playerReputation <= -50`, prevent T-key and Q-key purchases at settlements. Log "The merchants
+  of [Settlement] refuse to trade with you." In `AgentDecisionSystem`, NPCs at that settlement
+  also refuse E-key work requests from the player (check `PlayerTag` proximity and rep via
+  `RenderSnapshot::playerReputation`). Reputation must recover above -30 to re-enable trade.
