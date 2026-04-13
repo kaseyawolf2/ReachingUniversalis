@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Wealthy NPC celebration log** — In `AgentDecisionSystem.cpp`, when an NPC's `Money::balance` crosses 500g for the first time, log "[Name] has become wealthy at [Settlement]!" Use a `bool wealthCelebrated` on `DeprivationTimer`. One-time event per NPC that marks economic success.
-
 ## Recently Done
+
+- [x] **Wealthy NPC celebration log** — One-time event: when `Money::balance >= 500g` and
+  `wealthCelebrated` is false, logs "[Name] has become wealthy at [Settlement]!" Bool
+  `wealthCelebrated` added to `DeprivationTimer`. In `AgentDecisionSystem.cpp`.
+
+
 
 - [x] **Gift reciprocity affinity boost** — After gold transfer in trade gift block, recipient's
   `Relations::affinity` toward giver boosted by +0.05 (capped at 1.0). Creates positive feedback
@@ -831,6 +835,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
 
 - [ ] **Satisfaction-based work ethic** — In `ProductionSystem.cpp`, after the existing morale modifier, add `workerContrib *= (0.8f + 0.4f * lastSatisfaction)` using `DeprivationTimer::lastSatisfaction` from the worker entity. Satisfied workers produce 20% more, unsatisfied workers produce 20% less. Read via `registry.try_get<DeprivationTimer>`.
+
+- [ ] **Wealth milestone tiers** — In `AgentDecisionSystem.cpp`'s wealthy celebration block, extend to track multiple thresholds (500g, 1000g, 2000g) using an `int wealthTier = 0` on `DeprivationTimer` (replace bool). Log different messages: "prosperous" at 500, "wealthy" at 1000, "a merchant prince" at 2000. Each tier fires once.
+
+- [ ] **Wealthy NPC philanthropy** — In `AgentDecisionSystem.cpp`, NPCs with `wealthCelebrated == true` and `balance > 600g` contribute 10g to their settlement's `treasury` once per 72 game-hours (reuse `charityTimer`). Log "[Name] donates to [Settlement]'s treasury." Gold flows `Money::balance` → `Settlement::treasury`. Follows Gold Flow Rule.
 
 ### NPC Crime & Consequence
 
