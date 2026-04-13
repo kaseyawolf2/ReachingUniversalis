@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
-
 ## Recently Done
+
+- [x] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after starvation desperation
+  log. Finds best friend (affinity ≥ 0.4, same settlement, balance > 10g) and transfers 3g
+  balance-to-balance. Added `float begTimer` to `DeprivationTimer` for 24h cooldown. Logs
+  "[Friend] helps starving [Name] with gold."
+
+
 
 - [x] **Loneliness migration push** — Added `bool isLonely` param to `FindMigrationTarget` in
   `AgentDecisionSystem.h/.cpp`. At call site, checks if NPC has any friend (affinity ≥ 0.3) at
@@ -862,8 +867,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-- [ ] **Starvation begging from friends** — In `ConsumptionSystem.cpp`, after the starvation desperation log block, if the NPC has a friend (`Relations::affinity ≥ 0.4`) at the same settlement with balance > 10g, the friend gives 3g. Log "[Friend] helps starving [Name] with gold." Gold flows balance-to-balance. Once per 24 game-hours via a `float begTimer` on `DeprivationTimer`.
-
 - [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
 
 - [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
@@ -905,6 +908,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Lonely NPC greeting on arrival** — In `AgentDecisionSystem.cpp`'s migration arrival block, when a lonely NPC (no friends at new settlement) arrives, scan settlement residents and set `Relations::affinity` to 0.1 with the nearest NPC. Log "[Name] introduces themselves to [Resident] at [Settlement]." at 1-in-3. Seeds initial social connection for isolated newcomers.
 
 - [ ] **Social network shown in F1 debug panel** — In `HUD.cpp`'s F1 overlay, after settlement breakdown, add a "Social" section showing total friendship pairs across all settlements, average affinity of existing relations, and count of lonely NPCs (zero friends at home). Read from `RenderSnapshot` — add `int totalFriendPairs`, `int lonelyNpcCount` fields to `RenderSnapshot`.
+
+- [ ] **Begging gratitude affinity boost** — In `ConsumptionSystem.cpp`'s begging block, after the 3g transfer, boost `Relations::affinity` between beggar and helper by +0.05 (both directions, capped at 1.0). Receiving help strengthens the friendship bond. No new fields needed — modify existing begging block.
+
+- [ ] **Repeated begging strain** — In `ConsumptionSystem.cpp`'s begging block, track a static `std::map<std::pair<entt::entity,entt::entity>, int>` counting how many times each pair has begged. After 3 begging events from the same pair, decay `Relations::affinity` by -0.02 per additional beg. Log "[Friend] is growing tired of helping [Name]." at 1-in-3 when the penalty kicks in. Friendship has limits.
 
 ### NPC Crime & Consequence
 
