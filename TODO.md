@@ -9,6 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Peak-age production bonus** — In `ProductionSystem.cpp`, when a worker NPC's age is
+  between 25 and 55 (prime working years), apply a small +10% production bonus to their
+  contribution (`workerContrib *= 1.1f`). Read via `registry.try_get<Age>(workerEntity)`.
+
 ## Recently Done
 
 - [x] **Elder mentor bonus** — Pre-built `elderFacilities` map of facilities with Working elders (age > 60). Younger workers at those facilities get 1.2× skill gain. Logged once per game-day per facility. In `ScheduleSystem.cpp`.
@@ -1959,12 +1963,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Peak-age production bonus** — In `ProductionSystem.cpp`, when a worker NPC's age is
-  between 25 and 55 (prime working years), apply a small +10% production bonus to their
-  contribution (`workerContrib *= 1.1f`). Read via `registry.try_get<Age>(workerEntity)`.
-  This completes the lifecycle arc: gradual skill growth in youth, peak output in prime years,
-  decline in old age — all without new components.
 
 - [ ] **Elder wisdom event** — In `RandomEventSystem`'s per-NPC event tier (personal event
   system), add a new case: when a NPC's age > 70 and has a skill ≥ 0.6, fire a rare one-time
