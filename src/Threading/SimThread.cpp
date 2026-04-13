@@ -1636,7 +1636,9 @@ void SimThread::WriteSnapshot() {
                            isExiled,
                            lifetimeTrips, lifetimeProfit,
                            std::move(goalDesc),
-                           std::move(migMemSummary) });
+                           std::move(migMemSummary),
+                           (astate.behavior == AgentBehavior::Sleeping && hasHome &&
+                            (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f) });
     });
 
     // ---- Settlements ----

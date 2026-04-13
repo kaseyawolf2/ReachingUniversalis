@@ -128,6 +128,8 @@ struct RenderSnapshot {
         std::string goalDescription;
         // Migration memory summary (e.g. "Knows: Wellsworth (food 2g), Millhaven (wood 1g)")
         std::string migrationMemorySummary;
+        // True when NPC is sleeping and has arrived at home (within SLEEP_ARRIVE distance)
+        bool atHome = false;
     };
 
     struct SettlementEntry {

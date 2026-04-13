@@ -429,6 +429,9 @@ void GameState::Draw() {
             float alpha = 0.3f + 0.3f * sinf((float)GetTime() * 4.f);
             DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(RED, alpha));
         }
+        // Sleep commuting indicator: faint blue ring while walking home to sleep
+        if (a.behavior == AgentBehavior::Sleeping && !a.atHome)
+            DrawCircleLinesV({ a.x, a.y }, a.size + 2.f, Fade(BLUE, 0.35f));
         // Bandit flee trail: fading line in opposite direction of velocity
         if (a.isBandit && a.fleeTimer > 0.f) {
             float vLen = std::sqrt(a.fleeVx * a.fleeVx + a.fleeVy * a.fleeVy);
