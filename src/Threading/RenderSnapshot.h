@@ -130,6 +130,8 @@ struct RenderSnapshot {
         std::string migrationMemorySummary;
         // True when NPC is sleeping and has arrived at home (within SLEEP_ARRIVE distance)
         bool atHome = false;
+        // True when NPC is in an evening chat (chatTimer > 0)
+        bool chatting = false;
     };
 
     struct SettlementEntry {

@@ -429,6 +429,11 @@ void GameState::Draw() {
             float alpha = 0.3f + 0.3f * sinf((float)GetTime() * 4.f);
             DrawCircleLinesV({ a.x, a.y }, 10.f, Fade(RED, alpha));
         }
+        // Chat indicator: pulsing yellow ring when NPC is in conversation
+        if (a.chatting && a.role == RenderSnapshot::AgentRole::NPC) {
+            float alpha = 0.3f + 0.15f * sinf((float)GetTime() * 5.f);
+            DrawCircleLinesV({ a.x, a.y }, a.size + 3.f, Fade(YELLOW, alpha));
+        }
         // Sleep commuting indicator: faint blue ring while walking home to sleep
         if (a.behavior == AgentBehavior::Sleeping && !a.atHome)
             DrawCircleLinesV({ a.x, a.y }, a.size + 2.f, Fade(BLUE, 0.35f));

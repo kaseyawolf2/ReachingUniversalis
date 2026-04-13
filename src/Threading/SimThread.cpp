@@ -1519,6 +1519,7 @@ void SimThread::WriteSnapshot() {
         bool recentlyTaught  = false;
         bool isGrievingSnap  = false;
         float griefHoursLeft = 0.f;
+        bool chatting        = false;
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
             recentlyHelped   = (dt->helpedTimer > 0.f);
             recentlyStole    = (dt->stealCooldown > 46.f);
@@ -1534,6 +1535,7 @@ void SimThread::WriteSnapshot() {
             recentlyTaught   = (dt->teachCooldown > 0.f);
             isGrievingSnap   = (dt->griefTimer > 0.f);
             griefHoursLeft   = dt->griefTimer;
+            chatting         = (dt->chatTimer > 0.f);
         }
 
         bool isBandit = m_registry.all_of<BanditTag>(e);
@@ -1638,7 +1640,8 @@ void SimThread::WriteSnapshot() {
                            std::move(goalDesc),
                            std::move(migMemSummary),
                            (astate.behavior == AgentBehavior::Sleeping && hasHome &&
-                            (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f) });
+                            (pos.x - homeX) * (pos.x - homeX) + (pos.y - homeY) * (pos.y - homeY) < 25.f * 25.f),
+                           chatting });
     });
 
     // ---- Settlements ----
