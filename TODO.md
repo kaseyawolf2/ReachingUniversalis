@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC comforts grieving neighbour** — In `AgentDecisionSystem`'s idle block, after the
-  greeting section, when an idle NPC is within 25u of another idle NPC with `griefTimer > 0` and
-  `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours. Add
-  `float comfortCooldown = 0.f` to `DeprivationTimer` (180 real-sec cooldown). Log "[Name]
-  comforts [Grieving]." Close friends provide emotional support during grief.
+
 
 
 
 ## Recently Done
+
+- [x] **NPC comforts grieving neighbour** — Non-grieving idle NPCs within 25u with affinity >= 0.3 reduce griefTimer by 0.5h. 180s comfortCooldown on DeprivationTimer.
 
 - [x] **Family greeting clears grief early** — Family reunion halves griefTimer on both NPCs. Logs "[Name] finds comfort in [Other]'s company."
 
@@ -1664,12 +1662,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   (e.g. "  Hauler Orin: Riverwatch→Oakvale"). Add `struct HaulerInfo { std::string name; std::string
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
-
-- [ ] **NPC comforts grieving neighbour** — In `AgentDecisionSystem`'s idle block, after the
-  greeting section, when an idle NPC is within 25u of another idle NPC with `griefTimer > 0` and
-  `Relations::affinity >= 0.3`, reduce the grieving NPC's griefTimer by 0.5 game-hours. Add
-  `float comfortCooldown = 0.f` to `DeprivationTimer` (180 real-sec cooldown). Log "[Name]
-  comforts [Grieving]." Close friends provide emotional support during grief.
 
 - [ ] **Hauler profit shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
   each hauler route line, append profit info: " (+Xg)" in GREEN or " (-Xg)" in RED using
@@ -3341,3 +3333,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `registry.view<FamilyTag, HomeSettlement, Position>`). If found within 200u, set velocity toward
   them at 0.6× speed and `chatTimer = 5.f`. No log — ambient movement. Grieving NPCs naturally
   seek out family, creating visible grief-driven migration patterns.
+
+- [ ] **Comforting builds affinity** — In `AgentDecisionSystem`'s comfort-grieving-neighbour block,
+  after reducing griefTimer, boost mutual `Relations::affinity` by +0.06 (via `get_or_emplace`).
+  Comforting someone through grief strengthens the bond more than a casual greeting (+0.01) but
+  less than family reunion comfort. No new fields — uses existing Relations component.
+
+- [ ] **Comfort shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when
+  `comfortCooldown > 0` on the hovered NPC, show "Recently comforted someone" in faint PURPLE.
+  Pipe `bool recentlyComforted` through `RenderSnapshot::AgentEntry` from
+  `SimThread::WriteSnapshot` (check `timer.comfortCooldown > 0`). Visual feedback for the
+  comfort interaction.
