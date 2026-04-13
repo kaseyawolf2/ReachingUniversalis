@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill specialisation title in tooltip** — In `SimThread::WriteSnapshot`, when writing `AgentEntry`, check if any `Skills` value ≥ 0.9. If so, set a new `std::string specialisation` field on `AgentEntry` (e.g. "Master Farmer", "Expert Lumberjack"). Display in `HUD.cpp` tooltip after profession line. Requires adding `std::string specialisation` to `AgentEntry` in `RenderSnapshot.h`.
+
 ## Recently Done
 
 - [x] **Wanderer resettlement preference for friends** — Exiles choosing a settlement now prefer
@@ -975,8 +977,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Skill specialisation title in tooltip** — In `SimThread::WriteSnapshot`, when writing `AgentEntry`, check if any `Skills` value ≥ 0.9. If so, set a new `std::string specialisation` field on `AgentEntry` (e.g. "Master Farmer", "Expert Lumberjack"). Display in `HUD.cpp` tooltip after profession line. Requires adding `std::string specialisation` to `AgentEntry` in `RenderSnapshot.h`.
 
 - [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
