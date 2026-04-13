@@ -660,6 +660,27 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                     logVR.get<EventLog>(*logVR.begin()).Push(tm.day, hour,
                                         n1 + " and " + n2 + " put aside their differences at " + where + ".");
                                 }
+                                // Morale boost to home settlement
+                                if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                                    if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                                        settl->morale = std::min(1.f, settl->morale + 0.01f);
+                                    // Log harmony at 1-in-4 frequency
+                                    if (s_rng() % 4 == 0) {
+                                        auto hlogV = registry.view<EventLog>();
+                                        if (!hlogV.empty()) {
+                                            std::string where2 = "Settlement";
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                where2 = s->name;
+                                            hlogV.get<EventLog>(*hlogV.begin()).Push(tm.day, hour,
+                                                where2 + " feels more harmonious");
+                                        }
+                                    }
+                                }
+                                // Set reconcileGlow on both NPCs (2 game-hours of +5% work output)
+                                if (auto* tmrA = registry.try_get<DeprivationTimer>(entity))
+                                    tmrA->reconcileGlow = 2.f;
+                                if (auto* tmrB = registry.try_get<DeprivationTimer>(other))
+                                    tmrB->reconcileGlow = 2.f;
                             });
                         }
                     }

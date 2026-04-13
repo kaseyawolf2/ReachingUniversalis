@@ -178,6 +178,7 @@ struct DeprivationTimer {
     bool                 masterSettled        = false; // true once any skill reaches 0.9; permanently boosts migrateThreshold
     bool                 bankruptSurvivor    = false; // true after hauler bankruptcy; grants extra skill growth
     float                lastGriefDay        = -1.f; // game-day when grief last started (-1 = never)
+    float                reconcileGlow       = 0.f;  // game-hours remaining of post-reconciliation productivity boost (+5%)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.

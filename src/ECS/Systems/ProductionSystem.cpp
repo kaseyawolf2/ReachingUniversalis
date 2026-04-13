@@ -121,6 +121,13 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 if (dt->griefTimer > 0.f)
                     workerContrib *= 0.5f;
             }
+            // Reconciliation glow: recently reconciled workers produce +5%
+            if (auto* dt2 = registry.try_get<DeprivationTimer>(e)) {
+                if (dt2->reconcileGlow > 0.f) {
+                    workerContrib *= 1.05f;
+                    dt2->reconcileGlow = std::max(0.f, dt2->reconcileGlow - gameHoursDt);
+                }
+            }
             // Jack-of-all-trades: generalists with all skills ≥ 0.4 get +5%
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 if (skills->farming >= 0.4f && skills->water_drawing >= 0.4f && skills->woodcutting >= 0.4f)
