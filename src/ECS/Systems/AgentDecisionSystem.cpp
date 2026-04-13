@@ -2043,6 +2043,56 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
     }
 
     // ============================================================
+    // TRADE GIFT BETWEEN FRIENDS
+    // NPCs with a close friend (affinity ≥ 0.6) at the same settlement
+    // gift 5g once per 48 game-hours. Gold flows balance-to-balance.
+    // ============================================================
+    {
+        static constexpr float GIFT_COOLDOWN   = 48.f;   // game-hours
+        static constexpr float GIFT_AFFINITY   = 0.6f;
+        static constexpr float GIFT_MIN_BAL    = 50.f;   // sender must have > 50g
+        static constexpr float GIFT_AMOUNT     = 5.f;
+
+        registry.view<Relations, Money, HomeSettlement, DeprivationTimer, Name>(
+            entt::exclude<Hauler, PlayerTag, ChildTag, BanditTag>).each(
+            [&](auto giver, const Relations& rel, Money& giverMoney,
+                const HomeSettlement& giverHome, DeprivationTimer& giverTmr,
+                const Name& giverName) {
+            if (giverTmr.charityTimer > 0.f) return;
+            if (giverMoney.balance <= GIFT_MIN_BAL) return;
+            if (giverHome.settlement == entt::null) return;
+
+            // Find best friend at same settlement with affinity ≥ 0.6
+            entt::entity bestFriend = entt::null;
+            float bestAff = 0.f;
+            for (const auto& [other, aff] : rel.affinity) {
+                if (aff < GIFT_AFFINITY) continue;
+                if (!registry.valid(other)) continue;
+                auto* otherHome = registry.try_get<HomeSettlement>(other);
+                if (!otherHome || otherHome->settlement != giverHome.settlement) continue;
+                auto* otherMoney = registry.try_get<Money>(other);
+                if (!otherMoney) continue;
+                if (aff > bestAff) { bestAff = aff; bestFriend = other; }
+            }
+            if (bestFriend == entt::null) return;
+
+            // Transfer gold: balance-to-balance (no treasury)
+            giverMoney.balance -= GIFT_AMOUNT;
+            registry.get<Money>(bestFriend).balance += GIFT_AMOUNT;
+            giverTmr.charityTimer = GIFT_COOLDOWN;
+
+            // Log
+            if (charityLog) {
+                std::string friendName = "a friend";
+                if (const auto* fn = registry.try_get<Name>(bestFriend))
+                    friendName = fn->value;
+                charityLog->Push(charityDay, charityHour,
+                    giverName.value + " gifts gold to " + friendName + ".");
+            }
+        });
+    }
+
+    // ============================================================
     // BANDIT PROMOTION & BEHAVIOUR
     // Exiles (home.settlement == entt::null) with balance < 2g for
     // 48+ game-hours become bandits (BanditTag). Bandits lurk near
