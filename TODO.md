@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Sleep arrival indicator** — When an NPC is walking toward their settlement to sleep
+  (`state.behavior == AgentBehavior::Sleeping` and not yet at `SLEEP_ARRIVE` distance),
+  draw a faint dim ring around their world dot. Add `bool atHome = false`
+  to `AgentEntry` (RenderSnapshot.h); set it in `SimThread::WriteSnapshot` when sleeping and
+  within arrival distance of home.
 
 ## Recently Done
 
