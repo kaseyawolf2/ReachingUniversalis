@@ -44,6 +44,37 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
     int hour   = (int)tm.hourOfDay;
     Season season = tm.CurrentSeason();
 
+    // Pre-build set of facilities that have an elder worker (age > 60, Working)
+    // within arrival range. Used for the +20% mentor skill gain bonus.
+    static constexpr float ELDER_AGE = 60.f;
+    static constexpr float MENTOR_ARRIVE2 = 30.f * 30.f; // same as WORK_ARRIVE
+    struct ElderMentorInfo { std::string name; entt::entity facility; };
+    std::map<entt::entity, ElderMentorInfo> elderFacilities; // facility → elder info
+    {
+        auto facView = registry.view<Position, ProductionFacility>();
+        registry.view<AgentState, Position, Age>(entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+            [&](auto e, const AgentState& st, const Position& ep, const Age& age) {
+            if (st.behavior != AgentBehavior::Working) return;
+            if (age.days <= ELDER_AGE) return;
+            // Find which facility this elder is near
+            for (auto fe : facView) {
+                const auto& fp = facView.get<Position>(fe);
+                float dx = ep.x - fp.x, dy = ep.y - fp.y;
+                if (dx*dx + dy*dy <= MENTOR_ARRIVE2) {
+                    if (elderFacilities.find(fe) == elderFacilities.end()) {
+                        std::string ename = "An elder";
+                        if (const auto* n = registry.try_get<Name>(e)) ename = n->value;
+                        elderFacilities[fe] = {ename, fe};
+                    }
+                    break;
+                }
+            }
+        });
+    }
+
+    // Elder mentor log: once per game-day per facility
+    static std::map<entt::entity, int> s_lastMentorLogDay;
+
     // Exclude haulers (TransportSystem owns them) and the player.
     auto view = registry.view<Schedule, AgentState, Position, Velocity,
                                MoveSpeed, HomeSettlement>(
@@ -284,6 +315,25 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                         if (const auto* prof = registry.try_get<Profession>(entity))
                             if (prof->type == ProfessionForResource(facType))
                                 gainMult = 1.1f;
+                        // +20% skill gain when an elder (age > 60) is working at the same facility
+                        auto mentorIt = elderFacilities.find(workFac);
+                        if (mentorIt != elderFacilities.end()) {
+                            // Don't mentor yourself
+                            const auto* myAge = registry.try_get<Age>(entity);
+                            if (!myAge || myAge->days <= ELDER_AGE)
+                                gainMult *= 1.2f;
+                            // Log once per game-day per facility
+                            if (s_lastMentorLogDay[workFac] != tm.day) {
+                                s_lastMentorLogDay[workFac] = tm.day;
+                                auto logv = registry.view<EventLog>();
+                                if (!logv.empty()) {
+                                    const auto* sett = registry.try_get<Settlement>(home.settlement);
+                                    std::string where = sett ? sett->name : "a settlement";
+                                    logv.get<EventLog>(*logv.begin()).Push(tm.day, hour,
+                                        mentorIt->second.name + " mentored workers at " + where + ".");
+                                }
+                            }
+                        }
                         float before = skills->ForResource(facType);
                         skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt * gainMult);
                         float after = skills->ForResource(facType);
