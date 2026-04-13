@@ -1960,6 +1960,9 @@ void SimThread::WriteSnapshot() {
 
         bool diverse = settlAgg.count(e) && (settlAgg[e].profMask & 7) == 7;
         bool afterglow = (s.afterglowHours > 0.f);
+        float harmony = 0.f;
+        if (spop >= 2)
+            harmony = (friendPairs * 2.0f) / std::max(1, spop * (spop - 1));
 
         settlements.push_back({
             pos.x, pos.y, s.radius, s.name,
@@ -1969,7 +1972,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            avgFarming, avgWater, avgWood, diverse, afterglow
+            avgFarming, avgWater, avgWood, diverse, afterglow, harmony
         });
     });
 

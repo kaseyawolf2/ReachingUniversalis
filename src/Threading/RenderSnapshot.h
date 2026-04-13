@@ -170,6 +170,7 @@ struct RenderSnapshot {
         float        avgWood    = 0.f;  // average woodcutting skill (0-1)
         bool         diverse    = false; // all 3 profession types present
         bool         afterglow  = false; // post-festival morale afterglow active
+        float        harmony   = 0.f;  // social cohesion: friendshipPairs / possible pairs (0-1)
     };
 
     struct RoadEntry {
