@@ -1089,6 +1089,30 @@ void SimThread::ProcessInput() {
                             "Player founded %s at (%.0f, %.0f) — %.0fg, 4 settlers + 1 hauler",
                             newName, ppf.x, ppf.y, FOUND_COST);
                         blogf->Push(tm.day, (int)tm.hourOfDay, buf);
+
+                        // Family reunion log: find families with 2+ members at the new settlement
+                        {
+                            std::unordered_map<std::string, int> familyCounts;
+                            auto famView = m_registry.view<FamilyTag, HomeSettlement>();
+                            for (auto fe : famView) {
+                                auto& hs = famView.get<HomeSettlement>(fe);
+                                if (hs.settlement == newSettl) {
+                                    auto& ft = famView.get<FamilyTag>(fe);
+                                    if (!ft.name.empty()) {
+                                        familyCounts[ft.name]++;
+                                    }
+                                }
+                            }
+                            for (auto& [fname, count] : familyCounts) {
+                                if (count >= 2) {
+                                    char fbuf[160];
+                                    std::snprintf(fbuf, sizeof(fbuf),
+                                        "The %s family helped found %s.",
+                                        fname.c_str(), newName);
+                                    blogf->Push(tm.day, (int)tm.hourOfDay, fbuf);
+                                }
+                            }
+                        }
                     }
                 }
             }
