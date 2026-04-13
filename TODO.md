@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
+
 ## Recently Done
 
 - [x] **Hauler route preference memory** — Added `loyalRoute` parameter to `FindBestRoute` in
@@ -1135,8 +1137,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
 
 - [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
 
