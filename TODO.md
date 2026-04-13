@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
+
 ## Recently Done
 
 - [x] **Stagger thank-player and teach scans** — Thank-player (reputation nod), wave-at-player
@@ -1072,8 +1074,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
 ### NPC Lifecycle & Identity
 
