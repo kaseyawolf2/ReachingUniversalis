@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Skill milestone shown in NPC tooltip** — "Journeyman/Master [Type]" line in HUD tooltip for skills ≥0.5/≥0.9.
 
 ## Recently Done
 
