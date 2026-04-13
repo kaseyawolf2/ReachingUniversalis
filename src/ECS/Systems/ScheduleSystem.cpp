@@ -309,6 +309,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                         lv.get<EventLog>(*lv.begin()).Push(
                                             tm.day, (int)tm.hourOfDay, buf);
                                     }
+                                    // Journeyman (idx 0) and Master (idx 1) trigger visible celebration
+                                    if (idx == 0 || idx == 1) {
+                                        if (auto* as = registry.try_get<AgentState>(entity)) {
+                                            as->behavior = AgentBehavior::Celebrating;
+                                        }
+                                        auto& tmr = registry.get_or_emplace<DeprivationTimer>(entity);
+                                        tmr.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
+                                    }
                                 }
                             }
                         };

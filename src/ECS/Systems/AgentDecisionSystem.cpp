@@ -360,13 +360,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (const auto* g = registry.try_get<Goal>(entity))
                 personalCelebration = (g->celebrateTimer > 0.f);
 
+            // Skill milestone celebration (drain timer)
+            bool skillCelebration = false;
+            {
+                float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                if (timer.skillCelebrateTimer > 0.f) {
+                    timer.skillCelebrateTimer = std::max(0.f, timer.skillCelebrateTimer - ghDt);
+                    skillCelebration = (timer.skillCelebrateTimer > 0.f);
+                }
+            }
+
             // Check if the festival is still active at home settlement
             bool festivalActive = false;
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
                 if (const auto* s = registry.try_get<Settlement>(home.settlement))
                     festivalActive = (s->modifierName == "Festival");
             }
-            if (!festivalActive && !personalCelebration) {
+            if (!festivalActive && !personalCelebration && !skillCelebration) {
                 state.behavior = AgentBehavior::Idle;
                 // Fall through to normal decision-making below
             } else {
