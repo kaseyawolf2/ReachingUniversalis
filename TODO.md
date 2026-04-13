@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Grief reduces work output** — In `ProductionSystem`'s worker contribution block, after the
+  contentment factor, check if the worker has `DeprivationTimer::griefTimer > 0`. If so, multiply
+  contribution by 0.5f (grieving workers produce at half rate). No new fields — reads existing
+  griefTimer. Creates a visible economic impact when family members die.
 
 
 
