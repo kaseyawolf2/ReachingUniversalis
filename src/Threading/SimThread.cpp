@@ -1885,6 +1885,15 @@ void SimThread::WriteSnapshot() {
         if (settlAgg.count(e) && settlAgg[e].contentN > 0)
             moodScore = settlAgg[e].contentSum / settlAgg[e].contentN;
 
+        // Count masters (any skill ≥ 0.9) at this settlement
+        int masterCount = 0;
+        m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, BanditTag, Hauler>).each(
+            [&](const Skills& sk, const HomeSettlement& hs) {
+                if (hs.settlement == e &&
+                    (sk.farming >= 0.9f || sk.water_drawing >= 0.9f || sk.woodcutting >= 0.9f))
+                    ++masterCount;
+            });
+
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
         {
@@ -1915,7 +1924,7 @@ void SimThread::WriteSnapshot() {
             food, water, wood, spop, s.popCap, snapSeason, specialty,
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
-            friendPairs
+            friendPairs, masterCount
         });
     });
 

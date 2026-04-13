@@ -162,6 +162,7 @@ struct RenderSnapshot {
         int          desperatePurchases = 0; // emergency market purchases this 24h cycle
         float        moodScore = 0.5f;     // 0-1 average NPC need satisfaction
         int          friendshipPairs = 0; // count of mutual friendship pairs (affinity ≥ 0.5)
+        int          masterCount = 0;    // NPCs with any skill ≥ 0.9
     };
 
     struct RoadEntry {

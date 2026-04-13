@@ -1273,7 +1273,13 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showElders)
         std::snprintf(line5, sizeof(line5), "Elders: %d (+%.0f%% prod)", elderCount, elderBonus * 100.f);
 
-    // Line 6 (optional): pending estates
+    // Line 6 (optional): masters
+    char lineMasters[32] = {};
+    bool showMasters = (best->masterCount > 0);
+    if (showMasters)
+        std::snprintf(lineMasters, sizeof(lineMasters), "Masters: %d", best->masterCount);
+
+    // Line 7 (optional): pending estates
     char lineEst[48] = {};
     float estates = status ? status->pendingEstates : 0.f;
     bool showEstates = (estates > 0.f);
@@ -1354,7 +1360,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
 
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
-                      + (showEstates ? 1 : 0)
+                      + (showMasters ? 1 : 0) + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
                       + (showMood ? 1 : 0)
                       + (showTrade ? 1 : 0) + (showImpExp ? 1 : 0)
@@ -1366,6 +1372,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
+                       showMasters   ? MeasureText(lineMasters, 11) : 0,
                        showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0,
@@ -1399,6 +1406,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showElders) {
         DrawText(line5, tx, ty,  11, Fade(ORANGE, 0.75f)); ty += 16;
+    }
+    if (showMasters) {
+        DrawText(lineMasters, tx, ty, 11, Fade(GOLD, 0.8f)); ty += 16;
     }
     if (showEstates) {
         DrawText(lineEst, tx, ty, 11, Fade(GOLD, 0.5f));   ty += 16;
