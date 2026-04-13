@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
-
 ## Recently Done
+
+- [x] **Generalist title in tooltip** — Added "Generalist" specialisation in `SimThread::WriteSnapshot`
+  when all three skills ≥ 0.4 but none ≥ 0.9. Placed after master title checks. Makes the
+  jack-of-all-trades production bonus visible in the HUD tooltip.
 
 - [x] **Hauler route preference memory** — Added `loyalRoute` parameter to `FindBestRoute` in
   `TransportSystem.cpp`. When `consecutiveRouteCount >= 5`, passes `lastRoute` for a +15% score
@@ -1179,6 +1181,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **NPC work gossip about neighbours** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs both have `Profession` components, 1-in-4 chance one comments on the other's profession: log "[Name] asks [Name] about life as a [profession] at [Settlement]." If the listener has skill < 0.3 in that profession's matching skill, 1-in-3 chance to boost it by +0.01 (knowledge transfer through conversation). Uses existing `Skills`, `Profession`, `Relations`.
 
 - [ ] **NPC grudge from failed trade** — In `ConsumptionSystem.cpp`'s emergency market purchase block, when an NPC tries to buy from a settlement stockpile but it's empty (purchase fails), find the wealthiest NPC at that settlement via `HomeSettlement` match and `Money::balance`. Reduce `Relations::affinity` toward them by 0.03 (floor 0.0). Log "[Name] resents [Wealthy] for hoarding at [Settlement]." at 1-in-5 frequency. Scarcity breeds social tension.
+
+- [ ] **Generalist mentoring bonus** — In `AgentDecisionSystem.cpp`'s mentor-apprentice block, when the elder mentor has all three skills ≥ 0.4 (generalist), grant the apprentice child an additional +0.001 to *all* three skills instead of just the matching profession skill. Log "[Elder] teaches [Child] a breadth of trades at [Settlement]." at 1-in-5 frequency. Generalist elders produce well-rounded apprentices.
+
+- [ ] **Specialisation tooltip color coding** — In `HUD.cpp`'s milestone line draw call (around line 888), color the specialisation text based on type: Master titles in `Fade(GOLD, 0.9f)` (already done), Journeyman in `Fade(GOLD, 0.6f)` (already done), Generalist in `Fade(SKYBLUE, 0.8f)`, Veteran in `Fade(ORANGE, 0.8f)`. Currently all non-master titles share the same color. Differentiate to make titles more visually meaningful.
 
 - [ ] **Shared hardship friendship boost** — In `AgentDecisionSystem.cpp`'s need satisfaction block, when two NPCs at the same settlement both have any need < 0.3 (both struggling), boost `Relations::affinity` between them by +0.02 per game-day (capped at 1.0). Log "[Name] and [Name] bond through hardship at [Settlement]." at 1-in-10 frequency. Adversity creates friendships. Gate with `entity % 4 == s_frameCounter % 4` stagger.
 
