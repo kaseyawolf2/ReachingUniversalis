@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC shares food with family first** — In `AgentDecisionSystem`'s charity block, before checking generic nearby NPCs, prioritize family members (check `FamilyTag::name` match). If a starving NPC shares a `FamilyTag::name` with the helper, skip the reputation check and always offer charity. Log "[Name] feeds family member [Other]." Family bonds override reputation.
 
 ## Recently Done
 
