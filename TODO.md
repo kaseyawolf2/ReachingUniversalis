@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill specialisation title in tooltip** — In `SimThread::WriteSnapshot`, when writing `AgentEntry`, check if any `Skills` value ≥ 0.9. If so, set a new `std::string specialisation` field on `AgentEntry` (e.g. "Master Farmer", "Expert Lumberjack"). Display in `HUD.cpp` tooltip after profession line. Requires adding `std::string specialisation` to `AgentEntry` in `RenderSnapshot.h`.
-
 ## Recently Done
+
+- [x] **Skill specialisation title in tooltip** — Added `std::string specialisation` to `AgentEntry`.
+  Computed in `SimThread::WriteSnapshot`: "Master Farmer/Water-drawer/Lumberjack" when skill ≥ 0.9.
+  HUD tooltip uses snapshot field for master titles, retains local journeyman computation for ≥ 0.5.
+
+
 
 - [x] **Wanderer resettlement preference for friends** — Exiles choosing a settlement now prefer
   settlements with friends (affinity ≥ 0.3). Built `friendSettlements` set via `s_entitySettlement`
@@ -977,6 +981,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
+
+- [ ] **Master NPC teaching bonus** — In `AgentDecisionSystem.cpp`'s skill growth block (once per game-day), when a master (skill ≥ 0.9) works at the same settlement as a non-master NPC of the same profession (`Profession::type`), the non-master gains +0.002 per game-day instead of +0.001. Uses `s_entitySettlement` cache to find same-settlement entities. Log "[Master] inspires [Learner]'s [skill] at [Settlement]." at 1-in-10 frequency when triggered.
+
+- [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
 
 - [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
