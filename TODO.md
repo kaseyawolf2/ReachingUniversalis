@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **AgentDecision friendship scan spatial cache** — Many blocks in `AgentDecisionSystem.cpp` iterate `Relations::affinity` then check `HomeSettlement::settlement` to filter to same-settlement friends. Build a per-settlement friend list once per tick (at the top of `Update`) in a `static std::unordered_map<entt::entity, std::vector<entt::entity>>` and reuse it in farewell, co-migration, loneliness, begging, and greeting blocks. Eliminates repeated O(n) registry lookups per NPC.
 
 ## Recently Done
+
+- [x] **AgentDecision friendship scan spatial cache** — Built `unordered_map<entity, settlement>`
+  once per tick. Replaced `try_get<HomeSettlement>` in 6 friend-scan loops with O(1) hash lookups.
+  Benchmark: total step time -22%, AD:MainLoop -8%.
+
+
 
 - [x] **AgentDecision per-block profiling** — Added 7 sub-block timers (PreLoop, MainLoop, Orphan,
   Gossip, Social, Bandits, Goals) to `AgentDecisionSystem.cpp` using `std::chrono::steady_clock`.
@@ -3874,3 +3879,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Homesick return welcome-back log** — In `AgentDecisionSystem.cpp`'s migration arrival block, detect when the NPC is returning to a settlement they previously lived at (compare `home.settlement` with the arriving `state.target` against stored `prevSettlement`). Log "[Name] returns home to [Settlement] after time away." at 1-in-2 frequency. Distinct from normal arrival log, creating a narrative of homecoming.
 
 - [ ] **Nostalgia affinity decay prevention** — In `AgentDecisionSystem.cpp`, NPCs who have `prevSettlement != entt::null` and friends (Relations::affinity ≥ 0.4) still at that settlement decay affinity 50% slower than normal. Check `HomeSettlement::prevSettlement` against friend's `HomeSettlement::settlement` in the affinity decay loop. Keeps old friendships alive longer for homesick NPCs.
+
+- [ ] **Gossip system spatial partitioning** — `AD:Gossip` scans all NPC pairs within 30u, which is O(n²). In `AgentDecisionSystem.cpp`'s gossip section, build a per-settlement resident position list once, then only check pairs within the same or adjacent settlements. Use the `s_entitySettlement` cache to bucket NPCs by settlement, eliminating cross-settlement distance checks.
+
+- [ ] **Settlement entity cache for systems** — Multiple systems (`ConsumptionSystem`, `ProductionSystem`, `PriceSystem`) independently iterate `registry.view<Settlement>()` each tick. Add a `std::vector<entt::entity> settlementEntities` member to `SimThread`, rebuilt once per tick before system calls, and pass it to system `Update()` methods. Avoids redundant view construction across 3+ systems.
