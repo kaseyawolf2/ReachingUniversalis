@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
-
 ## Recently Done
+
+- [x] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s idle chat block,
+  1-in-8 chance when one chatter has `careerChanges >= 2` to log gossip about their varied
+  career. Uses existing `Profession` component.
 
 - [x] **Veteran worker title** — In `SimThread::WriteSnapshot`'s specialisation logic, after
   master/generalist checks, NPCs with `careerChanges >= 2` and any skill ≥ 0.6 get "Veteran
@@ -1252,6 +1254,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Veteran production bonus** — In `ProductionSystem.cpp`'s worker contribution block, after the jack-of-all-trades check, when `Profession::careerChanges >= 2` and the worker's active profession skill ≥ 0.6, apply `workerContrib *= 1.08f`. Veterans bring cross-discipline experience. No new components — uses `registry.try_get<Profession>` and `registry.try_get<Skills>`.
 
 - [ ] **Veteran mentoring speed bonus** — In `AgentDecisionSystem.cpp`'s mentor-apprentice block, when the elder mentor has `Profession::careerChanges >= 2` (veteran), increase apprentice skill growth from +0.003 to +0.004. Veterans are better teachers due to broader experience. Log "[Veteran Elder] shares varied experience with [Child]." at 1-in-10 frequency.
+
+- [ ] **Gossip-driven career curiosity** — In `AgentDecisionSystem.cpp`'s idle chat gossip block (just added), when the listener has `careerChanges == 0` and contentment < 0.5, 1-in-10 chance to boost `DeprivationTimer::stockpileEmpty` by +0.5 — hearing about varied careers makes dissatisfied NPCs more likely to consider migration/change. Log "[Listener] wonders about life elsewhere." Uses existing fields.
+
+- [ ] **Chat topic variety** — In `AgentDecisionSystem.cpp`'s idle chat log block, vary the chat message based on context: if both NPCs share the same `Profession::type`, log "[A] and [B] discuss [profession] techniques." If one is an elder (age > 60), log "[Elder] shares wisdom with [Younger]." Default remains generic chat. 1-in-10 frequency for each variant. No new fields — uses existing `Profession`, `Age`, `Name`.
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
