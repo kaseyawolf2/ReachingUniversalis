@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Settlement harmony score** — In `SimThread::WriteSnapshot`'s settlement loop, compute `float harmony` as (friendshipPairs * 2.0f) / max(1, pop * (pop-1)) — the fraction of all possible NPC pairs that are mutual friends. Add `float harmony = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Harmony: X%" in green (>50%), yellow (25-50%), or red (<25%) after the morale line. Gives the player a social cohesion metric.
-
 ## Backlog
 
 - [ ] **Plague solidarity** — In `RandomEventSystem.cpp`'s plague trigger (case 2), mirror the drought solidarity pattern: after applying plague, scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.03 (cap 1.0). Log "[Settlement] residents support each other through the plague." Reuses the same pattern as drought solidarity for consistency across crisis types.
@@ -79,7 +77,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
 
+- [ ] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
+
+- [ ] **Low harmony triggers NPC complaints** — In `AgentDecisionSystem.cpp`'s idle chat block, when the home settlement's harmony (pre-computed per settlement) is < 0.15 and both chatting NPCs have `Relations::affinity < 0.3` toward each other, 1-in-10 chance to log "[NPC1] and [NPC2] grumble about tensions at [Settlement]" and apply -0.005 to `Settlement::morale` (floor 0.0). Creates a feedback loop: low harmony → morale drain → potential migration.
+
 ## Recently Done
+
+- [x] **Settlement harmony score** — Added `harmony` to `SettlementEntry`, computed in `SimThread::WriteSnapshot`
+  as friendshipPairs*2/(pop*(pop-1)). Displayed in settlement tooltip with green/yellow/red coloring.
 
 - [x] **Grief badge on NPC tooltip** — Already implemented: `isGrieving` field in `AgentEntry`, set in
   `SimThread::WriteSnapshot`, rendered as "Grieving (Xh left)" in muted purple in `HUD.cpp`.
