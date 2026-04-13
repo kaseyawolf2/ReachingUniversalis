@@ -21,10 +21,23 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     bool hasSkillSummary = false;
     for (int i = 0; i < 3; ++i)
         if (panel.masterCount[i] + panel.journeymanCount[i] > 0) { hasSkillSummary = true; break; }
+    // Pre-compute largest family for header line and height calc
+    std::string largestFamName;
+    int largestFamCount = 0;
+    {
+        std::map<std::string, int> famCount;
+        for (const auto& r : panel.residents)
+            if (!r.familyName.empty())
+                famCount[r.familyName]++;
+        for (const auto& [name, cnt] : famCount)
+            if (cnt > largestFamCount) { largestFamCount = cnt; largestFamName = name; }
+    }
+    bool hasLargestFamily = (largestFamCount >= 2);
     int haulerRouteH = (int)panel.haulerRoutes.size() * (LINE_H - 3);
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0)
                       + (hasSpecialty ? 1 : 0) + (hasTheft ? 1 : 0)
-                      + (hasStruggling ? 1 : 0) + (hasSkillSummary ? 1 : 0);
+                      + (hasStruggling ? 1 : 0) + (hasSkillSummary ? 1 : 0)
+                      + (hasLargestFamily ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int barChartH   = 4 + 3 * (6 + 3);  // stockpile bar chart (3 bars + gaps)
@@ -79,6 +92,15 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     Color tresCol = (panel.treasury < 50.f) ? RED : (panel.treasury < 150.f) ? ORANGE : GOLD;
     DrawText(tresBuf, PX + 8, y, 13, tresCol);
     y += LINE_H;
+
+    // Largest family (only shown when a family has ≥2 members at this settlement)
+    if (hasLargestFamily) {
+        char famBuf[64];
+        std::snprintf(famBuf, sizeof(famBuf), "Largest family: %s \xc3\x97%d",
+                      largestFamName.c_str(), largestFamCount);
+        DrawText(famBuf, PX + 8, y, 11, Fade(LIGHTGRAY, 0.6f));
+        y += LINE_H;
+    }
 
     // Bounty pool (only shown when > 0)
     if (panel.bountyPool > 0.f) {
