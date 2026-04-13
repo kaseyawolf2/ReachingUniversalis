@@ -23,6 +23,9 @@ public:
     void  Draw();
     Color SkyColor() const;
 
+    // Expose snapshot for benchmark/diagnostic reads
+    const RenderSnapshot& Snapshot() const { return m_snapshot; }
+
 private:
     void PollInput(float dt);
 
