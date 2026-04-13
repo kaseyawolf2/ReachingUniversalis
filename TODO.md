@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
+
 ## Recently Done
 
 - [x] **Rivalry softening on shared crisis** — Added `SoftenRivalryOnSharedCrisis()` static helper
