@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
+
 ## Recently Done
 
 - [x] **Generalist title in tooltip** — Added "Generalist" specialisation in `SimThread::WriteSnapshot`
@@ -1139,8 +1141,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
 
 - [ ] **Master homecoming log** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC with `masterSettled == true` arrives at a new settlement, log "[Name], a master [skill], settles at [Settlement]." at full frequency. Uses existing `Skills` to determine which skill is ≥ 0.9. Complements the exodus warning — shows where masters end up after leaving.
 
