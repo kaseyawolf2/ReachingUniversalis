@@ -40,7 +40,7 @@ static void RunBenchmark(int durationSec, const char* outFile) {
     int    lastDay = 0, lastDeaths = 0;
 
     // Per-system profiler accumulators
-    struct ProfAccum { double totalUs = 0; int count = 0; };
+    struct ProfAccum { double totalUs = 0; int count = 0; std::vector<float> samples; };
     std::map<std::string, ProfAccum> profAccum;
 
     // Settlement tracking
@@ -86,6 +86,7 @@ static void RunBenchmark(int durationSec, const char* outFile) {
             for (const auto& p : snap.profiling) {
                 auto& acc = profAccum[p.name];
                 acc.totalUs += p.avgUs;
+                acc.samples.push_back(p.avgUs);
                 ++acc.count;
             }
 
@@ -142,20 +143,31 @@ static void RunBenchmark(int durationSec, const char* outFile) {
     fprintf(f, "Avg NPC wealth:     %.1f\n", sampleCount > 0 ? sumAvgWealth / sampleCount : 0);
     fprintf(f, "Peak individual:    %.0fg (%s)\n\n", peakWealth, peakWealthName.c_str());
 
-    fprintf(f, "--- Per-System Profiler (avg us/step) ---\n");
-    // Sort by cost
-    std::vector<std::pair<std::string, double>> profSorted;
+    fprintf(f, "--- Per-System Profiler (avg / median / p99 us per step) ---\n");
+    // Compute avg, median, p99 per system
+    struct ProfStats { std::string name; double avg; float median; float p99; };
+    std::vector<ProfStats> profSorted;
     double totalUs = 0;
-    for (const auto& [name, acc] : profAccum) {
+    for (auto& [name, acc] : profAccum) {
         double avg = acc.count > 0 ? acc.totalUs / acc.count : 0;
-        profSorted.push_back({ name, avg });
+        float median = 0.f, p99 = 0.f;
+        if (!acc.samples.empty()) {
+            std::sort(acc.samples.begin(), acc.samples.end());
+            size_t n = acc.samples.size();
+            median = acc.samples[n / 2];
+            size_t p99idx = std::min(n - 1, (size_t)(n * 0.99f));
+            p99 = acc.samples[p99idx];
+        }
+        profSorted.push_back({ name, avg, median, p99 });
         totalUs += avg;
     }
     std::sort(profSorted.begin(), profSorted.end(),
-        [](const auto& a, const auto& b) { return a.second > b.second; });
-    for (const auto& [name, avg] : profSorted)
-        fprintf(f, "  %-20s %8.1f us  (%4.1f%%)\n", name.c_str(), avg, totalUs > 0 ? avg / totalUs * 100 : 0);
-    fprintf(f, "  %-20s %8.1f us  (100%%)\n\n", "TOTAL", totalUs);
+        [](const auto& a, const auto& b) { return a.avg > b.avg; });
+    for (const auto& ps : profSorted)
+        fprintf(f, "  %-20s avg=%7.1f  med=%7.1f  p99=%7.1f us  (%4.1f%%)\n",
+                ps.name.c_str(), ps.avg, ps.median, ps.p99,
+                totalUs > 0 ? ps.avg / totalUs * 100 : 0);
+    fprintf(f, "  %-20s avg=%7.1f us  (100%%)\n\n", "TOTAL", totalUs);
 
     fprintf(f, "--- Settlements (averages) ---\n");
     for (const auto& [name, ss] : settlStats) {
