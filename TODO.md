@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
-  12–48 game-hours per NPC (jittered by entity ID). Small events: skill discovery (+0.1 to a
-  random skill), windfall (find 5–15g — no gold source needed, treat as lucky find), minor illness
-  (one need drains 2× for 6 game-hours via a `illnessTimer` float on `DeprivationTimer`), good
-  harvest (working NPC produces 1.5× for 4 hours via a `harvestBonus` float). Log the notable
-  ones. Use `entt::to_integral(e) % period` for deterministic per-entity jitter.
+
 
 ## Recently Done
+
+- [x] **NPC personal events** — Already fully implemented: skill discovery, windfall, minor illness (2× drain), good harvest (1.5× prod). Timer, jitter, all four event types, and logging all present in RandomEventSystem.cpp.
 
 - [x] **Stale memory decay** — `lastVisitedDay` on PriceSnapshot, passed via `tm.day` on all Record calls. FindMigrationTarget halves memory bonus when info is >30 days old.
 
@@ -1878,7 +1875,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   if `tm.day - snap.lastVisitedDay > 30` (more than 30 days old), reduce the memory bonus to 50%
   — stale knowledge is less reliable. This creates realistic information decay over time.
 
-- [ ] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
+- [x] **NPC personal events** — In `RandomEventSystem`, add a per-NPC event tier that fires every
   12–48 game-hours per NPC (jittered by entity ID). Small events: skill discovery (+0.1 to a
   random skill), windfall (find 5–15g — no gold source needed, treat as lucky find), minor illness
   (one need drains 2× for 6 game-hours via a `illnessTimer` float on `DeprivationTimer`), good
@@ -3448,3 +3445,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `tm.day - snap.lastVisitedDay > 90` (3 months stale). This prevents NPCs from carrying
   ancient price knowledge that will never be relevant again. Keeps memory map bounded by
   relevance, not just by count.
+
+- [ ] **Illness spreads between NPCs** — In `RandomEventSystem`'s per-NPC event section, when
+  an NPC has `illnessTimer > 0`, scan idle NPCs within 20u via `registry.view<Position,
+  DeprivationTimer, AgentState>`. If the neighbour has `illnessTimer <= 0` and a random roll
+  (5% per game-hour) succeeds, set `neighbour.illnessTimer = 4.f` (shorter secondary illness)
+  and `neighbour.illnessNeedIdx = dt.illnessNeedIdx`. Log "[Name] caught [Other]'s illness."
+  No new components — uses existing `illnessTimer` on `DeprivationTimer`.
+
+- [ ] **NPC avoids ill neighbours** — In `AgentDecisionSystem`'s idle wander section, when
+  an NPC without `illnessTimer` sees a nearby NPC (within 15u) with `illnessTimer > 0`, set
+  velocity away from the ill NPC at 0.5× speed for 1s via `panicTimer`. Log "[Name] avoids
+  [Ill NPC] who looks unwell." 30s cooldown via `greetCooldown` to avoid spam. Uses existing
+  `DeprivationTimer` fields — no new structs.
