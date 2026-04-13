@@ -9,10 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Chat log entry** — When a chat pair forms (chatTimer is set > 0 in `AgentDecisionSystem`),
-  log a brief flavour message. Gate with 10% chance to avoid spam.
+
 
 ## Recently Done
+
+- [x] **Chat log entry** — 10% of chat pair formations log "[Name] and [Other] chat near [Settlement]." to EventLog. Social flavour without spam.
 
 - [x] **Chat indicator on world dot** — `chatting` bool on AgentEntry from chatTimer. Pulsing yellow ring in GameState::Draw for chatting NPCs.
 
@@ -1919,7 +1920,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   to `AgentEntry` in `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when
   `dt->chatTimer > 0.f`. Makes evening social clusters visible on the map.
 
-- [ ] **Chat log entry** — When a chat pair forms (chatTimer is set > 0 in `AgentDecisionSystem`),
+- [x] **Chat log entry** — When a chat pair forms (chatTimer is set > 0 in `AgentDecisionSystem`),
   log a brief flavour message: `"Aldric and Mira chat near Greenfield."`. After setting both
   `timer.chatTimer` and `oTimer.chatTimer`, push to `EventLog` using names from `registry.try_get<Name>`.
   Only log ~10% of chats (gate with `std::uniform_real_distribution<float>(0,1)(s_chatRng) < 0.1f`)
@@ -3509,3 +3510,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `AgentState::target != entt::null`, get the target entity's Name and set it. In
   `HUD::DrawHoverTooltip`, show "Chatting with [Name]" instead of just "Chatting". Gives
   richer social context to the player.
+
+- [ ] **Chat builds affinity faster with friends** — In `AgentDecisionSystem`'s chat pairing
+  block (where `AFFINITY_GAIN = 0.02f` is applied), check existing `Relations::affinity` before
+  the gain. If affinity is already >= 0.5 (friends), double the gain to 0.04f. This creates
+  a positive feedback loop — friends who chat become closer friends faster. No new components.
+
+- [ ] **Lonely NPC seeks chat** — In `AgentDecisionSystem`'s idle block, when an NPC has
+  `chatTimer == 0` and hasn't chatted for > 60 game-seconds (add `float lastChatAge = 0.f` to
+  `DeprivationTimer`), increase CHAT_RADIUS from 25u to 40u for that NPC. Lonely NPCs actively
+  seek out conversation partners from further away. Reset `lastChatAge` when chatTimer is set.
