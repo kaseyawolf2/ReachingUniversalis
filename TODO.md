@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency.
+
 ## Recently Done
 
 - [x] **Mentor-apprentice relationship** — Once per game-day, children (age 12-14) at a settlement
@@ -1106,8 +1108,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, scan for old friends (affinity ≥ 0.3) already living there. If found, boost both sides' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-3 frequency. Complements the existing friendship decay on distance (already implemented) by rewarding reunions.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
