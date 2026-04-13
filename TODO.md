@@ -9,14 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family size shown in stockpile residents panel** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), after the existing resident name+profession+gold line, append " ×N" in
-  `Fade(GRAY, 0.7f)` when N ≥ 2 members of the same family are resident. Requires adding
-  `familyName` (std::string) to `StockpilePanel::AgentInfo` in `RenderSnapshot.h`; populate
-  it in `SimThread::WriteSnapshot` near the `StockpilePanel` residents block via
-  `registry.try_get<FamilyTag>(npcEntity)->name`.
-
 ## Recently Done
+
+- [x] **Family size shown in stockpile residents panel** — Already implemented: `familyName` on `AgentInfo`, populated in `WriteSnapshot`, " ×N" suffix drawn in `RenderSystem.cpp` lines 294-344 when 2+ family members present.
+
+
 
 - [x] **Family reunion log on founding** — When a new settlement is founded (P key), scan NPCs assigned to the new settlement for shared `FamilyTag` names. If 2+ members share a family name, log "The [name] family helped found [settlement]." Pure flavour log in `SimThread::ProcessInput`.
 
