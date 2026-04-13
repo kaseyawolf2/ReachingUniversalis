@@ -9,9 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **ScheduleSystem early-exit optimisation** — `ScheduleSystem.cpp` takes 4ms (15.1%) which is high for time-of-day checks. Profile whether the cost is in the view iteration or the schedule logic. If most NPCs don't change state each tick, add a `lastScheduleHour` field to skip re-evaluation when `hourOfDay` hasn't changed since last check.
 
 ## Recently Done
+
+- [x] **ScheduleSystem early-exit optimisation** — Added hour-change gating: elder mentor map and
+  facility positions cached per settlement, only rebuilt when game hour changes. Replaced per-NPC
+  facility iteration with cached per-settlement lookup. Rate-limited workplace affinity O(n²) scan
+  to once per game-hour. Benchmark: Schedule 3.7ms → 3.4ms, total step 58.9ms → 56.1ms.
+
+
 
 - [x] **WriteSnapshot selective update** — Instead of dirty-flag tracking (too invasive), built a
   single-pass per-settlement aggregate cache at the top of `WriteSnapshot()`. Pre-computes pop,
@@ -3892,3 +3898,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **WriteSnapshot friendship pairs via pre-computed cache** — The friendship pair counting in `SimThread::WriteSnapshot()` (per-settlement O(n²) mutual affinity scan) was not covered by the `settlAgg` optimisation. Move it into the pre-compute pass: for each NPC with `Relations`, check if any friend at the same settlement has mutual affinity ≥ 0.5. Count pairs per settlement in `settlAgg.friendPairs`. Replaces the nested resident loop in the settlement section.
 
 - [ ] **NPC daily routine variety** — In `ScheduleSystem.cpp`, NPCs currently have fixed work/sleep/idle blocks. Add a `restDay` counter on `Schedule` (increments each game-day, resets at 7). On day 7, the NPC stays in `Idle` state all day instead of working. Log "[Name] takes a rest day at [Settlement]." at 1-in-5 frequency. Creates weekly rhythm variation without new components beyond one int field.
+
+- [ ] **ScheduleSystem child-follow caching** — In `ScheduleSystem.cpp`'s leisure wandering block (line ~514), each child scans all adults at the same settlement to find the nearest to follow. Cache the follow target per child, only re-evaluate when `hourChanged` is true or the target becomes invalid. Eliminates per-tick O(children × adults) scan during leisure hours.
+
+- [ ] **Settlement event memory** — Add `std::vector<std::pair<int, std::string>> eventHistory` to `Settlement` in `Components.h` (max 5 entries, oldest dropped). In `RandomEventSystem.cpp`, push `{day, modifierName}` when a new event starts. Display in the stockpile panel tooltip in `HUD.cpp` as "Recent events: Plague (day 12), Festival (day 15)". Gives settlements visible history.
