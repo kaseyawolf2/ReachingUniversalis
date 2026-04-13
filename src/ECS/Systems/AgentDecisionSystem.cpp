@@ -608,6 +608,51 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                 }
+
+                // Reunion affinity boost: check if any residents at the new
+                // settlement are existing friends (affinity > 0.3).
+                if (auto* myRel = registry.try_get<Relations>(entity)) {
+                    static int s_reunionCounter = 0;
+                    std::string myName;
+                    if (const auto* n = registry.try_get<Name>(entity))
+                        myName = n->value;
+                    std::string settlName;
+                    if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                        settlName = s->name;
+
+                    for (auto& [other, aff] : myRel->affinity) {
+                        if (aff <= 0.3f) continue;
+                        if (!registry.valid(other)) continue;
+                        auto* otherHome = registry.try_get<HomeSettlement>(other);
+                        if (!otherHome || otherHome->settlement != home.settlement) continue;
+
+                        // Boost both parties
+                        aff = std::min(1.0f, aff + 0.1f);
+                        if (auto* otherRel = registry.try_get<Relations>(other)) {
+                            auto it = otherRel->affinity.find(entity);
+                            if (it != otherRel->affinity.end())
+                                it->second = std::min(1.0f, it->second + 0.1f);
+                        }
+
+                        // Log at 1-in-2 frequency
+                        if (++s_reunionCounter % 2 == 1) {
+                            auto lv3 = registry.view<EventLog>();
+                            auto tmv3 = registry.view<TimeManager>();
+                            if (!lv3.empty() && !tmv3.empty()) {
+                                const auto& tm3 = tmv3.get<TimeManager>(*tmv3.begin());
+                                std::string friendName = "a friend";
+                                if (const auto* fn = registry.try_get<Name>(other))
+                                    friendName = fn->value;
+                                char rbuf[180];
+                                std::snprintf(rbuf, sizeof(rbuf),
+                                    "%s reunites with %s at %s.",
+                                    myName.c_str(), friendName.c_str(), settlName.c_str());
+                                lv3.get<EventLog>(*lv3.begin()).Push(
+                                    tm3.day, (int)tm3.hourOfDay, rbuf);
+                            }
+                        }
+                    }
+                }
             } else {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             }
