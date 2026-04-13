@@ -577,6 +577,12 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // Mentor bonus: consume per-trip efficiency boost from veteran mentorship
+                if (earned > 0.f && hauler.mentorBonus > 0.f) {
+                    earned += earned * hauler.mentorBonus;
+                    hauler.mentorBonus = 0.f;
+                }
+
                 // Credit hauler's wallet with net profit
                 if (auto* money = registry.try_get<Money>(entity))
                     if (earned > 0.f) money->balance += earned;
@@ -777,6 +783,52 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                                 "%s sets new personal record: +%.1fg on %s",
                                 haulerName.c_str(), tripProfit, hauler.bestRoute.c_str());
                             logV2.get<EventLog>(*logV2.begin()).Push(tm3.day, (int)tm3.hourOfDay, pbuf);
+                        }
+                    }
+                }
+
+                // ---- Hauler mentorship: veterans teach novices at the same settlement ----
+                if (hauler.lifetimeTrips < 5) {
+                    // Novice just completed a delivery — check for a veteran at home settlement
+                    auto* hs = registry.try_get<HomeSettlement>(entity);
+                    if (hs && hs->settlement != entt::null) {
+                        entt::entity noviceHome = hs->settlement;
+                        bool found = false;
+                        entt::entity mentorEnt = entt::null;
+                        registry.view<Hauler, HomeSettlement>(entt::exclude<PlayerTag>).each(
+                            [&](auto other, const Hauler& otherH, const HomeSettlement& otherHs) {
+                                if (found || other == entity) return;
+                                if (otherHs.settlement == noviceHome && otherH.lifetimeTrips >= 15) {
+                                    found = true;
+                                    mentorEnt = other;
+                                }
+                            });
+                        if (found) {
+                            hauler.mentorBonus = 0.1f;
+                            // Log at 1-in-5 frequency
+                            static std::mt19937 s_mentorRng{std::random_device{}()};
+                            if (s_mentorRng() % 5 == 0) {
+                                auto logVM = registry.view<EventLog>();
+                                auto tmVM  = registry.view<TimeManager>();
+                                if (!logVM.empty() && !tmVM.empty()) {
+                                    const auto& tmM = tmVM.get<TimeManager>(*tmVM.begin());
+                                    std::string vetName = "A veteran";
+                                    if (const auto* nm = registry.try_get<Name>(mentorEnt))
+                                        vetName = nm->value;
+                                    std::string novName = "a novice";
+                                    if (const auto* nm = registry.try_get<Name>(entity))
+                                        novName = nm->value;
+                                    std::string settlName = "settlement";
+                                    if (registry.valid(noviceHome))
+                                        if (const auto* s = registry.try_get<Settlement>(noviceHome))
+                                            settlName = s->name;
+                                    char mbuf[180];
+                                    std::snprintf(mbuf, sizeof(mbuf),
+                                        "%s shows %s the ropes at %s",
+                                        vetName.c_str(), novName.c_str(), settlName.c_str());
+                                    logVM.get<EventLog>(*logVM.begin()).Push(tmM.day, (int)tmM.hourOfDay, mbuf);
+                                }
+                            }
                         }
                     }
                 }

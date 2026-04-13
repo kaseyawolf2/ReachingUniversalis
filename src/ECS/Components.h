@@ -217,6 +217,7 @@ struct Hauler {
     float        worstRouteTimer = 0.f;      // game-hours remaining on worst-route avoidance
     std::string  lastRoute;                  // "A→B" label of the most recent delivery route
     int          consecutiveRouteCount = 0;  // how many consecutive deliveries on the same route
+    float        mentorBonus          = 0.f;  // next-trip efficiency bonus from veteran mentorship
 };
 
 // ---- Economy ----
