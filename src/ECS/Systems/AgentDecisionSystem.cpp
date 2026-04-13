@@ -519,6 +519,28 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 who + " is a dedicated " + profName + " at " + where + ".");
                         }
                     }
+                    // Skill recovery celebration: log when active skill rises back above 0.5
+                    {
+                        float postActiveSkill2 = 0.f;
+                        const char* recSkill = nullptr;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      postActiveSkill2 = sk.farming; recSkill = "farming"; break;
+                            case ProfessionType::WaterCarrier: postActiveSkill2 = sk.water_drawing; recSkill = "water-drawing"; break;
+                            case ProfessionType::Lumberjack:   postActiveSkill2 = sk.woodcutting; recSkill = "woodcutting"; break;
+                            default: break;
+                        }
+                        if (recSkill && preActiveSkill < 0.5f && postActiveSkill2 >= 0.5f
+                            && !logV2.empty() && s_teachRng() % 5 == 0) {
+                            std::string who = "NPC";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            std::string where = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    where = s->name;
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                who + " regains their " + recSkill + " proficiency at " + where + ".");
+                        }
+                    }
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
                         if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
