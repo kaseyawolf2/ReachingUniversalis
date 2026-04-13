@@ -161,6 +161,55 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                             logView3.get<EventLog>(*logView3.begin()).Push(
                                 tm3.day, (int)tm3.hourOfDay, ebuf);
                         }
+
+                        // ---- Friend inheritance: best friend at same settlement ----
+                        float remaining = money->balance - estate;
+                        if (remaining >= 5.f) {
+                            static constexpr float FRIEND_INHERIT_THRESHOLD = 0.6f;
+                            static constexpr float FRIEND_INHERIT_FRACTION = 0.25f;
+                            const auto* deadRel = registry.try_get<Relations>(e);
+                            if (deadRel) {
+                                entt::entity bestFriend = entt::null;
+                                float bestAff = FRIEND_INHERIT_THRESHOLD;
+                                auto sit = entitiesBySettlement.find(hs->settlement);
+                                if (sit != entitiesBySettlement.end()) {
+                                    for (auto other : sit->second) {
+                                        if (other == e || !registry.valid(other)) continue;
+                                        bool isDying = false;
+                                        for (auto dead : toRemove) if (dead == other) { isDying = true; break; }
+                                        if (isDying) continue;
+                                        auto ait = deadRel->affinity.find(other);
+                                        if (ait != deadRel->affinity.end() && ait->second > bestAff) {
+                                            bestAff = ait->second;
+                                            bestFriend = other;
+                                        }
+                                    }
+                                }
+                                if (bestFriend != entt::null) {
+                                    float friendShare = remaining * FRIEND_INHERIT_FRACTION;
+                                    if (auto* friendMoney = registry.try_get<Money>(bestFriend)) {
+                                        friendMoney->balance += friendShare;
+                                        // Log
+                                        auto logView7 = registry.view<EventLog>();
+                                        if (!logView7.empty()) {
+                                            auto& tm7 = timeView.get<TimeManager>(*timeView.begin());
+                                            std::string friendName = "Someone";
+                                            if (const auto* fn = registry.try_get<Name>(bestFriend))
+                                                friendName = fn->value;
+                                            std::string who2 = "Someone";
+                                            if (const auto* nm2 = registry.try_get<Name>(e))
+                                                who2 = nm2->value;
+                                            char fbuf[160];
+                                            std::snprintf(fbuf, sizeof(fbuf),
+                                                "%s inherits %.0fg from %s's estate.",
+                                                friendName.c_str(), friendShare, who2.c_str());
+                                            logView7.get<EventLog>(*logView7.begin()).Push(
+                                                tm7.day, (int)tm7.hourOfDay, fbuf);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
