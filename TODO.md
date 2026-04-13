@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Player reputation affects trade prices** — Rep-based discount/markup on T and Q key purchases in SimThread::ProcessInput.
 
 ## Recently Done
 
