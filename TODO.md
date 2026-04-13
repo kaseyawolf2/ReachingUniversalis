@@ -9,6 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **AgentDecision per-block profiling** — In `AgentDecisionSystem.cpp`, add `#ifdef PROFILE` scoped timers around the major blocks (migration trigger, co-migration, theft, friendship scans, homesickness, gratitude, grief, etc.). Output per-block average microseconds to the benchmark report. AgentDecision is 54.6% of sim time — need to identify which sub-blocks are the worst offenders before optimising blindly.
 
 ## Recently Done
 
@@ -889,8 +890,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **AgentDecision per-block profiling** — In `AgentDecisionSystem.cpp`, add `#ifdef PROFILE` scoped timers around the major blocks (migration trigger, co-migration, theft, friendship scans, homesickness, gratitude, grief, etc.). Output per-block average microseconds to the benchmark report. AgentDecision is 54.6% of sim time — need to identify which sub-blocks are the worst offenders before optimising blindly.
 
 - [ ] **AgentDecision friendship scan spatial cache** — Many blocks in `AgentDecisionSystem.cpp` iterate `Relations::affinity` then check `HomeSettlement::settlement` to filter to same-settlement friends. Build a per-settlement friend list once per tick (at the top of `Update`) in a `static std::unordered_map<entt::entity, std::vector<entt::entity>>` and reuse it in farewell, co-migration, loneliness, begging, and greeting blocks. Eliminates repeated O(n) registry lookups per NPC.
 
