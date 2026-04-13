@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
-
 ## Recently Done
+
+- [x] **WriteSnapshot settlement master count via settlAgg** — Added `int masterCount` to `SettlAgg`
+  struct. Master counting (skills ≥ 0.9, excluding player/bandits/haulers) now happens in the
+  existing single-pass `settlAgg` loop. Per-settlement `registry.view` scan replaced with O(1)
+  aggregate lookup.
 
 - [x] **Benchmark history tracking** — Modified `benchmark.sh` to parse `benchmark_report.txt`
   after each run and append a one-line summary to `benchmark_history.csv` (date, git hash,
@@ -4115,3 +4118,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Benchmark regression detection** — In `benchmark.sh`, after appending to `benchmark_history.csv`, compare the new `avg_steps_s` against the previous row's value (if it exists). If throughput dropped by more than 20%, print a warning: "WARNING: steps/s dropped from X to Y (Z% decrease)". Helps catch performance regressions early. Pure shell — parse last two lines of the CSV.
 
 - [ ] **Benchmark population stability check** — In `benchmark.sh`, after parsing the report, check if `total_deaths` exceeds 50% of `max_pop` and print "WARNING: high death rate — sim may be unhealthy" if true. Also warn if `final_day` is 0 (sim didn't advance). Catches sim health issues during long stability runs without needing manual report inspection.
+
+- [ ] **WriteSnapshot friendship pairs via settlAgg** — The friendship pair counting in `SimThread::WriteSnapshot()` (lines ~1912-1930) does a per-settlement O(n²) mutual affinity scan. Move it into the `settlAgg` pre-compute pass: for each NPC with `Relations`, check mutual affinity ≥ 0.5 pairs at the same settlement. Add `int friendPairs` and a `std::vector<entt::entity> residents` to `SettlAgg`. Replaces nested resident loop.
+
+- [ ] **NPC co-worker recognition** — In `AgentDecisionSystem.cpp`'s social block, when an NPC finishes a work shift (`Schedule::state` transitions from Working to Idle) and another NPC at the same settlement also just finished, boost mutual `Relations::affinity` by +0.005. Log "[Name] and [Name] walk home together from [Facility] at [Settlement]." at 1-in-8 frequency. Gate with `entity % 4 == s_frameCounter % 4`. Uses existing `Schedule`, `AgentState`, `HomeSettlement`, `Relations`.
