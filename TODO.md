@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
+
 ## Recently Done
 
 - [x] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block,
@@ -1131,8 +1133,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
 
 - [ ] **Generalist title in tooltip** — In `SimThread::WriteSnapshot`'s specialisation logic, after master title checks, add a "Generalist" title when all three skills ≥ 0.4 but none ≥ 0.9. Set `ae.specialisation = "Generalist"`. Displayed in HUD tooltip alongside existing master/journeyman titles. Makes the jack-of-all-trades bonus visible to the player.
 
