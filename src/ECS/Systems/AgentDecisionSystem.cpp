@@ -947,6 +947,63 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
+            // ---- Skill training: skilled NPC teaches nearby unskilled NPC ----
+            if (timer.teachCooldown > 0.f)
+                timer.teachCooldown = std::max(0.f, timer.teachCooldown - realDt);
+            if (timer.teachCooldown <= 0.f) {
+                if (auto* mySkills = registry.try_get<Skills>(entity)) {
+                    static constexpr float TEACH_RADIUS = 30.f;
+                    static constexpr float TEACH_MIN = 0.6f;
+                    static constexpr float LEARN_MAX = 0.3f;
+                    static constexpr float SKILL_GAIN = 0.005f; // per game-hour
+                    bool taught = false;
+                    registry.view<AgentState, Position, HomeSettlement, DeprivationTimer, Skills, Name>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>)
+                        .each([&](auto other, const AgentState& oState, const Position& oPos,
+                                  const HomeSettlement& oHome, DeprivationTimer& oTimer,
+                                  Skills& oSkills, const Name& oName) {
+                        if (taught) return;
+                        if (other == entity) return;
+                        if (oState.behavior != AgentBehavior::Idle) return;
+                        if (oTimer.teachCooldown > 0.f) return;
+                        float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
+                        if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
+                        // Find a skill where teacher is ≥0.6 and learner is <0.3
+                        struct { ResourceType rt; float tVal; float lVal; const char* name; } candidates[3] = {
+                            { ResourceType::Food,  mySkills->farming,       oSkills.farming,       "farming" },
+                            { ResourceType::Water, mySkills->water_drawing, oSkills.water_drawing, "water carrying" },
+                            { ResourceType::Wood,  mySkills->woodcutting,   oSkills.woodcutting,   "woodcutting" },
+                        };
+                        for (auto& c : candidates) {
+                            if (c.tVal >= TEACH_MIN && c.lVal < LEARN_MAX) {
+                                float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
+                                oSkills.Advance(c.rt, SKILL_GAIN * ghDt);
+                                // Mutual affinity boost
+                                if (auto* rel = registry.try_get<Relations>(entity))
+                                    rel->affinity[other] = std::min(1.f, rel->affinity[other] + 0.02f);
+                                if (auto* oRel = registry.try_get<Relations>(other))
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.02f);
+                                // Cooldowns
+                                timer.teachCooldown  = 120.f;
+                                oTimer.teachCooldown = 120.f;
+                                // Log
+                                auto lv = registry.view<EventLog>();
+                                if (lv.begin() != lv.end()) {
+                                    const auto* myName = registry.try_get<Name>(entity);
+                                    std::string msg = (myName ? myName->value : "An NPC") +
+                                        std::string(" teaches ") + oName.value +
+                                        " about " + c.name + ".";
+                                    lv.get<EventLog>(*lv.begin()).Push(
+                                        tm.day, (int)tm.hourOfDay, msg);
+                                }
+                                taught = true;
+                                return;
+                            }
+                        }
+                    });
+                }
+            }
+
             // ---- Family visit: idle NPC may visit family at another settlement ----
             if (auto* ft = registry.try_get<FamilyTag>(entity); ft) {
                 static std::mt19937 s_visitRng{ std::random_device{}() };

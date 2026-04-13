@@ -161,6 +161,7 @@ struct DeprivationTimer {
     float                intimidationCooldown = 0.f;    // game-seconds until next bandit intimidation log (0 = ready)
     float                skillCelebrateTimer  = 0.f;    // game-hours remaining for skill milestone celebration
     float                thankCooldown        = 0.f;    // real-seconds until NPC can thank player again (0 = ready)
+    float                teachCooldown        = 0.f;    // real-seconds until NPC can teach/learn again (0 = ready)
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
