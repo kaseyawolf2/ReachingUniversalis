@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Family reunion log on founding** — When a new settlement is founded via the P key in
-  `SimThread::ProcessInput`, scan NPCs with `FamilyTag` at the founding player's nearest settlement.
-  If 2+ share the same family name, log "The [name] family helped found [settlement]."
-
 ## Recently Done
+
+- [x] **Family reunion log on founding** — When a new settlement is founded (P key), scan NPCs assigned to the new settlement for shared `FamilyTag` names. If 2+ members share a family name, log "The [name] family helped found [settlement]." Pure flavour log in `SimThread::ProcessInput`.
+
+
 
 - [x] **Evening gathering density ring** — Faint SKYBLUE ring around settlements during hours 18-21, radius scaled by gathered NPC count vs popCap. Counts NPCs within 40u of centre.
 
@@ -1936,12 +1936,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
 
-- [ ] **Family reunion log on founding** — When a new settlement is founded via the P key in
-  `SimThread::ProcessInput` (SimThread.cpp), scan existing NPCs for any with `FamilyTag` whose
-  `HomeSettlement` is the founding player's nearest settlement. If two or more share the same
-  `FamilyTag::name`, log "The [name] family helped found [settlement name]." immediately after
-  the founding log. Pure flavour; no new components.
-
 - [ ] **Family size shown in stockpile residents panel** — In `RenderSystem::DrawStockpilePanel`
   (RenderSystem.cpp), after the existing resident name+profession+gold line, append " ×N" in
   `Fade(GRAY, 0.7f)` when N ≥ 2 members of the same family are resident. Requires adding
@@ -3535,3 +3529,21 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   brief outward velocity nudge: `vel.vx += (pos.x - homePos.x) * 0.02f` (and vy). This creates
   a visible "dispersal" as NPCs fan out from the overnight cluster. No new components — uses
   existing Position, Velocity, and HomeSettlement.
+
+- [ ] **Founding settlers keep old family ties** — In `SimThread::ProcessInput`'s settlement
+  founding block, the 4 settlers spawned from the nearest settlement currently get no `FamilyTag`.
+  Before spawning, snapshot the families present at the source settlement. Assign each new settler
+  a random existing `FamilyTag::name` from that snapshot (weighted by family size). This makes
+  the family reunion log more meaningful and seeds the new settlement with family diversity.
+
+- [ ] **NPC nostalgia log for birthplace** — In `AgentDecisionSystem`, when an NPC with
+  `MigrationMemory` has been away from their original `HomeSettlement` (the one assigned at spawn)
+  for more than 60 game-days, 5% chance per day to log "[Name] reminisces about life in
+  [birthplace]." Requires adding `birthSettlement` (entt::entity) to a suitable component — either
+  extend `HomeSettlement` or add a new lightweight `Birthplace` struct. Pure flavour, no behaviour
+  change.
+
+- [ ] **Settler morale boost on founding** — In `SimThread::ProcessInput`'s founding block, after
+  spawning settlers and the hauler, give the new settlement an initial morale boost of +0.15
+  (capped at 1.0). Also push an EventLog entry: "[Settlement] settlers are optimistic about their
+  new home." This makes founding feel impactful beyond the mechanical log.
