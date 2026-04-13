@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
-
 ## Recently Done
+
+- [x] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, captures
+  pre-rust skill values, then after decay logs "[Name]'s [skill] is getting rusty at [Settlement]."
+  at 1-in-5 frequency when a skill crosses below 0.5. Fires only on the crossing tick.
+
+
 
 - [x] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when
   an NPC changes profession for the second time (`prevType != Idle` and `prevType != type`), logs
@@ -1047,6 +1051,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
 - [ ] **Career history count on AgentEntry** — In `Components.h`, add `int careerChanges = 0` to `Profession` struct. Increment in `ScheduleSystem.cpp`'s profession change block (line where `prof->prevType = prof->type`). In `SimThread::WriteSnapshot`, write `careerChanges` to a new `int careerChanges` field on `AgentEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s NPC tooltip as "Career changes: N" after the profession line. Makes career mobility visible.
+
+- [ ] **Skill recovery celebration** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill rises back above 0.5 after having been below (track via a `bool skillRecovered` flag or compare pre-growth to post-growth crossing 0.5 upward), log "[Name] regains their [skill] proficiency at [Settlement]." at 1-in-5 frequency. Mirrors the rust notification — shows NPCs bouncing back after career changes.
+
+- [ ] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`'s per-settlement production loop, count distinct `ProfessionType` values among workers (Farmer/WaterCarrier/Lumberjack). If all 3 are present, apply +3% production bonus to every worker at that settlement (`workerContrib *= 1.03f`). Log "[Settlement] benefits from a diverse workforce." once per game-day at 1-in-10 frequency via a `static std::set<entt::entity> s_diverseLogged`. Rewards balanced economies.
 
 - [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
 
