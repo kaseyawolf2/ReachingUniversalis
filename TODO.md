@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill degradation with age** — In `ScheduleSystem.cpp`'s skill decay block (the adult
+  `!Working` decay path, lines ~310–318), add an additional age-based multiplier: when
+  `age.days > 65`, multiply the decay rate by 2 so elders lose skills twice as fast.
+  This creates a visible lifecycle — peak working years mid-life, gradual decline as elders.
+  No new components; uses the existing `SKILL_DECAY_PER_HOUR` constant and `age2->days` check.
+
 ## Recently Done
 
 - [x] **Family wealth total in stockpile panel** — After " ×N" suffix, shows " (Xg)" in `Fade(GOLD, 0.6f)` with combined balance of all family members in visible residents. Uses `familyWealth` map built alongside `familyCount`.
@@ -1951,12 +1957,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Skill degradation with age** — In `ScheduleSystem.cpp`'s skill decay block (the adult
-  `!Working` decay path, lines ~310–318), add an additional age-based multiplier: when
-  `age.days > 65`, multiply the decay rate by 2 so elders lose skills twice as fast.
-  This creates a visible lifecycle — peak working years mid-life, gradual decline as elders.
-  No new components; uses the existing `SKILL_DECAY_PER_HOUR` constant and `age2->days` check.
 
 - [ ] **Elder mentor bonus** — In `ScheduleSystem.cpp`'s skill-at-worksite block (where
   `SKILL_GAIN_PER_GAME_HOUR` is applied), if there is an elder NPC (age > 60) currently `Working`
