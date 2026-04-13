@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include "ECS/Components.h"
 
 // Radius within which an NPC can interact with a production facility.
@@ -2500,7 +2501,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             static constexpr float RESETTLE_COST = 30.f;
             if (!isBanditNow && money.balance >= RESETTLE_COST) {
                 entt::entity bestSettl = entt::null;
-                float bestD2 = std::numeric_limits<float>::max();
+                float bestScore = -std::numeric_limits<float>::max();
+                // Check if wanderer has friends for settlement preference
+                const auto* wandRel = registry.try_get<Relations>(e);
+                // Build set of settlements where this NPC has a friend (affinity >= 0.3)
+                std::unordered_set<entt::entity> friendSettlements;
+                if (wandRel) {
+                    for (const auto& [other, aff] : wandRel->affinity) {
+                        if (aff < 0.3f) continue;
+                        auto sit = s_entitySettlement.find(other);
+                        if (sit != s_entitySettlement.end())
+                            friendSettlements.insert(sit->second);
+                    }
+                }
                 registry.view<Position, Settlement>().each(
                     [&](auto se, const Position& sp, const Settlement& ss) {
                     if (ss.ruinTimer > 0.f) return;
@@ -2511,7 +2524,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     if (sPop >= ss.popCap - 2) return;
                     float dx = sp.x - pos.x, dy = sp.y - pos.y;
                     float d2 = dx*dx + dy*dy;
-                    if (d2 < bestD2) { bestD2 = d2; bestSettl = se; }
+                    // Score: closer = better (invert distance), friend bonus +20%
+                    float score = -d2;
+                    if (friendSettlements.count(se))
+                        score *= 0.8f;  // reduce penalty (= +20% effective preference)
+                    if (score > bestScore) { bestScore = score; bestSettl = se; }
                 });
                 if (bestSettl != entt::null) {
                     home.settlement = bestSettl;
