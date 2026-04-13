@@ -131,6 +131,13 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         }
     }
 
+    // Morale push: low morale drives NPCs away, high morale keeps them
+    float moralePush = 0.f;
+    if (const auto* homeSett = registry.try_get<Settlement>(homeSettlement)) {
+        if (homeSett->morale < 0.25f)      moralePush = 0.3f;
+        else if (homeSett->morale > 0.7f)  moralePush = -0.2f;
+    }
+
     entt::entity best      = entt::null;
     float        bestScore = -1.f;
 
@@ -242,6 +249,9 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
         // Scarcity at home makes all destinations more attractive
         total += scarcityNudge;
+
+        // Morale push: low morale pushes NPCs out, high morale anchors them
+        total += moralePush;
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
