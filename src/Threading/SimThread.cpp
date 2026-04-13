@@ -56,6 +56,10 @@ void SimThread::Run() {
     auto  prevTime    = clock::now();
     float accumulator = 0.f;
 
+    // Separate wall-clock tracker for stats — not clamped like realDt
+    auto  wallEpoch = clock::now();
+    float wallLast  = 0.f;
+
     while (m_running) {
         auto  now    = clock::now();
         float realDt = duration(now - prevTime).count();
@@ -117,9 +121,14 @@ void SimThread::Run() {
             if (pv.empty()) RespawnPlayer();
         }
 
-        // Track steps per second and flush profiler using wall clock
-        m_statAccum    += realDt;
-        m_profileAccum += realDt;
+        // Track steps per second and flush profiler using wall clock.
+        // Use unclamped wall time so stats update even when a large
+        // batch (e.g. 512 steps at 128×) takes many real seconds.
+        float wallNow = duration(clock::now() - wallEpoch).count();
+        float wallDt  = wallNow - wallLast;
+        wallLast      = wallNow;
+        m_statAccum    += wallDt;
+        m_profileAccum += wallDt;
         if (m_statAccum >= 1.f) {
             m_stepsLastSec = m_stepCounter;
             m_stepCounter  = 0;
