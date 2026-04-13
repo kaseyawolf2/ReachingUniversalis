@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Witness count shown in confrontation log** — In `SimThread::ProcessInput`'s confrontation block, after the witness loop, append the count to the main confrontation log: "Player confronted [bandit] (N witnesses)." Replace the existing log call or add a follow-up entry.
 
 ## Recently Done
 
