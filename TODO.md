@@ -11,6 +11,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an
+  NPC decides to migrate, finds their best friend (highest `Relations::affinity ≥ 0.5`, same
+  settlement) and checks if that friend also has a valid migration target via `FindMigrationTarget`.
+  If so, both migrate to the same destination. Logged at 1-in-2 frequency: "[Name] and [Friend]
+  migrate together to [Dest]." Replaces previous random 30% follow chance.
+
+
+
 - [x] **Wealthy NPC celebration log** — One-time event: when `Money::balance >= 500g` and
   `wealthCelebrated` is false, logs "[Name] has become wealthy at [Settlement]!" Bool
   `wealthCelebrated` added to `DeprivationTimer`. In `AgentDecisionSystem.cpp`.
@@ -810,7 +818,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### NPC Social Behaviour
 
-- [ ] **Friend co-migration** — In `AgentDecisionSystem.cpp`'s migration trigger block, when an NPC decides to migrate, check if their best friend (highest `Relations::affinity ≥ 0.5`, same settlement) also has migration score > 0. If so, set the friend's `HomeSettlement` to the same target and log "[Name] and [Friend] migrate together to [Dest]." at 1-in-2 frequency.
 
 - [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
 
@@ -829,6 +836,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Settlement food crisis warning** — In `ConsumptionSystem.cpp`, track a static `std::map<entt::entity, int>` counting starving NPCs per settlement each frame. When ≥ 3 NPCs are starving at one settlement (hunger < 0.15), log "[Settlement] faces a food crisis — N residents starving." once per game-day via static day tracker. Aggregates individual desperation into a settlement-level narrative.
 
 - [ ] **Satisfaction shown in NPC tooltip** — Add `float satisfaction = 0.5f` to `AgentEntry` in `RenderSnapshot.h`. Set from `DeprivationTimer::lastSatisfaction` in `WriteSnapshot`. In `HUD.cpp` tooltip, display "Satisfaction: X%" with color gradient (RED < 0.3, YELLOW 0.3-0.6, GREEN > 0.6) after the reputation line.
+
+- [ ] **Co-migration group size** — In `AgentDecisionSystem.cpp`'s co-migration block, after the best friend follows, scan the best friend's friends (affinity ≥ 0.5, same settlement, not already migrating) and let up to 1 additional NPC join the group if they also have a valid migration target. Log "[Name], [Friend], and [Third] leave together for [Dest]." Creates small migration caravans of 2-3 NPCs.
+
+- [ ] **Migration homesickness** — Add `float homesickTimer = 0.f` to `DeprivationTimer`. After migration arrival, tick up by `dt` each step. If homesickTimer > 72 game-hours and satisfaction < 0.4, NPC considers returning to their previous settlement (store `entt::entity prevSettlement` on `HomeSettlement`). Log "[Name] feels homesick and returns to [OldHome]." at 1-in-3. Resets on successful return.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
