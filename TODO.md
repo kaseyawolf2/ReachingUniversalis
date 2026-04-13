@@ -9,15 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Road safety indicator in road tooltip** — Add `int banditCount = 0` to
-  `RenderSnapshot::RoadEntry`. In `WriteSnapshot`, count `BanditTag` entities whose nearest road
-  is this road (use a simple proximity check: within 80 units of the midpoint). In
-  `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
-  meaningful route-safety information.
-
 
 
 ## Recently Done
+
+- [x] **Road safety indicator in road tooltip** — `banditCount` piped through `RoadEntry` in `WriteSnapshot` by counting `BanditTag` entities per nearest road midpoint. Displayed as "Bandits: N" in RED in `DrawRoadTooltip`.
 
 - [x] **Idle NPCs discuss hauler routes** — 20% chance flavour greeting "discuss trade routes" when both NPCs share a settlement with haulers. No gameplay effect.
 
@@ -1830,7 +1826,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   counting how many bandits target each Road entity. If the count for the nearest road is ≥ 3,
   pick the second-nearest road instead. Stops visual clumping of bandits on a single road.
 
-- [ ] **Road safety indicator in road tooltip** — Add `int banditCount = 0` to
+- [x] **Road safety indicator in road tooltip** — Add `int banditCount = 0` to
   `RenderSnapshot::RoadEntry`. In `WriteSnapshot`, count `BanditTag` entities whose nearest road
   is this road (use a simple proximity check: within 80 units of the midpoint). In
   `HUD::DrawRoadTooltip`, append "⚠ Bandits: N" in RED when `banditCount > 0`. Gives the player
@@ -3360,3 +3356,22 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   normal greeting case, when both NPCs have `needs.list[0].value < 0.5` (hunger below 50%), 25%
   chance to replace greeting with "[Name] and [Other] grumble about food prices." No gameplay
   effect — flavour text that creates ambient narrative about economic conditions.
+
+- [ ] **Bandit surrender on low health** — In `AgentDecisionSystem`'s bandit behaviour block, when
+  a bandit's `needs.list[0].value < 0.15` (starving) AND `money.balance < 1g`, instead of lurking,
+  the bandit walks toward the nearest settlement at normal speed. On arrival (within 20u of
+  settlement position), remove `BanditTag`, set `HomeSettlement` to that settlement, log
+  "[Name] surrenders and begs for shelter at [Settlement]." Gold flow: no gold changes. Adds
+  redemption arc for desperate bandits.
+
+- [ ] **NPC shares food with starving neighbour** — In `AgentDecisionSystem`, after the comfort
+  block but before thank-player, idle NPCs with `needs.list[0].value > 0.7` and `money.balance > 5`
+  scan for NPCs within 25u with `needs.list[0].value < 0.2`. Helper pays 1g to home settlement
+  treasury (food purchase), receiver gets `needs.list[0].value += 0.3`. Helper's `charityTimer = 300`
+  (5 min cooldown). Log "[Name] shares food with [Other]." Follows Gold Flow Rule: 1g from helper
+  balance to settlement treasury.
+
+- [ ] **Bandit warning in NPC greeting** — In `AgentDecisionSystem`'s greeting block, normal
+  greeting case, if either NPC has `lastHelper != entt::null` and the registry has any `BanditTag`
+  entities, 15% chance to replace greeting with "[Name] warns [Other] about bandits on the roads."
+  Pure flavour — NPCs reference the danger that bandits pose. No gameplay effect.
