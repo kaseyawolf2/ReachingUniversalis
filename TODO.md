@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Afterglow tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool afterglow = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::afterglowHours > 0`. In `HUD.cpp`'s settlement tooltip, display "[Afterglow]" in warm yellow after the name badges (alongside "[Diverse]", "[Trade Hub]"). Makes the lingering festival effect visible.
+
+## Backlog
 
 - [ ] **Drought solidarity** — In `RandomEventSystem.cpp`'s drought trigger (case 0), after applying drought, scan all NPCs at the settlement via `Relations`. For each pair with affinity ≥ 0.3, boost mutual affinity by +0.03 (cap 1.0). Log "[Settlement] residents pull together during the drought" once per drought. Shared hardship strengthens community bonds.
 
