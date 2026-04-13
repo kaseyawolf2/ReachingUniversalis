@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bankruptcy survivor determination** — In `EconomicMobilitySystem.cpp`, after a hauler goes bankrupt and returns to labor, add a `bool bankruptSurvivor = false` flag to `DeprivationTimer` in `Components.h`. Set it true. In `AgentDecisionSystem.cpp`'s skill growth block, if `bankruptSurvivor == true`, grant `growth += 0.0002f` extra daily skill growth. Log "[Name] works with renewed determination at [Settlement]" at 1-in-8 frequency on first day. Rewards resilience.
-
 ## Backlog
 
 - [ ] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block (just added), after donating, boost the donor's affinity from other NPCs at the settlement by +0.01 (via `Relations`). Iterate all NPCs at the home settlement and bump their affinity toward the donor. Log "[Donor] earns respect for helping [Bankrupt]" at 1-in-5 frequency. Creates a reputation payoff for generosity.
@@ -57,7 +55,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
 
+- [ ] **Bankruptcy survivor inspiration** — In `AgentDecisionSystem.cpp`'s idle chat block, when a bankruptcy survivor (`DeprivationTimer::bankruptSurvivor == true`) chats with a non-survivor NPC at the same settlement, 1-in-10 chance to boost the non-survivor's `Relations::affinity` toward the survivor by +0.02 and log "[Survivor] inspires [Other] with their comeback story at [Settlement]." Uses existing idle chat stagger and proximity check.
+
+- [ ] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
+
 ## Recently Done
+
+- [x] **Bankruptcy survivor determination** — Added `bool bankruptSurvivor` to `DeprivationTimer` in
+  `Components.h`. Set in `EconomicMobilitySystem.cpp` on hauler bankruptcy. In `AgentDecisionSystem.cpp`'s
+  skill growth block, survivors get `growth += 0.0002f`. Logs at 1-in-8 frequency.
 
 - [x] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection,
   haulers with `Relations::affinity >= 0.5` toward a partner use 90-unit range instead of 60.
