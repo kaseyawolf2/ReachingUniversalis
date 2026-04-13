@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler retirement event** — In `TransportSystem.cpp` or `EconomicMobilitySystem.cpp`, when a hauler completes `lifetimeTrips >= 20` and `Money::balance >= 200g`, 1-in-50 chance per delivery to retire: remove `Hauler` component, log "[Name] retires from hauling after N trips with Xg saved." Gold stays on the NPC who becomes a regular worker. Creates hauler lifecycle narrative.
-
 ## Recently Done
+
+- [x] **Hauler retirement event** — In `TransportSystem.cpp`, veteran haulers (lifetimeTrips >= 20,
+  balance >= 200g) have 1-in-50 chance per delivery to retire. Hauler component removed via
+  deferred list, NPC becomes idle worker. Gold stays. Logged at full frequency.
 
 - [x] **Master loss morale penalty** — In `AgentDecisionSystem.cpp`'s migration departure block,
   applies -0.03 morale to home `Settlement` when `masterSettled` NPC departs. Logged at 1-in-2
@@ -1223,6 +1225,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Exile farewell to settlement** — In `AgentDecisionSystem.cpp`, when an NPC loses their home settlement (becomes exile), if they had any friend (affinity ≥ 0.4) at the old settlement, log "[Name] was forced to leave [Friend] behind at [Settlement]." at 1-in-3 frequency. Uses the NPC's `Relations::affinity` map. Makes exile a social event, not just an economic one.
 
 - [ ] **Resettlement welcome from old friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block, after a wanderer successfully resettles at a settlement with friends, boost affinity by +0.05 between the wanderer and each friend at the new settlement. Log "[Friend] welcomes [Wanderer] back." for the top friend at 1-in-3 frequency. Closes the loop on friend-preference resettlement.
+
+- [ ] **Retired hauler wealth investment** — In `AgentDecisionSystem.cpp`'s idle NPC block, when an NPC has no `Hauler` component but `lifetimeTrips` tracking would require a new field: add `bool retiredHauler = false` to `DeprivationTimer` in `Components.h`, set true in `TransportSystem.cpp`'s retirement block. When `retiredHauler && balance > 300g`, 1-in-100 chance per hour to donate 50g to home `Settlement::treasury`. Log "[Name] invests in [Settlement] from hauling savings." Gold flows `Money::balance` → `Settlement::treasury`.
+
+- [ ] **Retirement celebration log** — In `TransportSystem.cpp`'s retirement block, after the retirement log, scan NPCs at the same settlement via `HomeSettlement` match (max 5 checked). If any have `Relations::affinity >= 0.4` toward the retiree, log "[Friend] celebrates [Retiree]'s retirement at [Settlement]." at 1-in-3 frequency. Uses existing `Relations`, `Name`, `HomeSettlement`.
 
 - [ ] **Workplace friendship milestone log** — In `ScheduleSystem.cpp`'s workplace affinity block, when cumulative workplace gain for a pair crosses 0.3 (first meaningful friendship threshold), log "[Name] and [Coworker] have become friends through working together at [Settlement]." once per pair via static set. Makes organic friendships visible.
 
