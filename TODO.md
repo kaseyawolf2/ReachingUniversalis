@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Hauler avoids recently unprofitable routes** — worstRoute/worstLoss/worstRouteTimer on Hauler. -20% score in FindBestRoute for 24 game-hours.
 
 ## Recently Done
 
