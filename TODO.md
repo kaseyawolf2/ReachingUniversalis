@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, if the recipient's `Relations::affinity` toward the giver is already ≥ 0.8 (very close friends), increase `GIFT_AMOUNT` to 8g instead of 5g. Close friends are more generous. No new fields needed — just a conditional in the existing block.
-
 ## Recently Done
+
+- [x] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, when
+  recipient's affinity toward giver ≥ 0.8, gift amount increases from 5g to 8g. No new fields.
 
 - [x] **Hauler retirement event** — In `TransportSystem.cpp`, veteran haulers (lifetimeTrips >= 20,
   balance >= 200g) have 1-in-50 chance per delivery to retire. Hauler component removed via
@@ -1235,6 +1236,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Leisure socialising affinity** — In `ScheduleSystem.cpp`'s leisure wandering block (hour 18–22 evening cluster), scan for other Idle NPCs within 40u at the same settlement. Tick `Relations::affinity` by +0.001 per game-hour, capped at 0.3 from leisure alone (separate static tracker). Evening socialising builds weaker but broader social bonds than workplace proximity.
 
 - [ ] **Cohesion bonus shown in settlement tooltip** — Add `int cohesionPairs = 0` and `float cohesionBonus = 0.f` to `SettlementEntry` in `RenderSnapshot.h`. Set in `WriteSnapshot` by counting mutual friendship pairs (same logic as `ProductionSystem`). Display "Social cohesion: N pairs (+X%)" in `RenderSystem.cpp`'s settlement panel after morale bar, in Fade(LIME, 0.6f).
+
+- [ ] **Gift thank-you affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the escalated gift (8g), boost giver's affinity toward recipient by +0.03 (on top of existing +0.05 reciprocity for recipient). Mutual generosity strengthens both sides of the relationship. Only triggers on escalated gifts (giftAmt > GIFT_AMOUNT). No new fields needed.
+
+- [ ] **Best friend gift log variation** — In `AgentDecisionSystem.cpp`'s trade gift block log, when `giftAmt > GIFT_AMOUNT` (escalated gift), change the log message to "[Giver] gives a generous gift of 8g to [Recipient] at [Settlement]." instead of the standard gift log. Makes escalated gifts visually distinct in the event log.
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
