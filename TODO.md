@@ -9,7 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Family grief on death** — In `DeathSystem`, when an NPC dies, scan for other NPCs with matching `FamilyTag::name`. Set a `float griefTimer = 4.f` (game-hours) on their `DeprivationTimer` (add the field). During grief, `AgentDecisionSystem` skips idle social actions (greeting, visiting) and drains morale by -0.05/game-hour on home settlement. Log "[Name] mourns the loss of [Dead]."
 
 ## Recently Done
 
