@@ -9,6 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **AgentDecision friendship scan spatial cache** — Many blocks in `AgentDecisionSystem.cpp` iterate `Relations::affinity` then check `HomeSettlement::settlement` to filter to same-settlement friends. Build a per-settlement friend list once per tick (at the top of `Update`) in a `static std::unordered_map<entt::entity, std::vector<entt::entity>>` and reuse it in farewell, co-migration, loneliness, begging, and greeting blocks. Eliminates repeated O(n) registry lookups per NPC.
 
 ## Recently Done
 
@@ -896,8 +897,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **AgentDecision friendship scan spatial cache** — Many blocks in `AgentDecisionSystem.cpp` iterate `Relations::affinity` then check `HomeSettlement::settlement` to filter to same-settlement friends. Build a per-settlement friend list once per tick (at the top of `Update`) in a `static std::unordered_map<entt::entity, std::vector<entt::entity>>` and reuse it in farewell, co-migration, loneliness, begging, and greeting blocks. Eliminates repeated O(n) registry lookups per NPC.
 
 - [ ] **WriteSnapshot selective update** — In `SimThread::WriteSnapshot()`, instead of copying every field of every entity every tick, track a `dirty` bitset per entity (set by systems that modify drawable state). Only copy dirty entities under the mutex lock. Reset dirty flags after write. Reduces the 5.5ms (21.2%) WriteSnapshot cost proportional to how many entities actually changed.
 
