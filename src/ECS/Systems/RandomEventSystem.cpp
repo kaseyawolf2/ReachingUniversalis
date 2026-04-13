@@ -471,6 +471,67 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         });
     }
 
+    // ---- Diversity festival: once per game-day, diverse settlements may celebrate ----
+    {
+        static int s_lastFestivalDay = -1;
+        if (tm.day != s_lastFestivalDay) {
+            s_lastFestivalDay = tm.day;
+            static constexpr float HARVEST_FEST_MORALE   = 0.05f;
+            static constexpr float HARVEST_FEST_AFFINITY = 0.02f;
+            static constexpr float HARVEST_FEST_DURATION = 4.f;  // game-hours
+
+            registry.view<Settlement>().each([&](auto e, Settlement& s) {
+                if (s.modifierDuration > 0.f) return;  // already has an event
+
+                // Compute profession diversity bitmask for this settlement
+                int profMask = 0;
+                registry.view<Profession, HomeSettlement>(
+                    entt::exclude<Hauler, PlayerTag, BanditTag, ChildTag>).each(
+                    [&](const Profession& prof, const HomeSettlement& hs) {
+                        if (hs.settlement != e) return;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      profMask |= 1; break;
+                            case ProfessionType::WaterCarrier: profMask |= 2; break;
+                            case ProfessionType::Lumberjack:   profMask |= 4; break;
+                            default: break;
+                        }
+                    });
+                if ((profMask & 7) != 7) return;  // not all 3 professions present
+
+                // 1-in-200 chance per game-day
+                if (m_rng() % 200 != 0) return;
+
+                // Trigger Harvest Festival
+                s.modifierName     = "Harvest Festival";
+                s.modifierDuration = HARVEST_FEST_DURATION;
+                s.productionModifier = 1.f;  // no production change
+                s.morale = std::min(1.f, s.morale + HARVEST_FEST_MORALE);
+
+                // Boost affinity between all resident pairs
+                std::vector<entt::entity> residents;
+                registry.view<Relations, HomeSettlement>(
+                    entt::exclude<PlayerTag, BanditTag>).each(
+                    [&](auto re, Relations&, const HomeSettlement& hs) {
+                        if (hs.settlement == e) residents.push_back(re);
+                    });
+                for (size_t i = 0; i < residents.size(); ++i) {
+                    auto& relA = registry.get<Relations>(residents[i]);
+                    for (size_t j = i + 1; j < residents.size(); ++j) {
+                        relA.affinity[residents[j]] =
+                            std::min(1.f, relA.affinity[residents[j]] + HARVEST_FEST_AFFINITY);
+                        auto& relB = registry.get<Relations>(residents[j]);
+                        relB.affinity[residents[i]] =
+                            std::min(1.f, relB.affinity[residents[i]] + HARVEST_FEST_AFFINITY);
+                    }
+                }
+
+                if (log)
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        s.name + " celebrates its diverse workforce!");
+            });
+        }
+    }
+
     // Count down to next event
     m_nextEvent -= gameHoursDt;
     if (m_nextEvent <= 0.f) {
