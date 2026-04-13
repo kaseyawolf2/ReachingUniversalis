@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Overworked penalty** — In `ProductionSystem.cpp`'s worker contribution block, add `workerContrib *= 0.85f` when `Schedule::consecutiveWorkHours >= 10` (add `int consecutiveWorkHours = 0` to `Schedule` in `Components.h`, increment in `ScheduleSystem.cpp` during work hours, reset on sleep/idle). NPCs who work too long without rest become less productive. Feeds into need satisfaction as a soft pressure to maintain balanced schedules.
-
 ## Recently Done
+
+- [x] **Overworked penalty** — Added `int consecutiveWorkHours` to `Schedule` in `Components.h`.
+  Incremented per hour in `ScheduleSystem.cpp` while Working, reset on sleep/idle. In
+  `ProductionSystem.cpp`, `workerContrib *= 0.85f` when ≥ 10 hours. Stacks with fatigue.
 
 - [x] **Generalist title in tooltip** — Added "Generalist" specialisation in `SimThread::WriteSnapshot`
   when all three skills ≥ 0.4 but none ≥ 0.9. Placed after master title checks. Makes the
@@ -1189,6 +1191,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Shared hardship friendship boost** — In `AgentDecisionSystem.cpp`'s need satisfaction block, when two NPCs at the same settlement both have any need < 0.3 (both struggling), boost `Relations::affinity` between them by +0.02 per game-day (capped at 1.0). Log "[Name] and [Name] bond through hardship at [Settlement]." at 1-in-10 frequency. Adversity creates friendships. Gate with `entity % 4 == s_frameCounter % 4` stagger.
 
 - [ ] **Wealthy NPC philanthropy** — In `AgentDecisionSystem.cpp`, NPCs with `wealthCelebrated == true` and `balance > 600g` contribute 10g to their settlement's `treasury` once per 72 game-hours (reuse `charityTimer`). Log "[Name] donates to [Settlement]'s treasury." Gold flows `Money::balance` → `Settlement::treasury`. Follows Gold Flow Rule.
+
+- [ ] **Overwork warning log** — In `ScheduleSystem.cpp`, when `consecutiveWorkHours` first reaches 10 for an NPC, log "[Name] is overworked at [Settlement]." at 1-in-3 frequency. Use a `bool overworkWarned` flag on `Schedule` (add to `Components.h`, reset alongside `consecutiveWorkHours`). Notifies the player that an NPC is hitting the penalty threshold.
+
+- [ ] **Overwork-driven need drain** — In `NeedDrainSystem.cpp`'s energy drain block, when `Schedule::consecutiveWorkHours >= 10`, increase energy drain by 50% (`energyDrain *= 1.5f`). Overworked NPCs burn through energy faster, creating a natural pressure to stop working. Uses existing `Schedule` component via `registry.try_get<Schedule>`.
 
 - [ ] **Master count change event log** — In `SimThread::WriteSnapshot` or a new lightweight system, track previous master count per settlement in a `static std::unordered_map<entt::entity, int>`. When master count increases, log "[Settlement] now has N masters." When it decreases, log "[Settlement] lost a master (N remain)." Fires once per change. Makes the teaching ecosystem dynamics visible without hovering.
 
