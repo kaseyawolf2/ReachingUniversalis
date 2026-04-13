@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder wisdom event** — In `RandomEventSystem`'s per-NPC event tier (personal event
+  system), add a new case: when a NPC's age > 70 and has a skill ≥ 0.6, fire a rare one-time
+  "wisdom transfer" event — boost one random co-settled younger NPC's skill by 0.1, capped at
+  0.8. Log `"Elder [Name] passed their knowledge to [Name2] at [settlement]."` Guard with a
+  `wisdomFired` bool on `DeprivationTimer` to prevent repeated firings.
+
 ## Recently Done
 
 - [x] **Peak-age production bonus** — Workers aged 25-55 get `workerContrib *= 1.1f` in `ProductionSystem.cpp`. Completes lifecycle arc with existing `Age` component.
@@ -1963,13 +1969,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Elder wisdom event** — In `RandomEventSystem`'s per-NPC event tier (personal event
-  system), add a new case: when a NPC's age > 70 and has a skill ≥ 0.6, fire a rare one-time
-  "wisdom transfer" event — boost one random co-settled younger NPC's skill by 0.1, capped at
-  0.8. Log `"Elder [Name] passed their knowledge to [Name2] at [settlement]."` Guard with a
-  `wisdomFired` bool on `DeprivationTimer` (reuse `illnessNeedIdx` as a flag or add a dedicated
-  bool) to prevent repeated firings.
 
 - [ ] **Friendship shown in NPC tooltip** — Surface the strongest friendship in the hover tooltip.
   Add `std::string bestFriendName` and `float bestFriendAffinity` to `AgentEntry` in
