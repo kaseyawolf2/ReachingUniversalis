@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
+
 ## Recently Done
 
 - [x] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`, tracked profession
@@ -1127,8 +1129,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Social Behaviour
 
 
-
-- [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
 
 - [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
 
