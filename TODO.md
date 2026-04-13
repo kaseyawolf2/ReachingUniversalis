@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
+
 ## Recently Done
 
 - [x] **Career changer skill transfer** — In `ScheduleSystem.cpp`'s profession change block,
@@ -1093,8 +1095,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
 ### NPC Social Behaviour
 
