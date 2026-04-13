@@ -381,6 +381,33 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // ---- Age-based skill growth: once per game-day ----
+    // Adult working NPCs gain +0.001 per day in their profession's matching skill.
+    {
+        static int s_lastSkillGrowthDay = -1;
+        if (tm.day != s_lastSkillGrowthDay) {
+            s_lastSkillGrowthDay = tm.day;
+            static constexpr float SKILL_GROWTH = 0.001f;
+            registry.view<Skills, Profession, Age>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](Skills& sk, const Profession& prof, const Age& age) {
+                    if (age.days > 60.f) return;  // elders don't grow skills
+                    switch (prof.type) {
+                        case ProfessionType::Farmer:
+                            sk.farming = std::min(1.f, sk.farming + SKILL_GROWTH);
+                            break;
+                        case ProfessionType::WaterCarrier:
+                            sk.water_drawing = std::min(1.f, sk.water_drawing + SKILL_GROWTH);
+                            break;
+                        case ProfessionType::Lumberjack:
+                            sk.woodcutting = std::min(1.f, sk.woodcutting + SKILL_GROWTH);
+                            break;
+                        default: break;
+                    }
+                });
+        }
+    }
+
     // ---- Wealthy NPC celebration: one-time log when balance crosses 500g ----
     {
         auto logV = registry.view<EventLog>();
