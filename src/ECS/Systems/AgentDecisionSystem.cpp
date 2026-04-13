@@ -273,6 +273,17 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
         });
     }
 
+    // Cache player position for NPC-to-player proximity checks
+    entt::entity playerEntity = entt::null;
+    Position playerPos{};
+    {
+        auto pv = registry.view<PlayerTag, Position>();
+        if (pv.begin() != pv.end()) {
+            playerEntity = *pv.begin();
+            playerPos = pv.get<Position>(playerEntity);
+        }
+    }
+
     // Exclude Haulers (TransportSystem handles them), Player (PlayerInputSystem),
     // and Bandits (handled in the bandit section at the end of Update).
     auto view = registry.view<Needs, AgentState, Position, Velocity,
@@ -911,6 +922,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
                     greeted = true;
                 });
+            }
+
+            // ---- Thank player: NPCs with good rep nod respectfully near the player ----
+            if (timer.thankCooldown > 0.f)
+                timer.thankCooldown = std::max(0.f, timer.thankCooldown - realDt);
+            if (playerEntity != entt::null && timer.thankCooldown <= 0.f) {
+                static constexpr float THANK_RADIUS = 40.f;
+                if (const auto* rep = registry.try_get<Reputation>(entity)) {
+                    if (rep->score > 0.3f) {
+                        float tdx = playerPos.x - pos.x, tdy = playerPos.y - pos.y;
+                        if (tdx*tdx + tdy*tdy <= THANK_RADIUS * THANK_RADIUS) {
+                            timer.thankCooldown = 60.f;  // 60 real-seconds cooldown
+                            auto lv = registry.view<EventLog>();
+                            if (!lv.empty()) {
+                                const auto* myName = registry.try_get<Name>(entity);
+                                std::string msg = (myName ? myName->value : "An NPC") +
+                                    std::string(" nods respectfully at you.");
+                                lv.get<EventLog>(*lv.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay, msg);
+                            }
+                        }
+                    }
+                }
             }
 
             // ---- Family visit: idle NPC may visit family at another settlement ----
