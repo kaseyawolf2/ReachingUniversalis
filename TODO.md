@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Goal progress milestone log** — In `AgentDecisionSystem`'s goal system section, when
+  `progress` crosses 50% of `target` for the first time (add a `bool halfwayLogged` field to `Goal`
+  in Components.h), push a brief log: "Aldric is halfway to their savings goal (50/100g)." Set
+  `halfwayLogged = true` after firing. Reset it to `false` when a new goal is assigned. Gives
+  players a mid-goal feedback signal.
 
 ## Recently Done
 
