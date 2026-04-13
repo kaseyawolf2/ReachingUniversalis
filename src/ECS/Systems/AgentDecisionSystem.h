@@ -16,5 +16,6 @@ private:
                                      entt::entity homeSettlement,
                                      const Skills* skills = nullptr,
                                      const Profession* profession = nullptr,
-                                     const MigrationMemory* memory = nullptr);
+                                     const MigrationMemory* memory = nullptr,
+                                     int currentDay = 0);
 };

@@ -234,15 +234,16 @@ struct MigrationMemory {
         float food  = 1.f;
         float water = 1.f;
         float wood  = 1.f;
+        int   lastVisitedDay = 0;  // day this snapshot was recorded/updated
     };
     // settlement_name → last-known prices (capped to MAX_KNOWN entries)
     std::map<std::string, PriceSnapshot> known;
     static constexpr int MAX_KNOWN = 12;
 
-    void Record(const std::string& name, float food, float water, float wood) {
+    void Record(const std::string& name, float food, float water, float wood, int day = 0) {
         if ((int)known.size() >= MAX_KNOWN && known.find(name) == known.end())
             known.erase(known.begin());  // evict one entry to stay bounded
-        known[name] = { food, water, wood };
+        known[name] = { food, water, wood, day };
     }
 
     const PriceSnapshot* Get(const std::string& name) const {

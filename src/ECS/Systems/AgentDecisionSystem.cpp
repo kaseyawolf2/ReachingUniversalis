@@ -90,7 +90,8 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement,
                                                         const Skills* skills,
                                                         const Profession* profession,
-                                                        const MigrationMemory* memory) {
+                                                        const MigrationMemory* memory,
+                                                        int currentDay) {
     // Determine the NPC's strongest skill (if any) for affinity matching.
     ResourceType affinityType = ResourceType::Food;
     bool         hasAffinity  = false;
@@ -211,6 +212,11 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                     float memBonus = 1.f;
                     if (destSnap->food  < homeSnap->food)  memBonus += 0.20f;
                     if (destSnap->water < homeSnap->water) memBonus += 0.10f;
+                    // Stale memory decay: halve bonus if destination info is > 30 days old
+                    if (currentDay > 0 && destSnap->lastVisitedDay > 0 &&
+                        currentDay - destSnap->lastVisitedDay > 30) {
+                        memBonus = 1.f + (memBonus - 1.f) * 0.5f;
+                    }
                     total *= memBonus;
                 }
             }
@@ -487,7 +493,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 mem->Record(stt->name,
                                     mkt->GetPrice(ResourceType::Food),
                                     mkt->GetPrice(ResourceType::Water),
-                                    mkt->GetPrice(ResourceType::Wood));
+                                    mkt->GetPrice(ResourceType::Wood), tm.day);
                     }
                 }
 
@@ -663,10 +669,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         memory->Record(stt->name,
                             mkt->GetPrice(ResourceType::Food),
                             mkt->GetPrice(ResourceType::Water),
-                            mkt->GetPrice(ResourceType::Wood));
+                            mkt->GetPrice(ResourceType::Wood), tm.day);
             }
 
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day);
             if (dest != entt::null) {
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;
@@ -1516,7 +1522,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     memA->Record(sttB->name,
                         mktB->GetPrice(ResourceType::Food),
                         mktB->GetPrice(ResourceType::Water),
-                        mktB->GetPrice(ResourceType::Wood));
+                        mktB->GetPrice(ResourceType::Wood), tm.day);
             }
             if (bWasReady) {
                 for (auto& [res, priceB] : mktB->price) {
@@ -1529,7 +1535,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         memB->Record(sttA->name,
                             mktA->GetPrice(ResourceType::Food),
                             mktA->GetPrice(ResourceType::Water),
-                            mktA->GetPrice(ResourceType::Wood));
+                            mktA->GetPrice(ResourceType::Wood), tm.day);
                 }
                 tmrB->gossipCooldown = GOSSIP_COOLDOWN;
             }
