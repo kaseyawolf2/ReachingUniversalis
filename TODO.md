@@ -9,9 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block, NPCs with `Profession::careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f` — frequent career changers are 20% more likely to migrate. Log "[Name] feels restless at [Settlement]." at 1-in-10 frequency when the lowered threshold triggers migration. Uses existing `careerChanges` field.
-
 ## Recently Done
+
+- [x] **Career changer restlessness** — In `AgentDecisionSystem.cpp`'s migration trigger block,
+  NPCs with `careerChanges >= 3` get `effectiveMigrateThreshold *= 0.8f`. Logged at 1-in-10
+  frequency when triggered.
 
 - [x] **Mutual gift escalation** — In `AgentDecisionSystem.cpp`'s trade gift block, when
   recipient's affinity toward giver ≥ 0.8, gift amount increases from 5g to 8g. No new fields.
@@ -1240,6 +1242,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gift thank-you affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the escalated gift (8g), boost giver's affinity toward recipient by +0.03 (on top of existing +0.05 reciprocity for recipient). Mutual generosity strengthens both sides of the relationship. Only triggers on escalated gifts (giftAmt > GIFT_AMOUNT). No new fields needed.
 
 - [ ] **Best friend gift log variation** — In `AgentDecisionSystem.cpp`'s trade gift block log, when `giftAmt > GIFT_AMOUNT` (escalated gift), change the log message to "[Giver] gives a generous gift of 8g to [Recipient] at [Settlement]." instead of the standard gift log. Makes escalated gifts visually distinct in the event log.
+
+- [ ] **Restless NPC settlement satisfaction decay** — In `AgentDecisionSystem.cpp`'s satisfaction update block, when `Profession::careerChanges >= 3`, apply `lastSatisfaction *= 0.9f` — restless NPCs are harder to keep satisfied even with good conditions. Makes career changers a distinct personality archetype that's harder to retain. Uses existing `DeprivationTimer::lastSatisfaction`.
+
+- [ ] **Wanderlust trait from career changes** — In `SimThread::WriteSnapshot`'s agent data block, add a `bool restless` flag to `AgentEntry` in `RenderSnapshot.h`. Set true when `Profession::careerChanges >= 3`. Display "(restless)" in `HUD.cpp`'s NPC tooltip after the career changes line, in `Fade(ORANGE, 0.7f)`. Makes the career changer personality visible to the player.
 
 - [ ] **Cohesion decay on death** — In `DeathSystem.cpp`, when an NPC dies, iterate their `Relations::affinity` map and remove the dead entity from each friend's affinity map. This cleans up stale entity references and naturally reduces the settlement's cohesion pair count, making death socially meaningful beyond the population number.
 
