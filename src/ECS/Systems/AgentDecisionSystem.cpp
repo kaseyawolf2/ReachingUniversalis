@@ -1512,10 +1512,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 });
             }
 
-            // ---- Comfort grieving neighbour: close friends reduce grief ----
+            // ---- Comfort grieving neighbour: close friends reduce grief (staggered: 1/4 per frame) ----
             if (timer.comfortCooldown > 0.f)
                 timer.comfortCooldown = std::max(0.f, timer.comfortCooldown - realDt);
-            if (timer.comfortCooldown <= 0.f && timer.griefTimer <= 0.f) {
+            if (timer.comfortCooldown <= 0.f && timer.griefTimer <= 0.f
+                && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 const auto* myRel = registry.try_get<Relations>(entity);
                 if (myRel) {
                     static constexpr float COMFORT_RADIUS = 25.f;
@@ -1683,7 +1684,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
 
-            // ---- Mood contagion: happy NPCs cheer up struggling neighbours ----
+            // ---- Mood contagion: happy NPCs cheer up struggling neighbours (staggered: 1/4 per frame) ----
             if (timer.moodContagionCooldown > 0.f)
                 timer.moodContagionCooldown = std::max(0.f, timer.moodContagionCooldown - realDt);
             {
@@ -1691,7 +1692,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 for (int i = 0; i < 4; ++i) avgNeeds += needs.list[i].value;
                 avgNeeds *= 0.25f;
                 // Only struggling NPCs (avg < 0.4) can receive mood contagion
-                if (avgNeeds < 0.4f && timer.moodContagionCooldown <= 0.f) {
+                if (avgNeeds < 0.4f && timer.moodContagionCooldown <= 0.f
+                    && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                     registry.view<Needs, Position, AgentState, DeprivationTimer, Name>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>).each(
                         [&](auto other, const Needs& oNeeds, const Position& oPos,
