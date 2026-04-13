@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **NPC avoids player with bad reputation** — In `AgentDecisionSystem`'s idle block, after
+  the thank-player check, when the player entity is within 30u and the NPC has `Reputation::score
+  < -0.5`, apply flee velocity away from the player at 0.8× speed for 2 real-seconds (set
+  `timer.panicTimer = 2.f`). Log "[NPC] hurries away from you nervously." Uses the existing
+  `panicTimer` and `playerPos` cache. Negative reputation has visible social consequences.
 
 
 
