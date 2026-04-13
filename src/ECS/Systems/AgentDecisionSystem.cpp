@@ -384,26 +384,80 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
     // ---- Age-based skill growth: once per game-day ----
     // Adult working NPCs gain +0.001 per day in their profession's matching skill.
+    // Master teaching bonus: +0.002 instead of +0.001 when a master (skill >= 0.9)
+    // of the same profession is at the same settlement.
     {
         static int s_lastSkillGrowthDay = -1;
         if (tm.day != s_lastSkillGrowthDay) {
             s_lastSkillGrowthDay = tm.day;
-            static constexpr float SKILL_GROWTH = 0.001f;
-            registry.view<Skills, Profession, Age>(
+            static constexpr float SKILL_GROWTH        = 0.001f;
+            static constexpr float MASTER_SKILL_GROWTH = 0.002f;
+            static constexpr float MASTER_THRESHOLD    = 0.9f;
+
+            // Build per-settlement master profession set
+            // Bit flags: 1=Farmer, 2=WaterCarrier, 4=Lumberjack
+            std::unordered_map<entt::entity, int> masterFlags;
+            registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
-                [&](Skills& sk, const Profession& prof, const Age& age) {
+                [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
+                    if (hs.settlement == entt::null) return;
+                    int flag = 0;
+                    if (prof.type == ProfessionType::Farmer && sk.farming >= MASTER_THRESHOLD) flag = 1;
+                    else if (prof.type == ProfessionType::WaterCarrier && sk.water_drawing >= MASTER_THRESHOLD) flag = 2;
+                    else if (prof.type == ProfessionType::Lumberjack && sk.woodcutting >= MASTER_THRESHOLD) flag = 4;
+                    if (flag) masterFlags[hs.settlement] |= flag;
+                });
+
+            // Log RNG
+            static std::mt19937 s_teachRng{ std::random_device{}() };
+            auto logV2 = registry.view<EventLog>();
+
+            registry.view<Skills, Profession, Age, HomeSettlement>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days > 60.f) return;  // elders don't grow skills
+                    // Check if settlement has a master of this profession
+                    int profFlag = (prof.type == ProfessionType::Farmer) ? 1 :
+                                   (prof.type == ProfessionType::WaterCarrier) ? 2 :
+                                   (prof.type == ProfessionType::Lumberjack) ? 4 : 0;
+                    bool hasMaster = false;
+                    if (profFlag && hs.settlement != entt::null) {
+                        auto mit = masterFlags.find(hs.settlement);
+                        hasMaster = (mit != masterFlags.end() && (mit->second & profFlag));
+                    }
+                    // Don't boost masters themselves
+                    float growth = SKILL_GROWTH;
                     switch (prof.type) {
                         case ProfessionType::Farmer:
-                            sk.farming = std::min(1.f, sk.farming + SKILL_GROWTH);
+                            if (hasMaster && sk.farming < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            sk.farming = std::min(1.f, sk.farming + growth);
                             break;
                         case ProfessionType::WaterCarrier:
-                            sk.water_drawing = std::min(1.f, sk.water_drawing + SKILL_GROWTH);
+                            if (hasMaster && sk.water_drawing < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            sk.water_drawing = std::min(1.f, sk.water_drawing + growth);
                             break;
                         case ProfessionType::Lumberjack:
-                            sk.woodcutting = std::min(1.f, sk.woodcutting + SKILL_GROWTH);
+                            if (hasMaster && sk.woodcutting < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            sk.woodcutting = std::min(1.f, sk.woodcutting + growth);
                             break;
                         default: break;
+                    }
+                    // Log at 1-in-10 frequency
+                    if (hasMaster && growth > SKILL_GROWTH && !logV2.empty()) {
+                        if (s_teachRng() % 10 == 0) {
+                            const auto* nm = registry.try_get<Name>(e);
+                            std::string settlName = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    settlName = s->name;
+                            const char* skillName = (prof.type == ProfessionType::Farmer) ? "farming" :
+                                                    (prof.type == ProfessionType::WaterCarrier) ? "water-drawing" :
+                                                    "woodcutting";
+                            std::string msg = "A master inspires " +
+                                std::string(nm ? nm->value : "an NPC") +
+                                "'s " + skillName + " at " + settlName + ".";
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
+                        }
                     }
                 });
         }
