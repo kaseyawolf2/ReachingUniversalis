@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Hauler mentorship** — In `TransportSystem.cpp`, veteran haulers (`lifetimeTrips >= 15`) at a settlement with a new hauler (`lifetimeTrips < 5`) grant the novice +0.1 route efficiency for their next trip. Check once per delivery completion. Log "[Veteran] shows [Novice] the ropes at [Settlement]" at 1-in-5 frequency. Uses existing `Hauler::lifetimeTrips`.
+
+## Backlog
 
 - [ ] **Elder storytelling event** — In `AgentDecisionSystem.cpp`'s idle chat block, when an elder (age > 60) and a non-elder are both idle at the same settlement, 1-in-12 chance per hour to log "[Elder] tells [Listener] tales of the old days at [Settlement]." Boost listener's `Relations::affinity` toward elder by +0.03 (cap 1.0). Uses existing idle chat infrastructure and `Age` component.
 
