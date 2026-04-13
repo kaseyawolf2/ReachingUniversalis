@@ -9,6 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Morale-driven migration push** — In `AgentDecisionSystem.cpp`'s migration scoring, add a
+  morale push factor. When home morale < 0.25, add +0.3 to score. When > 0.7, add -0.2.
+
 ## Recently Done
 
 - [x] **Strike grievance log** — Strike begin log updated with morale % in `RandomEventSystem.cpp`. Strike end log added in `ScheduleSystem.cpp` with once-per-settlement dedup. Makes strikes a visible story beat.
@@ -1983,13 +1986,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Morale-driven migration push** — In `AgentDecisionSystem.cpp`'s migration scoring, add a
-  morale push factor. When the NPC's home settlement morale < 0.25, add +0.3 to migration score
-  (making them more likely to leave). When home morale > 0.7, add -0.2 (making them more likely
-  to stay). Read morale from `registry.get<Settlement>(home.settlement).morale`. This creates a
-  feedback loop: low morale → strikes → people leave → smaller settlement, which either recovers
-  or collapses organically.
 
 - [ ] **Rivalry tariff shown in hauler tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when the
   hovered entity is a hauler with a `cargoSource` set, check if the destination settlement has
