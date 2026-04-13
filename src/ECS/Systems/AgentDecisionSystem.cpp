@@ -395,6 +395,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             static constexpr float MASTER_THRESHOLD    = 0.9f;
             static constexpr float SKILL_RUST          = 0.0005f;
             static constexpr float SKILL_RUST_FLOOR    = 0.3f;
+            static constexpr float LOYALTY_BONUS       = 0.0005f;
 
             // Build per-settlement master profession set
             // Bit flags: 1=Farmer, 2=WaterCarrier, 4=Lumberjack
@@ -429,17 +430,20 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                     // Don't boost masters themselves
                     float growth = SKILL_GROWTH;
+                    // Loyalty bonus: NPCs who never changed profession grow faster
+                    bool loyal = (prof.prevType == prof.type || prof.prevType == ProfessionType::Idle);
+                    if (loyal) growth += LOYALTY_BONUS;
                     switch (prof.type) {
                         case ProfessionType::Farmer:
-                            if (hasMaster && sk.farming < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            if (hasMaster && sk.farming < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
                             sk.farming = std::min(1.f, sk.farming + growth);
                             break;
                         case ProfessionType::WaterCarrier:
-                            if (hasMaster && sk.water_drawing < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            if (hasMaster && sk.water_drawing < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
                             sk.water_drawing = std::min(1.f, sk.water_drawing + growth);
                             break;
                         case ProfessionType::Lumberjack:
-                            if (hasMaster && sk.woodcutting < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH;
+                            if (hasMaster && sk.woodcutting < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
                             sk.woodcutting = std::min(1.f, sk.woodcutting + growth);
                             break;
                         default: break;
