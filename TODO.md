@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill training builds mentor bond** — In `AgentDecisionSystem`'s skill training block,
-  after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
-  This enables the existing gratitude greeting to fire later: the learner will thank their teacher
-  when they next greet. No new fields needed — reuses `lastHelper` for mentor gratitude.
+
 
 
 
 ## Recently Done
+
+- [x] **Skill training builds mentor bond** — After successful teach, learner's `lastHelper = teacher entity`. Enables existing gratitude greeting for mentor-student bond.
 
 - [x] **Teaching shown in NPC tooltip** — `recentlyTaught` bool piped through AgentEntry from teachCooldown > 0. Shows "Recently taught/learned" in faint SKYBLUE in HUD tooltip.
 
@@ -1652,11 +1651,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **Skill training builds mentor bond** — In `AgentDecisionSystem`'s skill training block,
-  after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
-  This enables the existing gratitude greeting to fire later: the learner will thank their teacher
-  when they next greet. No new fields needed — reuses `lastHelper` for mentor gratitude.
-
 - [ ] **Settlement specialisation bonus** — In `ProductionSystem`, when a settlement's top skill
   type (computed like in `WriteSnapshot`'s skill summary) matches the facility's output type and
   has ≥ 3 masters, apply a +15% production bonus to all workers at matching facilities. Check via
@@ -3288,3 +3282,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   scan nearby NPCs (30u) with higher skill to find the probable mentor via `Relations::affinity`.
   In `HUD.cpp`'s tooltip, show "Learned from [Mentor]" in faint SKYBLUE. Creates visible
   mentor-student relationships in the UI.
+
+- [ ] **Learner seeks out mentor again** — In `AgentDecisionSystem`'s idle block, after skill
+  training, when an NPC has `lastHelper != entt::null` and the helper is not the player, and the
+  helper is within 80u, 2% chance per real-second to set velocity toward the helper at 0.5× speed
+  (using `chatTimer = 3.f` to drift). No log — ambient movement only. Learners naturally seek out
+  their mentors, creating visible student-teacher clustering.
+
+- [ ] **Repeated mentoring deepens bond** — In `AgentDecisionSystem`'s skill training block, after
+  the existing `lastHelper = entity` line, check if `oTimer.lastHelper` was *already* set to the
+  same teacher entity. If so, double the affinity gain (+0.04 instead of +0.02). Add a `static
+  std::map<uint64_t, int>` keyed by `(learner_id * 10000 + teacher_id)` to count mentoring sessions.
+  When count >= 3, log "[Learner] considers [Teacher] a trusted mentor." Long-term relationships
+  emerge from repeated interaction.
