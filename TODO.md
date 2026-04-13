@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Friendship shown in NPC tooltip** — Surface the strongest friendship in the hover tooltip.
+  Add `std::string bestFriendName` and `float bestFriendAffinity` to `AgentEntry` in
+  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, iterate the NPC's `Relations::affinity` map,
+  find the highest-affinity valid entity, and set both fields. In `HUD::DrawHoverTooltip`, when
+  `bestFriendAffinity >= 0.5`, show `"Friend: Aldric (82%)"` in `Fade(LIME, 0.75f)`.
+
 ## Recently Done
 
 - [x] **Elder wisdom event** — One-time wisdom transfer for elders (age > 70, skill ≥ 0.6): +0.1 to random younger co-settled NPC's matching skill, capped at 0.8. `wisdomFired` bool on `DeprivationTimer`. In `RandomEventSystem.cpp`.
@@ -1967,13 +1973,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Friendship shown in NPC tooltip** — Surface the strongest friendship in the hover tooltip.
-  Add `std::string bestFriendName` and `float bestFriendAffinity` to `AgentEntry` in
-  `RenderSnapshot.h`. In `SimThread::WriteSnapshot`, iterate the NPC's `Relations::affinity` map,
-  find the highest-affinity valid entity, and set both fields. In `HUD::DrawHoverTooltip`, when
-  `bestFriendAffinity >= 0.5`, show `"Friend: Aldric (82%)"` in `Fade(LIME, 0.75f)`. Same
-  `lineCount`/`pw` pattern as existing flag lines.
 
 - [ ] **Friend grief on death** — In `DeathSystem.cpp`'s inheritance loop, after the family
   dissolution check, scan all NPCs who have the dead entity in their `Relations::affinity` map
