@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Chat indicator on world dot** — Add `bool chatting = false` to `AgentEntry` in
-  `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when `dt->chatTimer > 0.f`. In
-  `GameState::Draw`, draw a pulsing yellow ring when chatting.
+
 
 ## Recently Done
+
+- [x] **Chat indicator on world dot** — `chatting` bool on AgentEntry from chatTimer. Pulsing yellow ring in GameState::Draw for chatting NPCs.
 
 - [x] **Facility crowding log** — workerHeadCount per settlement. When ≥4 workers, log "[Settlement] is crowded — N workers competing." once per game-day via static s_lastCrowdLog.
 
@@ -1911,7 +1911,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   exceeds 3 for the first time this game-day, push the log. Track last-logged day with a
   `static std::map<entt::entity, int> s_lastCrowdLog` keyed by facility entity.
 
-- [ ] **Chat indicator on world dot** — When an NPC has `chatTimer > 0`, draw a small pulsing
+- [x] **Chat indicator on world dot** — When an NPC has `chatTimer > 0`, draw a small pulsing
   ring around their world-map dot to signal that they're in conversation. In `GameState::Draw`,
   after the main `DrawCircleV`, add: if `a.chatting && a.role == RenderSnapshot::AgentRole::NPC`,
   call `DrawCircleLinesV({a.x, a.y}, a.size + 3.f, Fade(YELLOW, 0.45f))`. Add `bool chatting = false`
@@ -3496,3 +3496,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Idle to Working at the start of their work shift, if their `needs.list[2].value > 0.9`
   (well-rested), 10% chance to log "[Name] arrives at work bright and early." Pure flavour
   using existing Name and Needs — no new components.
+
+- [ ] **Chatting shown in NPC tooltip** — In `HUD::DrawHoverTooltip` (HUD.cpp), when
+  `best->chatting` is true, show "Chatting" in faint YELLOW below the mood line. Follow the
+  existing tooltip line pattern: add `showChatting` bool, increment `lineCount`, add width
+  measurement, add `DrawText`. Pure display — no new snapshot fields needed beyond existing
+  `chatting` bool.
+
+- [ ] **Chat partner name in tooltip** — Add `std::string chatPartnerName` to
+  `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`, when `chatTimer > 0` and
+  `AgentState::target != entt::null`, get the target entity's Name and set it. In
+  `HUD::DrawHoverTooltip`, show "Chatting with [Name]" instead of just "Chatting". Gives
+  richer social context to the player.
