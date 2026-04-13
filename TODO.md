@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Novice hauler bankruptcy sympathy** — In `TransportSystem.cpp`'s bankruptcy block, when a novice hauler (`lifetimeTrips < 10`) goes bankrupt, nearby NPCs at the same home settlement with `Relations::affinity >= 0.4` toward the bankrupt hauler each donate 5g (deducted from `Money::balance`, credited to bankrupt hauler's balance — Gold Flow Rule: balance-to-balance). Log "[Friend] helps [Bankrupt] get back on their feet at [Settlement]" at 1-in-3 frequency. Cap at 3 donors max.
-
 ## Backlog
 
 - [ ] **Elder wisdom skill boost** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC (non-elder) has `Relations::affinity >= 0.6` toward an elder at the same settlement who has the same `Profession::type` and skill ≥ 0.8, the NPC gets `growth += 0.0003f` extra daily skill growth. Log "[NPC] draws on [Elder]'s wisdom at [Settlement]" at 1-in-10 frequency. Separate from mentor-apprentice (which targets children); this benefits adult workers with strong elder relationships.
@@ -33,7 +31,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection block (GoingToDeposit), when a hauler detects a potential convoy partner, if `Relations::affinity >= 0.5` toward that partner, increase convoy detection range from 60 to 90 units. Log "[HaulerA] joins up with friend [HaulerB]" at 1-in-6 frequency. Makes social bonds influence trade logistics.
 
+- [ ] **Bankruptcy survivor determination** — In `EconomicMobilitySystem.cpp`, after a hauler goes bankrupt and returns to labor, add a `bool bankruptSurvivor = false` flag to `DeprivationTimer` in `Components.h`. Set it true. In `AgentDecisionSystem.cpp`'s skill growth block, if `bankruptSurvivor == true`, grant `growth += 0.0002f` extra daily skill growth. Log "[Name] works with renewed determination at [Settlement]" at 1-in-8 frequency on first day. Rewards resilience.
+
+- [ ] **Community reputation from donations** — In `EconomicMobilitySystem.cpp`'s sympathy donation block (just added), after donating, boost the donor's affinity from other NPCs at the settlement by +0.01 (via `Relations`). Iterate all NPCs at the home settlement and bump their affinity toward the donor. Log "[Donor] earns respect for helping [Bankrupt]" at 1-in-5 frequency. Creates a reputation payoff for generosity.
+
 ## Recently Done
+
+- [x] **Novice hauler bankruptcy sympathy** — In `EconomicMobilitySystem.cpp`'s bankruptcy block,
+  novice haulers (`lifetimeTrips < 10`) receive 5g donations from up to 3 friends (affinity ≥ 0.4)
+  at the same settlement. Balance-to-balance transfer (Gold Flow Rule). Logs at 1-in-3 frequency.
 
 - [x] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, haulers arriving in convoy at the
   same destination boost mutual affinity by +0.04. Logs sharing a drink at 1-in-4 frequency.
