@@ -11,6 +11,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## Recently Done
 
+- [x] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`, tracked profession
+  bitmask per settlement in worker loop. Settlements with all 3 professions get `workers *= 1.03f`.
+  Logs diversity message once per game-day at 1-in-10 frequency.
+
 - [x] **Skill recovery celebration** — Added in `AgentDecisionSystem.cpp`'s skill growth block.
   Detects when active profession skill crosses 0.5 upward (using existing `preActiveSkill`).
   Logs "[Name] regains their [skill] proficiency at [Settlement]." at 1-in-5 frequency.
@@ -1124,8 +1128,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 
-- [ ] **Settlement profession diversity bonus** — In `ProductionSystem.cpp`'s per-settlement production loop, count distinct `ProfessionType` values among workers (Farmer/WaterCarrier/Lumberjack). If all 3 are present, apply +3% production bonus to every worker at that settlement (`workerContrib *= 1.03f`). Log "[Settlement] benefits from a diverse workforce." once per game-day at 1-in-10 frequency via a `static std::set<entt::entity> s_diverseLogged`. Rewards balanced economies.
-
 - [ ] **Workplace rivalry event** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs at the same facility both have the same profession skill ≥ 0.7, 1-in-20 chance per hour to *decrease* affinity by 0.02 (floor 0.0) and log "[Name] and [Name] compete at [Settlement]." at 1-in-5 frequency. Skilled workers can become rivals. Uses existing `Skills`, `Relations`, `HomeSettlement` components.
 
 - [ ] **Hauler route preference memory** — In `TransportSystem.cpp`'s `FindBestRoute`, when a hauler has `consecutiveRouteCount >= 5`, apply +15% score bonus to their `lastRoute` destination. Makes loyal haulers slightly prefer their established route over marginal alternatives. Add `preferredRoute` string matching against `lastRoute` in the scoring loop.
@@ -1149,6 +1151,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **NPC gossip about career changers** — In `AgentDecisionSystem.cpp`'s evening chat block, when two chatting NPCs are at the same settlement and one has `careerChanges >= 2`, 1-in-8 chance to log "[Listener] hears about [Changer]'s varied career." at the chat settlement. Adds social commentary about career history. Uses existing chat proximity scan and `Profession` component.
 
 - [ ] **Skill recovery morale boost** — In `AgentDecisionSystem.cpp`, right after the skill recovery celebration log (when active skill crosses 0.5 upward), apply `+0.02` to home `Settlement::morale`. Recovering NPCs lift community spirits. No new components needed — uses existing `HomeSettlement` and `Settlement::morale`. Cap morale at 1.0.
+
+- [ ] **Profession diversity tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, check if all 3 profession types are present among homed NPCs (reuse or mirror the bitmask from `ProductionSystem.cpp`). Add `bool diverse = false` to `SettlementEntry` in `RenderSnapshot.h`. Display "[Diverse]" tag in gold after settlement name in `HUD.cpp`'s settlement tooltip when true. Makes the diversity bonus visible to the player.
+
+- [ ] **Monoculture warning** — In `ProductionSystem.cpp`'s diversity check, when a settlement has 3+ workers but `profDiversity` bitmask has only 1 bit set (all workers same profession), log "[Settlement] lacks workforce diversity." once per game-day at 1-in-10 frequency. Counterpart to the diversity bonus message — warns player about overspecialised settlements.
 
 - [ ] **Crisis aid between allied settlements** — In `RandomEventSystem.cpp`, after a drought or plague hits a settlement, check allied settlements (relations > 0.5). The closest ally with treasury > 100g donates 30g to the afflicted settlement's treasury. Log "[Ally] sends aid to [Settlement] during [crisis]." Gold flows treasury-to-treasury. Boosts relations by +0.05 for both sides.
 
