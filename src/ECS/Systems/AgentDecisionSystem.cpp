@@ -1398,6 +1398,42 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
         }
 
+        // Nostalgic elder homesickness resistance: elders with many bonds stay put
+        if (const auto* elderAge = registry.try_get<Age>(entity)) {
+            if (elderAge->days > 60.f) {
+                if (const auto* elderRel = registry.try_get<Relations>(entity)) {
+                    int localBonds = 0;
+                    for (const auto& [other, aff] : elderRel->affinity) {
+                        if (aff < 0.5f) continue;
+                        if (!registry.valid(other)) continue;
+                        const auto* otherHome = registry.try_get<HomeSettlement>(other);
+                        if (otherHome && otherHome->settlement == home.settlement)
+                            ++localBonds;
+                    }
+                    if (localBonds >= 3) {
+                        effectiveMigrateThreshold *= 1.5f;
+                        // Log at 1-in-8 when migration would have triggered
+                        if (timer.stockpileEmpty >= effectiveMigrateThreshold / 1.5f
+                            && timer.stockpileEmpty < effectiveMigrateThreshold) {
+                            static std::mt19937 s_elderHomeRng{ std::random_device{}() };
+                            if (s_elderHomeRng() % 8 == 0) {
+                                auto lv2 = registry.view<EventLog>();
+                                if (!lv2.empty()) {
+                                    std::string who = "An elder";
+                                    if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                                    std::string where = "settlement";
+                                    if (const auto* st = registry.try_get<Settlement>(home.settlement))
+                                        where = st->name;
+                                    lv2.get<EventLog>(*lv2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        who + " has too many bonds to leave " + where);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (timer.stockpileEmpty >= effectiveMigrateThreshold) {
             const auto* skills     = registry.try_get<Skills>(entity);
             const auto* profession = registry.try_get<Profession>(entity);
