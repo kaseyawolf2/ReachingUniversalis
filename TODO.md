@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Friendship shown in settlement tooltip** — In `WriteSnapshot` settlement loop, count total friendship pairs (both NPCs at that settlement with mutual `Relations::affinity ≥ 0.5`). Add `int friendshipPairs` to `SettlementEntry`. Display "N friendships" in Fade(LIME, 0.6f) in `RenderSystem::DrawStockpilePanel` after morale line.
-
 ## Recently Done
+
+- [x] **Friendship shown in settlement tooltip** — Counts mutual friendship pairs (`Relations::affinity
+  ≥ 0.5` both ways) per settlement in `WriteSnapshot`. Added `int friendshipPairs` to both
+  `SettlementEntry` and `StockpilePanel`. Displayed after morale bar in `DrawStockpilePanel`.
+
+
 
 - [x] **Reunion affinity boost** — On migration arrival in `AgentDecisionSystem.cpp`, scans
   residents at the new settlement for `Relations::affinity > 0.3`. Both parties get +0.1 affinity
@@ -799,6 +803,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
 
 - [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
+
+- [ ] **Settlement social cohesion bonus** — In `ProductionSystem.cpp`, after the existing morale modifier, add a small production bonus based on `friendshipPairs` from the settlement: +1% per pair, capped at +10%. Read friendship data via counting `Relations::affinity ≥ 0.5` pairs among workers at the facility's settlement. Socially connected settlements produce more.
+
+- [ ] **Loneliness migration push** — In `AgentDecisionSystem.cpp`'s `FindMigrationTarget`, NPCs with zero friends (`Relations::affinity` map empty or all < 0.3) at their current settlement get +0.15 migration score bonus. Isolated NPCs seek communities where they know someone. Complements the reunion affinity boost.
 
 ### NPC Crime & Consequence
 
