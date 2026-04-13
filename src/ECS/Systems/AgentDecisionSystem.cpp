@@ -657,6 +657,45 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             }
                         }
                     }
+                    // Profession pride announcement: when skill crosses 0.8, boost same-prof affinity
+                    {
+                        float postSkill3 = 0.f;
+                        const char* prideProfName = nullptr;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      postSkill3 = sk.farming; prideProfName = "farming"; break;
+                            case ProfessionType::WaterCarrier: postSkill3 = sk.water_drawing; prideProfName = "water-carrying"; break;
+                            case ProfessionType::Lumberjack:   postSkill3 = sk.woodcutting; prideProfName = "woodcutting"; break;
+                            default: break;
+                        }
+                        if (prideProfName && preActiveSkill < 0.8f && postSkill3 >= 0.8f) {
+                            // Boost affinity +0.02 toward all same-profession NPCs at same settlement
+                            auto* myRel = registry.try_get<Relations>(e);
+                            if (myRel && hs.settlement != entt::null) {
+                                registry.view<Profession, HomeSettlement, Relations>(
+                                    entt::exclude<ChildTag, PlayerTag, BanditTag>).each(
+                                    [&](auto other, const Profession& oPr, const HomeSettlement& oHs, Relations& oRel) {
+                                        if (other == e) return;
+                                        if (oHs.settlement != hs.settlement) return;
+                                        if (oPr.type != prof.type) return;
+                                        myRel->affinity[other] = std::min(1.f, myRel->affinity[other] + 0.02f);
+                                        oRel.affinity[e] = std::min(1.f, oRel.affinity[e] + 0.02f);
+                                    });
+                            }
+                            // Log at 1-in-3 frequency
+                            if (!logV2.empty() && s_teachRng() % 3 == 0) {
+                                std::string who = "NPC";
+                                if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                                std::string where = "settlement";
+                                if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                    if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                        where = s->name;
+                                char buf[180];
+                                std::snprintf(buf, sizeof(buf), "%s proudly declares mastery of %s at %s",
+                                              who.c_str(), prideProfName, where.c_str());
+                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                            }
+                        }
+                    }
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
                         if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
