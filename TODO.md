@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Mastery teaching chain** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with skill >= 0.8 (from profession pride) is at the same settlement as an NPC with skill < 0.5 in the same profession, the lower-skilled NPC gets `growth += 0.0004f`. Different from master teaching (which requires 0.9): this lets near-masters pass on practical knowledge. Log "[Expert] shares tips with [Novice] at [Settlement]" at 1-in-10 frequency via `s_teachRng`. Pre-compute expert list alongside `masterFlags`.
+
+## Backlog
 
 - [ ] **Profession pride jealousy** — In `AgentDecisionSystem.cpp`'s skill growth block, right after the profession pride announcement triggers (skill crosses 0.8), scan NPCs at the same settlement with the same `Profession::type` and skill between 0.6–0.79. For each, 1-in-4 chance to decrease their `Relations::affinity` toward the announcing NPC by 0.01 (floor 0.0). Log "[Jealous NPC] envies [Master]'s skill at [Settlement]" at 1-in-6 frequency. Creates nuanced social dynamics around skill progression.
 
