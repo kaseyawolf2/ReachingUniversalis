@@ -9,9 +9,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **FindMigrationTarget caching** — `FindMigrationTarget` in `AgentDecisionSystem.cpp` iterates all settlements and computes scores. Called once per migrating NPC, but also for each co-migration friend candidate (up to 2 extra calls per migration). Cache results per source settlement per game-hour in a `static std::unordered_map<entt::entity, std::pair<int, entt::entity>>` (keyed by home settlement, value is {hour, best destination}). Invalidate when hour changes.
-
 ## Recently Done
+
+- [x] **FindMigrationTarget caching** — Added per-settlement-per-hour cache to `FindMigrationTarget`
+  in `AgentDecisionSystem.cpp`. Uses `static std::unordered_map<entt::entity, MigCache>` keyed by
+  home settlement, storing {hour, day, best destination}. Cache hit returns immediately, avoiding
+  repeated O(roads × facilities × bandits) scoring. Particularly helps co-migration where the same
+  settlement is evaluated 2–3 times in the same tick.
+
+
 
 - [x] **ScheduleSystem early-exit optimisation** — Added hour-change gating: elder mentor map and
   facility positions cached per settlement, only rebuilt when game hour changes. Replaced per-NPC
@@ -919,10 +925,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
+- [ ] **Bandit proximity spatial cache** — In `FindMigrationTarget`, the inner bandit danger penalty loop scans all `BanditTag` entities per road per destination settlement. Build a spatial hash or per-road bandit count cache once per tick (similar to `s_entitySettlement` pattern) so each road lookup is O(1) instead of O(bandits). The bandit view is also iterated in `AgentDecisionSystem::Update` for the bandit encounter block — share the cache.
+
+- [ ] **ProductionSystem batch by facility** — `ProductionSystem.cpp` iterates all worker entities individually. Group workers by their `Workplace::facility` entity and batch-produce per facility, summing skill contributions in one pass. Avoids repeated `registry.get<ProductionFacility>` lookups for the same facility across multiple workers.
+
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
 
+
+- [ ] **Friendship decay on distance** — In `AgentDecisionSystem.cpp`'s gossip/social block, when two NPCs with `Relations::affinity >= 0.3` are at different settlements, decay their affinity by `0.002 * gameHoursDt` per tick. Friends who migrate apart slowly drift unless they reunite. Adds consequence to migration decisions and makes reunion meaningful.
 
 - [ ] **Gift thank-you log** — In `AgentDecisionSystem.cpp`'s trade gift block, after the reciprocity boost, 1-in-3 chance the recipient logs "[Friend] thanks [Giver] for the gift at [Settlement]." Uses settlement name from `HomeSettlement`. Adds visible social feedback to the gift economy.
 
