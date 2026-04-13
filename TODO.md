@@ -9,11 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Peak-age production bonus** — In `ProductionSystem.cpp`, when a worker NPC's age is
-  between 25 and 55 (prime working years), apply a small +10% production bonus to their
-  contribution (`workerContrib *= 1.1f`). Read via `registry.try_get<Age>(workerEntity)`.
-
 ## Recently Done
+
+- [x] **Peak-age production bonus** — Workers aged 25-55 get `workerContrib *= 1.1f` in `ProductionSystem.cpp`. Completes lifecycle arc with existing `Age` component.
+
+
 
 - [x] **Elder mentor bonus** — Pre-built `elderFacilities` map of facilities with Working elders (age > 60). Younger workers at those facilities get 1.2× skill gain. Logged once per game-day per facility. In `ScheduleSystem.cpp`.
 
@@ -3583,3 +3583,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   Idle (set a `retired` bool on `DeprivationTimer`). Retired NPCs still mentor (their presence
   at facility counts for elder bonus) but don't produce in `ProductionSystem`. Log "[Name]
   retired after a lifetime of work at [settlement]."
+
+- [ ] **Age-dependent need drain rates** — In `NeedDrainSystem.cpp`, scale need drain rates
+  based on age: children (age < 15) drain Hunger/Thirst at 0.7× rate (smaller appetite),
+  elders (age > 65) drain Energy at 1.3× rate (tire faster). Read via `registry.try_get<Age>`.
+  No new components — modifies existing drain calculation inline.
+
+- [ ] **Prime-age worker indicator in tooltip** — In `SimThread::WriteSnapshot`'s agent loop,
+  add `bool primeAge = false` to `AgentEntry` in `RenderSnapshot.h`. Set true when age is
+  25–55. In `HUD.cpp`'s `DrawHoverTooltip`, show "Prime years" in faint `Fade(GREEN, 0.5f)`
+  after the age line when `primeAge` is true. Pure display.
