@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Wanderer resettlement preference for friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block (~line 2465), when an exile with enough gold picks a settlement, add +20% score bonus to settlements where they have a friend (affinity ≥ 0.3 in `Relations`). Uses `s_entitySettlement` cache for O(1) settlement lookup per friend. Homeless NPCs preferentially resettle near friends.
+
 ## Recently Done
 
 - [x] **Death inheritance to best friend** — In `DeathSystem.cpp`, after treasury estate deposit,
@@ -969,8 +971,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Wanderer resettlement preference for friends** — In `AgentDecisionSystem.cpp`'s wanderer resettlement block (~line 2465), when an exile with enough gold picks a settlement, add +20% score bonus to settlements where they have a friend (affinity ≥ 0.3 in `Relations`). Uses `s_entitySettlement` cache for O(1) settlement lookup per friend. Homeless NPCs preferentially resettle near friends.
 
 - [ ] **Skill specialisation title in tooltip** — In `SimThread::WriteSnapshot`, when writing `AgentEntry`, check if any `Skills` value ≥ 0.9. If so, set a new `std::string specialisation` field on `AgentEntry` (e.g. "Master Farmer", "Expert Lumberjack"). Display in `HUD.cpp` tooltip after profession line. Requires adding `std::string specialisation` to `AgentEntry` in `RenderSnapshot.h`.
 
