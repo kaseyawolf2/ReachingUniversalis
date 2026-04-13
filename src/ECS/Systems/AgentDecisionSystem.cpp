@@ -64,11 +64,48 @@ static void MoveToward(Velocity& vel, const Position& from,
 }
 
 // ---- AgentDecisionSystem::FindNearestFacility ----
+// Cached per (settlement, resourceType) and invalidated once per game-hour.
+// Facilities are static, so the nearest one to any NPC at a given settlement
+// is the same regardless of NPC position within the settlement.
 
 entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
                                                        ResourceType type,
                                                        entt::entity homeSettlement,
                                                        float px, float py) {
+    // --- Cache keyed by (settlement, resourceType), invalidated per game-hour ---
+    struct FacCacheKey {
+        entt::entity settlement;
+        ResourceType resType;
+        bool operator==(const FacCacheKey& o) const {
+            return settlement == o.settlement && resType == o.resType;
+        }
+    };
+    struct FacCacheKeyHash {
+        size_t operator()(const FacCacheKey& k) const {
+            return std::hash<uint32_t>()((uint32_t)k.settlement) ^
+                   (std::hash<int>()((int)k.resType) << 16);
+        }
+    };
+    struct FacCacheEntry { entt::entity facility; int hour; int day; };
+    static std::unordered_map<FacCacheKey, FacCacheEntry, FacCacheKeyHash> s_facCache;
+
+    int curHour = -1, curDay = -1;
+    {
+        auto tmv = registry.view<TimeManager>();
+        if (!tmv.empty()) {
+            const auto& tm = tmv.get<TimeManager>(*tmv.begin());
+            curHour = (int)tm.hourOfDay;
+            curDay  = tm.day;
+        }
+    }
+
+    FacCacheKey key{homeSettlement, type};
+    auto it = s_facCache.find(key);
+    if (it != s_facCache.end() && it->second.hour == curHour && it->second.day == curDay) {
+        return it->second.facility;
+    }
+
+    // Cache miss — do the full scan
     entt::entity nearest  = entt::null;
     float        bestDist = std::numeric_limits<float>::max();
 
@@ -83,6 +120,8 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
         float dist = dx * dx + dy * dy;
         if (dist < bestDist) { bestDist = dist; nearest = e; }
     }
+
+    s_facCache[key] = {nearest, curHour, curDay};
     return nearest;
 }
 
