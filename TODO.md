@@ -9,7 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Migration memory shown in tooltip** — Add `std::string migrationMemorySummary` to
+  `RenderSnapshot::AgentEntry` (RenderSnapshot.h). In `SimThread::WriteSnapshot`, if the entity
+  has a `MigrationMemory` with ≥ 2 entries, set it to e.g. "Knows: Wellsworth (food 2g), Millhaven
+  (wood 1g)". In `HUD::DrawHoverTooltip`, render it as an extra dim GRAY line.
 
 ## Recently Done
 
