@@ -9,9 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Reunion affinity boost** — In `AgentDecisionSystem.cpp`'s migration arrival block, when an NPC arrives at a new settlement, check if any existing residents have `Relations::affinity > 0.3` with them. If so, boost both parties' affinity by +0.1 (capped at 1.0) and log "[Name] reunites with [Friend] at [Settlement]." at 1-in-2 frequency.
-
 ## Recently Done
+
+- [x] **Reunion affinity boost** — On migration arrival in `AgentDecisionSystem.cpp`, scans
+  residents at the new settlement for `Relations::affinity > 0.3`. Both parties get +0.1 affinity
+  (capped at 1.0). Logged at 1-in-2 frequency: "[Name] reunites with [Friend] at [Settlement]."
+
+
 
 - [x] **Trade gift between friends** — NPCs with `Relations::affinity ≥ 0.6` at the same settlement
   and balance > 50g gift 5g to their best friend. 48h cooldown via `charityTimer`. Gold flows
@@ -791,6 +795,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler route loyalty log** — In `TransportSystem.cpp`, when a hauler completes 5+ consecutive deliveries on the same route (`bestRoute`), log "[Hauler] is a regular on the [Source]→[Dest] route." once via static set. Shows hauler personality emerging from repeated trade patterns.
 
 - [ ] **Rivalry softening on shared crisis** — In `RandomEventSystem.cpp`, when a plague or drought hits a settlement, check if any rival settlements (relations < -0.5) are also experiencing the same event type. If so, improve relations by +0.15 for both and log "[Settlement A] and [Settlement B] set aside differences during [crisis]." Shared hardship as diplomacy.
+
+- [ ] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block (when behavior switches to Migrating), scan departing NPC's friends (`Relations::affinity ≥ 0.4`) at the current settlement. Log "[Name] says farewell to [Friend] before leaving [Settlement]." for the top friend by affinity, at 1-in-3 frequency.
+
+- [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
 
 ### NPC Crime & Consequence
 
