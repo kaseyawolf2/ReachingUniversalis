@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
+
 ## Recently Done
 
 - [x] **Skill rust from inactivity** — Added -0.0005/day decay for skills not matching the NPC's
@@ -1001,8 +1003,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
 
 - [ ] **Profession loyalty bonus** — In `AgentDecisionSystem.cpp`'s skill growth block, NPCs who have never changed profession (`Profession::prevType == Profession::type` or `prevType == Idle`) get +0.0005 bonus growth per game-day on top of the base +0.001. Rewards career stability. No new fields needed — use existing `prevType`.
 
