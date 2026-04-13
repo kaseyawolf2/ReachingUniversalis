@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill milestone shown in NPC tooltip** — "Journeyman/Master [Type]" line in HUD tooltip for skills ≥0.5/≥0.9.
+
 
 ## Recently Done
+
+- [x] **Skill milestone shown in NPC tooltip** — "Journeyman/Master [Type]" line in HUD tooltip for skills ≥0.5/≥0.9.
+
 
 - [x] **Bandit intimidation aura** — Idle NPCs within 50u of bandits drain home settlement morale at -0.02/game-hour. Log with 60s cooldown via intimidationCooldown.
 
@@ -1516,7 +1519,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   with a cooldown (add `float intimidationCooldown = 0.f` to `DeprivationTimer`, 60 game-sec).
   Bandits' mere presence erodes settlement morale — incentivizes player to confront them.
 
-- [ ] **Skill milestone shown in NPC tooltip** — In `HUD.cpp`'s agent tooltip section, when the
+- [x] **Skill milestone shown in NPC tooltip** — In `HUD.cpp`'s agent tooltip section, when the
   NPC has any skill ≥ 0.5, show "Journeyman [Type]" in faint GOLD. At ≥ 0.9, show "Master [Type]".
   Read from existing `farmSkill`, `waterSkill`, `woodSkill` in `RenderSnapshot::AgentEntry`. Find
   the highest skill that exceeds 0.5 and display the appropriate title. No new data piping needed.
@@ -1548,6 +1551,19 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   respectfully at you." Add `float thankCooldown = 0.f` to `DeprivationTimer` (60 game-sec
   cooldown). Only fires if the NPC has the Reputation component. Creates ambient feedback for
   the player's positive actions without adding gameplay mechanics.
+
+- [ ] **Skill training between NPCs** — In `AgentDecisionSystem`'s idle block, when two NPCs are
+  within 30u and one has a skill ≥ 0.6 while the other has that same skill < 0.3, the higher-skilled
+  NPC teaches the other: +0.005 per game-hour to the learner's skill, +0.02 affinity for both. Add
+  `float teachCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown). Log "[Teacher] teaches
+  [Learner] about farming/water/woodcutting." Skilled NPCs spread knowledge organically.
+
+- [ ] **Settlement skill summary in stockpile panel** — In `RenderSystem::DrawStockpilePanel`,
+  below the existing resident list, show "Top skill: [Type] (N masters, M journeymen)" in faint
+  GOLD. Add `int masterCount[3]` and `int journeymanCount[3]` to `RenderSnapshot::StockpilePanel`.
+  Pipe from `SimThread::WriteSnapshot` by counting NPCs homed at the settlement with Skills ≥ 0.9
+  or ≥ 0.5. Pick the type with the most combined masters+journeymen. Gives players visibility into
+  settlement specialisation at a glance.
 
 ---
 
