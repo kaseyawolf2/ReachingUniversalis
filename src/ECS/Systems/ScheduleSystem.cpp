@@ -317,6 +317,15 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                         auto& tmr = registry.get_or_emplace<DeprivationTimer>(entity);
                                         tmr.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
                                     }
+                                    // Master milestone boosts home settlement morale
+                                    if (idx == 1) {
+                                        if (const auto* hs = registry.try_get<HomeSettlement>(entity)) {
+                                            if (hs->settlement != entt::null && registry.valid(hs->settlement)) {
+                                                if (auto* settl = registry.try_get<Settlement>(hs->settlement))
+                                                    settl->morale = std::min(1.f, settl->morale + 0.03f);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         };
