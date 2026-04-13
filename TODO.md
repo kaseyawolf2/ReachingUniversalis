@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mastery teaching chain** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with skill >= 0.8 (from profession pride) is at the same settlement as an NPC with skill < 0.5 in the same profession, the lower-skilled NPC gets `growth += 0.0004f`. Different from master teaching (which requires 0.9): this lets near-masters pass on practical knowledge. Log "[Expert] shares tips with [Novice] at [Settlement]" at 1-in-10 frequency via `s_teachRng`. Pre-compute expert list alongside `masterFlags`.
-
 ## Backlog
 
 - [ ] **Profession pride jealousy** — In `AgentDecisionSystem.cpp`'s skill growth block, right after the profession pride announcement triggers (skill crosses 0.8), scan NPCs at the same settlement with the same `Profession::type` and skill between 0.6–0.79. For each, 1-in-4 chance to decrease their `Relations::affinity` toward the announcing NPC by 0.01 (floor 0.0). Log "[Jealous NPC] envies [Master]'s skill at [Settlement]" at 1-in-6 frequency. Creates nuanced social dynamics around skill progression.
@@ -77,7 +75,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Repeated reconciliation deepens bond** — In `ScheduleSystem.cpp`'s reconciliation block, track how many times a pair has reconciled via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount`. On 2nd+ reconciliation, use +0.08 affinity instead of +0.05, and boost `reconcileGlow` to 4 game-hours instead of 2. Log "[NPC1] and [NPC2] are becoming unlikely friends at [Settlement]" at full frequency on 3rd+ reconciliation. Creates an escalating friendship arc from repeated conflict resolution.
 
+- [ ] **Expert gratitude from novice** — In `AgentDecisionSystem.cpp`'s idle chat block, when a novice (skill < 0.5) chats with an expert (skill >= 0.8) of the same profession at the same settlement, boost novice→expert affinity by +0.03 instead of the normal +0.02. Log "[Novice] thanks [Expert] for the guidance at [Settlement]" at 1-in-8 frequency. Uses existing `Profession` and `Skills` try_get. Complements the mastery teaching chain with a social bond component.
+
+- [ ] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
+
 ## Recently Done
+
+- [x] **Mastery teaching chain** — Pre-computes `expertFlags` per settlement (skill >= 0.8). Novices
+  (skill < 0.5) at same settlement with matching profession get `growth += 0.0004f`. Logs at 1-in-10.
 
 - [x] **Reconciliation handshake morale boost** — In `ScheduleSystem.cpp`, after reconciliation: +0.01
   settlement morale, harmony log at 1-in-4, and `reconcileGlow=2h` on both NPCs. In `ProductionSystem.cpp`,
