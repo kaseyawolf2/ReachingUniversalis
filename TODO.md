@@ -9,6 +9,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **WriteSnapshot selective update** — In `SimThread::WriteSnapshot()`, instead of copying every field of every entity every tick, track a `dirty` bitset per entity (set by systems that modify drawable state). Only copy dirty entities under the mutex lock. Reset dirty flags after write. Reduces the 5.5ms (21.2%) WriteSnapshot cost proportional to how many entities actually changed.
 
 ## Recently Done
 
@@ -902,8 +903,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **WriteSnapshot selective update** — In `SimThread::WriteSnapshot()`, instead of copying every field of every entity every tick, track a `dirty` bitset per entity (set by systems that modify drawable state). Only copy dirty entities under the mutex lock. Reset dirty flags after write. Reduces the 5.5ms (21.2%) WriteSnapshot cost proportional to how many entities actually changed.
 
 - [ ] **ScheduleSystem early-exit optimisation** — `ScheduleSystem.cpp` takes 4ms (15.1%) which is high for time-of-day checks. Profile whether the cost is in the view iteration or the schedule logic. If most NPCs don't change state each tick, add a `lastScheduleHour` field to skip re-evaluation when `hourOfDay` hasn't changed since last check.
 
