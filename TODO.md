@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Agent decision cooldown** — In `AgentDecisionSystem.cpp`'s main loop, add a `float decisionCooldown = 0` field on `DeprivationTimer` (or `AgentState`). After an NPC makes a behaviour decision (sets `state.behavior` to a new value), set cooldown to ~0.5 real-seconds. While cooldown > 0, skip the expensive decision evaluation and only tick down the cooldown and continue movement/current-action. This prevents 60/sec re-evaluation — NPCs commit to decisions for ~30 frames. Reset cooldown early if a critical need drops below 0.2 (emergency override). Dramatically reduces per-frame cost of the main decision loop.
-
 ## Recently Done
+
+- [x] **Agent decision cooldown** — Added `float decisionCooldown` to `AgentState`. NPCs commit to
+  decisions for 0.5 real-seconds (~30 frames). Gate placed before migration/needs/facility-finding
+  block. Emergency override resets cooldown when any need < 0.2. Reduces decision evaluations from
+  60/sec to ~2/sec per NPC.
+
+
 
 - [x] **Settlement master count in tooltip** — Added `int masterCount` to `SettlementEntry`. Counted
   in `SimThread::WriteSnapshot` per settlement (skills ≥ 0.9, excluding player/bandits/haulers).
@@ -1045,6 +1050,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
+
+- [ ] **Stagger social scans across frames** — In `AgentDecisionSystem.cpp`'s evening chat block (~line 1776) and celebration friend-recruit block (~line 644), both do `registry.view<...>().each()` scans for every idle NPC every tick. Gate these with `entity % 4 == frameCounter % 4` (add `static int s_frameCounter` incremented each Update call) so only 1/4 of NPCs scan per frame. Same behavior, 4× cheaper for O(n²) social proximity checks.
+
+- [ ] **WriteSnapshot settlement master count via settlAgg** — In `SimThread::WriteSnapshot`, the per-settlement master count currently does a full `registry.view<Skills, HomeSettlement>().each()` per settlement entity. Move the counting into the existing single-pass `settlAgg` accumulation loop (line ~1386) by adding `int masterCount` to the `SettlAgg` struct. Eliminates O(settlements × NPCs) scan, replaces with O(1) lookup from the aggregate.
 
 ### NPC Lifecycle & Identity
 
