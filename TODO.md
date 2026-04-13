@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Gift reciprocity affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the gold transfer, boost `Relations::affinity` of the recipient toward the giver by +0.05 (capped at 1.0). Ensures gift-giving strengthens friendships over time, creating a positive feedback loop.
+
 ## Recently Done
 
 - [x] **NPC satisfaction memory** — `float lastSatisfaction` on `DeprivationTimer`, updated in
@@ -797,8 +799,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### NPC Lifecycle & Identity
 
 ### NPC Social Behaviour
-
-- [ ] **Gift reciprocity affinity boost** — In `AgentDecisionSystem.cpp`'s trade gift block, after the gold transfer, boost `Relations::affinity` of the recipient toward the giver by +0.05 (capped at 1.0). Ensures gift-giving strengthens friendships over time, creating a positive feedback loop.
 
 - [ ] **Wealthy NPC celebration log** — In `AgentDecisionSystem.cpp`, when an NPC's `Money::balance` crosses 500g for the first time, log "[Name] has become wealthy at [Settlement]!" Use a `bool wealthCelebrated` on `DeprivationTimer`. One-time event per NPC that marks economic success.
 
