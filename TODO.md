@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour block, when two NPCs are both grieving (`griefTimer > 0`) at the same settlement, boost their mutual `Relations::affinity` by +0.05 (cap 1.0). Log "[Name] and [Other] find comfort in shared loss at [Settlement]" at 1-in-6 frequency. Uses existing grief infrastructure and staggered frame scan.
+
+## Backlog
 
 - [ ] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs with different professions have `Relations::affinity < 0.1` (strained by taunts) and work at the same facility for 3+ consecutive hours (track via a static map of pair → hour count), 1-in-10 chance to reconcile: boost mutual affinity by +0.05 and log "[Name] and [Other] put aside their differences at [Settlement]." Resets hour count after reconciliation.
 
