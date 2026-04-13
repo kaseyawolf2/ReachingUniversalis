@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bandit intimidation aura** — Idle NPCs near bandits drain home settlement morale. intimidationCooldown on DeprivationTimer.
+
 
 ## Recently Done
+
+- [x] **Bandit intimidation aura** — Idle NPCs within 50u of bandits drain home settlement morale at -0.02/game-hour. Log with 60s cooldown via intimidationCooldown.
+
 
 - [x] **NPC remembers who helped them** — lastHelper on DeprivationTimer. Gratitude greeting replaces plain greeting with +0.05 mutual affinity (5x normal). Clears after expression.
 
@@ -1507,7 +1510,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   the other NPC, log "[Name] thanks [Helper] for past kindness" instead of a plain greeting and
   add +0.05 mutual affinity. Creates gratitude memory that reinforces social bonds.
 
-- [ ] **Bandit intimidation aura** — In `AgentDecisionSystem`'s main NPC loop, idle NPCs within
+- [x] **Bandit intimidation aura** — In `AgentDecisionSystem`'s main NPC loop, idle NPCs within
   50 units of a bandit (check `registry.view<BanditTag, Position>`) get a -0.02 morale drain per
   game-hour applied to their home `Settlement::morale`. Log: "[NPC] feels uneasy near bandits."
   with a cooldown (add `float intimidationCooldown = 0.f` to `DeprivationTimer`, 60 game-sec).
@@ -3022,3 +3025,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   override), skip the greeting entirely and log "[Name] avoids [Other] (mistrusted)". Uses existing
   `try_get<Reputation>`. Creates visible social shunning where low-rep NPCs are frozen out of
   casual interactions, complementing the existing charity refusal for bad-rep NPCs.
+
+- [ ] **NPCs flee settlement when intimidation is high** — In `AgentDecisionSystem`'s idle block,
+  after the bandit intimidation check, if `Settlement::morale < 0.15` and the NPC has been
+  intimidated (intimidationCooldown was just set), 10% chance per game-hour to trigger emergency
+  migration to a random connected settlement. Log "[NPC] flees [Settlement] — too dangerous."
+  Uses existing migration logic (set `state.behavior = AgentBehavior::Migrating`). Creates visible
+  population flight from bandit-terrorized settlements.
+
+- [ ] **Bandit presence shown in settlement tooltip** — In `HUD::DrawSettlementTooltip`, count
+  bandits within 80u of the settlement centre (pipe `int nearbyBandits` through
+  `RenderSnapshot::SettlementEntry`). If > 0, show "Bandits nearby: X" in `Fade(RED, 0.8f)`.
+  Compute in `SimThread::WriteSnapshot` by scanning `BanditTag, Position` vs settlement position.
+  Makes the bandit threat visible without needing to hover individual NPCs.
