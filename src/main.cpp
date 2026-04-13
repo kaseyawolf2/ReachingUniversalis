@@ -21,11 +21,10 @@ static void RunBenchmark(int durationSec, const char* outFile) {
 
     GameState state;
 
-    // Pump speed-up key repeatedly to reach max tick speed
-    for (int i = 0; i < 20; ++i) {
-        state.Update(1.f / 60.f);
-        BeginDrawing(); ClearBackground(BLACK); EndDrawing();
-    }
+    // Set max tick speed directly for benchmark
+    state.SetTickSpeed(128);
+    state.Update(1.f / 60.f);
+    BeginDrawing(); ClearBackground(BLACK); EndDrawing();
 
     auto startTime = std::chrono::steady_clock::now();
     int  sampleCount = 0;

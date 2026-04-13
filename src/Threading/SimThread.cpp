@@ -303,6 +303,9 @@ void SimThread::ProcessInput() {
     // One-shot: speed
     static constexpr int SPEEDS[]    = {1, 2, 4, 8, 16, 32, 64, 128};
     static constexpr int NUM_SPEEDS  = sizeof(SPEEDS) / sizeof(SPEEDS[0]);
+    // Direct tick speed override (benchmark mode)
+    int directSpeed = m_input.setTickSpeed.exchange(0);
+    if (directSpeed > 0) tm.tickSpeed = directSpeed;
     if (m_input.speedUp.exchange(false)) {
         for (int i = 0; i < NUM_SPEEDS - 1; ++i)
             if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i+1]; break; }

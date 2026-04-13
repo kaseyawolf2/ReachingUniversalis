@@ -34,6 +34,9 @@ struct InputSnapshot {
     std::atomic<float> roadBuildToX  {0.f};    // world-space coords of road end (player pos on 2nd N press)
     std::atomic<float> roadBuildToY  {0.f};
 
+    // ---- Direct tick speed override (0 = no override) ----
+    std::atomic<int>  setTickSpeed    {0};
+
     // ---- Continuous player movement (normalised, -1..1) ----
     std::atomic<float> playerMoveX{0.f};
     std::atomic<float> playerMoveY{0.f};

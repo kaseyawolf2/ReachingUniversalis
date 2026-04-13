@@ -26,6 +26,9 @@ public:
     // Expose snapshot for benchmark/diagnostic reads
     const RenderSnapshot& Snapshot() const { return m_snapshot; }
 
+    // Set tick speed directly (for benchmark mode)
+    void SetTickSpeed(int speed) { m_input.setTickSpeed.store(speed); }
+
 private:
     void PollInput(float dt);
 
