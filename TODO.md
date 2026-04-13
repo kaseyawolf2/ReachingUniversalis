@@ -9,6 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Largest family in settlement header** — In `RenderSystem::DrawStockpilePanel`
+  (RenderSystem.cpp), in the header section after the treasury/workers line, add a one-liner
+  showing the most populous family at this settlement: `"Largest family: Smith ×4"`. Build the
+  count by iterating `panel.residents` and finding the `familyName` with the highest count.
+  Only show when at least one family has ≥ 2 members. No new snapshot fields needed.
+
 ## Recently Done
 
 - [x] **Orphan adoption** — Adults with `charityTimer == 0` at settlements with room adopt nearby orphans (within 60u, no valid home). Orphan gets adopter's `HomeSettlement` and `FamilyTag::name`. 120 game-hour cooldown. Logged to EventLog. In `AgentDecisionSystem.cpp` after the charity block.
@@ -1943,12 +1949,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Largest family in settlement header** — In `RenderSystem::DrawStockpilePanel`
-  (RenderSystem.cpp), in the header section after the treasury/workers line, add a one-liner
-  showing the most populous family at this settlement: `"Largest family: Smith ×4"`. Build the
-  count by iterating `panel.residents` and finding the `familyName` with the highest count.
-  Only show when at least one family has ≥ 2 members. No new snapshot fields needed.
 
 - [ ] **Family wealth total in stockpile panel** — Extend the family `×N` display to also show
   the combined gold of all family members in the visible residents list. After `×N` add
