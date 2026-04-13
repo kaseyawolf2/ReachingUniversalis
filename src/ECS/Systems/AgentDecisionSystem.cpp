@@ -452,6 +452,43 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     if (flag) masterFlags[hs.settlement] |= flag;
                 });
 
+            // Pre-compute active mentoring: settlement → profMask of professions
+            // where an elder (age > 60) AND a child (age 12-14) of matching profession coexist.
+            // Used for mentorship rivalry: non-mentor skilled NPCs train harder.
+            std::unordered_map<entt::entity, int> elderProfBySettl;
+            registry.view<Age, Profession, HomeSettlement>(
+                entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                [&](const Age& age, const Profession& prof, const HomeSettlement& hs) {
+                    if (age.days > 60.f && hs.settlement != entt::null
+                        && prof.type != ProfessionType::Idle) {
+                        int flag = (prof.type == ProfessionType::Farmer) ? 1 :
+                                   (prof.type == ProfessionType::WaterCarrier) ? 2 :
+                                   (prof.type == ProfessionType::Lumberjack) ? 4 : 0;
+                        if (flag) elderProfBySettl[hs.settlement] |= flag;
+                    }
+                });
+            std::unordered_map<entt::entity, int> childProfBySettl;
+            registry.view<ChildTag, Age, Profession, HomeSettlement>().each(
+                [&](auto, const Age& age, const Profession& prof, const HomeSettlement& hs) {
+                    if (age.days >= 12.f && age.days <= 14.f && hs.settlement != entt::null
+                        && prof.type != ProfessionType::Idle) {
+                        int flag = (prof.type == ProfessionType::Farmer) ? 1 :
+                                   (prof.type == ProfessionType::WaterCarrier) ? 2 :
+                                   (prof.type == ProfessionType::Lumberjack) ? 4 : 0;
+                        if (flag) childProfBySettl[hs.settlement] |= flag;
+                    }
+                });
+            // Active mentoring = intersection of elder and child profession bits per settlement
+            std::unordered_map<entt::entity, int> activeMentoring;
+            for (const auto& [settl, elderMask] : elderProfBySettl) {
+                auto cit = childProfBySettl.find(settl);
+                if (cit != childProfBySettl.end()) {
+                    int overlap = elderMask & cit->second;
+                    if (overlap) activeMentoring[settl] = overlap;
+                }
+            }
+            static std::mt19937 s_rivalRng{ std::random_device{}() };
+
             // Log RNG
             static std::mt19937 s_teachRng{ std::random_device{}() };
             auto logV2 = registry.view<EventLog>();
@@ -474,6 +511,26 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     // Loyalty bonus: NPCs who never changed profession grow faster
                     bool loyal = (prof.prevType == prof.type || prof.prevType == ProfessionType::Idle);
                     if (loyal) growth += LOYALTY_BONUS;
+                    // Mentorship rivalry: skilled NPCs (≥ 0.7) at settlements with
+                    // active mentoring of their profession train 10% harder.
+                    bool rivalryActive = false;
+                    if (profFlag && hs.settlement != entt::null) {
+                        float activeSkill = 0.f;
+                        switch (prof.type) {
+                            case ProfessionType::Farmer:      activeSkill = sk.farming; break;
+                            case ProfessionType::WaterCarrier: activeSkill = sk.water_drawing; break;
+                            case ProfessionType::Lumberjack:   activeSkill = sk.woodcutting; break;
+                            default: break;
+                        }
+                        if (activeSkill >= 0.7f) {
+                            auto ait = activeMentoring.find(hs.settlement);
+                            if (ait != activeMentoring.end() && (ait->second & profFlag)) {
+                                growth *= 1.1f;
+                                rivalryActive = true;
+                            }
+                        }
+                    }
+
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = 0.f;
                     switch (prof.type) {
@@ -598,6 +655,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 "'s " + skillName + " at " + settlName + ".";
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
                         }
+                    }
+                    // Mentorship rivalry log: 1-in-8 frequency
+                    if (rivalryActive && !logV2.empty() && s_rivalRng() % 8 == 0) {
+                        std::string who = "NPC";
+                        if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                        // Find the mentor (elder) name at this settlement
+                        std::string mentorName = "a mentor";
+                        registry.view<Age, Profession, HomeSettlement, Name>(
+                            entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
+                            [&](const Age& mAge, const Profession& mProf, const HomeSettlement& mHs, const Name& mNm) {
+                                if (mAge.days > 60.f && mProf.type == prof.type
+                                    && mHs.settlement == hs.settlement) {
+                                    mentorName = mNm.value;
+                                }
+                            });
+                        logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                            who + " trains harder, inspired by " + mentorName + "'s teaching.");
                     }
                 });
         }
