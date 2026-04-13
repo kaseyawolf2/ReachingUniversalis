@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Master NPC teaching bonus** — In `AgentDecisionSystem.cpp`'s skill growth block (once per game-day), when a master (skill ≥ 0.9) works at the same settlement as a non-master NPC of the same profession (`Profession::type`), the non-master gains +0.002 per game-day instead of +0.001. Uses `s_entitySettlement` cache to find same-settlement entities. Log "[Master] inspires [Learner]'s [skill] at [Settlement]." at 1-in-10 frequency when triggered.
-
 ## Recently Done
+
+- [x] **Master NPC teaching bonus** — Added per-settlement master profession bitflags built once
+  per game-day. Non-master NPCs at settlements with a master of the same profession gain
+  +0.002/day instead of +0.001. Masters don't boost themselves. Logs "A master inspires [Name]'s
+  [skill] at [Settlement]." at 1-in-10 frequency.
+
+
 
 - [x] **Skill specialisation title in tooltip** — Added `std::string specialisation` to `AgentEntry`.
   Computed in `SimThread::WriteSnapshot`: "Master Farmer/Water-drawer/Lumberjack" when skill ≥ 0.9.
@@ -987,6 +992,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Profession change event log** — In `ScheduleSystem.cpp` or wherever `Profession::type` is updated, when an NPC's profession changes (e.g. from Farmer to WaterCarrier), log "[Name] switched from [Old] to [New] at [Settlement]." at 1-in-2 frequency. Track previous profession via a `ProfessionType prevType` field on `Profession` in `Components.h`.
 
 - [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
+
+- [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
+
+- [ ] **Settlement skill summary in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, compute average skill levels of all working NPCs per resource type and store as `float avgFarming, avgWater, avgWood` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Skills: Farming X%, Water Y%, Wood Z%". Uses `settlAgg` pattern or a new per-settlement accumulator.
 
 ### NPC Social Behaviour
 
