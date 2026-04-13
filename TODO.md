@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC thanks player after witnessing** — In `AgentDecisionSystem`, idle NPCs with `Reputation::score > 0.3` who are within 40 units of the player occasionally log "[NPC] nods respectfully at you." Add `float thankCooldown = 0.f` to `DeprivationTimer` (60 game-sec cooldown). Only fires if the NPC has the Reputation component.
+
 
 ## Recently Done
+
+- [x] **NPC thanks player after witnessing** — Idle NPCs with Reputation > 0.3 within 40u of the player log "[NPC] nods respectfully at you." 60 real-second cooldown via thankCooldown on DeprivationTimer.
+
+
+
 
 - [x] **Witness count shown in confrontation log** — Replaced per-witness log spam with single "Player confronted [bandit] (N witnesses)." summary after the witness loop. Witnesses still get +0.1 rep each.
 
@@ -1566,7 +1571,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   [bandit] (N witnesses)." Replace the existing log call or add a follow-up entry. Makes the social
   impact of confrontation visible in the event log without needing a separate line per witness.
 
-- [ ] **NPC thanks player after witnessing** — In `AgentDecisionSystem`, idle NPCs with
+- [x] **NPC thanks player after witnessing** — In `AgentDecisionSystem`, idle NPCs with
   `Reputation::score > 0.3` who are within 40 units of the player occasionally log "[NPC] nods
   respectfully at you." Add `float thankCooldown = 0.f` to `DeprivationTimer` (60 game-sec
   cooldown). Only fires if the NPC has the Reputation component. Creates ambient feedback for
@@ -1628,6 +1633,17 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   with `lastHelper == playerEntity` greets another NPC, spread the memory: set the other NPC's
   `lastHelper = playerEntity` too (via `get_or_emplace<DeprivationTimer>`). Log "[NPC] tells [Other]
   about the player's bravery." with `greetCooldown` gating. Word of heroic deeds spreads socially.
+
+- [ ] **NPC avoids player with bad reputation** — In `AgentDecisionSystem`'s idle block, after
+  the thank-player check, when the player entity is within 30u and the NPC has `Reputation::score
+  < -0.5`, apply flee velocity away from the player at 0.8× speed for 2 real-seconds (set
+  `timer.panicTimer = 2.f`). Log "[NPC] hurries away from you nervously." Uses the existing
+  `panicTimer` and `playerPos` cache. Negative reputation has visible social consequences.
+
+- [ ] **NPC waves at player when happy** — In `AgentDecisionSystem`'s idle block, near the
+  thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
+  of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
+  `thankCooldown` (reuse existing cooldown). Content NPCs create warm ambient feedback.
 
 ---
 
