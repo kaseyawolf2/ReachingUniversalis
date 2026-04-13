@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
+
 ## Recently Done
 
 - [x] **Career changer adaptation log** — In `ScheduleSystem.cpp`'s profession change block, when
@@ -1021,8 +1023,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Skill rust notification** — In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC's skill drops below 0.5 due to rust (was ≥ 0.5 before decay), log "[Name]'s [skill] is getting rusty at [Settlement]." at 1-in-5 frequency. Uses the pre-decay skill value compared to post-decay. Makes skill loss visible in the event log.
 
 - [ ] **Jack-of-all-trades bonus** — In `ProductionSystem.cpp`, when a working NPC has all three skills ≥ 0.4 (`Skills::farming`, `water_drawing`, `woodcutting`), apply +5% production bonus (`workerContrib *= 1.05f`). Check via `registry.try_get<Skills>`. Rewards generalists who resist full specialisation. Counterbalances skill rust that pushes toward single-skill builds.
 
