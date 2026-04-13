@@ -2150,6 +2150,18 @@ void SimThread::WriteSnapshot() {
                     if (hs.settlement == e && h.bankruptWarned)
                         ++panel.strugglingHaulers;
                 });
+
+            // Skill summary: count masters (≥0.9) and journeymen (≥0.5) per skill type
+            for (int i = 0; i < 3; ++i) { panel.masterCount[i] = 0; panel.journeymanCount[i] = 0; }
+            m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+                [&](auto, const Skills& sk, const HomeSettlement& hs) {
+                    if (hs.settlement != e) return;
+                    float vals[3] = { sk.farming, sk.water_drawing, sk.woodcutting };
+                    for (int i = 0; i < 3; ++i) {
+                        if (vals[i] >= 0.9f)      ++panel.masterCount[i];
+                        else if (vals[i] >= 0.5f)  ++panel.journeymanCount[i];
+                    }
+                });
         }
     });
 

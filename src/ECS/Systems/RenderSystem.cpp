@@ -18,9 +18,12 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     bool hasSpecialty = !panel.specialty.empty();
     bool hasTheft    = (panel.theftCount > 0);
     bool hasStruggling = (panel.strugglingHaulers > 0);
+    bool hasSkillSummary = false;
+    for (int i = 0; i < 3; ++i)
+        if (panel.masterCount[i] + panel.journeymanCount[i] > 0) { hasSkillSummary = true; break; }
     int totalLines  = 1 + 2 + resLines + (eventLines > 0 ? 1 + eventLines : 0)
                       + (hasSpecialty ? 1 : 0) + (hasTheft ? 1 : 0)
-                      + (hasStruggling ? 1 : 0);
+                      + (hasStruggling ? 1 : 0) + (hasSkillSummary ? 1 : 0);
     int residentH   = panel.residents.empty() ? 0
                         : 2 + (LINE_H - 2) + 2*(LINE_H - 3) + (int)panel.residents.size() * (LINE_H - 3);
     int barChartH   = 4 + 3 * (6 + 3);  // stockpile bar chart (3 bars + gaps)
@@ -384,6 +387,25 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         std::snprintf(shBuf, sizeof(shBuf), "Struggling haulers: %d", panel.strugglingHaulers);
         DrawText(shBuf, PX + 8, y, 11, Fade(RED, 0.7f));
         y += LINE_H;
+    }
+
+    // Settlement skill summary — top skill type with master/journeyman counts
+    {
+        int bestIdx = -1, bestTotal = 0;
+        for (int i = 0; i < 3; ++i) {
+            int total = panel.masterCount[i] + panel.journeymanCount[i];
+            if (total > bestTotal) { bestTotal = total; bestIdx = i; }
+        }
+        if (bestIdx >= 0) {
+            const char* skNames[] = { "Farming", "Water", "Woodcutting" };
+            char skBuf[80];
+            std::snprintf(skBuf, sizeof(skBuf), "Top skill: %s (%d master%s, %d journeyman%s)",
+                skNames[bestIdx],
+                panel.masterCount[bestIdx], panel.masterCount[bestIdx] == 1 ? "" : "s",
+                panel.journeymanCount[bestIdx], panel.journeymanCount[bestIdx] == 1 ? "" : "s");
+            DrawText(skBuf, PX + 8, y, 11, Fade(GOLD, 0.7f));
+            y += LINE_H;
+        }
     }
 
     // Population sparkline — mini chart of historical population

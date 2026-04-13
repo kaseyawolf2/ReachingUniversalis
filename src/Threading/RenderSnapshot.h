@@ -237,6 +237,9 @@ struct RenderSnapshot {
         };
         std::vector<AgentInfo>        residents;
         int                           strugglingHaulers = 0; // haulers with bankruptWarned at this settlement
+        // Skill summary: masterCount[0]=farming, [1]=water, [2]=woodcutting; same for journeymen
+        int                           masterCount[3]     = {};
+        int                           journeymanCount[3] = {};
     };
 
     // ---- Data fields ----
