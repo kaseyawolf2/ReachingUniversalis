@@ -9,9 +9,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Skill training between NPCs** — In `AgentDecisionSystem`'s idle block, when two NPCs are within 30u and one has a skill ≥ 0.6 while the other has that same skill < 0.3, the higher-skilled NPC teaches the other: +0.005 per game-hour to the learner's skill, +0.02 affinity for both. Add `float teachCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown). Log "[Teacher] teaches [Learner] about farming/water/woodcutting."
+
 
 ## Recently Done
+
+- [x] **Skill training between NPCs** — Idle NPCs with skill ≥ 0.6 teach nearby (30u) NPCs with that skill < 0.3. +0.005/game-hour gain, +0.02 mutual affinity, 120s cooldown via teachCooldown.
+
+
+
 
 - [x] **NPC thanks player after witnessing** — Idle NPCs with Reputation > 0.3 within 40u of the player log "[NPC] nods respectfully at you." 60 real-second cooldown via thankCooldown on DeprivationTimer.
 
@@ -1577,7 +1582,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   cooldown). Only fires if the NPC has the Reputation component. Creates ambient feedback for
   the player's positive actions without adding gameplay mechanics.
 
-- [ ] **Skill training between NPCs** — In `AgentDecisionSystem`'s idle block, when two NPCs are
+- [x] **Skill training between NPCs** — In `AgentDecisionSystem`'s idle block, when two NPCs are
   within 30u and one has a skill ≥ 0.6 while the other has that same skill < 0.3, the higher-skilled
   NPC teaches the other: +0.005 per game-hour to the learner's skill, +0.02 affinity for both. Add
   `float teachCooldown = 0.f` to `DeprivationTimer` (120 game-sec cooldown). Log "[Teacher] teaches
@@ -1644,6 +1649,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
   of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
   `thankCooldown` (reuse existing cooldown). Content NPCs create warm ambient feedback.
+
+- [ ] **Teaching shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `teachCooldown
+  > 0` on the hovered NPC's `DeprivationTimer`, show "Recently taught/learned" in faint SKYBLUE.
+  Pipe `bool recentlyTaught` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
+  (check `timer.teachCooldown > 0`). No new component needed — just a display flag.
+
+- [ ] **Skill training builds mentor bond** — In `AgentDecisionSystem`'s skill training block,
+  after a successful teach, set `timer.lastHelper = other` on the learner's `DeprivationTimer`.
+  This enables the existing gratitude greeting to fire later: the learner will thank their teacher
+  when they next greet. No new fields needed — reuses `lastHelper` for mentor gratitude.
 
 ---
 
