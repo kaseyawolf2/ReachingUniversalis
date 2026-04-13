@@ -54,7 +54,8 @@ static TradeRoute FindBestRoute(entt::registry& registry,
                                  entt::entity homeSettlement,
                                  int maxCapacity,
                                  const std::string& preferredRoute = "",
-                                 const std::string& avoidRoute = "") {
+                                 const std::string& avoidRoute = "",
+                                 const std::string& loyalRoute = "") {
     TradeRoute best;
     float bestScore = 0.f;  // profit / max(100, distance) — avoids zero division
     s_rivalRejected.erase(homeSettlement);  // reset for this evaluation
@@ -66,7 +67,7 @@ static TradeRoute FindBestRoute(entt::registry& registry,
 
     // Home settlement name for preferred-route matching
     std::string homeName;
-    if (!preferredRoute.empty()) {
+    if (!preferredRoute.empty() || !loyalRoute.empty()) {
         if (auto* hs = registry.try_get<Settlement>(homeSettlement))
             homeName = hs->name;
     }
@@ -149,12 +150,15 @@ static TradeRoute FindBestRoute(entt::registry& registry,
             }
             // Preferred route bonus: +10% when this route matches the hauler's best route
             // Worst route penalty: -20% when this route matches recent worst loss
+            // Loyal route bonus: +15% when hauler has run the same route 5+ times
             if (!homeName.empty()) {
                 auto* destSettl2 = registry.try_get<Settlement>(destEnt);
                 if (destSettl2) {
                     std::string candidate = homeName + "\xe2\x86\x92" + destSettl2->name;
                     if (!preferredRoute.empty() && candidate == preferredRoute)
                         score *= 1.1f;
+                    if (!loyalRoute.empty() && candidate == loyalRoute)
+                        score *= 1.15f;
                     if (!avoidRoute.empty() && candidate == avoidRoute)
                         score *= 0.8f;
                 }
@@ -299,7 +303,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
             // positive margin rather than insisting on MIN_TRIP_PROFIT.
             TradeRoute best = FindBestRoute(registry, home.settlement, inv.maxCapacity,
                                             hauler.bestRoute,
-                                            hauler.worstRouteTimer > 0.f ? hauler.worstRoute : "");
+                                            hauler.worstRouteTimer > 0.f ? hauler.worstRoute : "",
+                                            hauler.consecutiveRouteCount >= 5 ? hauler.lastRoute : "");
             float effectiveMin = (hauler.waitCycles >= MAX_WAIT_CYCLES)
                                  ? MIN_TRIP_PROFIT_FLOOR
                                  : MIN_TRIP_PROFIT;
