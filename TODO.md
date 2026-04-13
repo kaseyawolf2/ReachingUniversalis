@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
+
 ## Recently Done
 
 - [x] **Master retention bonus** — Added `bool masterSettled` to `DeprivationTimer`. Set true in
@@ -1039,8 +1041,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Settlement master count in tooltip** — In `SimThread::WriteSnapshot`'s settlement section, count NPCs at each settlement with any `Skills` value ≥ 0.9 and store as `int masterCount` on `SettlementEntry` in `RenderSnapshot.h`. Display in `HUD.cpp`'s settlement tooltip as "Masters: N" after the population line. Makes the teaching bonus system visible.
 
 - [ ] **Loyalty streak event log** — In `AgentDecisionSystem.cpp`'s skill growth block, when a loyal NPC (prevType == type or prevType == Idle) crosses 0.7 skill threshold, log "[Name] is a dedicated [profession] at [Settlement]." at 1-in-5 frequency. Makes the loyalty bonus system visible to the player. Check pre-growth vs post-growth skill value to fire only on the crossing tick.
 
