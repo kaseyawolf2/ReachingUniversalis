@@ -222,7 +222,50 @@ void ProductionSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
         }
-        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus * moraleBonus * specBonus;
+        // Social cohesion bonus: +1% per friendship pair at the settlement, capped at +10%.
+        // Count mutual pairs where both NPCs have Relations::affinity >= 0.5 toward each other.
+        float cohesionBonus = 1.0f;
+        if (fac.settlement != entt::null) {
+            // Cache per settlement per frame to avoid recounting for every facility
+            static std::map<entt::entity, int> s_cachedPairs;
+            static int s_cachedDay = -1;
+            static int s_cachedHour = -1;
+            auto tmv = registry.view<TimeManager>();
+            int curDay = 0, curHour = 0;
+            if (!tmv.empty()) {
+                const auto& tmRef = tmv.get<TimeManager>(*tmv.begin());
+                curDay = tmRef.day; curHour = (int)tmRef.hourOfDay;
+            }
+            if (curDay != s_cachedDay || curHour != s_cachedHour) {
+                s_cachedPairs.clear();
+                s_cachedDay = curDay;
+                s_cachedHour = curHour;
+                // Build per-settlement friendship pair counts
+                registry.view<Relations, HomeSettlement>(
+                    entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                    [&](auto e, const Relations& rel, const HomeSettlement& hs) {
+                    for (const auto& [other, aff] : rel.affinity) {
+                        if (aff < 0.5f) continue;
+                        if (e >= other) continue;  // count each pair once
+                        if (!registry.valid(other)) continue;
+                        const auto* oHome = registry.try_get<HomeSettlement>(other);
+                        if (!oHome || oHome->settlement != hs.settlement) continue;
+                        const auto* oRel = registry.try_get<Relations>(other);
+                        if (!oRel) continue;
+                        auto it = oRel->affinity.find(e);
+                        if (it == oRel->affinity.end() || it->second < 0.5f) continue;
+                        s_cachedPairs[hs.settlement]++;
+                    }
+                });
+            }
+            auto it = s_cachedPairs.find(fac.settlement);
+            if (it != s_cachedPairs.end() && it->second > 0) {
+                float bonus = std::min(0.10f, it->second * 0.01f);
+                cohesionBonus = 1.0f + bonus;
+            }
+        }
+
+        float modifier   = (settl ? settl->productionModifier : 1.f) * seasonMod * elderBonus * moraleBonus * specBonus * cohesionBonus;
 
         float grossOutput = fac.baseRate * scale * skillMult * gameHoursDt * modifier;
 
