@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
+
 ## Recently Done
 
 - [x] **Profession change event log** — Added `ProfessionType prevType` to `Profession` struct.
@@ -995,8 +997,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
 
 ### NPC Lifecycle & Identity
-
-- [ ] **Skill rust from inactivity** — In `AgentDecisionSystem.cpp`'s skill growth block, for each skill NOT matching the NPC's current profession, apply -0.0005 per game-day (half the growth rate). Capped at floor 0.3 — skills never fully decay. Makes career changes meaningful: switching professions costs accumulated expertise.
 
 - [ ] **Master exodus warning** — In `AgentDecisionSystem.cpp`'s migration trigger block, when a migrating NPC has any skill ≥ 0.9 (master), log "[Name], a master [skill], leaves [Settlement]." at full frequency. Losing a master has gameplay consequences (other NPCs lose the teaching bonus). Adds narrative weight to skilled NPC departures.
 
