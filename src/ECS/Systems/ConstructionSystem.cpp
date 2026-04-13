@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <limits>
+#include <random>
 
 // How often to evaluate construction opportunities (game-hours).
 static constexpr float CHECK_INTERVAL    = 24.f;
@@ -95,6 +96,14 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
     registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
         [&](const HomeSettlement& hs) { ++popCount[hs.settlement]; });
 
+    // Count skilled elders per settlement (for construction discount)
+    std::map<entt::entity, int> skilledElderCount;
+    registry.view<Age, Skills, HomeSettlement>(entt::exclude<PlayerTag>).each(
+        [&](const Age& age, const Skills& sk, const HomeSettlement& hs) {
+        if (age.days > 60.f && (sk.farming >= 0.7f || sk.water_drawing >= 0.7f || sk.woodcutting >= 0.7f))
+            ++skilledElderCount[hs.settlement];
+    });
+
     // Evaluate each settlement for construction opportunity
     registry.view<Position, Settlement, Stockpile, Market>().each(
         [&](auto e, const Position& sPos, Settlement& s, const Stockpile& sp, const Market& mkt) {
@@ -132,8 +141,14 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
 
         if (!shouldBuild) return;
 
+        // Elder council discount: 2+ skilled elders reduce cost by 10%
+        float actualCost = CONSTRUCTION_COST;
+        bool elderDiscount = (skilledElderCount[e] >= 2);
+        if (elderDiscount)
+            actualCost = std::floor(CONSTRUCTION_COST * 0.9f);
+
         // Charge the treasury
-        s.treasury -= CONSTRUCTION_COST;
+        s.treasury -= actualCost;
 
         // Determine placement position:
         // If existing facilities of this type exist, place near their average center.
@@ -176,14 +191,25 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
         if (log) {
             std::string where = "?";
             if (const auto* st = registry.try_get<Settlement>(e)) where = st->name;
-            char buf[120];
+            char buf[160];
             std::snprintf(buf, sizeof(buf),
                 "%s built a new %s (%.0fg) — %s price was %.1fg",
-                where.c_str(), resName, CONSTRUCTION_COST,
+                where.c_str(), resName, actualCost,
                 (buildType == ResourceType::Food)  ? "food"  :
                 (buildType == ResourceType::Water) ? "water" : "wood",
                 bestPrice);
             log->Push(tm.day, (int)tm.hourOfDay, buf);
+
+            // Elder council guidance log at 1-in-5 frequency
+            if (elderDiscount) {
+                static std::mt19937 s_elderCouncilRng{ std::random_device{}() };
+                if (s_elderCouncilRng() % 5 == 0) {
+                    char ebuf[120];
+                    std::snprintf(ebuf, sizeof(ebuf),
+                        "%s's elders guide the construction effort", where.c_str());
+                    log->Push(tm.day, (int)tm.hourOfDay, ebuf);
+                }
+            }
         }
     });
 
