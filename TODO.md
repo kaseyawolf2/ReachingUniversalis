@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Profession pride jealousy** — In `AgentDecisionSystem.cpp`'s skill growth block, right after the profession pride announcement triggers (skill crosses 0.8), scan NPCs at the same settlement with the same `Profession::type` and skill between 0.6–0.79. For each, 1-in-4 chance to decrease their `Relations::affinity` toward the announcing NPC by 0.01 (floor 0.0). Log "[Jealous NPC] envies [Master]'s skill at [Settlement]" at 1-in-6 frequency. Creates nuanced social dynamics around skill progression.
+
+## Backlog
 
 - [ ] **Grief badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool grieving = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::griefTimer > 0`. In `HUD.cpp`'s NPC tooltip, display "[Grieving]" in muted purple after the specialisation line. Makes NPC emotional state visible to the player without needing the event log.
 
