@@ -968,6 +968,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 tm.day, (int)tm.hourOfDay, msg);
                         }
                     }
+                    // Family reunion clears grief early
+                    if (isFamilyReunion && (timer.griefTimer > 0.f || oTimer.griefTimer > 0.f)) {
+                        timer.griefTimer  *= 0.5f;
+                        oTimer.griefTimer *= 0.5f;
+                        auto lv3 = registry.view<EventLog>();
+                        if (lv3.begin() != lv3.end()) {
+                            const auto* myName3 = registry.try_get<Name>(entity);
+                            std::string comfortMsg = (myName3 ? myName3->value : "An NPC") +
+                                " finds comfort in " + oName.value + "'s company.";
+                            lv3.get<EventLog>(*lv3.begin()).Push(
+                                tm.day, (int)tm.hourOfDay, comfortMsg);
+                        }
+                    }
                     // Gossip about player bravery: spread lastHelper to the other NPC
                     if (playerEntity != entt::null &&
                         timer.lastHelper == playerEntity &&
