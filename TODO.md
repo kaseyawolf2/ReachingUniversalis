@@ -9,7 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Hauler profit shown in stockpile panel** — In `RenderSystem::DrawStockpilePanel`, after
+  each hauler route line, append profit info: " (+Xg)" in GREEN or " (-Xg)" in RED using
+  `Hauler::lifetimeProfit`. Add `float lifetimeProfit` to `StockpilePanel::HaulerInfo`. Pipe
+  from `SimThread::WriteSnapshot` by reading `h.lifetimeProfit`. Helps players see which haulers
+  are profitable at a glance.
 
 
 
