@@ -883,6 +883,47 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             fState->target   = dest;
                             if (fTimer)
                                 fTimer->stockpileEmpty = 0.f;
+
+                            // ---- Third NPC: scan best friend's friends for one additional companion ----
+                            entt::entity thirdNpc = entt::null;
+                            if (const auto* fRel = registry.try_get<Relations>(bestFriend)) {
+                                float bestThirdAff = FRIEND_THRESHOLD - 0.01f;
+                                for (const auto& [candidate, aff] : fRel->affinity) {
+                                    if (aff < FRIEND_THRESHOLD) continue;
+                                    if (candidate == entity) continue; // already the initiator
+                                    if (!registry.valid(candidate)) continue;
+                                    auto* cHome  = registry.try_get<HomeSettlement>(candidate);
+                                    auto* cState = registry.try_get<AgentState>(candidate);
+                                    if (!cHome || !cState) continue;
+                                    if (cHome->settlement != home.settlement) continue;
+                                    if (cState->behavior == AgentBehavior::Migrating) continue;
+                                    if (aff > bestThirdAff) {
+                                        // Check if candidate has a valid migration target
+                                        auto* cSkills     = registry.try_get<Skills>(candidate);
+                                        auto* cProfession = registry.try_get<Profession>(candidate);
+                                        auto* cMemory     = registry.try_get<MigrationMemory>(candidate);
+                                        auto* cTimerPtr   = registry.try_get<DeprivationTimer>(candidate);
+                                        float cSat = cTimerPtr ? cTimerPtr->lastSatisfaction : 0.5f;
+                                        entt::entity cDest = FindMigrationTarget(registry, cHome->settlement,
+                                            cSkills, cProfession, cMemory, tm.day, cSat);
+                                        if (cDest != entt::null) {
+                                            bestThirdAff = aff;
+                                            thirdNpc = candidate;
+                                        }
+                                    }
+                                }
+                                if (thirdNpc != entt::null) {
+                                    auto* cState2 = registry.try_get<AgentState>(thirdNpc);
+                                    auto* cTimer2 = registry.try_get<DeprivationTimer>(thirdNpc);
+                                    if (cState2) {
+                                        cState2->behavior = AgentBehavior::Migrating;
+                                        cState2->target   = dest;
+                                    }
+                                    if (cTimer2)
+                                        cTimer2->stockpileEmpty = 0.f;
+                                }
+                            }
+
                             // Log co-migration at 1-in-2 frequency
                             static std::mt19937 s_coMigRng{ std::random_device{}() };
                             static std::uniform_int_distribution<int> s_coMigDist(0, 1);
@@ -898,9 +939,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                         entityName = en->value;
                                     std::string toName = "?";
                                     if (auto* s = registry.try_get<Settlement>(dest)) toName = s->name;
-                                    lv2.get<EventLog>(*lv2.begin()).Push(
-                                        tm3.day, (int)tm3.hourOfDay,
-                                        entityName + " and " + friendName + " migrate together to " + toName);
+                                    if (thirdNpc != entt::null) {
+                                        std::string thirdName = "another";
+                                        if (const auto* tn = registry.try_get<Name>(thirdNpc))
+                                            thirdName = tn->value;
+                                        lv2.get<EventLog>(*lv2.begin()).Push(
+                                            tm3.day, (int)tm3.hourOfDay,
+                                            entityName + ", " + friendName + ", and " + thirdName + " leave together for " + toName);
+                                    } else {
+                                        lv2.get<EventLog>(*lv2.begin()).Push(
+                                            tm3.day, (int)tm3.hourOfDay,
+                                            entityName + " and " + friendName + " migrate together to " + toName);
+                                    }
                                 }
                             }
                         }
