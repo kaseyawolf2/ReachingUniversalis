@@ -9,14 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **NPC waves at player when happy** — In `AgentDecisionSystem`'s idle block, near the
-  thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
-  of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
-  `thankCooldown` (reuse existing cooldown). Content NPCs create warm ambient feedback.
+
 
 
 
 ## Recently Done
+
+- [x] **NPC waves at player when happy** — Content NPCs (avg needs > 0.8) within 50u wave at player with 1%/s chance. Gated by thankCooldown (60s). Logs "[NPC] waves at you cheerfully."
 
 - [x] **NPC avoids player with bad reputation** — NPCs with Reputation < -0.5 within 30u flee at 0.8× speed for 2s via panicTimer. Logs "[NPC] hurries away from you nervously."
 
@@ -1648,11 +1647,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **NPC waves at player when happy** — In `AgentDecisionSystem`'s idle block, near the
-  thank-player check, when the NPC has avg needs > 0.8 and is within 50u of the player (regardless
-  of Reputation), 1% chance per real-second to log "[NPC] waves at you cheerfully." Gate with
-  `thankCooldown` (reuse existing cooldown). Content NPCs create warm ambient feedback.
-
 - [ ] **Teaching shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when `teachCooldown
   > 0` on the hovered NPC's `DeprivationTimer`, show "Recently taught/learned" in faint SKYBLUE.
   Pipe `bool recentlyTaught` through `RenderSnapshot::AgentEntry` from `SimThread::WriteSnapshot`
@@ -3272,3 +3266,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   rep < -1.0 → 50u/1.0×, rep < -2.0 → 80u/1.2×. Use `std::abs(rep->score)` to index into
   thresholds. Severely disliked players clear entire areas. Keep the same panicTimer = 2.f and
   log message pattern.
+
+- [ ] **NPC beckons player toward settlement** — In `AgentDecisionSystem`'s idle block, after the
+  wave-at-player check, when an idle NPC has avg needs > 0.7 and the player is 50–100u from the
+  NPC's home settlement, 0.5% chance per real-second to log "[NPC] beckons you toward [Settlement]."
+  Gate with `thankCooldown`. NPCs at thriving settlements advertise their home as a welcoming place.
+
+- [ ] **Sad NPC sighs near player** — In `AgentDecisionSystem`'s idle block, near the wave check,
+  when an idle NPC has avg needs < 0.3 and is within 40u of the player, 0.5% chance per real-second
+  to log "[NPC] sighs wearily." Gate with `thankCooldown`. Struggling NPCs create ambient feedback
+  that communicates the world's problems without explicit UI indicators.
