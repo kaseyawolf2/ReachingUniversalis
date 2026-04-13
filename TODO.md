@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, when two haulers travel in convoy (`inConvoy == true`) and complete delivery at the same settlement, boost their `Relations::affinity` by +0.04 (cap 1.0). Log "[HaulerA] and [HaulerB] share a drink after their convoy to [Settlement]" at 1-in-4 frequency. Uses existing `Hauler::inConvoy` flag and `Relations` component.
-
 ## Backlog
 
 - [ ] **Novice hauler bankruptcy sympathy** — In `TransportSystem.cpp`'s bankruptcy block, when a novice hauler (`lifetimeTrips < 10`) goes bankrupt, nearby NPCs at the same home settlement with `Relations::affinity >= 0.4` toward the bankrupt hauler each donate 5g (deducted from `Money::balance`, credited to bankrupt hauler's balance — Gold Flow Rule: balance-to-balance). Log "[Friend] helps [Bankrupt] get back on their feet at [Settlement]" at 1-in-3 frequency. Cap at 3 donors max.
@@ -31,7 +29,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
 
+- [ ] **Hauler rival route competition** — In `TransportSystem.cpp`'s route selection (`FindBestRoute`), when two haulers from the same home settlement pick the same route consecutively (track via static map of `(homeSettlement, route) → lastHaulerEntity`), decrease their `Relations::affinity` by 0.02 (floor 0.0). Log "[HaulerA] undercuts [HaulerB] on the [Route] route" at 1-in-5 frequency. Creates economic rivalry between competing haulers.
+
+- [ ] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection block (GoingToDeposit), when a hauler detects a potential convoy partner, if `Relations::affinity >= 0.5` toward that partner, increase convoy detection range from 60 to 90 units. Log "[HaulerA] joins up with friend [HaulerB]" at 1-in-6 frequency. Makes social bonds influence trade logistics.
+
 ## Recently Done
+
+- [x] **Hauler convoy camaraderie** — In `TransportSystem.cpp`, haulers arriving in convoy at the
+  same destination boost mutual affinity by +0.04. Logs sharing a drink at 1-in-4 frequency.
+  Checks `inConvoy` flag and proximity within 80 units at delivery time.
 
 - [x] **NPC gratitude after festival** — In `AgentDecisionSystem.cpp`'s idle chat block, during
   Harvest Festival affinity gain doubles from +0.02 to +0.04. Logs "[Name] and [Other] bond over
