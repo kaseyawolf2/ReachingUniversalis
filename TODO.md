@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **NPC work song** — In `ScheduleSystem.cpp`'s working block, when 3+ NPCs of the same `Profession::type` are working at the same facility (check via position within `WORK_ARRIVE` radius), 1-in-30 chance per hour to log "[Name] leads a work song at [Settlement]" and boost all co-workers' `Relations::affinity` by +0.01 (cap 1.0). Uses existing working state and facility proximity checks.
+
+## Backlog
 
 - [ ] **Hauler rival route competition** — In `TransportSystem.cpp`'s route selection (`FindBestRoute`), when two haulers from the same home settlement pick the same route consecutively (track via static map of `(homeSettlement, route) → lastHaulerEntity`), decrease their `Relations::affinity` by 0.02 (floor 0.0). Log "[HaulerA] undercuts [HaulerB] on the [Route] route" at 1-in-5 frequency. Creates economic rivalry between competing haulers.
 
