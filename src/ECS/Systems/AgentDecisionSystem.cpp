@@ -800,11 +800,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
-                // ---- Friend follows: 30% chance a close friend migrates together ----
-                static constexpr float FRIEND_FOLLOW_PROB  = 0.30f;
-                static std::uniform_real_distribution<float> s_friendDist(0.f, 1.f);
-                static std::mt19937 s_friendRng{ std::random_device{}() };
+                // ---- Friend co-migration: best friend (highest affinity ≥ 0.5) follows if they also want to migrate ----
                 if (const auto* rel = registry.try_get<Relations>(entity)) {
+                    entt::entity bestFriend = entt::null;
+                    float bestAffinity = FRIEND_THRESHOLD - 0.01f;
                     for (const auto& [friendEnt, affinity] : rel->affinity) {
                         if (affinity < FRIEND_THRESHOLD) continue;
                         if (!registry.valid(friendEnt)) continue;
@@ -813,28 +812,50 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         if (!fHome || !fState) continue;
                         if (fHome->settlement != home.settlement) continue;
                         if (fState->behavior == AgentBehavior::Migrating) continue;
-                        if (s_friendDist(s_friendRng) >= FRIEND_FOLLOW_PROB) continue;
-                        // Friend follows!
-                        fState->behavior = AgentBehavior::Migrating;
-                        fState->target   = dest;
-                        if (auto* fTmr = registry.try_get<DeprivationTimer>(friendEnt))
-                            fTmr->stockpileEmpty = 0.f;
-                        auto lv2 = registry.view<EventLog>();
-                        if (lv2.begin() != lv2.end()) {
-                            const auto& tm3 = timeView.get<TimeManager>(*timeView.begin());
-                            std::string friendName = "A neighbour";
-                            if (const auto* fn = registry.try_get<Name>(friendEnt))
-                                friendName = fn->value;
-                            std::string entityName = "someone";
-                            if (const auto* en = registry.try_get<Name>(entity))
-                                entityName = en->value;
-                            std::string toName = "?";
-                            if (auto* s = registry.try_get<Settlement>(dest)) toName = s->name;
-                            lv2.get<EventLog>(*lv2.begin()).Push(
-                                tm3.day, (int)tm3.hourOfDay,
-                                friendName + " and " + entityName + " left together → " + toName);
+                        if (affinity > bestAffinity) {
+                            bestAffinity = affinity;
+                            bestFriend = friendEnt;
                         }
-                        break;  // one friend follows per migration event
+                    }
+                    if (bestFriend != entt::null) {
+                        // Check if friend also has a valid migration target (would want to leave)
+                        auto* fSkills     = registry.try_get<Skills>(bestFriend);
+                        auto* fProfession = registry.try_get<Profession>(bestFriend);
+                        auto* fMemory     = registry.try_get<MigrationMemory>(bestFriend);
+                        auto* fTimer      = registry.try_get<DeprivationTimer>(bestFriend);
+                        float fSatisfaction = fTimer ? fTimer->lastSatisfaction : 0.5f;
+                        auto* fHome  = registry.try_get<HomeSettlement>(bestFriend);
+                        auto* fState = registry.try_get<AgentState>(bestFriend);
+                        entt::entity friendDest = FindMigrationTarget(registry, fHome->settlement,
+                            fSkills, fProfession, fMemory, tm.day, fSatisfaction);
+                        // Friend follows if they have any valid migration target (score > 0)
+                        if (friendDest != entt::null) {
+                            // Send friend to same destination as the initiator
+                            fState->behavior = AgentBehavior::Migrating;
+                            fState->target   = dest;
+                            if (fTimer)
+                                fTimer->stockpileEmpty = 0.f;
+                            // Log co-migration at 1-in-2 frequency
+                            static std::mt19937 s_coMigRng{ std::random_device{}() };
+                            static std::uniform_int_distribution<int> s_coMigDist(0, 1);
+                            if (s_coMigDist(s_coMigRng) == 0) {
+                                auto lv2 = registry.view<EventLog>();
+                                if (lv2.begin() != lv2.end()) {
+                                    const auto& tm3 = timeView.get<TimeManager>(*timeView.begin());
+                                    std::string friendName = "A neighbour";
+                                    if (const auto* fn = registry.try_get<Name>(bestFriend))
+                                        friendName = fn->value;
+                                    std::string entityName = "someone";
+                                    if (const auto* en = registry.try_get<Name>(entity))
+                                        entityName = en->value;
+                                    std::string toName = "?";
+                                    if (auto* s = registry.try_get<Settlement>(dest)) toName = s->name;
+                                    lv2.get<EventLog>(*lv2.begin()).Push(
+                                        tm3.day, (int)tm3.hourOfDay,
+                                        entityName + " and " + friendName + " migrate together to " + toName);
+                                }
+                            }
+                        }
                     }
                 }
 
