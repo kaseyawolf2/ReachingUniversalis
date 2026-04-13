@@ -9,9 +9,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler avoids recently unprofitable routes** — worstRoute/worstLoss/worstRouteTimer on Hauler. -20% score in FindBestRoute for 24 game-hours.
+
 
 ## Recently Done
+
+- [x] **Hauler avoids recently unprofitable routes** — worstRoute/worstLoss/worstRouteTimer on Hauler. -20% score penalty in FindBestRoute for 24 game-hours after a loss. Timer auto-clears.
+
 
 - [x] **Player reputation affects trade prices** — Rep ≥100 = 10% discount, ≥50 = 5%, ≤-20 = 10% markup on T/Q key purchases. Gold flow to treasury preserved.
 
@@ -1490,7 +1493,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `(1.0 - repDiscount)`. Gold flow: discount reduces gold paid to settlement treasury. Log when
   discount is first applied: "Your reputation earns you a discount at [Settlement]."
 
-- [ ] **Hauler avoids recently unprofitable routes** — Add `std::string worstRoute = ""` and
+- [x] **Hauler avoids recently unprofitable routes** — Add `std::string worstRoute = ""` and
   `float worstLoss = 0.f` to `Hauler`. In `TransportSystem` delivery completion, track the worst
   loss. In `FindBestRoute`, penalize routes matching `worstRoute` by -20% score for 24 game-hours
   (add `float worstRouteTimer = 0.f`). Haulers learn from mistakes and avoid known bad trades.
@@ -2992,3 +2995,16 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   of [Settlement] refuse to trade with you." In `AgentDecisionSystem`, NPCs at that settlement
   also refuse E-key work requests from the player (check `PlayerTag` proximity and rep via
   `RenderSnapshot::playerReputation`). Reputation must recover above -30 to re-enable trade.
+
+- [ ] **Hauler worst route shown in tooltip** — In `HUD::DrawHoverTooltip`, when the hovered
+  agent is a hauler with non-empty `worstRoute` and `worstRouteTimer > 0`, show "Avoiding: [route]
+  (Xh left)" in `Fade(RED, 0.6f)`. Pipe `worstRoute` and `worstRouteTimer` through `AgentEntry`
+  in `RenderSnapshot.h` (add `std::string worstRoute; float worstRouteTimer = 0.f`). Extract in
+  `SimThread::WriteSnapshot` from the Hauler component. Makes route avoidance visible to the player.
+
+- [ ] **Hauler gossips about bad route** — In `TransportSystem`, when a hauler records a new
+  `worstRoute` (loss-making trip), find other haulers at the same home settlement via
+  `registry.view<Hauler, HomeSettlement>`. If another hauler has the same `bestRoute` as this
+  hauler's `worstRoute`, set that hauler's `worstRoute` to match and `worstRouteTimer = 12.f`
+  (half duration — secondhand info). Log "[Hauler A] warns [Hauler B] about [route]." Creates
+  information sharing between haulers — bad news travels through the trade network.
