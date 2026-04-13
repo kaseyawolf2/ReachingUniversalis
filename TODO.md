@@ -9,6 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Friend grief on death** — In `DeathSystem.cpp`'s inheritance loop, after the family
+  dissolution check, scan all NPCs who have the dead entity in their `Relations::affinity` map
+  with affinity ≥ 0.5. For each friend, lower their home settlement's morale by -0.03 and
+  set their `DeprivationTimer::helpedTimer = 0.f`. Log for the 2 closest friends only.
+
 ## Recently Done
 
 - [x] **Friendship shown in NPC tooltip** — `bestFriendName` + `bestFriendAffinity` on `AgentEntry`. WriteSnapshot iterates `Relations::affinity`. Tooltip shows "Friend: Name (X%)" in LIME when affinity ≥ 0.5.
@@ -1971,13 +1976,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `GameState::Draw` (after drawing settlement dots), iterate `snap.settlements` and count how many
   agents have matching `homeSettlName`. Draw `DrawCircleLinesV` with radius scaled by `pop / popCap`
   in `Fade(SKYBLUE, 0.15f)`. Requires no new snapshot fields — use existing agent data.
-
-- [ ] **Friend grief on death** — In `DeathSystem.cpp`'s inheritance loop, after the family
-  dissolution check, scan all NPCs who have the dead entity in their `Relations::affinity` map
-  with affinity ≥ 0.5. For each friend, lower their home settlement's morale by -0.03 and
-  set their `DeprivationTimer::helpedTimer = 0.f` (clears "recently helped" so the grief resets
-  social warmth). Log `"[Name] mourns the loss of [dead Name] at [settlement]."` Only log
-  for the 2 closest friends (highest affinity) to avoid log spam.
 
 - [ ] **Friendship bonus on birth** — In `BirthSystem.cpp`, when a birth occurs, check if the
   parent NPC has any friends (Relations::affinity ≥ 0.5) at the same settlement. If so, give
