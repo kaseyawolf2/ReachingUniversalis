@@ -9,15 +9,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Nearby NPCs join skill celebration** — In `AgentDecisionSystem`'s Celebrating block, when
-  an NPC is celebrating a skill milestone (`skillCelebrateTimer > 0`), scan for idle NPCs within
-  30u with `Relations::affinity >= 0.2`. Set those NPCs to `AgentBehavior::Celebrating` with
-  `skillCelebrateTimer = 0.25f` (half duration). Log "[Friend] joins [Celebrant]'s celebration."
-  Friends share in each other's achievements.
+
 
 
 
 ## Recently Done
+
+- [x] **Nearby NPCs join skill celebration** — Idle friends (Relations::affinity >= 0.2) within 30u join skill celebrations with 0.25 game-hour timer. Logs "[Friend] joins [Celebrant]'s celebration."
 
 - [x] **NPC mood contagion in idle** — Happy NPCs (avg needs > 0.8) cheer up struggling NPCs (avg needs < 0.4) within 25u, boosting home settlement morale +0.01/game-hour. 120s cooldown via moodContagionCooldown.
 
@@ -1639,12 +1637,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   route; bool struggling; }` and `std::vector<HaulerInfo> haulerRoutes` to `StockpilePanel`. Pipe
   from `SimThread::WriteSnapshot` by iterating Hauler+HomeSettlement+Name at the selected settlement.
 
-- [ ] **Nearby NPCs join skill celebration** — In `AgentDecisionSystem`'s Celebrating block, when
-  an NPC is celebrating a skill milestone (`skillCelebrateTimer > 0`), scan for idle NPCs within
-  30u with `Relations::affinity >= 0.2`. Set those NPCs to `AgentBehavior::Celebrating` with
-  `skillCelebrateTimer = 0.25f` (half duration). Log "[Friend] joins [Celebrant]'s celebration."
-  Friends share in each other's achievements.
-
 - [ ] **Milestone celebration boosts settlement morale** — In `ScheduleSystem`'s `checkMilestone`
   lambda, when a Master milestone (idx 1) is reached, boost the NPC's home `Settlement::morale`
   by +0.03. Access via `registry.try_get<HomeSettlement>(entity)` then
@@ -3233,3 +3225,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   +0.02 (one-time). This creates a small direct benefit beyond morale — the happy NPC's presence
   genuinely helps. Cap the boost so the need doesn't exceed 0.5. Emotional support has tangible
   health benefits.
+
+- [ ] **Celebration builds affinity between participants** — In `AgentDecisionSystem`'s Celebrating
+  block, after the friend-recruitment scan, when two celebrating NPCs are within 20u of each other
+  (both have `skillCelebrateTimer > 0`), boost mutual `Relations::affinity` by +0.03/game-hour
+  (use `get_or_emplace<Relations>`). Gate with a `static float` per-frame check to avoid O(n²)
+  every tick — only run once per 2 real-seconds. Shared celebration strengthens social bonds.
+
+- [ ] **Celebration shown in NPC tooltip** — In `HUD.cpp`'s `DrawHoverTooltip`, when the hovered
+  NPC has `AgentBehavior::Celebrating` and `skillCelebrateTimer > 0` (piped as `bool celebrating`
+  through `RenderSnapshot::AgentEntry`), show "Celebrating!" in faint GOLD. Add the bool in
+  `SimThread::WriteSnapshot`'s agent loop. Simple visual feedback for an active social event.
