@@ -223,6 +223,60 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 }
             }
         }
+
+        // ---- Friend grief on death ----
+        // NPCs with affinity ≥ 0.5 toward the deceased mourn: morale -0.03, clear helpedTimer.
+        // Log for the 2 closest friends only.
+        {
+            std::string deadName = "Someone";
+            if (const auto* nm = registry.try_get<Name>(e)) deadName = nm->value;
+
+            struct FriendGrief { entt::entity e; float affinity; };
+            std::vector<FriendGrief> grievingFriends;
+
+            registry.view<Relations, DeprivationTimer>().each(
+                [&](auto other, Relations& rel, DeprivationTimer& oTmr) {
+                if (other == e) return;
+                for (auto dead : toRemove) if (dead == other) return;
+                auto it = rel.affinity.find(e);
+                if (it == rel.affinity.end() || it->second < 0.5f) return;
+
+                // Apply grief effects
+                oTmr.helpedTimer = 0.f;
+                if (const auto* oHs = registry.try_get<HomeSettlement>(other)) {
+                    if (oHs->settlement != entt::null && registry.valid(oHs->settlement)) {
+                        if (auto* settl = registry.try_get<Settlement>(oHs->settlement))
+                            settl->morale = std::max(0.f, settl->morale - 0.03f);
+                    }
+                }
+                grievingFriends.push_back({other, it->second});
+            });
+
+            // Log for the 2 closest friends
+            if (!grievingFriends.empty()) {
+                std::sort(grievingFriends.begin(), grievingFriends.end(),
+                    [](const FriendGrief& a, const FriendGrief& b) { return a.affinity > b.affinity; });
+                int logged = 0;
+                auto logView6 = registry.view<EventLog>();
+                if (!logView6.empty()) {
+                    auto& tm6 = timeView.get<TimeManager>(*timeView.begin());
+                    for (const auto& fg : grievingFriends) {
+                        if (logged >= 2) break;
+                        std::string friendName = "An NPC";
+                        if (const auto* fn = registry.try_get<Name>(fg.e)) friendName = fn->value;
+                        std::string settlName;
+                        if (const auto* fhs = registry.try_get<HomeSettlement>(fg.e))
+                            if (fhs->settlement != entt::null && registry.valid(fhs->settlement))
+                                if (const auto* s = registry.try_get<Settlement>(fhs->settlement))
+                                    settlName = " at " + s->name;
+                        logView6.get<EventLog>(*logView6.begin()).Push(
+                            tm6.day, (int)tm6.hourOfDay,
+                            friendName + " mourns the loss of friend " + deadName + settlName + ".");
+                        ++logged;
+                    }
+                }
+            }
+        }
     }
 
     for (auto e : toRemove) {
