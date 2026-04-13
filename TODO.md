@@ -9,12 +9,11 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **BecomeHauler goal auto-completes on graduation** — In `EconomicMobilitySystem.cpp`,
-  when an NPC graduates to Hauler (`registry.emplace<Hauler>`), check if they have a `Goal` with
-  `type == GoalType::BecomeHauler`. If so, set `goal.progress = goal.target` immediately so the
-  goal system picks it up next tick and triggers the celebration + new goal assignment.
+
 
 ## Recently Done
+
+- [x] **BecomeHauler goal auto-completes on graduation** — In EconomicMobilitySystem, set `goal.progress = goal.target` when goal type is BecomeHauler during hauler graduation.
 
 - [x] **Goal progress milestone log** — `halfwayLogged` bool on `Goal` struct. EventLog push at 50% progress with type-appropriate units. Reset on new goal assignment.
 
@@ -1851,7 +1850,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `halfwayLogged = true` after firing. Reset it to `false` when a new goal is assigned. Gives
   players a mid-goal feedback signal.
 
-- [ ] **BecomeHauler goal auto-completes on graduation** — In `EconomicMobilitySystem.cpp`,
+- [x] **BecomeHauler goal auto-completes on graduation** — In `EconomicMobilitySystem.cpp`,
   when an NPC graduates to Hauler (`registry.emplace<Hauler>`), check if they have a `Goal` with
   `type == GoalType::BecomeHauler`. If so, set `goal.progress = goal.target` immediately so the
   goal system picks it up next tick and triggers the celebration + new goal assignment. Currently
@@ -3404,3 +3403,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
   `RenderSnapshot::AgentEntry`. In `SimThread::WriteSnapshot`, set it from `Goal::halfwayLogged`.
   In `HUD::DrawHoverTooltip`, when `halfwayReached` is true and `goalDescription` is non-empty,
   append a small "(50%+)" suffix in `Fade(GOLD, 0.5f)` after the goal line. Pure display indicator.
+
+- [ ] **SaveGold goal auto-completes on threshold** — In `EconomicMobilitySystem.cpp`'s graduation
+  block, after setting the BecomeHauler goal progress, also check if the NPC has a `Goal` with
+  `type == GoalType::SaveGold` and `money.balance >= goal.target`. If so, set `goal.progress =
+  goal.target`. Currently SaveGold goals only update in `AgentDecisionSystem`'s goal tick — this
+  ensures the log fires immediately when a graduation-eligible NPC also meets their savings goal.
+
+- [ ] **Graduation announcement to settlement** — In `EconomicMobilitySystem.cpp`, after the
+  graduation log push, scan NPCs at the same `HomeSettlement` via `registry.view<HomeSettlement,
+  Name, DeprivationTimer>`. For up to 3 NPCs whose `HomeSettlement::settlement` matches the
+  graduate's, set `dt.chatTimer = 0.1f` (brief chat animation) and log "[Neighbour] cheers for
+  [Graduate]'s promotion." Uses existing chatTimer field — no new components needed.
