@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-
+- [ ] **Chat indicator on world dot** — Add `bool chatting = false` to `AgentEntry` in
+  `RenderSnapshot.h`; set in `SimThread::WriteSnapshot` when `dt->chatTimer > 0.f`. In
+  `GameState::Draw`, draw a pulsing yellow ring when chatting.
 
 ## Recently Done
 
