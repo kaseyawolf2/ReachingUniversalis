@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Shared workplace affinity gain** — In `ScheduleSystem.cpp`, when two NPCs are both in `Working` state at the same `ProductionFacility` (within 30u of same facility), tick up `Relations::affinity` by +0.002 per game-hour (capped at 0.5 from workplace alone). Use a `float workplaceAffinityGain` on the affinity entry to cap. Creates organic friendships from proximity.
+
 ## Recently Done
 
 - [x] **Migration farewell log** — In `AgentDecisionSystem.cpp`'s migration departure block, scans
