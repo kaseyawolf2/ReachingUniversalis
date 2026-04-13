@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection block (GoingToDeposit), when a hauler detects a potential convoy partner, if `Relations::affinity >= 0.5` toward that partner, increase convoy detection range from 60 to 90 units. Log "[HaulerA] joins up with friend [HaulerB]" at 1-in-6 frequency. Makes social bonds influence trade logistics.
-
 ## Backlog
 
 - [ ] **Bankruptcy survivor determination** — In `EconomicMobilitySystem.cpp`, after a hauler goes bankrupt and returns to labor, add a `bool bankruptSurvivor = false` flag to `DeprivationTimer` in `Components.h`. Set it true. In `AgentDecisionSystem.cpp`'s skill growth block, if `bankruptSurvivor == true`, grant `growth += 0.0002f` extra daily skill growth. Log "[Name] works with renewed determination at [Settlement]" at 1-in-8 frequency on first day. Rewards resilience.
@@ -55,7 +53,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
 
+- [ ] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
+
+- [ ] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
+
 ## Recently Done
+
+- [x] **Convoy formation preference for friends** — In `TransportSystem.cpp`'s convoy detection,
+  haulers with `Relations::affinity >= 0.5` toward a partner use 90-unit range instead of 60.
+  Logs friend convoy formation at 1-in-6 frequency.
 
 - [x] **Hauler rival route competition** — In `TransportSystem.cpp`, tracks last hauler per route via
   static map `(homeSettlement, dest) → entity`. Same-route consecutive haulers get -0.02 mutual
