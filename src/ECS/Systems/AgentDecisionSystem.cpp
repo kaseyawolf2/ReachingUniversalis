@@ -896,6 +896,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     oTimer.greetCooldown = 2.f;
                     // Check if this is a gratitude greeting (greeter's lastHelper == other)
                     bool isGratitude = (timer.lastHelper != entt::null && timer.lastHelper == other);
+                    // Check if this is a family reunion (both share FamilyTag::name)
+                    bool isFamilyReunion = false;
+                    if (const auto* myFt = registry.try_get<FamilyTag>(entity)) {
+                        if (const auto* oFt = registry.try_get<FamilyTag>(other)) {
+                            if (!myFt->name.empty() && myFt->name == oFt->name)
+                                isFamilyReunion = true;
+                        }
+                    }
                     {
                         auto lv = registry.view<EventLog>();
                         if (lv.begin() != lv.end()) {
@@ -905,6 +913,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 msg = (myName ? myName->value : "NPC") +
                                       " thanks " + oName.value + " for past kindness";
                                 timer.lastHelper = entt::null;  // gratitude expressed, clear
+                            } else if (isFamilyReunion) {
+                                msg = (myName ? myName->value : "NPC") +
+                                      " embraces " + oName.value + " warmly.";
                             } else {
                                 msg = (myName ? myName->value : "NPC") +
                                       " greets " + oName.value;
@@ -926,8 +937,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                     // Build affinity: casual greetings slowly build familiarity
-                    // Gratitude greetings give a stronger +0.05 bonus
-                    float affinityGain = isGratitude ? 0.05f : 0.01f;
+                    // Gratitude = +0.05, family reunion = +0.08, normal = +0.01
+                    float affinityGain = isFamilyReunion ? 0.08f : (isGratitude ? 0.05f : 0.01f);
                     if (auto* rel = registry.try_get<Relations>(entity))
                         rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                     if (auto* oRel = registry.try_get<Relations>(other))
