@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour block, when two NPCs are both grieving (`griefTimer > 0`) at the same settlement, boost their mutual `Relations::affinity` by +0.05 (cap 1.0). Log "[Name] and [Other] find comfort in shared loss at [Settlement]" at 1-in-6 frequency. Uses existing grief infrastructure and staggered frame scan.
-
 ## Backlog
 
 - [ ] **Workplace reconciliation after taunt** — In `ScheduleSystem.cpp`'s shared workplace affinity block, when two NPCs with different professions have `Relations::affinity < 0.1` (strained by taunts) and work at the same facility for 3+ consecutive hours (track via a static map of pair → hour count), 1-in-10 chance to reconcile: boost mutual affinity by +0.05 and log "[Name] and [Other] put aside their differences at [Settlement]." Resets hour count after reconciliation.
@@ -39,7 +37,15 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Nostalgic elder homesickness resistance** — In `AgentDecisionSystem.cpp`'s migration trigger block, elders (age > 60) with `Relations::affinity >= 0.5` toward 3+ NPCs at their current settlement get `effectiveMigrateThreshold *= 1.5f` (harder to uproot). Log "[Elder] has too many bonds to leave [Settlement]" at 1-in-8 frequency when migration is suppressed. Uses existing Relations scan. Keeps experienced elders rooted in their communities.
 
+- [ ] **Grief-born friendship persistence** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who previously bonded through shared grief (both have `Relations::affinity >= 0.6` AND both had `griefTimer > 0` within the last 5 game-days — track via a new `float lastGriefDay = -1.f` field on `DeprivationTimer` in `Components.h`, set when grief starts) chat idly, use `affinityGain = 0.03f` instead of the normal `0.02f`. Log "[Name] and [Other] share a knowing look at [Settlement]" at 1-in-8 frequency. Represents grief-forged bonds being deeper.
+
+- [ ] **Grief vigil gathering** — In `AgentDecisionSystem.cpp`'s grief block (where `isGrieving` is set), when 3+ NPCs at the same settlement are grieving simultaneously, log "[Settlement] holds a vigil for the fallen" once per grief cluster (track via `static std::map<entt::entity, int> s_lastVigilDay`). Boost all grieving NPCs' mutual `Relations::affinity` by +0.02 (cap 1.0) on top of the pairwise shared grief boost. Represents communal mourning rituals.
+
 ## Recently Done
+
+- [x] **Shared grief affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving-neighbour area,
+  grieving NPCs (`griefTimer > 0`) within 30 units at the same settlement boost mutual affinity by +0.05
+  (cap 1.0). Staggered 1/4-per-frame scan. Logs at 1-in-6 frequency.
 
 - [x] **Elder wisdom skill boost** — In `AgentDecisionSystem.cpp`'s skill growth block, non-elder NPCs
   with `Relations::affinity >= 0.6` toward an elder at the same settlement (same profession, skill ≥ 0.8)
