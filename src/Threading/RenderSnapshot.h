@@ -163,6 +163,9 @@ struct RenderSnapshot {
         float        moodScore = 0.5f;     // 0-1 average NPC need satisfaction
         int          friendshipPairs = 0; // count of mutual friendship pairs (affinity ≥ 0.5)
         int          masterCount = 0;    // NPCs with any skill ≥ 0.9
+        float        avgFarming = 0.f;  // average farming skill (0-1)
+        float        avgWater   = 0.f;  // average water-drawing skill (0-1)
+        float        avgWood    = 0.f;  // average woodcutting skill (0-1)
     };
 
     struct RoadEntry {

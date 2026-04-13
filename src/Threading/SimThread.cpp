@@ -1393,6 +1393,8 @@ void SimThread::WriteSnapshot() {
         int   contentN   = 0;
         float pendingEstates = 0.f;
         int   masterCount = 0;
+        float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
+        int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
     };
     std::unordered_map<entt::entity, SettlAgg> settlAgg;
     // Single pass over all homed NPCs (excluding player)
@@ -1441,6 +1443,10 @@ void SimThread::WriteSnapshot() {
                 if (const auto* sk = m_registry.try_get<Skills>(e)) {
                     if (sk->farming >= 0.9f || sk->water_drawing >= 0.9f || sk->woodcutting >= 0.9f)
                         ++ag.masterCount;
+                    ag.skillFarmSum  += sk->farming;
+                    ag.skillWaterSum += sk->water_drawing;
+                    ag.skillWoodSum  += sk->woodcutting;
+                    ++ag.skillCount;
                 }
             }
         });
@@ -1902,8 +1908,15 @@ void SimThread::WriteSnapshot() {
         if (settlAgg.count(e) && settlAgg[e].contentN > 0)
             moodScore = settlAgg[e].contentSum / settlAgg[e].contentN;
 
-        // Master count from pre-computed aggregate
+        // Master count and average skills from pre-computed aggregate
         int masterCount = settlAgg.count(e) ? settlAgg[e].masterCount : 0;
+        float avgFarming = 0.f, avgWater = 0.f, avgWood = 0.f;
+        if (settlAgg.count(e) && settlAgg[e].skillCount > 0) {
+            float n = (float)settlAgg[e].skillCount;
+            avgFarming = settlAgg[e].skillFarmSum / n;
+            avgWater   = settlAgg[e].skillWaterSum / n;
+            avgWood    = settlAgg[e].skillWoodSum / n;
+        }
 
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
@@ -1935,7 +1948,8 @@ void SimThread::WriteSnapshot() {
             food, water, wood, spop, s.popCap, snapSeason, specialty,
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
-            friendPairs, masterCount
+            friendPairs, masterCount,
+            avgFarming, avgWater, avgWood
         });
     });
 

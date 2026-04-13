@@ -1279,6 +1279,13 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     if (showMasters)
         std::snprintf(lineMasters, sizeof(lineMasters), "Masters: %d", best->masterCount);
 
+    // Line: average skills
+    char lineSkills[64] = {};
+    bool showSkills = (best->avgFarming > 0.f || best->avgWater > 0.f || best->avgWood > 0.f);
+    if (showSkills)
+        std::snprintf(lineSkills, sizeof(lineSkills), "Skills: Farm %d%% Water %d%% Wood %d%%",
+                      (int)(best->avgFarming * 100), (int)(best->avgWater * 100), (int)(best->avgWood * 100));
+
     // Line 7 (optional): pending estates
     char lineEst[48] = {};
     float estates = status ? status->pendingEstates : 0.f;
@@ -1360,7 +1367,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
 
     int lineCount = 3 + (showChildren ? 1 : 0) + (showElders ? 1 : 0)
-                      + (showMasters ? 1 : 0) + (showEstates ? 1 : 0)
+                      + (showMasters ? 1 : 0) + (showSkills ? 1 : 0) + (showEstates ? 1 : 0)
                       + (showSpecialty ? 1 : 0) + (showMorale ? 1 : 0)
                       + (showMood ? 1 : 0)
                       + (showTrade ? 1 : 0) + (showImpExp ? 1 : 0)
@@ -1373,6 +1380,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
                        showMasters   ? MeasureText(lineMasters, 11) : 0,
+                       showSkills    ? MeasureText(lineSkills, 11) : 0,
                        showEstates   ? MeasureText(lineEst, 11) : 0,
                        showSpecialty ? MeasureText(line6, 11) : 0,
                        showMorale   ? MeasureText(line7, 11) : 0,
@@ -1409,6 +1417,9 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     }
     if (showMasters) {
         DrawText(lineMasters, tx, ty, 11, Fade(GOLD, 0.8f)); ty += 16;
+    }
+    if (showSkills) {
+        DrawText(lineSkills, tx, ty, 11, Fade(SKYBLUE, 0.7f)); ty += 16;
     }
     if (showEstates) {
         DrawText(lineEst, tx, ty, 11, Fade(GOLD, 0.5f));   ty += 16;
