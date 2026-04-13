@@ -419,6 +419,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 }
                                 prof->prevType = prof->type;
                                 prof->type = newProf;
+                                ++prof->careerChanges;
                             }
                         }
                     }

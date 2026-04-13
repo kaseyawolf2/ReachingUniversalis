@@ -1522,11 +1522,13 @@ void SimThread::WriteSnapshot() {
         // Populate profession string from the persistent Profession component.
         // Haulers are always "Merchant". Falls back to skill inference if no component.
         std::string profession;
+        int npcCareerChanges = 0;
         if (isHauler) {
             profession = "Merchant";
         } else if (!isPlayer) {
             if (const auto* prof = m_registry.try_get<Profession>(e)) {
                 profession = ProfessionLabel(prof->type);
+                npcCareerChanges = prof->careerChanges;
             } else {
                 // Fallback: infer from strongest skill (for NPCs without a component)
                 const auto* sk = m_registry.try_get<Skills>(e);
@@ -1861,7 +1863,7 @@ void SimThread::WriteSnapshot() {
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
-                           std::move(specTitle) });
+                           std::move(specTitle), npcCareerChanges });
     });
 
     // ---- Settlements ----

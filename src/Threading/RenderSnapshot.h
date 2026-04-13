@@ -138,6 +138,8 @@ struct RenderSnapshot {
         float satisfaction = 0.5f;
         // Skill specialisation title (e.g. "Master Farmer"); empty if no skill >= 0.9
         std::string specialisation;
+        // Number of profession changes this NPC has made
+        int careerChanges = 0;
     };
 
     struct SettlementEntry {

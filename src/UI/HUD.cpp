@@ -927,6 +927,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
                       best->bestFriendName.c_str(), (int)(best->bestFriendAffinity * 100));
     }
 
+    // Career changes line
+    char careerLine[48] = {};
+    bool showCareer = (best->careerChanges > 0);
+    if (showCareer) {
+        std::snprintf(careerLine, sizeof(careerLine), "Career changes: %d", best->careerChanges);
+    }
+
     // Mood comment based on contentment
     char moodLine[32] = {};
     Color moodColor = WHITE;
@@ -977,6 +984,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGoal)          lineCount++;
     if (showMigMem)        lineCount++;
     if (showFriend)        lineCount++;
+    if (showCareer)        lineCount++;
 
     int illSuffixW = illLabel ? (4 + MeasureText(illLabel, 11)) : 0;
     int w1  = MeasureText(line1, 12) + (best->recentlyStole ? MeasureText("  (thief)", 12) : 0);
@@ -1019,7 +1027,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
     int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
     int wfr = showFriend ? MeasureText(friendLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wst, wmd, wml, wgo, wmm, wfr, wrt2}) + 10;
+    int wcr = showCareer ? MeasureText(careerLine, 11) : 0;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wst, wmd, wml, wgo, wmm, wfr, wrt2, wcr}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1084,6 +1093,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showGoal)     { DrawText(best->goalDescription.c_str(), tx, ly, 11, Fade(SKYBLUE, 0.6f)); ly += 16; }
     if (showMigMem)   { DrawText(best->migrationMemorySummary.c_str(), tx, ly, 11, Fade(GRAY, 0.6f)); ly += 16; }
     if (showFriend)   { DrawText(friendLine, tx, ly, 11, Fade(LIME, 0.75f)); ly += 16; }
+    if (showCareer)   { DrawText(careerLine, tx, ly, 11, Fade(LIGHTGRAY, 0.7f)); ly += 16; }
     if (showMood)     { DrawText(moodLine, tx, ly, 11, moodColor); ly += 16; }
     if (showRep) {
         Color repCol = (best->reputation >= 0.f) ? Fade(GREEN, 0.7f) : Fade(RED, 0.7f);

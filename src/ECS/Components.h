@@ -50,6 +50,7 @@ enum class ProfessionType { Farmer, WaterCarrier, Lumberjack, Hauler, Idle };
 struct Profession {
     ProfessionType type     = ProfessionType::Idle;
     ProfessionType prevType = ProfessionType::Idle;
+    int careerChanges       = 0;
 };
 
 // Helper: map ResourceType → ProfessionType for production-facility matching.
