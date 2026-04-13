@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Bandit encounter deduplication** — In `AgentDecisionSystem::Update`'s bandit section (~line 2400+), the `banditsPerRoad` density-cap loop also iterates all roads per bandit to find the nearest. Reuse `s_banditPositions` and pre-compute road midpoints once per tick to avoid repeated `registry.get<Position>` on road endpoints.
+
 ## Recently Done
 
 - [x] **ProductionSystem container optimisation** — System was already well-structured with
@@ -937,8 +939,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 ## Backlog
 
 ### Performance (high priority — 46 steps/sec at pop 78, will degrade with scale)
-
-- [ ] **Bandit encounter deduplication** — In `AgentDecisionSystem::Update`'s bandit section (~line 2400+), the `banditsPerRoad` density-cap loop also iterates all roads per bandit to find the nearest. Reuse `s_banditPositions` and pre-compute road midpoints once per tick to avoid repeated `registry.get<Position>` on road endpoints.
 
 ### NPC Lifecycle & Identity
 
