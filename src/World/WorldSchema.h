@@ -343,6 +343,8 @@ struct WorldSchema {
 
     // Map a profession ID to its primary skill (INVALID_ID if none).
     SkillID SkillForProfession(ProfessionID prof) const {
+        assert(prof >= 0 && prof < (int)professionToSkill.size()
+               && "SkillForProfession: ProfessionID out of range");
         if (prof >= 0 && prof < (int)professionToSkill.size())
             return professionToSkill[prof];
         return INVALID_ID;
