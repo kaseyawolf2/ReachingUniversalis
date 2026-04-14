@@ -759,7 +759,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Jealousy-driven skill motivation: low affinity toward a skilled rival pushes harder training
-                    if (myProfFlag.any() && hs.settlement != entt::null) {
+                    if (myProfFlag.any() && hs.settlement != entt::null && profSkId != INVALID_ID) {
                         const auto* myRel = registry.try_get<Relations>(e);
                         if (myRel) {
                             bool jealousMotivated = false;
