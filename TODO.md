@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Post-crisis community gathering** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration` reaches 0), when a "Drought" or "Plague" modifier expires, scan all NPC pairs at the settlement and boost mutual `Relations::affinity` by +0.02 for pairs with affinity >= 0.2 (cap 1.0). Log "[Settlement] celebrates surviving the [crisis]" once. Represents relief and community strengthening after hardship ends.
-
 ## Backlog
 
 - [ ] **Migration letter home** — In `AgentDecisionSystem.cpp`'s migration arrival block (where NPC arrives at new settlement), for each friend from the old settlement whose affinity dropped below 0.5 due to farewell strain, add +0.03 affinity recovery to both sides (cap at pre-farewell - 0.05). Track via a new `entt::entity previousSettlement = entt::null` field on `HomeSettlement` in `Components.h` (set before reassignment). Log "[Migrant] sends word back to [Friend]" at 1-in-4 frequency. Partially offsets farewell strain for strong bonds.
@@ -83,7 +81,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Crisis survivor badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool crisisSurvivor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC's home settlement has `modifierName == "Drought"` or `"Plague"`. In `HUD.cpp`'s NPC tooltip, display "[Crisis]" in orange after existing badges. Gives the player visibility into which NPCs are currently enduring hardship.
 
+- [ ] **Post-crisis morale surge** — In `RandomEventSystem.cpp`'s modifier expiry block, right after the post-crisis community gathering, apply `+0.05` to `Settlement::morale` (cap 1.0) when a Drought or Plague ends. Log "[Settlement] breathes a sigh of relief" at 1-in-2 frequency. Simple morale recovery that complements the bond-strengthening effect already in place.
+
+- [ ] **Crisis memory affects migration scoring** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a new `float crisisMemory = 0.f` field to `DeprivationTimer` in `Components.h`. Set to `3.f` (game-days) when a Drought or Plague starts at the NPC's settlement (in `RandomEventSystem.cpp` drought/plague trigger blocks). In migration scoring, if `crisisMemory > 0`, apply a `-0.2` penalty to the NPC's current settlement score (making them more likely to leave). Tick down `crisisMemory` by 1 per game-day in `NeedDrainSystem.cpp`. Creates a lasting psychological impact of crisis.
+
 ## Recently Done
+
+- [x] **Post-crisis community gathering** — In `RandomEventSystem.cpp` modifier expiry block, when
+  Drought or Plague ends, scans NPC pairs with mutual affinity >= 0.2, boosts by +0.02. Logs once.
 
 - [x] **Plague solidarity** — Mirrored drought solidarity in `RandomEventSystem.cpp` case 2: NPC pairs
   with mutual affinity >= 0.3 get +0.03 boost during plague. Logs support message once.
