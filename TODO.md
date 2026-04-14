@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
-
 ## Done
+
+- [x] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
 
 - [x] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
 
@@ -4488,3 +4488,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gossip accuracy decay** — In `TransportSystem.cpp`'s trade gossip block, add a `float gossipAge = 0.f` field to `Hauler` in `Components.h`. Set to 0 when gossip is shared. Increment by `gameDt` each step (in the Idle state time tracking). When `gossipAge > 12.f` (12 game-hours), clear `bestRoute` to empty string so stale gossip expires. Prevents haulers from acting on outdated market information indefinitely.
 
 - [ ] **Hauler market report at tavern** — In `AgentDecisionSystem.cpp`'s idle chat block, when a hauler (`registry.any_of<Hauler>(entity)`) chats with a non-hauler NPC and the hauler's `Hauler::bestRoute` is non-empty, 1-in-8 chance to log "[Hauler] tells [NPC] about trade on the [Route] route at [Settlement]." Boost the NPC's affinity toward the hauler by +0.01 (informational value). Uses existing idle chat proximity and stagger checks. Creates cross-class social interaction where haulers share economic knowledge with workers.
+
+- [ ] **Convoy loyalty bonus** — In `TransportSystem.cpp`'s convoy camaraderie block (after delivery arrival), track consecutive convoy trips between the same pair via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_convoyStreak`. On 3+ consecutive convoy trips together, boost mutual affinity by +0.06 instead of +0.04 and log "[Hauler1] and [Hauler2] are becoming inseparable on the road" at 1-in-4 frequency. Reset streak to 0 if either hauler delivers solo. Creates long-term travel partnerships.
+
+- [ ] **Convoy split sadness** — In `TransportSystem.cpp`'s convoy check, when `wasInConvoy == true` but `hauler.inConvoy == false` (convoy broke up), and the previous convoy partner had `Relations::affinity >= 0.5`, apply -0.005 to `Settlement::morale` on the hauler's home settlement. Log "[Hauler] misses travelling with [Partner]" at 1-in-8 frequency via `static std::mt19937 s_splitRng`. Uses existing `wasInConvoy` flag. Creates emotional cost when established travel companions separate.
