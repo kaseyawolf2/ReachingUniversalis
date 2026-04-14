@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Wisdom lineage tracking** — In `DeathSystem.cpp`'s elder wisdom fading block, when `wisdomGriefDays` is applied to a mourner, also set a new `entt::entity wisdomLineage = entt::null` field on `Skills` in `Components.h` to the deceased elder's entity (for narrative tracking). In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with `wisdomLineage != entt::null` crosses skill >= 0.8, log "[NPC] carries on [Elder]'s legacy at [Settlement]" at full frequency and clear the field. Creates a narrative thread connecting elder deaths to future mastery.
-
 ## Done
+
+- [x] **Wisdom lineage tracking** — In `DeathSystem.cpp`'s elder wisdom fading block, when `wisdomGriefDays` is applied to a mourner, also set a new `entt::entity wisdomLineage = entt::null` field on `Skills` in `Components.h` to the deceased elder's entity (for narrative tracking). In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with `wisdomLineage != entt::null` crosses skill >= 0.8, log "[NPC] carries on [Elder]'s legacy at [Settlement]" at full frequency and clear the field. Creates a narrative thread connecting elder deaths to future mastery.
+
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
@@ -64,6 +65,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Repeated reconciliation deepens bond** — In `ScheduleSystem.cpp`'s reconciliation block, track how many times a pair has reconciled via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount`. On 2nd+ reconciliation, use +0.08 affinity instead of +0.05, and boost `reconcileGlow` to 4 game-hours instead of 2. Log "[NPC1] and [NPC2] are becoming unlikely friends at [Settlement]" at full frequency on 3rd+ reconciliation. Creates an escalating friendship arc from repeated conflict resolution.
 
 - [ ] **Expert gratitude from novice** — In `AgentDecisionSystem.cpp`'s idle chat block, when a novice (skill < 0.5) chats with an expert (skill >= 0.8) of the same profession at the same settlement, boost novice→expert affinity by +0.03 instead of the normal +0.02. Log "[Novice] thanks [Expert] for the guidance at [Settlement]" at 1-in-8 frequency. Uses existing `Profession` and `Skills` try_get. Complements the mastery teaching chain with a social bond component.
+
+- [ ] **Lineage pride tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool wisdomHeir = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Skills::wisdomLineage != entt::null` (NPC is carrying an elder's unfinished legacy). In `HUD.cpp`'s NPC tooltip, display "[Heir]" in soft violet after the generous badge. Makes it visible which NPCs are on the path to fulfilling an elder's legacy.
+
+- [ ] **Lineage chain multi-generation** — In `DeathSystem.cpp`'s elder wisdom fading block, when the dying NPC themselves has `wisdomLineage != entt::null` (they were carrying a legacy but died before achieving mastery), pass the original `wisdomLineageName` to the mourner instead of the dying NPC's name. This allows a lineage to chain across multiple deaths, eventually producing a "[NPC] carries on [Original Elder]'s legacy" log when mastery is finally reached. No new fields needed — reuses `wisdomLineageName`.
+
+- [ ] **Hauler mentorship affinity boost** — In `TransportSystem.cpp`'s convoy block, when two haulers travel together and one has `Hauler::mentorBonus > 0` (experienced/second-chance hauler) and the other has `tripCount < 5` (novice), boost the novice's affinity toward the mentor by +0.02 per trip and set the novice's `mentorBonus = 0.05f` (small learned bonus). Log "[Mentor] shows [Novice] the ropes on the [Route] road" at 1-in-5 frequency. Creates a mentorship dynamic in convoy travel.
 
 - [ ] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
 
