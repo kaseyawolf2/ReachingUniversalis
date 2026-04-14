@@ -17,7 +17,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Medieval world configs** — Extract all hardcoded values from Components.h, WorldGenerator, and systems into TOML files under `worlds/medieval/`. Proves the config format works by capturing the existing game.
 
-- [ ] **WorldLoader.h/.cpp** — TOML config parser that reads `worlds/<name>/*.toml` and populates a WorldSchema. Validates cross-references (e.g., profession references a valid resource). Reports clear errors on missing/invalid config.
+- [x] **WorldLoader.h/.cpp** — TOML config parser that reads `worlds/<name>/*.toml` and populates a WorldSchema. Validates cross-references (e.g., profession references a valid resource). Reports clear errors on missing/invalid config.
 
 - [ ] **Wire WorldSchema into SimThread** — SimThread loads a WorldSchema at construction. Systems receive a `const WorldSchema&` reference. No behavior changes yet — just plumbing.
 
