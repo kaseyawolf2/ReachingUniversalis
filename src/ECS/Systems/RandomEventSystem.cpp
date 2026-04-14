@@ -1,5 +1,6 @@
 #include "RandomEventSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <set>
 #include <vector>
@@ -41,7 +42,7 @@ static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
     }
 }
 
-void RandomEventSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void RandomEventSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());
@@ -645,7 +646,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         // Schedule next
         std::uniform_real_distribution<float> jitter(-EVENT_JITTER, EVENT_JITTER);
         m_nextEvent = std::max(12.f, EVENT_MEAN_HOURS + jitter(m_rng));
-        TriggerEvent(registry, tm.day, (int)tm.hourOfDay);
+        TriggerEvent(registry, tm.day, (int)tm.hourOfDay, schema);
     }
 
     // ---- Per-NPC personal events ----
@@ -858,18 +859,21 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         });
 }
 
-void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour) {
+void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour, const WorldSchema& schema) {
     auto lv = registry.view<EventLog>();
     EventLog* log = (lv.begin() == lv.end())
                     ? nullptr : &lv.get<EventLog>(*lv.begin());
 
     // Get current season for seasonal events
-    Season season = Season::Spring;
+    SeasonID seasonId = 0;
     {
         auto tmv = registry.view<TimeManager>();
         if (tmv.begin() != tmv.end())
-            season = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason();
+            seasonId = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason(schema.seasons);
     }
+    static const SeasonDef s_defaultSeason{};
+    const SeasonDef& seasonDef = (seasonId >= 0 && seasonId < (int)schema.seasons.size())
+                                 ? schema.seasons[seasonId] : s_defaultSeason;
 
     // Collect valid settlements
     std::vector<entt::entity> settlements;
@@ -1086,7 +1090,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 6: {   // Blizzard (Winter only) — blocks ALL roads for 4 game-hours
-        if (season != Season::Winter) break;
+        if (seasonDef.heatDrainMod < 0.8f) break;  // Blizzard: only in harshest cold
         static constexpr float BLIZZARD_DURATION = 4.f;
         int blockedCount = 0;
         registry.view<Road>().each([&](Road& road) {
@@ -1104,7 +1108,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 7: {   // Spring flood — destroys 40% of food at a random settlement
-        if (season != Season::Spring) break;
+        // Flood: requires thawing conditions — mild cold (some heat drain) and above-freezing temps
+        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 0.3f || seasonDef.baseTemperature <= 0.f) break;
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
         auto it = sp->quantities.find(RES_FOOD);
@@ -1118,7 +1123,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 8: {   // Harvest bounty (Autumn only) — production boost for 12 game-hours
-        if (season != Season::Autumn) break;
+        if (seasonDef.productionMod < 1.1f) break;  // Harvest bounty: only in high-production seasons
         if (settl->modifierDuration > 0.f) break;   // already has an event
         static constexpr float BOUNTY_MODIFIER  = 1.5f;
         static constexpr float BOUNTY_DURATION  = 12.f;
@@ -1360,7 +1365,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 14: {  // Heat wave (Summer only) — production penalty + water shortage stress
-        if (season != Season::Summer) break;
+        if (seasonDef.baseTemperature < 25.f) break;  // Heat wave: only in hot seasons
         if (settl->modifierDuration > 0.f) break;   // already affected
 
         static constexpr float HEATWAVE_MODIFIER = 0.75f;
@@ -1392,7 +1397,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 15: {  // Lumber windfall (Spring/Autumn) — storm brings easy wood
-        if (season != Season::Spring && season != Season::Autumn) break;
+        // Lumber windfall: transitional seasons with wind/storms — some cold but not deep winter
+        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 1.0f) break;
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
 

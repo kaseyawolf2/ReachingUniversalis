@@ -1944,11 +1944,15 @@ void SimThread::WriteSnapshot() {
     // ---- Settlements ----
     // Read current season for settlement ring logic (available after HUD section below;
     // compute it here using a local view since WriteSnapshot builds local data first).
-    Season snapSeason = Season::Spring;
+    SeasonID snapSeasonId = 0;
+    float    snapHeatDrainMod = 0.f;
     {
         auto stmv = m_registry.view<TimeManager>();
-        if (stmv.begin() != stmv.end())
-            snapSeason = stmv.get<TimeManager>(*stmv.begin()).CurrentSeason();
+        if (stmv.begin() != stmv.end()) {
+            snapSeasonId = stmv.get<TimeManager>(*stmv.begin()).CurrentSeason(m_schema.seasons);
+            if (snapSeasonId >= 0 && snapSeasonId < (int)m_schema.seasons.size())
+                snapHeatDrainMod = m_schema.seasons[snapSeasonId].heatDrainMod;
+        }
     }
 
     m_registry.view<Position, Settlement>().each(
@@ -2030,7 +2034,7 @@ void SimThread::WriteSnapshot() {
             pos.x, pos.y, s.radius, s.name,
             (e == m_selectedSettlement),
             static_cast<uint32_t>(e),
-            food, water, wood, spop, s.popCap, snapSeason, specialty,
+            food, water, wood, spop, s.popCap, snapSeasonId, snapHeatDrainMod, specialty,
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
@@ -2212,15 +2216,17 @@ void SimThread::WriteSnapshot() {
     // Worker and idle counts from pre-computed aggregates
 
     // Season modifier for production rate estimate
-    Season curSeason = Season::Spring;
+    SeasonID curSeasonId = 0;
     float  curSeasonMod = 1.f;
     float  curHeatMult  = 0.f;
     {
         auto tmv3 = m_registry.view<TimeManager>();
         if (tmv3.begin() != tmv3.end()) {
-            curSeason    = tmv3.get<TimeManager>(*tmv3.begin()).CurrentSeason();
-            curSeasonMod = SeasonProductionModifier(curSeason);
-            curHeatMult  = SeasonHeatDrainMult(curSeason);
+            curSeasonId = tmv3.get<TimeManager>(*tmv3.begin()).CurrentSeason(m_schema.seasons);
+            if (curSeasonId >= 0 && curSeasonId < (int)m_schema.seasons.size()) {
+                curSeasonMod = m_schema.seasons[curSeasonId].productionMod;
+                curHeatMult  = m_schema.seasons[curSeasonId].heatDrainMod;
+            }
         }
     }
 
@@ -2525,7 +2531,10 @@ void SimThread::WriteSnapshot() {
     int    day = 1, hour = 6, minute = 0, tickSpeed = 1, speedIndex = 1, deaths = 0;
     bool   paused = false;
     float  hourOfDay = 6.f;
-    Season season    = Season::Spring;
+    SeasonID seasonId = 0;
+    std::string seasonName = "Spring";
+    float  seasonProductionMod = 1.f;
+    float  seasonHeatDrainMod  = 0.f;
     float  temperature = 10.f;
 
     {
@@ -2539,8 +2548,14 @@ void SimThread::WriteSnapshot() {
             tickSpeed   = tm.tickSpeed;
             speedIndex  = tm.speedIndex;
             paused      = tm.paused;
-            season      = tm.CurrentSeason();
-            temperature = AmbientTemperature(season, hourOfDay);
+            seasonId    = tm.CurrentSeason(m_schema.seasons);
+            if (seasonId >= 0 && seasonId < (int)m_schema.seasons.size()) {
+                const auto& sdef = m_schema.seasons[seasonId];
+                seasonName        = sdef.displayName;
+                seasonProductionMod = sdef.productionMod;
+                seasonHeatDrainMod  = sdef.heatDrainMod;
+                temperature = AmbientTemperature(sdef, hourOfDay);
+            }
         }
     }
 
@@ -2773,7 +2788,10 @@ void SimThread::WriteSnapshot() {
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;
         m_snapshot.hourOfDay    = hourOfDay;
-        m_snapshot.season       = season;
+        m_snapshot.seasonId     = seasonId;
+        m_snapshot.seasonName   = seasonName;
+        m_snapshot.seasonProductionMod = seasonProductionMod;
+        m_snapshot.seasonHeatDrainMod  = seasonHeatDrainMod;
         m_snapshot.temperature  = temperature;
         m_snapshot.tickSpeed    = tickSpeed;
         m_snapshot.speedIndex   = speedIndex;
