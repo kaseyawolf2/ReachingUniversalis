@@ -1227,11 +1227,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         // ============================================================
         // PANIC: flee from bandits — skip normal decisions while active
         // ============================================================
-        auto* banditSt = registry.try_get<BanditState>(entity);
-        if (banditSt && banditSt->panicTimer > 0.f) {
-            banditSt->panicTimer -= realDt;
-            if (banditSt->panicTimer <= 0.f) {
-                banditSt->panicTimer = 0.f;
+        auto& banditSt = registry.get<BanditState>(entity);
+        if (banditSt.panicTimer > 0.f) {
+            banditSt.panicTimer -= realDt;
+            if (banditSt.panicTimer <= 0.f) {
+                banditSt.panicTimer = 0.f;
                 vel.vx = vel.vy = 0.f;
             }
             continue;
@@ -1240,8 +1240,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         // ============================================================
         // POST-THEFT FLEE: sprint away from home settlement
         // ============================================================
-        if (banditSt && banditSt->fleeTimer > 0.f) {
-            banditSt->fleeTimer -= realDt;
+        if (banditSt.fleeTimer > 0.f) {
+            banditSt.fleeTimer -= realDt;
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
                 if (const auto* sp = registry.try_get<Position>(home.settlement)) {
                     float dx = pos.x - sp->x;
@@ -1259,22 +1259,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         // ============================================================
         // FAMILY VISIT: NPC is travelling to visit family at another settlement
         // ============================================================
-        auto* socialBeh = registry.try_get<SocialBehavior>(entity);
-        auto* griefSt = registry.try_get<GriefState>(entity);
-        auto* theftRec = registry.try_get<TheftRecord>(entity);
-        if (socialBeh && socialBeh->visitTimer > 0.f) {
+        auto& socialBeh = registry.get<SocialBehavior>(entity);
+        auto& griefSt = registry.get<GriefState>(entity);
+        auto& theftRec = registry.get<TheftRecord>(entity);
+        if (socialBeh.visitTimer > 0.f) {
             float gameMinDt = dt * GAME_MINS_PER_REAL_SEC;
-            socialBeh->visitTimer -= gameMinDt;
-            if (socialBeh->visitTimer <= 0.f) {
+            socialBeh.visitTimer -= gameMinDt;
+            if (socialBeh.visitTimer <= 0.f) {
                 // Visit over — return home
-                socialBeh->visitTimer  = 0.f;
-                socialBeh->visitTarget = entt::null;
+                socialBeh.visitTimer  = 0.f;
+                socialBeh.visitTarget = entt::null;
                 if (home.settlement != entt::null && registry.valid(home.settlement)) {
                     const auto& homePos = registry.get<Position>(home.settlement);
                     MoveToward(vel, pos, homePos.x, homePos.y, speed);
                 }
-            } else if (socialBeh->visitTarget != entt::null && registry.valid(socialBeh->visitTarget)) {
-                const auto& tgtPos = registry.get<Position>(socialBeh->visitTarget);
+            } else if (socialBeh.visitTarget != entt::null && registry.valid(socialBeh.visitTarget)) {
+                const auto& tgtPos = registry.get<Position>(socialBeh.visitTarget);
                 float vdx = tgtPos.x - pos.x, vdy = tgtPos.y - pos.y;
                 if (vdx*vdx + vdy*vdy > 30.f * 30.f)
                     MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.8f);
@@ -1299,9 +1299,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             bool skillCelebration = false;
             {
                 float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                if (socialBeh && socialBeh->skillCelebrateTimer > 0.f) {
-                    socialBeh->skillCelebrateTimer = std::max(0.f, socialBeh->skillCelebrateTimer - ghDt);
-                    skillCelebration = (socialBeh->skillCelebrateTimer > 0.f);
+                if (socialBeh.skillCelebrateTimer > 0.f) {
+                    socialBeh.skillCelebrateTimer = std::max(0.f, socialBeh.skillCelebrateTimer - ghDt);
+                    skillCelebration = (socialBeh.skillCelebrateTimer > 0.f);
                 }
             }
 
@@ -1314,16 +1314,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         [&](auto other, AgentState& oState, const Position& oPos) {
                             if (other == entity) return;
                             if (oState.behavior != AgentBehavior::Idle) return;
-                            auto* oSb = registry.try_get<SocialBehavior>(other);
-                            if (oSb && oSb->skillCelebrateTimer > 0.f) return; // already celebrating
+                            auto& oSb = registry.get<SocialBehavior>(other);
+                            if (oSb.skillCelebrateTimer > 0.f) return; // already celebrating
                             float ddx = oPos.x - pos.x, ddy = oPos.y - pos.y;
                             if (ddx * ddx + ddy * ddy > 30.f * 30.f) return;
                             auto it = myRel->affinity.find(other);
                             if (it == myRel->affinity.end() || it->second < 0.2f) return;
                             // Recruit friend into celebration
                             oState.behavior = AgentBehavior::Celebrating;
-                            if (oSb) oSb->skillCelebrateTimer = 0.25f;
-                            else { auto& oSbNew = registry.get_or_emplace<SocialBehavior>(other); oSbNew.skillCelebrateTimer = 0.25f; }
+                            oSb.skillCelebrateTimer = 0.25f;
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
@@ -1401,7 +1400,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 // Arrived — adopt new home
                 home.settlement       = state.target;
                 timer.stockpileEmpty  = 0.f;
-                if (socialBeh) socialBeh->homesickTimer = 0.f;
+                socialBeh.homesickTimer = 0.f;
                 state.behavior        = AgentBehavior::Idle;
                 state.target          = entt::null;
                 vel.vx = vel.vy       = 0.f;
@@ -1645,11 +1644,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         // ============================================================
         // GRATITUDE: briefly move toward the NPC who recently helped you
         // ============================================================
-        auto* charitySt = registry.try_get<CharityState>(entity);
-        if (charitySt && charitySt->gratitudeTimer > 0.f) {
-            charitySt->gratitudeTimer -= dt;
-            if (charitySt->gratitudeTarget != entt::null && registry.valid(charitySt->gratitudeTarget)) {
-                const auto& tgtPos = registry.get<Position>(charitySt->gratitudeTarget);
+        auto& charitySt = registry.get<CharityState>(entity);
+        if (charitySt.gratitudeTimer > 0.f) {
+            charitySt.gratitudeTimer -= dt;
+            if (charitySt.gratitudeTarget != entt::null && registry.valid(charitySt.gratitudeTarget)) {
+                const auto& tgtPos = registry.get<Position>(charitySt.gratitudeTarget);
                 float gdx = tgtPos.x - pos.x, gdy = tgtPos.y - pos.y;
                 float gdist2 = gdx*gdx + gdy*gdy;
                 static constexpr float POLITE_DIST = 25.f;
@@ -1662,14 +1661,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 state.behavior = AgentBehavior::Idle;
             } else {
                 // Helper gone — cancel gratitude
-                charitySt->gratitudeTimer  = 0.f;
-                charitySt->gratitudeTarget = entt::null;
+                charitySt.gratitudeTimer  = 0.f;
+                charitySt.gratitudeTarget = entt::null;
             }
             continue;
         }
         // Clear stale target once timer expires
-        if (charitySt && charitySt->gratitudeTarget != entt::null && charitySt->gratitudeTimer <= 0.f)
-            charitySt->gratitudeTarget = entt::null;
+        if (charitySt.gratitudeTarget != entt::null && charitySt.gratitudeTimer <= 0.f)
+            charitySt.gratitudeTarget = entt::null;
 
         // ============================================================
         // IDLE / SEEKING: decide what to do this tick
@@ -1679,11 +1678,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         if (home.prevSettlement != entt::null && registry.valid(home.prevSettlement)
             && home.prevSettlement != home.settlement) {
             float ghDtHS = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-            if (socialBeh) socialBeh->homesickTimer += ghDtHS;
-            if (socialBeh && socialBeh->homesickTimer > 72.f && timer.lastSatisfaction < 0.4f) {
+            socialBeh.homesickTimer += ghDtHS;
+            if (socialBeh.homesickTimer > 72.f && timer.lastSatisfaction < 0.4f) {
                 // Return to previous settlement
                 entt::entity returnDest = home.prevSettlement;
-                if (socialBeh) socialBeh->homesickTimer = 0.f;
+                socialBeh.homesickTimer = 0.f;
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = returnDest;
                 home.prevSettlement  = entt::null; // clear so it doesn't loop
@@ -1726,7 +1725,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         // -- Check migration trigger first --
         float effectiveMigrateThreshold = timer.migrateThreshold;
         // Master retention: masters need 50% more scarcity to migrate.
-        if (socialBeh && socialBeh->masterSettled)
+        if (socialBeh.masterSettled)
             effectiveMigrateThreshold *= 1.5f;
         // NPCs in a plague settlement are more fearful and migrate at half the normal threshold.
         if (const auto* hs = registry.try_get<Settlement>(home.settlement))
@@ -1805,7 +1804,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             entt::entity dest = FindMigrationTarget(registry, home.settlement, schema, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
             if (dest != entt::null) {
                 home.prevSettlement  = home.settlement;
-                if (socialBeh) socialBeh->homesickTimer = 0.f;
+                socialBeh.homesickTimer = 0.f;
                 state.behavior       = AgentBehavior::Migrating;
                 state.target         = dest;
                 timer.stockpileEmpty = 0.f;
@@ -1984,7 +1983,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 }
 
                 // ---- Master loss morale penalty: settlement mourns departing master ----
-                if (socialBeh && socialBeh->masterSettled && home.settlement != entt::null && registry.valid(home.settlement)) {
+                if (socialBeh.masterSettled && home.settlement != entt::null && registry.valid(home.settlement)) {
                     if (auto* settl = registry.try_get<Settlement>(home.settlement)) {
                         settl->morale = std::max(0.f, settl->morale - 0.03f);
                         // Log at 1-in-2 frequency
@@ -2154,7 +2153,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         static constexpr float STEAL_COOLDOWN_HOURS  = 48.f;  // game-hours between steals
         const auto* moneyComp = registry.try_get<Money>(entity);
         float currentBalance = moneyComp ? moneyComp->balance : 0.f;
-        if (currentBalance < STEAL_MONEY_THRESHOLD && theftRec->stealCooldown <= 0.f &&
+        if (currentBalance < STEAL_MONEY_THRESHOLD && theftRec.stealCooldown <= 0.f &&
             home.settlement != entt::null && registry.valid(home.settlement))
         {
             // Find most-needed non-Heat resource (lowest need value)
@@ -2180,8 +2179,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float cost = mkt->GetPrice(stealRes);
                         stl->treasury -= cost;
                     }
-                    theftRec->stealCooldown = STEAL_COOLDOWN_HOURS;
-                    theftRec->theftCount++;
+                    theftRec.stealCooldown = STEAL_COOLDOWN_HOURS;
+                    theftRec.theftCount++;
 
                     // Theft erodes social trust — lower settlement morale
                     if (stl) stl->morale = std::max(0.f, stl->morale - 0.05f);
@@ -2209,7 +2208,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 who + " stole " + resName + " from " + where + ".");
 
                             // Exile after 3 thefts: clear home settlement
-                            if (theftRec->theftCount >= 3) {
+                            if (theftRec.theftCount >= 3) {
                                 std::string exileName = where;
                                 home.settlement = entt::null;
                                 lv.get<EventLog>(*lv.begin()).Push(
@@ -2241,15 +2240,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             state.target   = entt::null;
 
             // ---- Chat timer: NPC is mid-conversation, stay still ----
-            if (socialBeh->chatTimer > 0.f) {
-                socialBeh->chatTimer -= dt;
+            if (socialBeh.chatTimer > 0.f) {
+                socialBeh.chatTimer -= dt;
                 vel.vx = vel.vy = 0.f;
                 continue;
             }
 
             // ---- Bandit intimidation: nearby bandits erode settlement morale ----
-            if (banditSt->intimidationCooldown > 0.f)
-                banditSt->intimidationCooldown = std::max(0.f, banditSt->intimidationCooldown - dt);
+            if (banditSt.intimidationCooldown > 0.f)
+                banditSt.intimidationCooldown = std::max(0.f, banditSt.intimidationCooldown - dt);
             if (home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float INTIM_RADIUS = 50.f;
                 bool nearBandit = false;
@@ -2264,8 +2263,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     float intimGameHoursDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
                     if (auto* settl = registry.try_get<Settlement>(home.settlement))
                         settl->morale = std::max(0.f, settl->morale - 0.02f * intimGameHoursDt);
-                    if (banditSt->intimidationCooldown <= 0.f) {
-                        banditSt->intimidationCooldown = 60.f;  // 60 game-seconds cooldown
+                    if (banditSt.intimidationCooldown <= 0.f) {
+                        banditSt.intimidationCooldown = 60.f;  // 60 game-seconds cooldown
                         auto lv = registry.view<EventLog>();
                         if (lv.begin() != lv.end()) {
                             const auto* myName = registry.try_get<Name>(entity);
@@ -2279,9 +2278,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Grief: drain timer, skip social actions, drain settlement morale ----
-            if (griefSt->griefTimer > 0.f) {
+            if (griefSt.griefTimer > 0.f) {
                 float ghDtGrief = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                griefSt->griefTimer = std::max(0.f, griefSt->griefTimer - ghDtGrief);
+                griefSt.griefTimer = std::max(0.f, griefSt.griefTimer - ghDtGrief);
                 // Drain home settlement morale while grieving
                 if (home.settlement != entt::null && registry.valid(home.settlement)) {
                     if (auto* settl = registry.try_get<Settlement>(home.settlement))
@@ -2291,8 +2290,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             // ---- Grief anniversary remembrance ----
             // Every 30 days after the last grief event, if the NPC has a close
             // friend at the same settlement, brief renewed grief triggers.
-            if (griefSt->griefTimer <= 0.f && griefSt->lastGriefDay >= 0.f) {
-                int daysSince = (int)tm.day - (int)griefSt->lastGriefDay;
+            if (griefSt.griefTimer <= 0.f && griefSt.lastGriefDay >= 0.f) {
+                int daysSince = (int)tm.day - (int)griefSt.lastGriefDay;
                 if (daysSince > 0 && daysSince % 30 == 0) {
                     // Check for at least one friend (affinity >= 0.4) at the same settlement
                     bool hasLocalFriend = false;
@@ -2307,7 +2306,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                     }
                     if (hasLocalFriend) {
-                        griefSt->griefTimer = 1.f;  // 1 game-hour of renewed grief
+                        griefSt.griefTimer = 1.f;  // 1 game-hour of renewed grief
                         // Log at 1-in-4 frequency
                         static std::mt19937 s_anniversaryRng{ std::random_device{}() };
                         if (s_anniversaryRng() % 4 == 0) {
@@ -2327,7 +2326,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 }
             }
 
-            bool isGrieving = (griefSt->griefTimer > 0.f);
+            bool isGrieving = (griefSt.griefTimer > 0.f);
 
             // ---- Grief vigil gathering: 3+ grieving NPCs at same settlement ----
             if (isGrieving && home.settlement != entt::null) {
@@ -2372,9 +2371,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
             // ---- Gossip idle animation (hours 20–22) ----
             // Idle NPCs visually gravitate toward a nearby same-settlement NPC.
-            if (socialBeh->gossipNudgeTimer > 0.f)
-                socialBeh->gossipNudgeTimer = std::max(0.f, socialBeh->gossipNudgeTimer - dt);
-            if (currentHour >= 20 && currentHour < 22 && socialBeh->gossipNudgeTimer <= 0.f
+            if (socialBeh.gossipNudgeTimer > 0.f)
+                socialBeh.gossipNudgeTimer = std::max(0.f, socialBeh.gossipNudgeTimer - dt);
+            if (currentHour >= 20 && currentHour < 22 && socialBeh.gossipNudgeTimer <= 0.f
                 && home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float GOSSIP_ANIM_RADIUS = 30.f;
                 bool found = false;
@@ -2392,15 +2391,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     float gdist = std::sqrt(gd2);
                     vel.vx += gdx * 0.1f / gdist;
                     vel.vy += gdy * 0.1f / gdist;
-                    socialBeh->gossipNudgeTimer = 3.f;  // cooldown: 3 game-seconds
+                    socialBeh.gossipNudgeTimer = 3.f;  // cooldown: 3 game-seconds
                     found = true;
                 });
             }
 
             // ---- Greeting: idle NPCs occasionally greet a nearby idle neighbour ----
-            if (socialBeh->greetCooldown > 0.f)
-                socialBeh->greetCooldown = std::max(0.f, socialBeh->greetCooldown - dt);
-            if (!isGrieving && socialBeh->greetCooldown <= 0.f &&
+            if (socialBeh.greetCooldown > 0.f)
+                socialBeh.greetCooldown = std::max(0.f, socialBeh.greetCooldown - dt);
+            if (!isGrieving && socialBeh.greetCooldown <= 0.f &&
                 home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float GREET_RADIUS = 40.f;
                 bool greeted = false;
@@ -2418,10 +2417,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     auto* oSocial = registry.try_get<SocialBehavior>(other);
                     auto* oGrief  = registry.try_get<GriefState>(other);
                     // Greet — 120 game-seconds cooldown = 2 real-seconds
-                    socialBeh->greetCooldown  = 2.f;
+                    socialBeh.greetCooldown  = 2.f;
                     if (oSocial) oSocial->greetCooldown = 2.f;
                     // Check if this is a gratitude greeting (greeter's lastHelper == other)
-                    bool isGratitude = (socialBeh->lastHelper != entt::null && socialBeh->lastHelper == other);
+                    bool isGratitude = (socialBeh.lastHelper != entt::null && socialBeh.lastHelper == other);
                     // Check if this is a family reunion (both share FamilyTag::name)
                     bool isFamilyReunion = false;
                     if (const auto* myFt = registry.try_get<FamilyTag>(entity)) {
@@ -2438,7 +2437,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (isGratitude) {
                                 msg = (myName ? myName->value : "NPC") +
                                       " thanks " + oName.value + " for past kindness";
-                                socialBeh->lastHelper = entt::null;  // gratitude expressed, clear
+                                socialBeh.lastHelper = entt::null;  // gratitude expressed, clear
                             } else if (isFamilyReunion) {
                                 msg = (myName ? myName->value : "NPC") +
                                       " embraces " + oName.value + " warmly.";
@@ -2483,8 +2482,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                     }
                     // Family reunion clears grief early
-                    if (isFamilyReunion && ((griefSt && griefSt->griefTimer > 0.f) || (oGrief && oGrief->griefTimer > 0.f))) {
-                        if (griefSt) griefSt->griefTimer  *= 0.5f;
+                    if (isFamilyReunion && (griefSt.griefTimer > 0.f || (oGrief && oGrief->griefTimer > 0.f))) {
+                        griefSt.griefTimer  *= 0.5f;
                         if (oGrief) oGrief->griefTimer *= 0.5f;
                         auto lv3 = registry.view<EventLog>();
                         if (lv3.begin() != lv3.end()) {
@@ -2497,7 +2496,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Gossip about player bravery: spread lastHelper to the other NPC
                     if (oSocial && playerEntity != entt::null &&
-                        socialBeh->lastHelper == playerEntity &&
+                        socialBeh.lastHelper == playerEntity &&
                         oSocial->lastHelper != playerEntity) {
                         oSocial->lastHelper = playerEntity;
                         auto lv2 = registry.view<EventLog>();
@@ -2556,9 +2555,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Comfort grieving neighbour: close friends reduce grief (staggered: 1/4 per frame) ----
-            if (socialBeh->comfortCooldown > 0.f)
-                socialBeh->comfortCooldown = std::max(0.f, socialBeh->comfortCooldown - realDt);
-            if (socialBeh->comfortCooldown <= 0.f && (!griefSt || griefSt->griefTimer <= 0.f)
+            if (socialBeh.comfortCooldown > 0.f)
+                socialBeh.comfortCooldown = std::max(0.f, socialBeh.comfortCooldown - realDt);
+            if (socialBeh.comfortCooldown <= 0.f && griefSt.griefTimer <= 0.f
                 && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 const auto* myRel = registry.try_get<Relations>(entity);
                 if (myRel) {
@@ -2579,19 +2578,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             auto it = myRel->affinity.find(other);
                             if (it == myRel->affinity.end() || it->second < 0.3f) return;
                             // Grief support network: both experienced grief → double comfort
-                            bool empathicComfort = (griefSt && griefSt->lastGriefDay >= 0.f && oGrief && oGrief->lastGriefDay >= 0.f);
+                            bool empathicComfort = (griefSt.lastGriefDay >= 0.f && oGrief && oGrief->lastGriefDay >= 0.f);
                             // Work buddy grief support: work best friend → double comfort + affinity boost
                             bool isWorkBuddy = (myRel->workBestFriend == other);
                             // Post-procession comfort: comforter who was in a mourning procession → double comfort
                             bool processionComfort = false;
-                            if (socialBeh->skillCelebrateTimer > 0.f) {
+                            if (socialBeh.skillCelebrateTimer > 0.f) {
                                 const auto* comforterSk = registry.try_get<Skills>(entity);
                                 if (comforterSk && comforterSk->wisdomGriefDays > 0.f)
                                     processionComfort = true;
                             }
                             float comfortAmount = (empathicComfort || isWorkBuddy || processionComfort) ? 1.0f : 0.5f;
                             oGrief->griefTimer = std::max(0.f, oGrief->griefTimer - comfortAmount);
-                            socialBeh->comfortCooldown = 180.f; // 180 real-seconds
+                            socialBeh.comfortCooldown = 180.f; // 180 real-seconds
                             // Work buddy mutual affinity boost
                             if (isWorkBuddy) {
                                 auto* myRelMut = registry.try_get<Relations>(entity);
@@ -2691,16 +2690,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Thank player: NPCs with good rep nod respectfully near the player (staggered: 1/4 per frame) ----
-            if (socialBeh->thankCooldown > 0.f)
-                socialBeh->thankCooldown = std::max(0.f, socialBeh->thankCooldown - realDt);
-            if (playerEntity != entt::null && socialBeh->thankCooldown <= 0.f
+            if (socialBeh.thankCooldown > 0.f)
+                socialBeh.thankCooldown = std::max(0.f, socialBeh.thankCooldown - realDt);
+            if (playerEntity != entt::null && socialBeh.thankCooldown <= 0.f
                 && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 static constexpr float THANK_RADIUS = 40.f;
                 if (const auto* rep = registry.try_get<Reputation>(entity)) {
                     if (rep->score > 0.3f) {
                         float tdx = playerPos.x - pos.x, tdy = playerPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy <= THANK_RADIUS * THANK_RADIUS) {
-                            socialBeh->thankCooldown = 60.f;  // 60 real-seconds cooldown
+                            socialBeh.thankCooldown = 60.f;  // 60 real-seconds cooldown
                             auto lv = registry.view<EventLog>();
                             if (!lv.empty()) {
                                 const auto* myName = registry.try_get<Name>(entity);
@@ -2715,7 +2714,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Wave at player when happy: content NPCs create warm ambient feedback (staggered: 1/4 per frame) ----
-            if (playerEntity != entt::null && socialBeh->thankCooldown <= 0.f
+            if (playerEntity != entt::null && socialBeh.thankCooldown <= 0.f
                 && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 float avgN = 0.f;
                 for (int i = 0; i < (int)needs.list.size(); ++i) avgN += needs.list[i].value;
@@ -2728,7 +2727,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         static std::mt19937 s_waveRng{ std::random_device{}() };
                         static std::uniform_real_distribution<float> s_waveDist(0.f, 1.f);
                         if (s_waveDist(s_waveRng) < 0.01f * realDt) {
-                            socialBeh->thankCooldown = 60.f;
+                            socialBeh.thankCooldown = 60.f;
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
                                 const auto* myName = registry.try_get<Name>(entity);
@@ -2753,7 +2752,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             float dist = std::sqrt(adSq);
                             vel.vx = -(adx / dist) * speed * 0.8f;
                             vel.vy = -(ady / dist) * speed * 0.8f;
-                            banditSt->panicTimer = 2.f;
+                            banditSt.panicTimer = 2.f;
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
                                 const auto* myName = registry.try_get<Name>(entity);
@@ -2768,9 +2767,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Skill training: skilled NPC teaches nearby unskilled NPC (staggered: 1/4 per frame) ----
-            if (socialBeh->teachCooldown > 0.f)
-                socialBeh->teachCooldown = std::max(0.f, socialBeh->teachCooldown - realDt);
-            if (socialBeh->teachCooldown <= 0.f
+            if (socialBeh.teachCooldown > 0.f)
+                socialBeh.teachCooldown = std::max(0.f, socialBeh.teachCooldown - realDt);
+            if (socialBeh.teachCooldown <= 0.f
                 && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 if (auto* mySkills = registry.try_get<Skills>(entity)) {
                     static constexpr float TEACH_RADIUS = 30.f;
@@ -2804,7 +2803,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (auto* oRel = registry.try_get<Relations>(other))
                                     oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.02f);
                                 // Cooldowns
-                                socialBeh->teachCooldown  = 120.f;
+                                socialBeh.teachCooldown  = 120.f;
                                 if (oSocial) oSocial->teachCooldown = 120.f;
                                 // Mentor bond: learner remembers teacher for gratitude greeting
                                 if (oSocial) oSocial->lastHelper = entity;
@@ -2827,14 +2826,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             }
 
             // ---- Mood contagion: happy NPCs cheer up struggling neighbours (staggered: 1/4 per frame) ----
-            if (socialBeh->moodContagionCooldown > 0.f)
-                socialBeh->moodContagionCooldown = std::max(0.f, socialBeh->moodContagionCooldown - realDt);
+            if (socialBeh.moodContagionCooldown > 0.f)
+                socialBeh.moodContagionCooldown = std::max(0.f, socialBeh.moodContagionCooldown - realDt);
             {
                 float avgNeeds = 0.f;
                 for (int i = 0; i < (int)needs.list.size(); ++i) avgNeeds += needs.list[i].value;
                 avgNeeds = needs.list.empty() ? 0.f : avgNeeds / (float)needs.list.size();
                 // Only struggling NPCs (avg < 0.4) can receive mood contagion
-                if (avgNeeds < 0.4f && socialBeh->moodContagionCooldown <= 0.f
+                if (avgNeeds < 0.4f && socialBeh.moodContagionCooldown <= 0.f
                     && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                     registry.view<Needs, Position, AgentState, DeprivationTimer, Name>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>).each(
@@ -2854,7 +2853,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (auto* settl = registry.try_get<Settlement>(home.settlement))
                                     settl->morale = std::min(1.f, settl->morale + 0.01f * ghDt);
                             }
-                            socialBeh->moodContagionCooldown = 120.f; // 120 game-seconds
+                            socialBeh.moodContagionCooldown = 120.f; // 120 game-seconds
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
@@ -2892,8 +2891,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             visitSettlName = sn->value;
                     });
                     if (visitSettl != entt::null) {
-                        socialBeh->visitTimer  = 30.f;  // 30 game-minutes
-                        socialBeh->visitTarget = visitSettl;
+                        socialBeh.visitTimer  = 30.f;  // 30 game-minutes
+                        socialBeh.visitTarget = visitSettl;
                         const auto& tgtPos = registry.get<Position>(visitSettl);
                         MoveToward(vel, pos, tgtPos.x, tgtPos.y, speed * 0.8f);
                         // Log the visit
@@ -2993,7 +2992,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (cdx*cdx + cdy*cdy > CHAT_RADIUS * CHAT_RADIUS) return;
                         // Found a chat partner — stop both for a random duration
                         float dur = s_chatDist(s_chatRng);
-                        socialBeh->chatTimer  = dur;
+                        socialBeh.chatTimer  = dur;
                         if (oSocial) oSocial->chatTimer = dur;
                         // Build affinity: proximity → friendship over time
                         // During a Harvest Festival, double the affinity gain
@@ -3023,8 +3022,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                         // Grief-born friendship persistence: shared grief deepens bonds
                         bool griefBond = false;
-                        if (griefSt && oGrief && griefSt->lastGriefDay >= 0.f && oGrief->lastGriefDay >= 0.f
-                            && (tm.day - griefSt->lastGriefDay) <= 5.f
+                        if (oGrief && griefSt.lastGriefDay >= 0.f && oGrief->lastGriefDay >= 0.f
+                            && (tm.day - griefSt.lastGriefDay) <= 5.f
                             && (tm.day - oGrief->lastGriefDay) <= 5.f) {
                             const auto* relA = registry.try_get<Relations>(entity);
                             const auto* relB = registry.try_get<Relations>(other);
@@ -3116,9 +3115,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             }
                         }
                         // Bankruptcy survivor inspiration: survivor inspires non-survivor
-                        if (socialBeh->bankruptSurvivor != oSocial->bankruptSurvivor && s_chatRng() % 10 == 0) {
-                            entt::entity survivor = socialBeh->bankruptSurvivor ? entity : other;
-                            entt::entity listener2 = socialBeh->bankruptSurvivor ? other : entity;
+                        if (socialBeh.bankruptSurvivor != oSocial->bankruptSurvivor && s_chatRng() % 10 == 0) {
+                            entt::entity survivor = socialBeh.bankruptSurvivor ? entity : other;
+                            entt::entity listener2 = socialBeh.bankruptSurvivor ? other : entity;
                             if (auto* lRel2 = registry.try_get<Relations>(listener2))
                                 lRel2->affinity[survivor] = std::min(1.f, lRel2->affinity[survivor] + 0.02f);
                             auto blv = registry.view<EventLog>();

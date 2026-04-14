@@ -287,7 +287,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
                     if (other == e) return;
                     for (auto dead : toRemove) if (dead == other) return;
                     if (oFt.name != deadFt->name) return;
-                    auto& oGs = registry.get_or_emplace<GriefState>(other);
+                    auto& oGs = registry.get<GriefState>(other);
                     oGs.griefTimer = 4.f;  // 4 game-hours
                     oGs.lastGriefDay = timeView.get<TimeManager>(*timeView.begin()).day;
                     auto logView5 = registry.view<EventLog>();

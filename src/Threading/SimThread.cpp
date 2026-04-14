@@ -223,6 +223,11 @@ void SimThread::RespawnPlayer() {
     m_registry.emplace<HomeSettlement>(player, HomeSettlement{ bestSettl });
     m_registry.emplace<DeprivationTimer>(player);
     m_registry.emplace<SocialBehavior>(player);
+    m_registry.emplace<GriefState>(player);
+    m_registry.emplace<TheftRecord>(player);
+    m_registry.emplace<CharityState>(player);
+    m_registry.emplace<BanditState>(player);
+    m_registry.emplace<PersonalEventState>(player);
     m_registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
     m_registry.emplace<Money>(player, Money{ 10.f });   // small purse on respawn
     m_registry.emplace<Renderable>(player, YELLOW, 10.f);
@@ -731,7 +736,7 @@ void SimThread::ProcessInput() {
                                 if (wdx*wdx + wdy*wdy > WITNESS_RANGE * WITNESS_RANGE) return;
                                 wrep.score += 0.1f;
                                 // Witness remembers the player — enables gratitude greeting later
-                                auto& wSocial = m_registry.get_or_emplace<SocialBehavior>(we);
+                                auto& wSocial = m_registry.get<SocialBehavior>(we);
                                 wSocial.lastHelper = pe3;
                                 ++witnessCount;
                             });
@@ -1166,7 +1171,11 @@ void SimThread::ProcessInput() {
                         DeprivationTimer hdtt; hdtt.migrateThreshold = 5.f * 60.f;
                         m_registry.emplace<DeprivationTimer>(h, hdtt);
                         m_registry.emplace<SocialBehavior>(h);
+                        m_registry.emplace<GriefState>(h);
+                        m_registry.emplace<TheftRecord>(h);
+                        m_registry.emplace<CharityState>(h);
                         m_registry.emplace<BanditState>(h);
+                        m_registry.emplace<PersonalEventState>(h);
                         m_registry.emplace<Inventory>(h, Inventory{{}, 15});
                         m_registry.emplace<Hauler>(h, Hauler{});
                         m_registry.emplace<Reputation>(h);

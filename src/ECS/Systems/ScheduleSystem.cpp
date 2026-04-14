@@ -841,7 +841,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (auto* as = registry.try_get<AgentState>(entity)) {
                                             as->behavior = AgentBehavior::Celebrating;
                                         }
-                                        auto& sbCeleb = registry.get_or_emplace<SocialBehavior>(entity);
+                                        auto& sbCeleb = registry.get<SocialBehavior>(entity);
                                         sbCeleb.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
                                     }
                                     // Master milestone boosts home settlement morale

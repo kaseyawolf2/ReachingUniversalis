@@ -184,7 +184,11 @@ static void SpawnHaulers(entt::registry& registry,
         hdt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
         registry.emplace<DeprivationTimer>(h, hdt);
         registry.emplace<SocialBehavior>(h);
+        registry.emplace<GriefState>(h);
+        registry.emplace<TheftRecord>(h);
+        registry.emplace<CharityState>(h);
         registry.emplace<BanditState>(h);
+        registry.emplace<PersonalEventState>(h);
         registry.emplace<Inventory>(h, Inventory{ {}, 15 });
         // Stagger hauler wait timers so they don't all rush for cargo simultaneously
         Hauler haulerComp;
@@ -354,6 +358,11 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     registry.emplace<HomeSettlement>(player, HomeSettlement{ greenfield });
     registry.emplace<DeprivationTimer>(player);
     registry.emplace<SocialBehavior>(player);
+    registry.emplace<GriefState>(player);
+    registry.emplace<TheftRecord>(player);
+    registry.emplace<CharityState>(player);
+    registry.emplace<BanditState>(player);
+    registry.emplace<PersonalEventState>(player);
     registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
     registry.emplace<Money>(player);                            // 50 gold starting wallet
     registry.emplace<Renderable>(player, YELLOW, 10.f);
