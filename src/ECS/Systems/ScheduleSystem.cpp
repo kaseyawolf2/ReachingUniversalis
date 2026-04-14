@@ -407,13 +407,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 // Skill transfer: experienced workers carry knowledge to new careers
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
                                     // Check old profession's skill level
-                                    int oldRes = ResourceForProfession(prof->type);
-                                    int oldSid = schema.SkillForResource(oldRes);
+                                    int oldSid = schema.SkillForProfession(static_cast<int>(prof->type));
                                     float oldSkill = sk->ForSkill(oldSid);
                                     if (oldSkill >= 0.5f) {
                                         // Grant +0.05 to the new profession's skill (capped at 0.5)
-                                        int newRes = ResourceForProfession(newProf);
-                                        int newSid = schema.SkillForResource(newRes);
+                                        int newSid = schema.SkillForProfession(static_cast<int>(newProf));
                                         if (newSid >= 0 && newSid < (int)sk->levels.size())
                                             sk->levels[newSid] = std::min(0.5f, sk->levels[newSid] + 0.05f);
                                     }
@@ -482,7 +480,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         auto* myRel2 = registry.try_get<Relations>(entity);
                         if (mySkills && myProf && myRel2) {
                             // Determine this NPC's profession skill level
-                            int myProfSid = schema.SkillForResource(ResourceForProfession(myProf->type));
+                            int myProfSid = schema.SkillForProfession(static_cast<int>(myProf->type));
                             float myProfSkill = mySkills->ForSkill(myProfSid);
                             if (myProfSkill >= 0.7f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
@@ -496,7 +494,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
                                     // Check other NPC's matching profession skill
-                                    int oSid = schema.SkillForResource(ResourceForProfession(oPr.type));
+                                    int oSid = schema.SkillForProfession(static_cast<int>(oPr.type));
                                     float otherSkill = oSk.ForSkill(oSid);
                                     if (otherSkill < 0.7f) return;
                                     // 1-in-20 chance per hour
@@ -535,7 +533,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         if (mySkillsT && myProfT && myRelT
                             && myProfT->type != ProfessionType::Idle
                             && myProfT->type != ProfessionType::Hauler) {
-                            int myTSid = schema.SkillForResource(ResourceForProfession(myProfT->type));
+                            int myTSid = schema.SkillForProfession(static_cast<int>(myProfT->type));
                             float mySkillT = mySkillsT->ForSkill(myTSid);
                             if (mySkillT >= 0.5f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
@@ -549,7 +547,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     if (oPr.type == ProfessionType::Idle || oPr.type == ProfessionType::Hauler) return;
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
-                                    int oTSid = schema.SkillForResource(ResourceForProfession(oPr.type));
+                                    int oTSid = schema.SkillForProfession(static_cast<int>(oPr.type));
                                     float otherSkillT = oSk.ForSkill(oTSid);
                                     if (otherSkillT < 0.5f) return;
                                     // 1-in-25 chance per hour

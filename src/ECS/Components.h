@@ -97,15 +97,6 @@ inline ProfessionType ProfessionForResource(int rt) {
     return ProfessionType::Idle;
 }
 
-// Helper: ProfessionType → resource ID (for skill lookup via schema).
-inline int ResourceForProfession(ProfessionType p) {
-    switch (p) {
-        case ProfessionType::Farmer:       return RES_FOOD;
-        case ProfessionType::WaterCarrier: return RES_WATER;
-        case ProfessionType::Lumberjack:   return RES_WOOD;
-        default:                           return -1;
-    }
-}
 
 // Helper: ProfessionType → display string
 inline const char* ProfessionLabel(ProfessionType p) {

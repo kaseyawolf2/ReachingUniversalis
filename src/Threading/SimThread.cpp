@@ -1877,7 +1877,7 @@ void SimThread::WriteSnapshot() {
                 inVocation = (prof2->type == ProfessionForResource(bestRes)
                               && prof2->type != ProfessionType::Idle);
                 // Expert check: profession-matching skill >= 0.8
-                int profSid = m_schema.SkillForResource(ResourceForProfession(prof2->type));
+                int profSid = m_schema.SkillForProfession(static_cast<int>(prof2->type));
                 float profSkillVal = sk2->ForSkill(profSid);
                 isExpert = (profSkillVal >= 0.8f && prof2->type != ProfessionType::Idle);
             }

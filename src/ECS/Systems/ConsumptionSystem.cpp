@@ -1,5 +1,6 @@
 #include "ConsumptionSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <map>
 #include <string>
@@ -25,7 +26,7 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 
 static std::map<entt::entity, float> s_desperateCooldown;
 
-void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -342,11 +343,11 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    if (!sk->levels.empty()) {
-                        char sb[32];
-                        std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sk->levels[0] * 100));
-                        skillSuffix = sb;
-                    }
+                    int sid = schema.SkillForResource(RES_FOOD);
+                    float sv = sk->ForSkill(sid);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sv * 100));
+                    skillSuffix = sb;
                 }
                 // Log it
                 auto lv3 = registry.view<EventLog>();
@@ -373,11 +374,11 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix2;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    if (sk->levels.size() > 1) {
-                        char sb[32];
-                        std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sk->levels[1] * 100));
-                        skillSuffix2 = sb;
-                    }
+                    int sid = schema.SkillForResource(RES_WATER);
+                    float sv = sk->ForSkill(sid);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sv * 100));
+                    skillSuffix2 = sb;
                 }
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();

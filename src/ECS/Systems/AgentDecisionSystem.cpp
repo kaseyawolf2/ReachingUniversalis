@@ -489,7 +489,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             std::unordered_map<entt::entity, int> masterFlags;
             // Helper: get skill level for a profession type using schema lookup
             auto profSkill = [&schema](const Skills& sk, ProfessionType pt) -> float {
-                int sid = schema.SkillForResource(ResourceForProfession(pt));
+                int sid = schema.SkillForProfession(static_cast<int>(pt));
                 return sk.ForSkill(sid);
             };
 
@@ -796,7 +796,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Capture pre-growth skill for loyalty streak crossing detection
-                    int profSid = schema.SkillForResource(ResourceForProfession(prof.type));
+                    int profSid = schema.SkillForProfession(static_cast<int>(prof.type));
                     float preActiveSkill = sk.ForSkill(profSid);
                     if (hasMaster && preActiveSkill < MASTER_THRESHOLD)
                         growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
@@ -928,12 +928,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
-                    // Save pre-rust values for notification check
-                    std::vector<float> preRust = sk.levels;
+                    // Snapshot pre-rust only when we will check for threshold crossing (1-in-5)
+                    bool checkRust = !logV2.empty() && s_teachRng() % 5 == 0;
+                    std::vector<float> preRust;
+                    if (checkRust) preRust = sk.levels;
                     sk.DecayAll(SKILL_RUST, SKILL_RUST_FLOOR, profSid);
 
                     // Skill rust notification: log when a skill drops below 0.5
-                    if (!logV2.empty() && s_teachRng() % 5 == 0) {
+                    if (checkRust) {
                         const char* rustSkill = nullptr;
                         for (int si = 0; si < (int)sk.levels.size(); ++si) {
                             if (si < (int)preRust.size() && preRust[si] >= 0.5f && sk.levels[si] < 0.5f
@@ -1122,7 +1124,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     for (const auto& elder : it->second) {
                         if (elder.prof != prof.type) continue;
                         // Apply mentor skill growth
-                        int mentorSid = schema.SkillForResource(ResourceForProfession(prof.type));
+                        int mentorSid = schema.SkillForProfession(static_cast<int>(prof.type));
                         sk.AdvanceSkill(mentorSid, MENTOR_SKILL_GROWTH);
                         // Log at 1-in-5 frequency
                         if (!logV.empty() && s_mentorRng() % 5 == 0) {
@@ -1422,8 +1424,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (oldType != newType && oldType != ProfessionType::Idle
                                 && newType != ProfessionType::Idle) {
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
-                                    int oldSid = schema.SkillForResource(ResourceForProfession(oldType));
-                                    int newSid = schema.SkillForResource(ResourceForProfession(newType));
+                                    int oldSid = schema.SkillForProfession(static_cast<int>(oldType));
+                                    int newSid = schema.SkillForProfession(static_cast<int>(newType));
                                     // Halve old skill
                                     float oldVal = sk->ForSkill(oldSid);
                                     sk->AdvanceSkill(oldSid, -(oldVal * 0.5f));
@@ -3013,7 +3015,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (profA && profB && skA && skB && profA->type == profB->type
                                 && profA->type != ProfessionType::Idle && profA->type != ProfessionType::Hauler) {
                                 auto getSkill = [&schema](const Skills& sk, ProfessionType t) -> float {
-                                    int sid = schema.SkillForResource(ResourceForProfession(t));
+                                    int sid = schema.SkillForProfession(static_cast<int>(t));
                                     return sk.ForSkill(sid);
                                 };
                                 float sA = getSkill(*skA, profA->type);
