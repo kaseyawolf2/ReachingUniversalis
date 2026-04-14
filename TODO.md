@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
+
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -85,8 +87,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
 
 - [ ] **Post-procession comfort bonus** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter was a participant in a mourning procession (check `skillCelebrateTimer > 0` and `wisdomGriefDays > 0`), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] draws strength from the procession to comfort [Griever]" at 1-in-6 frequency. Creates a connection between the group mourning event and individual grief support.
 
