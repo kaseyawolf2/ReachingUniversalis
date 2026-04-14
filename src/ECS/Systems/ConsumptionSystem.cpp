@@ -117,14 +117,14 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
             // Remember where this meal came from
             if (settl) {
                 if (auto* sb = registry.try_get<SocialBehavior>(entity))
-                    sb->lastMealSource = settl->name;
+                    sb->mood.lastMealSource = settl->name;
             }
         }
 
         // ---- Gratitude for last meal ----
         // When hunger drops below 0.2, NPC recalls the settlement that fed them.
         if (auto* sb = registry.try_get<SocialBehavior>(entity)) {
-            if (needs.list[0].value < 0.2f && !sb->lastMealSource.empty()) {
+            if (needs.list[0].value < 0.2f && !sb->mood.lastMealSource.empty()) {
                 auto lv2 = registry.view<EventLog>();
                 auto tv2 = registry.view<TimeManager>();
                 if (!lv2.empty() && !tv2.empty()) {
@@ -133,10 +133,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                     if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
                     char buf[160];
                     std::snprintf(buf, sizeof(buf), "%s is grateful to %s for food.",
-                                  who.c_str(), sb->lastMealSource.c_str());
+                                  who.c_str(), sb->mood.lastMealSource.c_str());
                     lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
                 }
-                sb->lastMealSource.clear();
+                sb->mood.lastMealSource.clear();
             }
         }
 
@@ -208,9 +208,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         // ---- Starvation begging from friends ----
         // When starving (hunger < 0.1) and broke, beg from a friend at the same settlement.
         auto* sbBeg = registry.try_get<SocialBehavior>(entity);
-        if (sbBeg && sbBeg->begTimer > 0.f) sbBeg->begTimer -= gameHoursDt;
+        if (sbBeg && sbBeg->cooldowns.begTimer > 0.f) sbBeg->cooldowns.begTimer -= gameHoursDt;
         if (needs.list[0].value < 0.1f && (!money || money->balance < 1.f)
-            && sbBeg && sbBeg->begTimer <= 0.f) {
+            && sbBeg && sbBeg->cooldowns.begTimer <= 0.f) {
             const auto* rel = registry.try_get<Relations>(entity);
             if (rel) {
                 entt::entity bestHelper = entt::null;
@@ -233,7 +233,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                             auto& m = registry.get_or_emplace<Money>(entity);
                             m.balance += 3.f;
                         }
-                        sbBeg->begTimer = 24.f;  // cooldown: once per 24 game-hours
+                        sbBeg->cooldowns.begTimer = 24.f;  // cooldown: once per 24 game-hours
                         auto logV = registry.view<EventLog>();
                         auto tmV  = registry.view<TimeManager>();
                         if (!logV.empty() && !tmV.empty()) {

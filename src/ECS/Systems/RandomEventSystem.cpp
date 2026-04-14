@@ -832,7 +832,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
             // Elder wisdom transfer — one-time event for elders age > 70 with a skill ≥ 0.6
             auto* socialBeh = registry.try_get<SocialBehavior>(e);
-            if (socialBeh && !socialBeh->wisdomFired) {
+            if (socialBeh && !socialBeh->mood.wisdomFired) {
                 const auto* age = registry.try_get<Age>(e);
                 if (age && age->days > 70.f) {
                     float bestSkill = skills.BestValue();
@@ -859,7 +859,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                 auto* tSkills = registry.try_get<Skills>(target);
                                 if (tSkills && bestSkillId != INVALID_ID) {
                                     tSkills->Set(bestSkillId, std::min(0.8f, tSkills->Get(bestSkillId) + 0.1f));
-                                    socialBeh->wisdomFired = true;
+                                    socialBeh->mood.wisdomFired = true;
 
                                     if (log) {
                                         const auto* stt = registry.try_get<Settlement>(hs->settlement);

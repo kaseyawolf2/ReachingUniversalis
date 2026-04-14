@@ -184,26 +184,37 @@ struct DeprivationTimer {
 // Mandatory component emplaced on all NPCs at spawn; use get<> in the main
 // NPC loop, try_get<> only when accessing other entities.
 struct SocialBehavior {
-    float        gossipCooldown        = 0.f;   // game-hours until NPC can gossip prices again (0 = ready)
-    float        gossipNudgeTimer      = 0.f;   // game-seconds remaining for gossip drift animation (0 = eligible)
-    float        chatTimer             = 0.f;   // game-seconds remaining in evening chat stop (0 = free to move)
-    float        greetCooldown         = 0.f;   // real-seconds until NPC can greet a neighbour again (0 = ready)
-    float        thankCooldown         = 0.f;   // real-seconds until NPC can thank player again (0 = ready)
-    float        teachCooldown         = 0.f;   // real-seconds until NPC can teach/learn again (0 = ready)
-    float        moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
-    float        comfortCooldown       = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
-    float        skillCelebrateTimer   = 0.f;   // game-hours remaining for skill milestone celebration
-    float        reconcileGlow         = 0.f;   // game-hours remaining of post-reconciliation productivity boost (+5%)
-    float        begTimer              = 0.f;   // game-hours until NPC can beg from a friend again (0 = ready)
-    float        homesickTimer         = 0.f;   // game-hours since migration arrival; triggers return when > 72h and low satisfaction
-    float        visitTimer            = 0.f;   // game-minutes remaining on family visit (0 = not visiting)
-    entt::entity visitTarget           = entt::null; // settlement entity being visited
-    entt::entity lastHelper            = entt::null; // entity who last gave charity; for gratitude greeting
-    std::string  lastMealSource;                // settlement name where NPC last ate; cleared after gratitude log
-    bool         wisdomFired           = false;  // true once elder wisdom transfer has fired (one-time event)
-    bool         wealthCelebrated      = false;  // true once NPC's balance crosses 500g (one-time event)
-    bool         masterSettled         = false;  // true once any skill reaches 0.9; permanently boosts migrateThreshold
-    bool         bankruptSurvivor      = false;  // true after hauler bankruptcy; grants extra skill growth
+    // Timers governing how often social interactions can occur.
+    struct InteractionCooldowns {
+        float gossipCooldown        = 0.f;   // game-hours until NPC can gossip prices again (0 = ready)
+        float gossipNudgeTimer      = 0.f;   // game-seconds remaining for gossip drift animation (0 = eligible)
+        float chatTimer             = 0.f;   // game-seconds remaining in evening chat stop (0 = free to move)
+        float greetCooldown         = 0.f;   // real-seconds until NPC can greet a neighbour again (0 = ready)
+        float thankCooldown         = 0.f;   // real-seconds until NPC can thank player again (0 = ready)
+        float teachCooldown         = 0.f;   // real-seconds until NPC can teach/learn again (0 = ready)
+        float moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
+        float comfortCooldown       = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
+        float begTimer              = 0.f;   // game-hours until NPC can beg from a friend again (0 = ready)
+    } cooldowns;
+
+    // One-shot flags, milestone events, and mood-affecting states.
+    struct MoodState {
+        float        skillCelebrateTimer = 0.f;   // game-hours remaining for skill milestone celebration
+        float        reconcileGlow       = 0.f;   // game-hours remaining of post-reconciliation productivity boost (+5%)
+        float        homesickTimer       = 0.f;   // game-hours since migration arrival; triggers return when > 72h and low satisfaction
+        entt::entity lastHelper          = entt::null; // entity who last gave charity; for gratitude greeting
+        std::string  lastMealSource;                   // settlement name where NPC last ate; cleared after gratitude log
+        bool         wisdomFired         = false;  // true once elder wisdom transfer has fired (one-time event)
+        bool         wealthCelebrated    = false;  // true once NPC's balance crosses 500g (one-time event)
+        bool         masterSettled       = false;  // true once any skill reaches 0.9; permanently boosts migrateThreshold
+        bool         bankruptSurvivor    = false;  // true after hauler bankruptcy; grants extra skill growth
+    } mood;
+
+    // State for family visits to other settlements.
+    struct VisitState {
+        float        timer  = 0.f;          // game-minutes remaining on family visit (0 = not visiting)
+        entt::entity target = entt::null;   // settlement entity being visited
+    } visit;
 };
 
 // Bandit-specific timers and state.
