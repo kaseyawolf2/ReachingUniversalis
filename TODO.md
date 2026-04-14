@@ -155,7 +155,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **SocialBehavior MoodState dead field audit** — After relocating `skillCelebrateTimer` and `reconcileGlow` out of `MoodState`, audit whether any remaining `MoodState` fields are also functionally cooldowns. Candidates: `griefLevel` decays over time and gates visit behavior. Document each field's category (persistent state vs. decaying timer) with inline comments.
 
-- [ ] **SkillGrowthRate bounds-check unit test** — Add a test to `tests/` that constructs a minimal `WorldSchema` with 2 skills, then calls `SkillGrowthRate(INVALID_ID)`, `SkillGrowthRate(-1)`, and `SkillGrowthRate(999)` to verify the fallback returns 1.0f for all out-of-range inputs. Same for `SkillDecayRate`.
+- [x] **SkillGrowthRate bounds-check unit test** — Add a test to `tests/` that constructs a minimal `WorldSchema` with 2 skills, then calls `SkillGrowthRate(INVALID_ID)`, `SkillGrowthRate(-1)`, and `SkillGrowthRate(999)` to verify the fallback returns 1.0f for all out-of-range inputs. Same for `SkillDecayRate`.
 
 - [ ] **SkillForProfession INVALID_ID propagation audit** — After the INVALID_ID guard was added at line ~598 of `AgentDecisionSystem.cpp`, audit all other call sites of `SkillForProfession()` across all systems to ensure they also guard against INVALID_ID before passing to `SkillGrowthRate()` or `SkillDecayRate()`.
 
@@ -262,6 +262,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **MoodState wisdomFired age unit clarification** — `MoodState::wisdomFired` comment says "age > 70" but the code checks `age->days > 70.f` which is game-days. Clarify the comment to say "age > 70 game-days" to avoid confusion with real-world years.
 
 - [ ] **MoodState homesickTimer reset condition precision** — `MoodState::homesickTimer` doc comment says "Reset to 0 on migration start" but only homesick return migration resets it, not forward migration. Clarify to "Reset on homesick return trigger and on arrival at a new settlement."
+
+- [ ] **SkillRate boundary test** — `tests/SkillRateTest.cpp` tests `SkillGrowthRate(999)` but not the exact boundary `SkillGrowthRate(2)` (first out-of-range for a 2-skill schema). Add boundary-exact tests for both `SkillGrowthRate` and `SkillDecayRate` at `id == skills.size()`, where off-by-one bugs live.
+
+- [ ] **SkillRate empty schema test** — `tests/SkillRateTest.cpp` doesn't test behavior when `skills` vector is empty (default-constructed `WorldSchema` without `BuildMaps()`). Add a test calling `SkillGrowthRate(0)` and `SkillDecayRate(0)` on an empty schema to verify the fallback path handles zero-size vectors.
 
 ## Phase 2 — UI Decoupling
 
