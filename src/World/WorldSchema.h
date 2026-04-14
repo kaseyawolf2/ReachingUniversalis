@@ -267,6 +267,11 @@ struct WorldSchema {
     // Resource → Profession reverse lookup (built by BuildMaps from ProfessionDef::producesResource)
     std::unordered_map<ResourceID, ProfessionID> resourceToProfession;
 
+    // Resource → Skill reverse lookup (built by BuildMaps from SkillDef::forResource)
+    std::unordered_map<int, int> resourceToSkill;
+    // Profession → primary Skill lookup (built by BuildMaps from ProfessionDef::primarySkill)
+    std::unordered_map<int, int> professionToSkill;
+
     // Cached special profession IDs (populated by BuildMaps; INVALID_ID if absent)
     ProfessionID idleProfessionId   = INVALID_ID;
     ProfessionID haulerProfessionId = INVALID_ID;
@@ -315,9 +320,16 @@ struct WorldSchema {
         resourcesByName.clear();
         for (auto& d : resources)    { d.id = (ResourceID)(&d - resources.data());        resourcesByName[d.name] = d.id; }
         skillsByName.clear();
-        for (auto& d : skills)       { d.id = (SkillID)(&d - skills.data());              skillsByName[d.name] = d.id; }
+        resourceToSkill.clear();
+        for (auto& d : skills)       {
+            d.id = (SkillID)(&d - skills.data());
+            skillsByName[d.name] = d.id;
+            if (d.forResource != INVALID_ID)
+                resourceToSkill[d.forResource] = d.id;
+        }
         professionsByName.clear();
         resourceToProfession.clear();
+        professionToSkill.clear();
         idleProfessionId = INVALID_ID;
         haulerProfessionId = INVALID_ID;
         for (auto& d : professions)  {
@@ -325,6 +337,8 @@ struct WorldSchema {
             professionsByName[d.name] = d.id;
             if (d.producesResource != INVALID_ID)
                 resourceToProfession[d.producesResource] = d.id;
+            if (d.primarySkill != INVALID_ID)
+                professionToSkill[d.id] = d.primarySkill;
             if (d.isIdle)   idleProfessionId   = d.id;
             if (d.isHauler) haulerProfessionId = d.id;
         }
