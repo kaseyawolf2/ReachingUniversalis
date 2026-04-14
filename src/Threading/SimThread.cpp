@@ -1526,7 +1526,7 @@ void SimThread::WriteSnapshot() {
                 {
                     const auto* skM = m_registry.try_get<Skills>(e);
                     const auto* sbM = m_registry.try_get<SocialBehavior>(e);
-                    if (skM && sbM && skM->wisdomGriefDays > 0.f && sbM->mood.skillCelebrateTimer > 0.f)
+                    if (skM && sbM && skM->wisdomGriefDays > 0.f && sbM->cooldowns.skillCelebrateTimer > 0.f)
                         ++ag.mourningCount;
                 }
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
@@ -1842,7 +1842,7 @@ void SimThread::WriteSnapshot() {
         if (const auto* sb = m_registry.try_get<SocialBehavior>(e)) {
             recentlyTaught = (sb->cooldowns.teachCooldown > 0.f);
             chatting       = (sb->cooldowns.chatTimer > 0.f);
-            reconciling    = (sb->mood.reconcileGlow > 0.f);
+            reconciling    = (sb->cooldowns.reconcileGlow > 0.f);
         }
         if (const auto* gs = m_registry.try_get<GriefState>(e)) {
             isGrievingSnap = (gs->griefTimer > 0.f);

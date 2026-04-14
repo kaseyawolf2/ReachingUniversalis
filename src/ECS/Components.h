@@ -199,12 +199,12 @@ struct SocialBehavior {
         float moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
         float comfortCooldown       = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
         float begTimer              = 0.f;   // game-hours until NPC can beg from a friend again (0 = ready)
+        float skillCelebrateTimer   = 0.f;   // game-hours remaining for skill milestone celebration
+        float reconcileGlow         = 0.f;   // game-hours remaining of post-reconciliation productivity boost (+5%)
     } cooldowns;
 
     // One-shot flags, milestone events, and mood-affecting states.
     struct MoodState {
-        float        skillCelebrateTimer = 0.f;   // game-hours remaining for skill milestone celebration
-        float        reconcileGlow       = 0.f;   // game-hours remaining of post-reconciliation productivity boost (+5%)
         float        homesickTimer       = 0.f;   // game-hours since migration arrival; triggers return when > 72h and low satisfaction
         entt::entity lastHelper          = entt::null; // entity who last gave charity; for gratitude greeting
         std::string  lastMealSource;                   // settlement name where NPC last ate; cleared after gratitude log

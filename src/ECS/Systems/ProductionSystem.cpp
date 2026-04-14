@@ -122,9 +122,9 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             }
             // Reconciliation glow: recently reconciled workers produce +5%
             if (auto* sb = registry.try_get<SocialBehavior>(e)) {
-                if (sb->mood.reconcileGlow > 0.f) {
+                if (sb->cooldowns.reconcileGlow > 0.f) {
                     workerContrib *= 1.05f;
-                    sb->mood.reconcileGlow = std::max(0.f, sb->mood.reconcileGlow - gameHoursDt);
+                    sb->cooldowns.reconcileGlow = std::max(0.f, sb->cooldowns.reconcileGlow - gameHoursDt);
                 }
             }
             // Jack-of-all-trades: generalists with all skills >= 0.4 get +5%
