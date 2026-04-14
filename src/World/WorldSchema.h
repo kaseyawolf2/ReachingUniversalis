@@ -304,7 +304,7 @@ struct WorldSchema {
     // Flat vector indexed by ResourceID; value is SkillID (INVALID_ID if none).
     std::vector<int> resourceToSkill;
 
-    // Profession → Skill reverse lookup (built by BuildMaps from ProfessionDef::primarySkill)
+    // Profession → Skill reverse lookup (built by BuildProfessionToSkillMap, must run after ResolveCrossRefs)
     // Flat vector indexed by ProfessionID; value is SkillID (INVALID_ID if none).
     std::vector<SkillID> professionToSkill;
 
@@ -390,7 +390,6 @@ struct WorldSchema {
         for (auto& d : skills)       { d.id = (SkillID)(&d - skills.data());              skillsByName[d.name] = d.id; }
         professionsByName.clear();
         resourceToProfession.assign(resources.size(), INVALID_ID);
-        professionToSkill.assign(professions.size(), INVALID_ID);
         idleProfessionId = INVALID_ID;
         haulerProfessionId = INVALID_ID;
         for (auto& d : professions)  {
@@ -398,7 +397,6 @@ struct WorldSchema {
             professionsByName[d.name] = d.id;
             if (d.producesResource >= 0 && d.producesResource < (int)resources.size())
                 resourceToProfession[d.producesResource] = d.id;
-            professionToSkill[d.id] = d.primarySkill;
             if (d.isIdle)   idleProfessionId   = d.id;
             if (d.isHauler) haulerProfessionId = d.id;
         }
@@ -422,6 +420,17 @@ struct WorldSchema {
         for (const auto& d : skills) {
             if (d.forResource >= 0 && d.forResource < (int)resources.size())
                 resourceToSkill[d.forResource] = d.id;
+        }
+    }
+
+    // Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
+    // Must be called AFTER ResolveCrossRefs populates primarySkill fields.
+    void BuildProfessionToSkillMap() {
+        assert(crossRefsResolved && "BuildProfessionToSkillMap() must be called after ResolveCrossRefs()");
+        professionToSkill.assign(professions.size(), INVALID_ID);
+        for (const auto& d : professions) {
+            if (d.id >= 0 && d.id < (int)professionToSkill.size())
+                professionToSkill[d.id] = d.primarySkill;
         }
     }
 };

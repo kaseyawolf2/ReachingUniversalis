@@ -743,6 +743,7 @@ bool WorldLoader::Load(const std::string& worldDir,
 
     // Build cached lookup maps that depend on resolved cross-references
     schema.BuildResourceToSkillMap();
+    schema.BuildProfessionToSkillMap();
 
     // ---- Validation passes ----
 
