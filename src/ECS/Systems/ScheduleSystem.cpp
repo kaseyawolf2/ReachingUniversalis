@@ -705,18 +705,21 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
                                 coworkers.push_back(other);
                             });
-                            if (coworkers.size() >= 3 && s_rng() % 30 == 0) {
-                                // Boost all coworkers' mutual affinity by +0.01
+                            // Seasonal work shanty: Autumn = more frequent songs, Winter = stronger bonds
+                            int songChance = (season == Season::Autumn) ? 15 : 30;
+                            float songAffinityGain = (season == Season::Winter) ? 0.02f : 0.01f;
+                            if (coworkers.size() >= 3 && s_rng() % songChance == 0) {
+                                // Boost all coworkers' mutual affinity
                                 for (size_t i = 0; i < coworkers.size(); ++i) {
                                     auto* relI = registry.try_get<Relations>(coworkers[i]);
                                     if (!relI) continue;
                                     for (size_t j = i + 1; j < coworkers.size(); ++j) {
-                                        relI->affinity[coworkers[j]] = std::min(1.f, relI->affinity[coworkers[j]] + 0.01f);
+                                        relI->affinity[coworkers[j]] = std::min(1.f, relI->affinity[coworkers[j]] + songAffinityGain);
                                         if (auto* relJ = registry.try_get<Relations>(coworkers[j]))
-                                            relJ->affinity[coworkers[i]] = std::min(1.f, relJ->affinity[coworkers[i]] + 0.01f);
+                                            relJ->affinity[coworkers[i]] = std::min(1.f, relJ->affinity[coworkers[i]] + songAffinityGain);
                                     }
                                 }
-                                // Log the work song
+                                // Log the work song with seasonal variant
                                 auto logVS = registry.view<EventLog>();
                                 if (!logVS.empty()) {
                                     std::string who = "NPC";
@@ -725,8 +728,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                     if (home.settlement != entt::null && registry.valid(home.settlement))
                                         if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                             where = s->name;
-                                    logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour,
-                                        who + " leads a work song at " + where + ".");
+                                    std::string songMsg;
+                                    if (season == Season::Autumn)
+                                        songMsg = who + " leads a harvest shanty at " + where + ".";
+                                    else if (season == Season::Winter)
+                                        songMsg = who + " leads a fireside song at " + where + ".";
+                                    else
+                                        songMsg = who + " leads a work song at " + where + ".";
+                                    logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour, songMsg);
                                 }
                                 // Work song morale lift: 4+ coworkers boost settlement morale
                                 if (coworkers.size() >= 4) {
