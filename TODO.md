@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
+
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -95,8 +97,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
 
 - [ ] **Low harmony triggers NPC complaints** — In `AgentDecisionSystem.cpp`'s idle chat block, when the home settlement's harmony (pre-computed per settlement) is < 0.15 and both chatting NPCs have `Relations::affinity < 0.3` toward each other, 1-in-10 chance to log "[NPC1] and [NPC2] grumble about tensions at [Settlement]" and apply -0.005 to `Settlement::morale` (floor 0.0). Creates a feedback loop: low harmony → morale drain → potential migration.
 
