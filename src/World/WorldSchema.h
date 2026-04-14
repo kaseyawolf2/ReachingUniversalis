@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
 
 #include "SeasonDef.h"
 
@@ -408,6 +409,10 @@ struct WorldSchema {
     // Build the resourceToSkill reverse lookup from SkillDef::forResource.
     // Must be called AFTER ResolveCrossRefs populates forResource fields.
     void BuildResourceToSkillMap() {
+        if (!crossRefsResolved) {
+            fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
+            return;
+        }
         assert(crossRefsResolved && "BuildResourceToSkillMap() must be called after ResolveCrossRefs()");
         resourceToSkill.assign(resources.size(), INVALID_ID);
         for (const auto& d : skills) {
@@ -419,6 +424,10 @@ struct WorldSchema {
     // Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
     // Must be called AFTER ResolveCrossRefs populates primarySkill fields.
     void BuildProfessionToSkillMap() {
+        if (!crossRefsResolved) {
+            fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
+            return;
+        }
         assert(crossRefsResolved && "BuildProfessionToSkillMap() must be called after ResolveCrossRefs()");
         professionToSkill.assign(professions.size(), INVALID_ID);
         for (const auto& d : professions) {
