@@ -52,6 +52,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
+- [x] **Reconciliation glow visible in tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool reconciling = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::reconcileGlow > 0`. In `HUD.cpp`'s NPC tooltip, display "[Harmonious]" in soft green after existing badges. Makes the post-reconciliation state visible to the player.
+
 - [x] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
 
 - [x] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
@@ -71,8 +73,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Reconciliation glow visible in tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool reconciling = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `DeprivationTimer::reconcileGlow > 0`. In `HUD.cpp`'s NPC tooltip, display "[Harmonious]" in soft green after existing badges. Makes the post-reconciliation state visible to the player.
 
 - [ ] **Repeated reconciliation deepens bond** — In `ScheduleSystem.cpp`'s reconciliation block, track how many times a pair has reconciled via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount`. On 2nd+ reconciliation, use +0.08 affinity instead of +0.05, and boost `reconcileGlow` to 4 game-hours instead of 2. Log "[NPC1] and [NPC2] are becoming unlikely friends at [Settlement]" at full frequency on 3rd+ reconciliation. Creates an escalating friendship arc from repeated conflict resolution.
 
@@ -4581,3 +4581,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Charity chain depth counter** — In `AgentDecisionSystem.cpp`'s charity chain reaction block, add a `static std::map<entt::entity, int> s_chainDepth` tracking how many times a chain extends per game-day (clear on day change). Cap at depth 3 to prevent runaway gold drainage. When chain reaches depth 3, log "[Settlement] is abuzz with generosity" at full frequency. Uses existing charity block and `TimeManager::day`.
 
 - [ ] **Charity gratitude affinity** — In `AgentDecisionSystem.cpp`'s charity block, after the chain reaction, boost the recipient's `Relations::affinity` toward the chain target by +0.02 (the recipient helped someone, creating a new bond). Log "[Recipient] and [ChainTarget] share a grateful smile at [Settlement]" at 1-in-6 frequency. Uses existing `Relations` component. Creates social bonds that emerge from generosity chains.
+
+- [ ] **Reconciliation ripple effect** — In `ScheduleSystem.cpp`'s reconciliation block, after two NPCs reconcile, scan for a third NPC at the same facility with `Relations::affinity < 0.2` toward either reconciling NPC. 1-in-6 chance the witness gains +0.02 affinity toward both reconcilers. Log "[Witness] is inspired by [NPC1] and [NPC2]'s truce at [Settlement]" at full frequency. Creates social ripple effects from conflict resolution.
+
+- [ ] **Harmonious worker productivity bonus** — In `ProductionSystem.cpp`'s per-worker yield calculation, when 3+ workers at the same facility all have `DeprivationTimer::reconcileGlow > 0`, apply an additional +3% group harmony bonus on top of individual +5%. Log "[Facility] hums with cooperative energy" at 1-in-8 frequency per production tick. Uses existing `reconcileGlow` field. Rewards settlements that resolve conflicts collectively.
