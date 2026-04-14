@@ -28,6 +28,7 @@ private:
 
     entt::entity FindMigrationTarget(entt::registry& registry,
                                      entt::entity homeSettlement,
+                                     const WorldSchema& schema,
                                      const Skills* skills = nullptr,
                                      const Profession* profession = nullptr,
                                      const MigrationMemory* memory = nullptr,

@@ -18,7 +18,7 @@ static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 // 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
 static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
 
-void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -26,13 +26,18 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     if (gameDt <= 0.0f) return;
 
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.0f;
-    Season season     = tm.CurrentSeason();
-    float seasonMod   = SeasonProductionModifier(season);
+    SeasonID seasonId = tm.CurrentSeason(schema.seasons);
+    float seasonMod   = 1.f;
+    float baseTemp    = 20.f;
+    if (seasonId >= 0 && seasonId < (int)schema.seasons.size()) {
+        seasonMod = schema.seasons[seasonId].productionMod;
+        baseTemp  = schema.seasons[seasonId].baseTemperature;
+    }
 
     // ---- Food spoilage ----
-    // Summer doubles the spoilage rate (heat); winter halves it (cold preserves food).
-    float spoilageMult = (season == Season::Summer) ? 2.0f :
-                         (season == Season::Winter) ? 0.5f : 1.0f;
+    // Hot seasons (base temp >= 25) double spoilage; cold seasons (base temp <= 0) halve it.
+    float spoilageMult = (baseTemp >= 25.f) ? 2.0f :
+                         (baseTemp <= 0.f)  ? 0.5f : 1.0f;
     float spoilFraction = FOOD_SPOILAGE_RATE * spoilageMult * gameHoursDt;
     registry.view<Stockpile>().each([&](Stockpile& sp) {
         auto it = sp.quantities.find(RES_FOOD);

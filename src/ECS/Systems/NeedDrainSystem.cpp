@@ -5,7 +5,7 @@
 // plague-afflicted settlement (within its radius).
 static constexpr float PLAGUE_PLAYER_DRAIN_MULT = 1.5f;
 
-void NeedDrainSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void NeedDrainSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     // Resolve game-time delta from the TimeManager singleton.
     // Needs drain at a consistent game-time rate regardless of tick speed.
     // If paused, gameDt == 0 and no draining occurs.
@@ -16,9 +16,11 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
     if (!timeView.empty()) {
         const auto& tm = timeView.get<TimeManager>(*timeView.begin());
         gameDt          = tm.GameDt(realDt);
-        Season season   = tm.CurrentSeason();
-        energyDrainMult = SeasonEnergyDrainMult(season);
-        heatDrainMult   = SeasonHeatDrainMult(season);
+        SeasonID sid    = tm.CurrentSeason(schema.seasons);
+        if (sid >= 0 && sid < (int)schema.seasons.size()) {
+            energyDrainMult = schema.seasons[sid].energyDrainMod;
+            heatDrainMult   = schema.seasons[sid].heatDrainMod;
+        }
     }
 
     // Check if the player is inside a plague-afflicted settlement (for extra drain).

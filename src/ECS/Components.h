@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <entt/entt.hpp>
+#include "World/WorldSchema.h"
 
 // ---- Domain enums ----
 
@@ -327,58 +328,16 @@ struct Renderable {
 // GAME_MINS_PER_REAL_SEC controls how fast game time runs relative to real time.
 static constexpr float GAME_MINS_PER_REAL_SEC = 1.0f;
 
-// Season cycle: 30 game-days each, repeating Spring→Summer→Autumn→Winter.
-enum class Season { Spring = 0, Summer = 1, Autumn = 2, Winter = 3 };
-
-static constexpr int DAYS_PER_SEASON = 30;
-
-inline const char* SeasonName(Season s) {
-    switch (s) {
-        case Season::Spring: return "Spring";
-        case Season::Summer: return "Summer";
-        case Season::Autumn: return "Autumn";
-        case Season::Winter: return "Winter";
-    }
-    return "Spring";
-}
-
-// Production modifier per season (applied on top of all other modifiers).
-inline float SeasonProductionModifier(Season s) {
-    switch (s) {
-        case Season::Spring: return 0.8f;   // growth season, moderate output
-        case Season::Summer: return 1.0f;   // peak production
-        case Season::Autumn: return 1.2f;   // harvest bonus
-        case Season::Winter: return 0.2f;   // very low production
-    }
-    return 1.0f;
-}
-
-// Energy drain multiplier per season (1.0 = normal; winter = more drain).
-inline float SeasonEnergyDrainMult(Season s) {
-    return (s == Season::Winter) ? 1.8f : 1.0f;
-}
+// Season cycle: seasons are defined in WorldSchema and cycle by index.
+// SeasonID is an int index into WorldSchema::seasons.
 
 // Approximate air temperature in degrees Celsius.
 // Combines season baseline with time-of-day variation (cooler at night).
-inline float AmbientTemperature(Season s, float hourOfDay) {
-    // Season baseline (°C at noon)
-    float base = (s == Season::Spring) ? 12.f :
-                 (s == Season::Summer) ? 28.f :
-                 (s == Season::Autumn) ? 8.f  : -8.f;  // winter
-    // Diurnal swing: ±8°C, coldest at 4am, hottest at 2pm
-    float swing = -8.f * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
+inline float AmbientTemperature(const SeasonDef& sdef, float hourOfDay) {
+    float base = sdef.baseTemperature;
+    // Diurnal swing: ± tempSwing, coldest at 4am, hottest at 2pm
+    float swing = -sdef.tempSwing * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
     return base + swing;
-}
-
-// Heat drain multiplier per season — summer = no cold, winter = full cold.
-inline float SeasonHeatDrainMult(Season s) {
-    switch (s) {
-        case Season::Spring: return 0.15f;
-        case Season::Summer: return 0.0f;
-        case Season::Autumn: return 0.4f;
-        case Season::Winter: return 1.0f;
-    }
-    return 0.0f;
 }
 
 struct TimeManager {
@@ -396,12 +355,20 @@ struct TimeManager {
         return realDt;
     }
 
-    Season CurrentSeason() const {
-        int seasonDay = (day - 1) % (DAYS_PER_SEASON * 4);
-        if (seasonDay < DAYS_PER_SEASON)     return Season::Spring;
-        if (seasonDay < DAYS_PER_SEASON * 2) return Season::Summer;
-        if (seasonDay < DAYS_PER_SEASON * 3) return Season::Autumn;
-        return Season::Winter;
+    // Returns the current SeasonID by cycling through schema-defined seasons.
+    // Each season has its own durationDays; the cycle length is the sum of all.
+    SeasonID CurrentSeason(const std::vector<SeasonDef>& seasons) const {
+        if (seasons.empty()) return 0;
+        int totalCycleDays = 0;
+        for (const auto& s : seasons) totalCycleDays += s.durationDays;
+        if (totalCycleDays <= 0) return 0;
+        int dayInCycle = (day - 1) % totalCycleDays;
+        int cumulative = 0;
+        for (int i = 0; i < (int)seasons.size(); ++i) {
+            cumulative += seasons[i].durationDays;
+            if (dayInCycle < cumulative) return i;
+        }
+        return (int)seasons.size() - 1;
     }
 };
 

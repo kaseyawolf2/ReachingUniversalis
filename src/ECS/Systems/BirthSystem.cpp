@@ -42,7 +42,7 @@ static Needs MakeNeeds() {
     } };
 }
 
-void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());
@@ -78,7 +78,9 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
         int   pop   = popCount.count(settl) ? popCount[settl] : 0;
 
         // In cold seasons, require some wood reserve before having children
-        float heatMult = SeasonHeatDrainMult(tm.CurrentSeason());
+        SeasonID bsId = tm.CurrentSeason(schema.seasons);
+        float heatMult = (bsId >= 0 && bsId < (int)schema.seasons.size())
+                         ? schema.seasons[bsId].heatDrainMod : 0.f;
         bool  woodOk   = (heatMult <= 0.f) || (wood >= 10.f);
 
         // Use the settlement's dynamic pop cap (expandable via housing construction)

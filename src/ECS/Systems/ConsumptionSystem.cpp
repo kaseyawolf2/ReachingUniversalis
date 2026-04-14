@@ -7,7 +7,7 @@
 // Stockpile draw-down rates per NPC per game-hour.
 static constexpr float FOOD_CONSUME_RATE  = 0.5f;
 static constexpr float WATER_CONSUME_RATE = 0.8f;
-// Wood consumed per NPC per game-hour as fuel (Winter rate; scaled by SeasonHeatDrainMult).
+// Wood consumed per NPC per game-hour as fuel (scaled by season heatDrainMod).
 static constexpr float WOOD_HEAT_RATE     = 0.03f;
 
 // Base wage paid to working NPCs (gold per game-hour, from settlement treasury).
@@ -25,7 +25,7 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 
 static std::map<entt::entity, float> s_desperateCooldown;
 
-void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -35,7 +35,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
 
     // 1 game-hour = 60 game-minutes; GAME_MINS_PER_REAL_SEC scales gameDt to minutes.
     float gameHoursDt  = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-    float heatDrainMult = SeasonHeatDrainMult(tm.CurrentSeason());
+    SeasonID csId = tm.CurrentSeason(schema.seasons);
+    float heatDrainMult = (csId >= 0 && csId < (int)schema.seasons.size())
+                          ? schema.seasons[csId].heatDrainMod : 0.f;
 
     // Per-settlement starvation tracking for food crisis warning
     std::map<entt::entity, int> starvingPerSettlement;
