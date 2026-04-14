@@ -1,6 +1,7 @@
 #include "NeedDrainSystem.h"
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
+#include <cstdio>
 
 // Extra drain multiplier applied to the player's needs when standing inside a
 // plague-afflicted settlement (within its radius).
@@ -15,6 +16,15 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
         m_energyNeedId = m_schema.FindNeed("Energy");
         m_heatNeedId   = m_schema.FindNeed("Heat");
         m_needsCached  = true;
+
+        if (m_energyNeedId == INVALID_ID)
+            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Energy\" is INVALID_ID (-1). "
+                            "Seasonal energy drain and sleep refill will not function. "
+                            "Check that a need named \"Energy\" exists in the schema TOML.\n");
+        if (m_heatNeedId == INVALID_ID)
+            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Heat\" is INVALID_ID (-1). "
+                            "Seasonal heat drain will not function. "
+                            "Check that a need named \"Heat\" exists in the schema TOML.\n");
     }
     const int energyNeedId = m_energyNeedId;
     const int heatNeedId   = m_heatNeedId;
