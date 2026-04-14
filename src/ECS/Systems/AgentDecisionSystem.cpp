@@ -680,6 +680,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                                   novice.c_str(), where.c_str());
                                     logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
                                 }
+                                // Jealousy reconciliation: novice with low affinity toward expert warms through learning
+                                auto* novRel = registry.try_get<Relations>(e);
+                                if (novRel) {
+                                    for (auto& [target, aff] : novRel->affinity) {
+                                        if (aff >= 0.2f) continue; // not jealousy-strained
+                                        if (!registry.valid(target)) continue;
+                                        const auto* tHome = registry.try_get<HomeSettlement>(target);
+                                        if (!tHome || tHome->settlement != hs.settlement) continue;
+                                        const auto* tProf = registry.try_get<Profession>(target);
+                                        if (!tProf || tProf->type != prof.type) continue;
+                                        const auto* tSk = registry.try_get<Skills>(target);
+                                        if (!tSk) continue;
+                                        float tSkill = 0.f;
+                                        switch (prof.type) {
+                                            case ProfessionType::Farmer:      tSkill = tSk->farming; break;
+                                            case ProfessionType::WaterCarrier: tSkill = tSk->water_drawing; break;
+                                            case ProfessionType::Lumberjack:   tSkill = tSk->woodcutting; break;
+                                            default: break;
+                                        }
+                                        if (tSkill >= 0.8f) {
+                                            aff = std::min(1.f, aff + 0.02f);
+                                            if (s_teachRng() % 8 == 0 && !logV2.empty()) {
+                                                std::string novName = "A novice";
+                                                if (const auto* nm = registry.try_get<Name>(e)) novName = nm->value;
+                                                std::string expName = "an expert";
+                                                if (const auto* nm2 = registry.try_get<Name>(target)) expName = nm2->value;
+                                                std::string wh = "settlement";
+                                                if (const auto* s = registry.try_get<Settlement>(hs.settlement)) wh = s->name;
+                                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                                    novName + " warms to " + expName + " through learning at " + wh + ".");
+                                            }
+                                            break; // only reconcile with one expert per day
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
