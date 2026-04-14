@@ -1300,7 +1300,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             }
         } else {
             // Migration wave: spawn 3-5 NPCs
-            int maxArrivals = (int)ev.effectValue;
+            int maxArrivals = std::max(1, (int)ev.effectValue);
             std::uniform_int_distribution<int> count_dist(
                 std::max(1, maxArrivals - 2), maxArrivals);
             int arrivals = std::min(slots, count_dist(m_rng));
