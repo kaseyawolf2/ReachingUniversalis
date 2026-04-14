@@ -157,7 +157,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **SkillGrowthRate bounds-check unit test** — Add a test to `tests/` that constructs a minimal `WorldSchema` with 2 skills, then calls `SkillGrowthRate(INVALID_ID)`, `SkillGrowthRate(-1)`, and `SkillGrowthRate(999)` to verify the fallback returns 1.0f for all out-of-range inputs. Same for `SkillDecayRate`.
 
-- [ ] **SkillForProfession INVALID_ID propagation audit** — After the INVALID_ID guard was added at line ~598 of `AgentDecisionSystem.cpp`, audit all other call sites of `SkillForProfession()` across all systems to ensure they also guard against INVALID_ID before passing to `SkillGrowthRate()` or `SkillDecayRate()`.
+- [x] **SkillForProfession INVALID_ID propagation audit** — After the INVALID_ID guard was added at line ~598 of `AgentDecisionSystem.cpp`, audit all other call sites of `SkillForProfession()` across all systems to ensure they also guard against INVALID_ID before passing to `SkillGrowthRate()` or `SkillDecayRate()`.
 
 - [x] **DynBitset copy assignment operator test** — `tests/DynBitsetTest.cpp` tests copy/move constructors but not copy/move assignment operators. Add tests for `DynBitset a; a = b;` (copy assign) and `DynBitset a; a = std::move(b);` (move assign) for both inline and heap modes, verifying independence and source state.
 
@@ -274,6 +274,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **DynBitset move-assign self test** — `tests/DynBitsetTest.cpp` tests copy-assign self for both inline and heap modes but not move-assign self (`x = std::move(x)`). Add move-self-assignment tests for both modes to verify the compiler-generated move-assign handles this edge case.
 
 - [ ] **DynBitset moved-from state documentation** — `tests/DynBitsetTest.cpp` move tests assert specific moved-from state (e.g., `b.none()` for heap, `b.test(bit)` for inline) which depends on compiler-generated move semantics. Add comments on each moved-from assertion noting this is implementation-detail verification, not a behavioral contract.
+
+- [ ] **AgentDecisionSystem jealousy guard ordering** — `AgentDecisionSystem.cpp` line ~762 jealousy block checks `myProfFlag.any() && hs.settlement != entt::null && profSkId != INVALID_ID`. The cheapest check (`profSkId != INVALID_ID`, integer comparison) should be first, before the bitset `.any()` call. Reorder for micro-optimization.
+
+- [ ] **SkillForProfession callers audit documentation** — The PR #78 audit of all 18 `SkillForProfession()` call sites lives only in the closed PR description. Add a brief `///` comment above `SkillForProfession()` in `WorldSchema.h` documenting that callers must guard against INVALID_ID before passing to `SkillGrowthRate()`/`SkillDecayRate()`.
 
 ## Phase 2 — UI Decoupling
 
