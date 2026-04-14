@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
-
 ## Done
+
+- [x] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
 
 - [x] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
 
@@ -4504,3 +4504,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Second-chance hauler celebration** — In `EconomicMobilitySystem.cpp`'s graduation block, when a bankruptcy survivor graduates to hauler, scan NPCs at the same settlement with `Relations::affinity >= 0.4` toward the graduate. Boost their affinity by +0.02 and log "[Friend] cheers on [Survivor]'s return to hauling at [Settlement]" at 1-in-4 frequency. Uses existing `Relations` scan pattern. Creates a community response to the comeback story.
 
 - [ ] **Bankruptcy near-miss relief** — In `EconomicMobilitySystem.cpp`'s bankruptcy timer reset block (where balance goes above threshold and timer is erased), when `hauler.bankruptProgress >= BANKRUPTCY_HOURS * 0.5f` (was close to going bankrupt), apply +0.01 to `Settlement::morale` (cap 1.0) and log "[Hauler] narrowly avoids bankruptcy at [Settlement]" at 1-in-4 frequency. Uses existing `bankruptProgress` field. Creates tension and relief around near-bankruptcy events.
+
+- [ ] **Generous donor social magnet** — In `AgentDecisionSystem.cpp`'s idle chat block, when a generous donor (`Reputation::score >= 0.6`) chats with any NPC, boost the other NPC's affinity toward the donor by an extra +0.01 on top of normal gain. Log "[NPC] admires [Donor]'s generosity at [Settlement]" at 1-in-10 frequency. Uses existing idle chat stagger and `Reputation` try_get. Creates a social pull where generous NPCs become more popular.
+
+- [ ] **Donor reputation decay** — In `AgentDecisionSystem.cpp`'s once-per-day block (or add a per-day guard), reduce all NPCs' `Reputation::score` by 0.01 (floor 0.0) each game-day. This means generosity must be ongoing to maintain [Generous] status. No log needed. Uses existing `Reputation` component and `TimeManager::day`. Creates a dynamic reputation system where status must be earned continuously.
