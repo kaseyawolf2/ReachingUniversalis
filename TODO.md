@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
+
 ## Done
 
 - [x] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
@@ -47,8 +49,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
 
 - [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
 
