@@ -547,14 +547,10 @@ static Color LerpColor(Color a, Color b, float t) {
 Color GameState::SkyColor() const {
     float  hour;
     float  heatDrainMod;
-    float  baseTemp;
-    float  productionMod;
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
         hour          = m_snapshot.hourOfDay;
         heatDrainMod  = m_snapshot.seasonHeatDrainMod;
-        productionMod = m_snapshot.seasonProductionMod;
-        baseTemp      = m_snapshot.temperature;
     }
 
     // Base day/night colors (summer palette — warmest)

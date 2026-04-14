@@ -1,4 +1,5 @@
 #include "AgentDecisionSystem.h"
+#include "World/WorldSchema.h"
 #include <chrono>
 #include <cmath>
 #include <limits>

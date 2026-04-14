@@ -1,5 +1,6 @@
 #include "NeedDrainSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 
 // Extra drain multiplier applied to the player's needs when standing inside a
 // plague-afflicted settlement (within its radius).

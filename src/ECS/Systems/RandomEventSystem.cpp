@@ -1,5 +1,6 @@
 #include "RandomEventSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <set>
 #include <vector>
@@ -865,16 +866,14 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
     // Get current season for seasonal events
     SeasonID seasonId = 0;
-    std::string seasonName;
     {
         auto tmv = registry.view<TimeManager>();
         if (tmv.begin() != tmv.end())
             seasonId = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason(schema.seasons);
     }
-    if (seasonId >= 0 && seasonId < (int)schema.seasons.size())
-        seasonName = schema.seasons[seasonId].name;
+    static const SeasonDef s_defaultSeason{};
     const SeasonDef& seasonDef = (seasonId >= 0 && seasonId < (int)schema.seasons.size())
-                                 ? schema.seasons[seasonId] : schema.seasons[0];
+                                 ? schema.seasons[seasonId] : s_defaultSeason;
 
     // Collect valid settlements
     std::vector<entt::entity> settlements;
@@ -1109,7 +1108,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 7: {   // Spring flood — destroys 40% of food at a random settlement
-        if (seasonName != "Spring") break;  // Spring flood
+        // Flood: requires thawing conditions — mild cold (some heat drain) and above-freezing temps
+        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 0.3f || seasonDef.baseTemperature <= 0.f) break;
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
         auto it = sp->quantities.find(RES_FOOD);
@@ -1397,7 +1397,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
 
     case 15: {  // Lumber windfall (Spring/Autumn) — storm brings easy wood
-        if (seasonName != "Spring" && seasonName != "Autumn") break;  // Lumber windfall: transitional seasons
+        // Lumber windfall: transitional seasons with wind/storms — some cold but not deep winter
+        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 1.0f) break;
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
 

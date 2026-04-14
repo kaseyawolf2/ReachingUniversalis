@@ -1,5 +1,6 @@
 #include "ConsumptionSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <map>
 #include <string>

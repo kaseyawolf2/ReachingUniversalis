@@ -1,5 +1,6 @@
 #include "ScheduleSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdint>

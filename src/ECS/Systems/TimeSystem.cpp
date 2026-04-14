@@ -1,5 +1,6 @@
 #include "TimeSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 
 void TimeSystem::Advance(entt::registry& registry, float subDt, const WorldSchema& schema) {
     auto view = registry.view<TimeManager>();

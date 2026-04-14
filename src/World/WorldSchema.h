@@ -15,6 +15,8 @@
 #include <cassert>
 #include <cstdint>
 
+#include "SeasonDef.h"
+
 // ---- ID types (strong-typedef via wrapper) ----
 // We use plain ints for speed but wrap them so call sites stay readable.
 
@@ -22,7 +24,7 @@ using NeedID       = int;
 using ResourceID   = int;
 using SkillID      = int;
 using ProfessionID = int;
-using SeasonID     = int;
+// SeasonID is defined in SeasonDef.h
 using EventID      = int;
 using GoalTypeID   = int;
 
@@ -71,17 +73,7 @@ struct ProfessionDef {
     bool         isHauler         = false;       // true for hauler/merchant role
 };
 
-struct SeasonDef {
-    SeasonID    id             = INVALID_ID;
-    std::string name;                         // "Spring", "Summer", ...
-    std::string displayName;
-    int         durationDays   = 30;          // game-days this season lasts
-    float       productionMod  = 1.0f;        // multiplier on all production
-    float       energyDrainMod = 1.0f;        // multiplier on energy need drain
-    float       heatDrainMod   = 0.0f;        // multiplier on heat need drain (0 = no cold)
-    float       baseTemperature = 20.0f;      // noon temperature in °C
-    float       tempSwing       = 8.0f;       // ± degrees from diurnal cycle
-};
+// SeasonDef is defined in SeasonDef.h
 
 struct EventDef {
     EventID     id            = INVALID_ID;

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <entt/entt.hpp>
-#include "World/WorldSchema.h"
+#include "World/SeasonDef.h"
 
 // ---- Domain enums ----
 
@@ -330,15 +330,6 @@ static constexpr float GAME_MINS_PER_REAL_SEC = 1.0f;
 
 // Season cycle: seasons are defined in WorldSchema and cycle by index.
 // SeasonID is an int index into WorldSchema::seasons.
-
-// Approximate air temperature in degrees Celsius.
-// Combines season baseline with time-of-day variation (cooler at night).
-inline float AmbientTemperature(const SeasonDef& sdef, float hourOfDay) {
-    float base = sdef.baseTemperature;
-    // Diurnal swing: ± tempSwing, coldest at 4am, hottest at 2pm
-    float swing = -sdef.tempSwing * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
-    return base + swing;
-}
 
 struct TimeManager {
     float gameSeconds  = 0.0f;   // total elapsed game-time seconds

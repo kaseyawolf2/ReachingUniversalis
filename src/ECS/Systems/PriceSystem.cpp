@@ -1,5 +1,6 @@
 #include "PriceSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <cmath>
 #include <algorithm>
 #include <map>
