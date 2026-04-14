@@ -925,6 +925,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     // Expert badge
     bool showExpert = best->isExpert;
 
+    // Crisis survivor badge (home settlement under Drought or Plague)
+    bool showCrisis = best->crisisSurvivor;
+
     // Skill decay warning: non-working NPCs with any skill >= 0.5
     bool showSkillDecay = false;
     if (best->behavior != AgentBehavior::Working &&
@@ -983,6 +986,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showReconciling) lineCount++;
     if (showHeir)        lineCount++;
     if (showExpert)      lineCount++;
+    if (showCrisis)      lineCount++;
     if (showSkillDecay) lineCount++;
     if (showMood)      lineCount++;
     if (showCargo)    lineCount++;
@@ -1049,12 +1053,13 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     int wrc = showReconciling ? MeasureText("[Harmonious]", 11) : 0;
     int whe = showHeir ? MeasureText("[Heir]", 11) : 0;
     int wex = showExpert ? MeasureText("[Expert]", 11) : 0;
+    int wcs = showCrisis ? MeasureText("[Crisis]", 11) : 0;
     int wsd = showSkillDecay ? MeasureText("Skills rusting", 11) : 0;
     int wgo = showGoal ? MeasureText(best->goalDescription.c_str(), 11) : 0;
     int wmm = showMigMem ? MeasureText(best->migrationMemorySummary.c_str(), 11) : 0;
     int wfr = showFriend ? MeasureText(friendLine, 11) : 0;
     int wcr = showCareer ? MeasureText(careerLine, 11) : 0;
-    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wst, wmd, wml, wgd, wrc, whe, wex, wgo, wmm, wfr, wrt2, wcr}) + 10;
+    int pw  = std::max({w1, wa, w2, w3, w4, w5, wf, w6, wc, wh, wg, ww, wch, wb, wsk, wwl, wr, whv, wtl, wgf, wsd, wpr, wbr, wth, wrt, wnb, whs, wgr, wwg, whm, wrp, wst, wmd, wml, wgd, wrc, whe, wex, wcs, wgo, wmm, wfr, wrt2, wcr}) + 10;
     int ph = lineCount * 16;
 
     int tx = (int)screen.x + 14, ty = (int)screen.y - ph;
@@ -1119,6 +1124,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     if (showReconciling) { DrawText("[Harmonious]", tx, ly, 11, Fade(GREEN, 0.7f)); ly += 16; }
     if (showHeir)        { DrawText("[Heir]", tx, ly, 11, Fade(VIOLET, 0.7f)); ly += 16; }
     if (showExpert)      { DrawText("[Expert]", tx, ly, 11, Fade(ORANGE, 0.8f)); ly += 16; }
+    if (showCrisis)      { DrawText("[Crisis]", tx, ly, 11, Fade(ORANGE, 0.9f)); ly += 16; }
     if (showSkillDecay) { DrawText("Skills rusting", tx, ly, 11, Fade(ORANGE, 0.6f)); ly += 16; }
     if (showGoal)     { DrawText(best->goalDescription.c_str(), tx, ly, 11, Fade(SKYBLUE, 0.6f)); ly += 16; }
     if (showMigMem)   { DrawText(best->migrationMemorySummary.c_str(), tx, ly, 11, Fade(GRAY, 0.6f)); ly += 16; }

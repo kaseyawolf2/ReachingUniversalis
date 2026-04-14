@@ -148,6 +148,8 @@ struct RenderSnapshot {
         bool wisdomHeir = false;
         // True if this NPC's profession-matching skill >= 0.8 (expert in their field)
         bool isExpert = false;
+        // True if this NPC's home settlement has an active "Drought" or "Plague" modifier
+        bool crisisSurvivor = false;
     };
 
     struct SettlementEntry {
