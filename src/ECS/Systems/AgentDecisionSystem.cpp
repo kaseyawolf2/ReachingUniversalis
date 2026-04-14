@@ -760,6 +760,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                               who.c_str(), prideProfName, where.c_str());
                                 logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
                             }
+                            // Wisdom lineage: NPC carries on a deceased elder's legacy
+                            if (sk.wisdomLineage != entt::null) {
+                                if (!logV2.empty()) {
+                                    std::string who2 = "NPC";
+                                    if (const auto* nm = registry.try_get<Name>(e)) who2 = nm->value;
+                                    std::string elderName2 = sk.wisdomLineageName.empty() ? "a wise elder" : sk.wisdomLineageName;
+                                    std::string where2 = "settlement";
+                                    if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                        if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                            where2 = s->name;
+                                    logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        who2 + " carries on " + elderName2 + "'s legacy at " + where2 + ".");
+                                }
+                                sk.wisdomLineage = entt::null;
+                                sk.wisdomLineageName.clear();
+                            }
                             // Profession pride jealousy: nearby same-profession NPCs with skill 0.6–0.79 may envy
                             if (hs.settlement != entt::null) {
                                 registry.view<Profession, Skills, HomeSettlement, Relations>(

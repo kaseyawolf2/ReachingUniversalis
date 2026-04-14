@@ -146,6 +146,12 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                             if (it == rel.affinity.end() || it->second < 0.6f) return;
                             // Apply wisdom grief: 3 days of growth penalty
                             mSkills.wisdomGriefDays = 3.f;
+                            // Track lineage: mourner carries the elder's legacy
+                            mSkills.wisdomLineage = e;
+                            if (const auto* nm = registry.try_get<Name>(e))
+                                mSkills.wisdomLineageName = nm->value;
+                            else
+                                mSkills.wisdomLineageName = "a wise elder";
                             // Log at 1-in-3 frequency
                             if (s_wisdomDeathRng() % 3 == 0) {
                                 auto logVW = registry.view<EventLog>();

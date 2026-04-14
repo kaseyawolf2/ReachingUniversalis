@@ -467,6 +467,8 @@ struct Skills {
     }
 
     float wisdomGriefDays = 0.f;  // days remaining of skill growth penalty after a wise elder dies
+    entt::entity wisdomLineage = entt::null;  // deceased elder whose legacy this NPC carries
+    std::string wisdomLineageName;             // name of the deceased elder (entity may be destroyed)
 };
 
 // ---- Tags ----
