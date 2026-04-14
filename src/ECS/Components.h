@@ -569,19 +569,12 @@ struct Rumour {
 // goal is assigned. Goals influence behaviour via GoalDef::behaviourMod.
 // GoalTypeID (int) indexes into WorldSchema::goals.
 
-// DEPRECATED: GoalType is retained only for backward compatibility during the
-// transition to data-driven goals (WorldSchema).  Prefer GoalTypeID (int) for new code.
-enum class GoalType { SaveGold = 0, ReachAge = 1, FindFamily = 2, BecomeHauler = 3 };
-
 struct Goal {
     GoalTypeID goalId       = INVALID_ID; // index into WorldSchema::goals
     float    progress      = 0.f;   // current measured value
     float    target        = 100.f; // threshold to complete
     float    celebrateTimer = 0.f;  // game-hours remaining for personal celebration
     bool     halfwayLogged = false; // true once the 50% milestone log has fired
-
-    // DEPRECATED: kept for transition only; use goalId instead
-    GoalType type          = GoalType::SaveGold;
 };
 
 // Helper: data-driven goal label via schema lookup; falls back to "Unknown" if out of range.

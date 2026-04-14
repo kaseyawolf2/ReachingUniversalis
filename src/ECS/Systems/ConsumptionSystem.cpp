@@ -260,7 +260,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         float effectivePurchaseInterval = PURCHASE_INTERVAL;
         if (const auto* g = registry.try_get<Goal>(entity))
             if (g->goalId >= 0 && g->goalId < (int)schema.goals.size()
-                && schema.goals[g->goalId].behaviourMod == "hoard")
+                && schema.goals[g->goalId].behaviourModEnum == GoalBehaviourMod::Hoard)
                 effectivePurchaseInterval *= 2.f;   // hoarders delay emergency purchases
         if (timer.purchaseTimer >= effectivePurchaseInterval && settl && money && money->balance > 0.f) {
             auto* mkt = registry.try_get<Market>(home.settlement);

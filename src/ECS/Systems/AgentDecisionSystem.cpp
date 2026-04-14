@@ -4270,6 +4270,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
     static std::mt19937 s_goalRng{ std::random_device{}() };
     const int goalCount = (int)schema.goals.size();
 
+    // Pre-compute total weight for weighted goal selection (schema is immutable)
+    float goalTotalWeight = 0.f;
+    for (const auto& gd : schema.goals) goalTotalWeight += gd.weight;
+
     registry.view<Goal>(entt::exclude<PlayerTag>).each(
         [&](auto e, Goal& goal)
         {
@@ -4285,18 +4289,31 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             if (goal.goalId < 0 || goal.goalId >= goalCount) return;
             const GoalDef& gdef = schema.goals[goal.goalId];
 
-            // Update progress based on checkType
-            if (gdef.checkType == "balance_gte") {
-                if (const auto* m = registry.try_get<Money>(e))
-                    goal.progress = m->balance;
-            } else if (gdef.checkType == "age_gte") {
-                if (const auto* a = registry.try_get<Age>(e))
-                    goal.progress = a->days;
-            } else if (gdef.checkType == "has_family") {
-                goal.progress = registry.all_of<FamilyTag>(e) ? 1.f : 0.f;
-            } else if (gdef.checkType == "has_profession") {
-                // Check if NPC has the hauler profession (the only profession_is goal currently)
-                goal.progress = registry.all_of<Hauler>(e) ? 1.f : 0.f;
+            // Update progress based on checkType (int enum, no string comparisons)
+            switch (gdef.checkTypeEnum) {
+                case GoalCheckType::BalanceGte:
+                    if (const auto* m = registry.try_get<Money>(e))
+                        goal.progress = m->balance;
+                    break;
+                case GoalCheckType::AgeGte:
+                    if (const auto* a = registry.try_get<Age>(e))
+                        goal.progress = a->days;
+                    break;
+                case GoalCheckType::HasFamily:
+                    goal.progress = registry.all_of<FamilyTag>(e) ? 1.f : 0.f;
+                    break;
+                case GoalCheckType::HasProfession: {
+                    // Check if NPC has the target profession via Profession component
+                    bool hasProfession = false;
+                    if (gdef.targetProfessionId != INVALID_ID) {
+                        if (const auto* prof = registry.try_get<Profession>(e))
+                            hasProfession = (prof->type == gdef.targetProfessionId);
+                    }
+                    goal.progress = hasProfession ? 1.f : 0.f;
+                    break;
+                }
+                default:
+                    break;
             }
 
             // ---- Halfway milestone log ----
@@ -4338,14 +4355,36 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     st->behavior = AgentBehavior::Celebrating;
             }
 
-            // Assign a new goal (weighted random, avoid re-assigning the same type)
-            // Build cumulative weight table
-            float totalWeight = 0.f;
-            for (const auto& gd : schema.goals) totalWeight += gd.weight;
-            std::uniform_real_distribution<float> wdist(0.f, totalWeight);
+            // If only 1 goal in schema, keep the same goal without resetting progress
+            // (avoids infinite stall where the 5-attempt loop always picks the same goal)
+            if (goalCount == 1) {
+                goal.halfwayLogged = false;
+                // Re-compute target for the same goal type
+                const GoalDef& sameDef = schema.goals[goal.goalId];
+                switch (sameDef.targetModeEnum) {
+                    case GoalTargetMode::RelativeBalance: {
+                        float bal = registry.try_get<Money>(e) ? registry.get<Money>(e).balance : 0.f;
+                        goal.target = std::max(sameDef.targetValue, bal + sameDef.offset);
+                        break;
+                    }
+                    case GoalTargetMode::RelativeAge: {
+                        float days = registry.try_get<Age>(e) ? registry.get<Age>(e).days : 0.f;
+                        goal.target = days + sameDef.offset;
+                        break;
+                    }
+                    default:
+                        goal.target = sameDef.targetValue;
+                        break;
+                }
+                return;
+            }
 
-            GoalTypeID newGoalId = goal.goalId;
+            // Assign a new goal (weighted random, avoid re-assigning the same type)
+            std::uniform_real_distribution<float> wdist(0.f, goalTotalWeight);
+
+            GoalTypeID newGoalId = goalCount - 1;  // default to last goal (boundary safety)
             for (int attempt = 0; attempt < 5 && newGoalId == goal.goalId; ++attempt) {
+                newGoalId = goalCount - 1;  // reset default each attempt
                 float roll = wdist(s_goalRng);
                 float cumul = 0.f;
                 for (int gi = 0; gi < goalCount; ++gi) {
@@ -4359,15 +4398,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             goal.progress = 0.f;
             goal.halfwayLogged = false;
 
-            // Compute per-NPC target based on targetMode
-            if (newDef.targetMode == "relative_balance") {
-                float bal = registry.try_get<Money>(e) ? registry.get<Money>(e).balance : 0.f;
-                goal.target = std::max(newDef.targetValue, bal + newDef.offset);
-            } else if (newDef.targetMode == "relative_age") {
-                float days = registry.try_get<Age>(e) ? registry.get<Age>(e).days : 0.f;
-                goal.target = days + newDef.offset;
-            } else {
-                goal.target = newDef.targetValue;
+            // Compute per-NPC target based on targetMode (int enum, no string comparisons)
+            switch (newDef.targetModeEnum) {
+                case GoalTargetMode::RelativeBalance: {
+                    float bal = registry.try_get<Money>(e) ? registry.get<Money>(e).balance : 0.f;
+                    goal.target = std::max(newDef.targetValue, bal + newDef.offset);
+                    break;
+                }
+                case GoalTargetMode::RelativeAge: {
+                    float days = registry.try_get<Age>(e) ? registry.get<Age>(e).days : 0.f;
+                    goal.target = days + newDef.offset;
+                    break;
+                }
+                default:
+                    goal.target = newDef.targetValue;
+                    break;
             }
         });
 

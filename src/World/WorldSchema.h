@@ -87,18 +87,31 @@ struct EventDef {
     std::string logMessage;                   // template with {settlement}, {npc}, etc.
 };
 
+// Resolved enum for GoalDef::checkType (no string comparisons in hot loops)
+enum class GoalCheckType { None, BalanceGte, AgeGte, HasFamily, HasProfession };
+
+// Resolved enum for GoalDef::behaviourMod
+enum class GoalBehaviourMod { None, Hoard, Ambitious };
+
+// Resolved enum for GoalDef::targetMode
+enum class GoalTargetMode { Fixed, RelativeBalance, RelativeAge };
+
 struct GoalDef {
     GoalTypeID  id          = INVALID_ID;
     std::string name;                         // "SaveGold", "ReachAge", ...
     std::string displayName;                  // "Save Gold", "Reach Age", ...
-    std::string checkType;                    // "balance_gte", "age_gte", "has_family", "has_profession"
+    std::string checkType;                    // original string; prefer checkTypeEnum in systems
+    GoalCheckType checkTypeEnum = GoalCheckType::None;  // resolved at load time
     float       targetValue = 0.0f;           // threshold for completion (or base target)
-    std::string targetMode  = "fixed";        // "fixed", "relative_balance", "relative_age"
+    std::string targetMode  = "fixed";        // original string; prefer targetModeEnum in systems
+    GoalTargetMode targetModeEnum = GoalTargetMode::Fixed;  // resolved at load time
     float       offset      = 0.0f;           // added to current value for relative targets
     float       weight      = 1.0f;           // selection weight when assigning goals
     std::string unit;                         // display unit suffix ("g", "d", "")
     std::string completionMessage;            // "{name} reached their savings goal!" — {name} is replaced at runtime
-    std::string behaviourMod;                 // "hoard", "ambitious", "" — behavioural modifier while active
+    std::string behaviourMod;                 // original string; prefer behaviourModEnum in systems
+    GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;  // resolved at load time
+    ProfessionID targetProfessionId = INVALID_ID;  // for has_profession: which profession to check
 };
 
 struct FacilityDef {

@@ -114,7 +114,7 @@ static void SpawnNPCs(entt::registry& registry,
             for (const auto& gd : schema.goals) totalWeight += gd.weight;
             std::uniform_real_distribution<float> wdist(0.f, totalWeight);
             float roll = wdist(wg_rng);
-            GoalTypeID selectedGoal = 0;
+            GoalTypeID selectedGoal = (int)schema.goals.size() - 1;  // default to last (boundary safety)
             float cumul = 0.f;
             for (int gi = 0; gi < (int)schema.goals.size(); ++gi) {
                 cumul += schema.goals[gi].weight;
@@ -125,14 +125,19 @@ static void SpawnNPCs(entt::registry& registry,
             Goal initialGoal;
             initialGoal.goalId = selectedGoal;
 
-            // Compute per-NPC target based on targetMode
-            if (gdef.targetMode == "relative_balance") {
-                float bal = registry.try_get<Money>(npc) ? registry.get<Money>(npc).balance : 0.f;
-                initialGoal.target = std::max(gdef.targetValue, bal + gdef.offset);
-            } else if (gdef.targetMode == "relative_age") {
-                initialGoal.target = age.days + gdef.offset;
-            } else {
-                initialGoal.target = gdef.targetValue;
+            // Compute per-NPC target based on targetMode (int enum, no string comparisons)
+            switch (gdef.targetModeEnum) {
+                case GoalTargetMode::RelativeBalance: {
+                    float bal = registry.try_get<Money>(npc) ? registry.get<Money>(npc).balance : 0.f;
+                    initialGoal.target = std::max(gdef.targetValue, bal + gdef.offset);
+                    break;
+                }
+                case GoalTargetMode::RelativeAge:
+                    initialGoal.target = age.days + gdef.offset;
+                    break;
+                default:
+                    initialGoal.target = gdef.targetValue;
+                    break;
             }
             registry.emplace<Goal>(npc, initialGoal);
         }

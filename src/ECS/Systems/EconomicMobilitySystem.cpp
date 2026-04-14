@@ -245,7 +245,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
             goal->celebrateTimer = 2.f;
             // If the NPC's goal checks for this profession, mark it complete
             if (goal->goalId >= 0 && goal->goalId < (int)schema.goals.size()
-                && schema.goals[goal->goalId].checkType == "has_profession")
+                && schema.goals[goal->goalId].checkTypeEnum == GoalCheckType::HasProfession)
                 goal->progress = goal->target;
         }
         if (auto* settl = registry.try_get<Settlement>(hs.settlement))

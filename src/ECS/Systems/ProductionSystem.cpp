@@ -81,7 +81,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             bool hasAmbitiousGoal = false;
             if (const auto* g = registry.try_get<Goal>(e))
                 if (g->goalId >= 0 && g->goalId < (int)schema.goals.size())
-                    hasAmbitiousGoal = (schema.goals[g->goalId].behaviourMod == "ambitious");
+                    hasAmbitiousGoal = (schema.goals[g->goalId].behaviourModEnum == GoalBehaviourMod::Ambitious);
             float workerContrib = isApprentice ? 0.2f : (hasAmbitiousGoal ? 1.1f : 1.0f);
             // Peak-age bonus: prime working years (25–55) get +10% output
             if (!isApprentice && ageComp && ageComp->days >= 25.f && ageComp->days <= 55.f)
