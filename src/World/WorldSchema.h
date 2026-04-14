@@ -229,18 +229,31 @@ struct AgentTemplateDef {
     std::vector<std::pair<SkillID, float>> startSkills;
 };
 
+// ---- Season threshold defaults (single source of truth) ----
+// These constants are used by SeasonThresholds in-class initializers AND as the
+// fallback defaults in WorldLoader::LoadSeasons()'s OptFloat calls.  If you
+// change a value here, also update the matching TOML comment in seasons.toml
+// so modders see the correct default.
+
+static constexpr float DEFAULT_HARSH_COLD     = 0.8f;   // winter-like: schedule contraction, migration penalty, icy-blue sky tint
+static constexpr float DEFAULT_MODERATE_COLD  = 0.3f;   // autumn-like: amber/orange sky tint
+static constexpr float DEFAULT_COLD_SEASON    = 0.2f;   // wood becomes essential heating fuel
+static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight green sky tint
+static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
+static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: food price floor doubles
+
 // ---- Season thresholds (loaded from seasons.toml, with compile-time defaults) ----
 
 struct SeasonThresholds {
     // Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
-    float harshCold    = 0.8f;   // winter-like: schedule contraction, migration penalty, icy-blue sky tint
-    float moderateCold = 0.3f;   // autumn-like: amber/orange sky tint
-    float coldSeason   = 0.2f;   // wood becomes essential heating fuel
-    float mildCold     = 0.05f;  // spring-like: slight green sky tint
+    float harshCold    = DEFAULT_HARSH_COLD;
+    float moderateCold = DEFAULT_MODERATE_COLD;
+    float coldSeason   = DEFAULT_COLD_SEASON;
+    float mildCold     = DEFAULT_MILD_COLD;
 
     // Production-mod thresholds (compared against SeasonDef::productionMod)
-    float harvestSeason = 1.1f;  // high-production: more frequent work shanties
-    float lowProduction = 0.5f;  // scarce-output: food price floor doubles
+    float harvestSeason = DEFAULT_HARVEST_SEASON;
+    float lowProduction = DEFAULT_LOW_PRODUCTION;
 };
 
 // ---- World settings (map, timing, economy) ----

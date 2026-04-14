@@ -207,7 +207,10 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
 
-    // ---- Global season thresholds (top-level keys, with compile-time defaults) ----
+    // ---- Global season thresholds (top-level keys) ----
+    // Defaults come from the SeasonThresholds struct's in-class initializers,
+    // which reference the DEFAULT_* constants in WorldSchema.h.  If you need
+    // to change a default, update the constant there (single source of truth).
     {
         SeasonThresholds& st = schema.seasonThresholds;
         st.harshCold     = OptFloat(tbl, "harsh_cold",     st.harshCold);
