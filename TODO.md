@@ -141,7 +141,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **EventLog system-name prefix** — `RandomEventSystem.cpp` diagnostic warnings use `[WARNING]` prefix, dropping the system name. Restore `[RandomEventSystem]` prefix so stderr grep can identify the source system.
 
-- [ ] **SpawnNpcs effectValue runtime clamp** — `RandomEventSystem.cpp` line ~1297 casts `effectValue` to `int` for `maxArrivals` without clamping, so values < 1 produce UB in `uniform_int_distribution`. Add `maxArrivals = std::max(1, (int)ev.effectValue)` as a runtime safety net alongside the load-time validation.
+- [x] **SpawnNpcs effectValue runtime clamp** — `RandomEventSystem.cpp` line ~1297 casts `effectValue` to `int` for `maxArrivals` without clamping, so values < 1 produce UB in `uniform_int_distribution`. Add `maxArrivals = std::max(1, (int)ev.effectValue)` as a runtime safety net alongside the load-time validation.
 
 - [ ] **WorldLoader stderr to structured logging** — All 26+ `fprintf(stderr, ...)` calls in `WorldLoader.cpp` output unstructured text. Define a `LoadWarning` struct or use a vector to collect warnings during loading, then dump them after load completes. Enables future UI display of load diagnostics.
 
@@ -234,6 +234,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **RandomEventSystem diagnostic severity levels** — `RandomEventSystem.cpp` uses `[RandomEventSystem]` prefix but drops the severity level (WARNING/ERROR/INFO). Add severity to all diagnostic messages following the pattern `[RandomEventSystem] WARNING: ...` consistent with `WorldLoader.cpp` diagnostics, enabling severity-level grep across all stderr output.
 
 - [ ] **EventLog source-system filtering** — `EventLog::Push()` stores plain message strings with no metadata. Add an optional `sourceSystem` field to log entries so the HUD event log can filter by system (e.g., show only RandomEventSystem events, or hide diagnostic messages from gameplay events).
+
+- [ ] **SpawnNpcs count distribution comment fix** — `RandomEventSystem.cpp` line ~1302 comment says "Migration wave: spawn 3-5 NPCs" but the actual count is driven by `ev.effectValue` from schema. Update comment to reflect the data-driven behavior, e.g., "Migration wave: spawn (effectValue-2) to effectValue NPCs".
+
+- [ ] **RandomEventSystem effectValue audit** — After `SpawnNpcs` was clamped with `std::max(1, ...)`, audit all other `ev.effectValue` usages in `RandomEventSystem.cpp` (production_modifier, morale_boost, etc.) for similar unclamped casts or potential division-by-zero. Add defensive clamps where effectValue reaches arithmetic operators.
 
 ## Phase 2 — UI Decoupling
 
