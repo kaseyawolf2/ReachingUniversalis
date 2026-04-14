@@ -968,6 +968,32 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) log->Push(day, hour,
             "BLIGHT hits " + settl->name + " " + popTag + " — "
             + std::to_string((int)lost) + " food destroyed");
+        // Blight solidarity: residents with existing bonds share what little remains
+        {
+            std::vector<entt::entity> blightResidents;
+            registry.view<HomeSettlement, Relations>(
+                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, const HomeSettlement& hs, const Relations&) {
+                    if (hs.settlement == target) blightResidents.push_back(e);
+                });
+            for (size_t i = 0; i < blightResidents.size(); ++i) {
+                auto* relA = registry.try_get<Relations>(blightResidents[i]);
+                if (!relA) continue;
+                for (size_t j = i + 1; j < blightResidents.size(); ++j) {
+                    auto itA = relA->affinity.find(blightResidents[j]);
+                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
+                    auto* relB = registry.try_get<Relations>(blightResidents[j]);
+                    if (!relB) continue;
+                    auto itB = relB->affinity.find(blightResidents[i]);
+                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
+                    // Boost mutual affinity by +0.02 (cap 1.0) — smaller than drought/plague
+                    itA->second = std::min(1.f, itA->second + 0.02f);
+                    itB->second = std::min(1.f, itB->second + 0.02f);
+                }
+            }
+            if (log)
+                log->Push(day, hour, settl->name + " residents share what little food remains.");
+        }
         break;
     }
 
