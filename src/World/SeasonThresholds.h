@@ -16,28 +16,28 @@ namespace SeasonThreshold {
 // Effects: schedule contraction (earlier sleep, later wake, shorter work day),
 //          stronger work-song affinity bonds, fireside song variant,
 //          migration penalty, icy-blue sky tint.
-static constexpr float HARSH_COLD = 0.8f;
+inline constexpr float HARSH_COLD = 0.8f;
 
 // Moderate cold: autumn-like season with noticeable chill.
 // Effects: amber/orange sky tint.
-static constexpr float MODERATE_COLD = 0.3f;
+inline constexpr float MODERATE_COLD = 0.3f;
 
 // Cold season: any season where wood becomes an essential heating fuel.
 // Effects: wood shortage included in settlement health ring assessment.
-static constexpr float COLD_SEASON = 0.2f;
+inline constexpr float COLD_SEASON = 0.2f;
 
 // Mild cold: spring-like season with barely perceptible chill.
 // Effects: slight green sky tint.
-static constexpr float MILD_COLD = 0.05f;
+inline constexpr float MILD_COLD = 0.05f;
 
 // ---- Production-mod thresholds (productionMod) ----
 
 // Harvest season: high-production season (summer bumper crops).
 // Effects: more frequent work shanties, harvest shanty song variant.
-static constexpr float HARVEST_SEASON = 1.1f;
+inline constexpr float HARVEST_SEASON = 1.1f;
 
 // Low production: scarce-output season (deep winter).
 // Effects: food price floor doubles.
-static constexpr float LOW_PRODUCTION = 0.5f;
+inline constexpr float LOW_PRODUCTION = 0.5f;
 
 } // namespace SeasonThreshold
