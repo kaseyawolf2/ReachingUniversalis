@@ -153,7 +153,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **SocialBehavior InteractionCooldowns doc comment** — `InteractionCooldowns` in `Components.h` now holds `skillCelebrateTimer` and `reconcileGlow` after the sub-struct relocation, but has no doc comment explaining that these are behavior-gating cooldowns (not mood state). Add a brief `///` comment above the struct listing each timer's purpose and units (game-seconds).
 
-- [ ] **SocialBehavior MoodState dead field audit** — After relocating `skillCelebrateTimer` and `reconcileGlow` out of `MoodState`, audit whether any remaining `MoodState` fields are also functionally cooldowns. Candidates: `griefLevel` decays over time and gates visit behavior. Document each field's category (persistent state vs. decaying timer) with inline comments.
+- [x] **SocialBehavior MoodState dead field audit** — After relocating `skillCelebrateTimer` and `reconcileGlow` out of `MoodState`, audit whether any remaining `MoodState` fields are also functionally cooldowns. Candidates: `griefLevel` decays over time and gates visit behavior. Document each field's category (persistent state vs. decaying timer) with inline comments.
 
 - [ ] **SkillGrowthRate bounds-check unit test** — Add a test to `tests/` that constructs a minimal `WorldSchema` with 2 skills, then calls `SkillGrowthRate(INVALID_ID)`, `SkillGrowthRate(-1)`, and `SkillGrowthRate(999)` to verify the fallback returns 1.0f for all out-of-range inputs. Same for `SkillDecayRate`.
 
@@ -258,6 +258,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **InteractionCooldowns greetCooldown comment fix** — `AgentDecisionSystem.cpp` line ~2432 has a pre-existing wrong comment "120 game-seconds cooldown = 2 real-seconds" for `greetCooldown`. The cooldown value is `2.f` decremented by `dt`. Fix the inline comment to accurately describe the 2-second cooldown.
 
 - [ ] **InteractionCooldowns GameDt passthrough note** — The `InteractionCooldowns` doc comment distinguishes "game-seconds" vs "real-seconds" but `GameDt()` is currently a passthrough (returns `realDt` unchanged). Add a one-line note to the doc block: "Note: GameDt currently returns realDt unchanged, so game-seconds == real-seconds at 1x speed."
+
+- [ ] **MoodState wisdomFired age unit clarification** — `MoodState::wisdomFired` comment says "age > 70" but the code checks `age->days > 70.f` which is game-days. Clarify the comment to say "age > 70 game-days" to avoid confusion with real-world years.
+
+- [ ] **MoodState homesickTimer reset condition precision** — `MoodState::homesickTimer` doc comment says "Reset to 0 on migration start" but only homesick return migration resets it, not forward migration. Clarify to "Reset on homesick return trigger and on arrival at a new settlement."
 
 ## Phase 2 — UI Decoupling
 
