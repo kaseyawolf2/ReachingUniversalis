@@ -2032,3 +2032,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Expert seeks out jealous novice** — In `AgentDecisionSystem.cpp`'s idle chat block, when an expert (skill >= 0.8) chats with a same-profession novice (skill < 0.5) at the same settlement who has `Relations::affinity < 0.2` toward the expert, the expert gains +0.01 affinity toward the novice (reciprocal warmth from mentoring). Log "[Expert] takes [Novice] under their wing at [Settlement]" at 1-in-10 frequency. Creates a bidirectional reconciliation — the expert also grows to care about the jealous novice.
 
+- [ ] **Player panel skill bars** — In `HUD.cpp`'s player skill display (around line 178), replace the text-only "Farm:40% Wtr:40% Wood:40%" with mini progress bars using the `DrawMiniBar` helper. Show a 40px bar per skill, colored by level (gray <0.35, green 0.35–0.65, gold ≥0.65), with percentage text overlaid. Improves readability and matches the settlement card resource bar style.
+
+- [ ] **NPC tooltip skill mini-bars** — In `HUD.cpp`'s `DrawHoverTooltip`, replace the skill text line with three small horizontal bars (farming/water/wood) using the `DrawMiniBar` helper. Each bar 30px wide, labeled with a single letter (F/W/D). Color by level. Makes skill comparison between NPCs instantly visual rather than requiring reading numbers.
+
+- [ ] **Settlement tooltip resource bars** — In `HUD.cpp`'s `DrawSettlementTooltip`, replace the plain text stock/price lines with horizontal resource bars (Food/Water/Wood) using `DrawMiniBar`. Show stock as bar fill (max ~200 units), with price text beside each bar. Color code by stock level (red <10, orange <30, green). Matches the world status bar card style.
+
