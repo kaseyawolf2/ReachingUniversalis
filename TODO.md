@@ -117,15 +117,15 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Validate season threshold ordering in WorldLoader** — After loading season thresholds from TOML, verify the ordering invariant `mildCold < moderateCold < harshCold` and `lowProduction < harvestSeason`. Log a warning if thresholds are inverted, as this would cause nonsensical sky tints and schedule behavior.
 
-- [ ] **Schema-driven PriceSystem floor thresholds** — `PriceSystem::SeasonPriceFloor()` now takes `const SeasonThresholds&` but still uses hardcoded logic for which thresholds trigger price floors. Make the price floor rules data-driven: add a `priceFloorThreshold` field to `SeasonDef` in `WorldSchema.h` so each season can specify its own floor multiplier.
+- [x] **Schema-driven PriceSystem floor thresholds** — `PriceSystem::SeasonPriceFloor()` now takes `const SeasonThresholds&` but still uses hardcoded logic for which thresholds trigger price floors. Make the price floor rules data-driven: add a `priceFloorThreshold` field to `SeasonDef` in `WorldSchema.h` so each season can specify its own floor multiplier.
 
-- [ ] **WorldLoader OptFloat default source-of-truth** — `LoadSeasons()` uses `OptFloat(tbl, key, struct_default)` where the default comes from the struct's in-class initializer. If someone changes the struct default without updating the TOML comment, they silently diverge. Add a comment warning about this coupling, or define named constants in `WorldSchema.h` used by both the struct initializer and the TOML comment.
+- [x] **WorldLoader OptFloat default source-of-truth** — `LoadSeasons()` uses `OptFloat(tbl, key, struct_default)` where the default comes from the struct's in-class initializer. If someone changes the struct default without updating the TOML comment, they silently diverge. Add a comment warning about this coupling, or define named constants in `WorldSchema.h` used by both the struct initializer and the TOML comment.
 
 - [x] **Dead GoalDef string fields cleanup** — `GoalDef` still carries dead `std::string checkType`, `targetMode`, and `behaviourMod` fields alongside their resolved enums — the same pattern just removed from `EventDef`. Remove them from `GoalDef` in `WorldSchema.h` and use local variables in `WorldLoader.cpp` during parsing.
 
 - [x] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill` and `resourceToProfession`.
 
-- [ ] **Cache FindNeed in NeedDrainSystem** — `NeedDrainSystem::Update()` likely calls `schema.FindNeed()` by string every tick, same pattern fixed in `ConsumptionSystem`. Add cached member variables for frequently-used NeedIDs, initialized on first `Update()` call.
+- [x] **Cache FindNeed in NeedDrainSystem** — `NeedDrainSystem::Update()` likely calls `schema.FindNeed()` by string every tick, same pattern fixed in `ConsumptionSystem`. Add cached member variables for frequently-used NeedIDs, initialized on first `Update()` call.
 
 - [ ] **Cache FindNeed in DeathSystem** — `DeathSystem::Update()` may call `schema.FindNeed()` by string for death cause determination. Cache the NeedIDs as member variables to eliminate per-tick string lookups.
 
@@ -198,6 +198,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Season threshold warning consistency** — `WorldLoader.cpp` cold threshold warnings say "should be less than" (soft) but the production threshold warning says "must be less than" (hard). Neither is enforced (no abort/return). Pick consistent wording — use "should" for all non-fatal warnings.
 
 - [ ] **Season threshold range-check constants** — `WorldLoader.cpp` uses magic `0.0f` and `2.0f` bounds for season threshold range validation. Define named constants (e.g., `MIN_THRESHOLD = 0.0f`, `MAX_THRESHOLD = 2.0f`) at file scope or in `WorldSchema.h` so the bounds are documented and reusable.
+
+- [ ] **PriceSystem per-resource floor validation** — `WorldLoader.cpp` parses `[seasons.price_floors]` per-resource multipliers but does not validate values. Add a `std::max(0.0f, ...)` clamp or warning for negative/zero multipliers to prevent nonsensical negative price floors.
+
+- [ ] **PriceSystem price_floors non-table warning** — If a modder writes `price_floors = 2.0` (scalar instead of table) in `seasons.toml`, the loader silently ignores it. Add a `fprintf(stderr, "[WorldLoader] WARNING: ...")` when `price_floors` exists but is not a TOML table.
+
+- [ ] **SeasonThresholds constants into struct scope** — The `DEFAULT_HARSH_COLD` etc. constants in `WorldSchema.h` are at file scope, polluting the namespace of every TU. Move them inside `SeasonThresholds` as `static constexpr` members (e.g., `SeasonThresholds::DEFAULT_HARSH_COLD`), and update the struct initializers and any references.
+
+- [ ] **NeedDrainSystem FindNeed validation for ConsumptionSystem** — `ConsumptionSystem` caches `FindNeed("Hunger")` and `FindNeed("Thirst")` but has no INVALID_ID warning (same gap just fixed in NeedDrainSystem). Add `fprintf(stderr, "[ConsumptionSystem] WARNING: ...")` when cached IDs are INVALID_ID.
+
+- [ ] **PriceSystem resource name lookup optimization comment** — `WorldLoader.cpp` does O(n) linear scan over `schema.resources` for each price_floors key. Add a comment explaining why `resourcesByName` map isn't used (BuildMaps hasn't been called yet at this point in load sequence) to prevent someone "optimizing" into uninitialized data.
+
+- [ ] **Remove lowProduction dead threshold** — `SeasonThresholds::lowProduction` is loaded and validated for ordering but no longer consumed by any ECS system after PriceSystem was made data-driven. Audit all consumers; if truly dead, remove the field, its TOML key, its DEFAULT constant, and its ordering validation.
 
 ## Phase 2 — UI Decoupling
 
