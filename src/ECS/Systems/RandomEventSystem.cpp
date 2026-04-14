@@ -3,6 +3,7 @@
 #include "World/WorldSchema.h"
 #include <algorithm>
 #include <set>
+#include <unordered_set>
 #include <vector>
 #include <string>
 
@@ -438,16 +439,20 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
     // Collect new infections to add after iteration (cannot modify map during iteration)
     std::vector<std::pair<entt::entity, SpreadEntry>> newInfections;
+    std::unordered_set<entt::entity> newInfectionSet;  // O(1) duplicate check
 
     for (auto& [plagueSettl, entry] : m_plagueSpreadTimer) {
         if (!registry.valid(plagueSettl)) continue;
         entry.timer -= gameHoursDt;
         if (entry.timer > 0.f) continue;
 
-        // Look up the event definition for this particular spreading event
-        const EventDef& sDef = (entry.eventIdx >= 0 && entry.eventIdx < (int)schema.events.size())
-            ? schema.events[entry.eventIdx]
-            : schema.events[spreadEventIndices.empty() ? 0 : spreadEventIndices[0]];
+        // Look up the event definition for this particular spreading event.
+        // If the stored index is out of range and no spread events exist, skip this entry.
+        if (entry.eventIdx < 0 || entry.eventIdx >= (int)schema.events.size()) {
+            if (spreadEventIndices.empty()) continue;
+            entry.eventIdx = spreadEventIndices[0];
+        }
+        const EventDef& sDef = schema.events[entry.eventIdx];
 
         entry.timer = sDef.spreadInterval;
 
@@ -468,12 +473,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         if (!registry.valid(target2)) continue;
         if (m_plagueSpreadTimer.count(target2)) continue;  // already infected
         // Also skip if already queued for infection this tick
-        {
-            bool alreadyQueued = false;
-            for (const auto& ni : newInfections)
-                if (ni.first == target2) { alreadyQueued = true; break; }
-            if (alreadyQueued) continue;
-        }
+        if (newInfectionSet.count(target2)) continue;
 
         auto* ts = registry.try_get<Settlement>(target2);
         if (!ts || ts->modifierDuration > 0.f) continue;  // already has another event
@@ -482,6 +482,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         ts->modifierDuration   = sDef.durationHours;
         ts->modifierName       = sDef.displayName;
         newInfections.push_back({target2, {sDef.spreadInterval, entry.eventIdx}});
+        newInfectionSet.insert(target2);
 
         int killed = KillFraction(registry, target2, sDef.spreadKillFraction);
 
