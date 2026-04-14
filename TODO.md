@@ -97,13 +97,13 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
+- [x] **Low harmony triggers NPC complaints** — In `AgentDecisionSystem.cpp`'s idle chat block, when the home settlement's harmony (pre-computed per settlement) is < 0.15 and both chatting NPCs have `Relations::affinity < 0.3` toward each other, 1-in-10 chance to log "[NPC1] and [NPC2] grumble about tensions at [Settlement]" and apply -0.005 to `Settlement::morale` (floor 0.0). Creates a feedback loop: low harmony → morale drain → potential migration.
+
+- [x] **Blight solidarity** — In `RandomEventSystem.cpp`'s blight trigger (case 1), after destroying food stockpile, mirror the drought/plague solidarity pattern: scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.02 (cap 1.0). Log "[Settlement] residents share what little food remains." Smaller boost than drought/plague since blight is less severe. Completes the crisis solidarity pattern across all crisis types.
+
+- [x] **Crisis survivor badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool crisisSurvivor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC's home settlement has `modifierName == "Drought"` or `"Plague"`. In `HUD.cpp`'s NPC tooltip, display "[Crisis]" in orange after existing badges. Gives the player visibility into which NPCs are currently enduring hardship.
+
 ## Backlog
-
-- [ ] **Low harmony triggers NPC complaints** — In `AgentDecisionSystem.cpp`'s idle chat block, when the home settlement's harmony (pre-computed per settlement) is < 0.15 and both chatting NPCs have `Relations::affinity < 0.3` toward each other, 1-in-10 chance to log "[NPC1] and [NPC2] grumble about tensions at [Settlement]" and apply -0.005 to `Settlement::morale` (floor 0.0). Creates a feedback loop: low harmony → morale drain → potential migration.
-
-- [ ] **Blight solidarity** — In `RandomEventSystem.cpp`'s blight trigger (case 1), after destroying food stockpile, mirror the drought/plague solidarity pattern: scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.02 (cap 1.0). Log "[Settlement] residents share what little food remains." Smaller boost than drought/plague since blight is less severe. Completes the crisis solidarity pattern across all crisis types.
-
-- [ ] **Crisis survivor badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool crisisSurvivor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC's home settlement has `modifierName == "Drought"` or `"Plague"`. In `HUD.cpp`'s NPC tooltip, display "[Crisis]" in orange after existing badges. Gives the player visibility into which NPCs are currently enduring hardship.
 
 - [ ] **Post-crisis morale surge** — In `RandomEventSystem.cpp`'s modifier expiry block, right after the post-crisis community gathering, apply `+0.05` to `Settlement::morale` (cap 1.0) when a Drought or Plague ends. Log "[Settlement] breathes a sigh of relief" at 1-in-2 frequency. Simple morale recovery that complements the bond-strengthening effect already in place.
 
@@ -162,6 +162,18 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Work buddy reunion at destination** — In `AgentDecisionSystem.cpp`'s migration arrival block (where `Migrating` NPCs reach their destination), when the arriving NPC's `Relations::workBestFriend` is already at the destination settlement, boost mutual affinity by +0.05 and apply `Settlement::morale += 0.005f` (cap 1.0). Log "[NPC] reunites with work buddy [Buddy] at [Settlement]" at full frequency. Creates a satisfying narrative payoff when separated work buddies find each other again.
 
 - [ ] **Profession diversity tooltip indicator** — In `SimThread::WriteSnapshot`'s settlement loop, check if all 3 profession types are present among homed NPCs (reuse or mirror the bitmask from `ProductionSystem.cpp`). Add `bool diverse = false` to `SettlementEntry` in `RenderSnapshot.h`. Display "[Diverse]" tag in gold after settlement name in `HUD.cpp`'s settlement tooltip when true. Makes the diversity bonus visible to the player.
+
+- [ ] **Chronic grumbling escalation** — In `AgentDecisionSystem.cpp`'s low-harmony complaint block, track a `static std::map<entt::entity, int> s_grumbleCount` per settlement. Increment on each complaint. When `s_grumbleCount[settlement] >= 5` within the same game-day, apply an additional -0.01 morale penalty (floor 0.0) and log "[Settlement] seethes with unrest" at full frequency. Reset the count each new game-day. Creates an escalating tension mechanic where sustained complaints snowball.
+
+- [ ] **Harmony recovery after complaint pause** — In `AgentDecisionSystem.cpp`'s once-per-day block (near `s_lastSkillGrowthDay`), when a settlement had 0 complaints in the previous game-day (check `s_grumbleCount` from the chronic grumbling escalation) and harmony >= 0.15, apply `Settlement::morale += 0.003f` (cap 1.0). Log "[Settlement] enjoys a day of peace" at 1-in-8 frequency. Creates a self-correcting cycle: complaints stop → slow morale recovery → harmony rises.
+
+- [ ] **Blight resistance from high morale** — In `RandomEventSystem.cpp`'s blight trigger (case 1), before destroying food stockpile, if the target settlement's `morale >= 0.8`, reduce the food loss by 30% (multiply `lost` by 0.7). Log "[Settlement]'s high spirits help salvage some crops" at full frequency. Rewards settlements that maintain good morale with reduced blight severity.
+
+- [ ] **Blight solidarity visible on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool blightActive = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when `Settlement::modifierName == "Blight"`. In `HUD.cpp`'s settlement tooltip, display "[Blight]" in dark green after the settlement name when active. Gives the player visibility into which settlements are currently affected by blight.
+
+- [ ] **Crisis badge colour varies by type** — In `HUD.cpp`'s NPC tooltip crisis badge rendering, change the "[Crisis]" display to show the specific crisis type: "[Drought]" in sandy yellow `{210, 180, 60, 230}` or "[Plague]" in sickly green `{120, 180, 80, 230}`. Read the `modifierName` from `AgentEntry` — add `std::string crisisType` to `AgentEntry` in `RenderSnapshot.h` (set in `SimThread::WriteSnapshot` alongside `crisisSurvivor`). Replaces the generic badge with specific context.
+
+- [ ] **Crisis survivor count on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `int crisisSurvivorCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. Count NPCs whose `crisisSurvivor` flag is true at each settlement. In `HUD.cpp`'s settlement tooltip, display "Enduring crisis: N" as a new line when `crisisSurvivorCount > 0`. Gives a settlement-level summary of crisis impact.
 
 - [ ] **Monoculture warning** — In `ProductionSystem.cpp`'s diversity check, when a settlement has 3+ workers but `profDiversity` bitmask has only 1 bit set (all workers same profession), log "[Settlement] lacks workforce diversity." once per game-day at 1-in-10 frequency. Counterpart to the diversity bonus message — warns player about overspecialised settlements.
 
