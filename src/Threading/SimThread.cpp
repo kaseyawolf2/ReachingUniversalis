@@ -2078,7 +2078,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            std::move(avgSkills), m_cachedSkillNames, diverse, afterglow, vigilActive, mourningActive, harmony
+            std::move(avgSkills), diverse, afterglow, vigilActive, mourningActive, harmony
         });
     });
 
@@ -2530,7 +2530,6 @@ void SimThread::WriteSnapshot() {
                 int nSkills = (int)m_schema.skills.size();
                 panel.masterCount.assign(nSkills, 0);
                 panel.journeymanCount.assign(nSkills, 0);
-                panel.skillNames = m_cachedSkillNames;
                 m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
                     [&](auto, const Skills& sk, const HomeSettlement& hs) {
                         if (hs.settlement != e) return;

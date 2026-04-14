@@ -156,16 +156,18 @@ void GameState::Draw() {
     std::vector<RenderSnapshot::RoadEntry>        roads;
     std::vector<RenderSnapshot::FacilityEntry>    facilities;
     RenderSnapshot::StockpilePanel                panel;
+    std::vector<std::string>                      sharedSkillNames;
     float snapHour = 12.f;
 
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
-        agents      = m_snapshot.agents;
-        settlements = m_snapshot.settlements;
-        roads       = m_snapshot.roads;
-        facilities  = m_snapshot.facilities;
-        panel       = m_snapshot.stockpilePanel;
-        snapHour    = m_snapshot.hourOfDay;
+        agents           = m_snapshot.agents;
+        settlements      = m_snapshot.settlements;
+        roads            = m_snapshot.roads;
+        facilities       = m_snapshot.facilities;
+        panel            = m_snapshot.stockpilePanel;
+        sharedSkillNames = m_snapshot.skillNames;
+        snapHour         = m_snapshot.hourOfDay;
     }
 
     // World drawing
@@ -521,7 +523,7 @@ void GameState::Draw() {
 
     // Stockpile panel (screen-space)
     if (panel.open)
-        m_renderSystem.DrawStockpilePanel(panel);
+        m_renderSystem.DrawStockpilePanel(panel, sharedSkillNames);
 
     // HUD
     m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);
