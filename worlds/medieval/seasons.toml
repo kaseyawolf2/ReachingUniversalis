@@ -1,6 +1,21 @@
 # Medieval World — Season Definitions
 # Order matters: seasons cycle in the order defined here.
 
+# ---- Global season thresholds ----
+# Systems compare per-season heatDrainMod / productionMod against these breakpoints.
+# Modders can tune these to change when visual tints, schedule contractions,
+# price floors, and migration penalties kick in.
+
+# Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
+harsh_cold    = 0.8    # winter-like: schedule contraction, migration penalty, icy-blue sky tint
+moderate_cold = 0.3    # autumn-like: amber/orange sky tint
+cold_season   = 0.2    # wood becomes essential heating fuel
+mild_cold     = 0.05   # spring-like: slight green sky tint
+
+# Production-mod thresholds (compared against SeasonDef::productionMod)
+harvest_season = 1.1   # high-production: more frequent work shanties, harvest shanty song variant
+low_production = 0.5   # scarce-output: food price floor doubles
+
 [[seasons]]
 name             = "Spring"
 display_name     = "Spring"

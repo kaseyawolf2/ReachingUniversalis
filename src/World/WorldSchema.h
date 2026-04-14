@@ -236,6 +236,20 @@ struct AgentTemplateDef {
     std::vector<std::pair<SkillID, float>> startSkills;
 };
 
+// ---- Season thresholds (loaded from seasons.toml, with compile-time defaults) ----
+
+struct SeasonThresholds {
+    // Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
+    float harshCold    = 0.8f;   // winter-like: schedule contraction, migration penalty, icy-blue sky tint
+    float moderateCold = 0.3f;   // autumn-like: amber/orange sky tint
+    float coldSeason   = 0.2f;   // wood becomes essential heating fuel
+    float mildCold     = 0.05f;  // spring-like: slight green sky tint
+
+    // Production-mod thresholds (compared against SeasonDef::productionMod)
+    float harvestSeason = 1.1f;  // high-production: more frequent work shanties
+    float lowProduction = 0.5f;  // scarce-output: food price floor doubles
+};
+
 // ---- World settings (map, timing, economy) ----
 
 struct WorldSettings {
@@ -259,6 +273,7 @@ struct WorldSettings {
 
 struct WorldSchema {
     WorldSettings settings;
+    SeasonThresholds seasonThresholds;
 
     // Indexed definition arrays — ID == index into the vector
     std::vector<NeedDef>          needs;
