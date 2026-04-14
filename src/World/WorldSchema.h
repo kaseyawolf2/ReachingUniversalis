@@ -334,6 +334,8 @@ struct WorldSchema {
 
     // Map a resource ID to the profession that produces it (INVALID_ID if none).
     ProfessionID ProfessionForResource(ResourceID res) const {
+        assert(res >= 0 && res < (int)resourceToProfession.size()
+               && "ProfessionForResource: ResourceID out of range");
         if (res >= 0 && res < (int)resourceToProfession.size())
             return resourceToProfession[res];
         return INVALID_ID;
