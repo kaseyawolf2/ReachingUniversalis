@@ -134,7 +134,8 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                         if (fac.settlement != settl) return;
                         if (fac.baseRate > maxRate) {
                             maxRate = fac.baseRate;
-                            settlProfession = schema.ProfessionForResource(fac.output);
+                            int p = schema.ProfessionForResource(fac.output);
+                            if (p != INVALID_ID) settlProfession = p;
                         }
                     });
             }

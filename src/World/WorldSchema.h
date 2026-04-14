@@ -172,6 +172,10 @@ struct WorldSchema {
     // Resource → Profession reverse lookup (built by BuildMaps from ProfessionDef::producesResource)
     std::unordered_map<ResourceID, ProfessionID> resourceToProfession;
 
+    // Cached special profession IDs (populated by BuildMaps; INVALID_ID if absent)
+    ProfessionID idleProfessionId   = INVALID_ID;
+    ProfessionID haulerProfessionId = INVALID_ID;
+
     // ---- Lookup helpers (safe, return INVALID_ID on miss) ----
 
     NeedID       FindNeed(const std::string& name) const       { auto it = needsByName.find(name);       return it != needsByName.end()       ? it->second : INVALID_ID; }
@@ -185,7 +189,7 @@ struct WorldSchema {
     // Map a resource ID to the profession that produces it (INVALID_ID if none).
     ProfessionID ProfessionForResource(ResourceID res) const {
         auto it = resourceToProfession.find(res);
-        return it != resourceToProfession.end() ? it->second : FindIdleProfession();
+        return it != resourceToProfession.end() ? it->second : INVALID_ID;
     }
 
     // Get the display name for a profession ID (empty string if out of range).
@@ -195,17 +199,11 @@ struct WorldSchema {
         return "Idle";
     }
 
-    // Find the "Idle" profession ID (cached after BuildMaps, or linear scan).
-    ProfessionID FindIdleProfession() const {
-        for (auto& p : professions) if (p.isIdle) return p.id;
-        return INVALID_ID;
-    }
+    // Find the "Idle" profession ID (O(1) via cached field set by BuildMaps).
+    ProfessionID FindIdleProfession() const { return idleProfessionId; }
 
-    // Find the "Hauler" profession ID.
-    ProfessionID FindHaulerProfession() const {
-        for (auto& p : professions) if (p.isHauler) return p.id;
-        return INVALID_ID;
-    }
+    // Find the "Hauler" profession ID (O(1) via cached field set by BuildMaps).
+    ProfessionID FindHaulerProfession() const { return haulerProfessionId; }
 
     // Check if a profession produces a resource (i.e., is not Idle/Hauler).
     bool ProfessionProduces(ProfessionID id) const {
@@ -224,11 +222,15 @@ struct WorldSchema {
         for (auto& d : skills)       { d.id = (SkillID)(&d - skills.data());              skillsByName[d.name] = d.id; }
         professionsByName.clear();
         resourceToProfession.clear();
+        idleProfessionId = INVALID_ID;
+        haulerProfessionId = INVALID_ID;
         for (auto& d : professions)  {
             d.id = (ProfessionID)(&d - professions.data());
             professionsByName[d.name] = d.id;
             if (d.producesResource != INVALID_ID)
                 resourceToProfession[d.producesResource] = d.id;
+            if (d.isIdle)   idleProfessionId   = d.id;
+            if (d.isHauler) haulerProfessionId = d.id;
         }
         seasonsByName.clear();
         for (auto& d : seasons)      { d.id = (SeasonID)(&d - seasons.data());            seasonsByName[d.name] = d.id; }

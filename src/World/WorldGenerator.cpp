@@ -3,7 +3,9 @@
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <array>
+#include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <random>
 
 static constexpr float MAP_W = 2400.0f;
@@ -173,6 +175,15 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     const int PROF_FARMER  = schema.FindProfession("Farmer");
     const int PROF_WATER   = schema.FindProfession("WaterCarrier");
     const int PROF_LUMBER  = schema.FindProfession("Lumberjack");
+    if (PROF_FARMER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'Farmer' profession not found in schema!\n");
+    if (PROF_WATER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'WaterCarrier' profession not found in schema!\n");
+    if (PROF_LUMBER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'Lumberjack' profession not found in schema!\n");
+    assert(PROF_FARMER != INVALID_ID && "Farmer profession missing from schema config");
+    assert(PROF_WATER  != INVALID_ID && "WaterCarrier profession missing from schema config");
+    assert(PROF_LUMBER != INVALID_ID && "Lumberjack profession missing from schema config");
 
     // ---- Game clock ----
     registry.emplace<TimeManager>(registry.create());

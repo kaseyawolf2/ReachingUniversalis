@@ -82,8 +82,6 @@ struct AgentState {
 // ---- Profession ----
 // Persistent component assigned at spawn and updated when an NPC changes role.
 // Uses ProfessionID (int) from WorldSchema. Display names come from ProfessionDef.
-// DEPRECATED enum kept as alias for backward compatibility during transition.
-enum class ProfessionType { Farmer = 0, WaterCarrier = 1, Lumberjack = 2, Hauler = 3, Idle = 4 };
 
 struct Profession {
     int type     = -1;   // ProfessionID; -1 = unset (defaults to Idle at runtime)

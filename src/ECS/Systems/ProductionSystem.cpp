@@ -58,7 +58,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
     // Profession diversity: bitmask per settlement (bit N = professionID N that produces a resource)
-    std::unordered_map<entt::entity, uint8_t> profDiversity;
+    std::unordered_map<entt::entity, uint32_t> profDiversity;
 
     auto resIdx = [](int rt) -> int {
         switch (rt) {

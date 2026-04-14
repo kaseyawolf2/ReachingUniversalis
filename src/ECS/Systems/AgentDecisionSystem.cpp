@@ -922,32 +922,35 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
-                    float preFarm = sk.farming, preWater = sk.water_drawing, preWood = sk.woodcutting;
-                    // Skill rust: inactive skills decay slowly (floor 0.3)
-                    // Decay all skills except the one matching the profession's produced resource
-                    if (myProfRes != RES_FOOD)
-                        sk.farming = std::max(SKILL_RUST_FLOOR, sk.farming - SKILL_RUST);
-                    if (myProfRes != RES_WATER)
-                        sk.water_drawing = std::max(SKILL_RUST_FLOOR, sk.water_drawing - SKILL_RUST);
-                    if (myProfRes != RES_WOOD)
-                        sk.woodcutting = std::max(SKILL_RUST_FLOOR, sk.woodcutting - SKILL_RUST);
+                    // Iterate over all professions from the schema; for each profession
+                    // that produces a resource different from this NPC's active profession,
+                    // decay the corresponding skill.
+                    const char* rustSkillName = nullptr;
+                    for (const auto& pd : schema.professions) {
+                        if (pd.producesResource == INVALID_ID) continue;  // skip Idle/Hauler
+                        if (pd.producesResource == myProfRes) continue;   // active profession's resource — no decay
+                        float preVal = sk.ForResource(pd.producesResource);
+                        if (preVal > SKILL_RUST_FLOOR) {
+                            sk.Advance(pd.producesResource, -SKILL_RUST);
+                            float postVal = sk.ForResource(pd.producesResource);
+                            if (postVal < SKILL_RUST_FLOOR)
+                                sk.Advance(pd.producesResource, SKILL_RUST_FLOOR - postVal);
+                            // Track first skill that crosses below 0.5 for notification
+                            if (!rustSkillName && preVal >= 0.5f && sk.ForResource(pd.producesResource) < 0.5f)
+                                rustSkillName = pd.displayName.c_str();
+                        }
+                    }
 
                     // Skill rust notification: log when a skill drops below 0.5
-                    if (!logV2.empty() && s_teachRng() % 5 == 0) {
-                        const char* rustSkill = nullptr;
-                        if (preFarm >= 0.5f && sk.farming < 0.5f) rustSkill = "farming";
-                        else if (preWater >= 0.5f && sk.water_drawing < 0.5f) rustSkill = "water-drawing";
-                        else if (preWood >= 0.5f && sk.woodcutting < 0.5f) rustSkill = "woodcutting";
-                        if (rustSkill) {
-                            std::string who = "NPC";
-                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
-                            std::string where = "settlement";
-                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
-                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
-                                    where = s->name;
-                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                who + "'s " + rustSkill + " is getting rusty at " + where + ".");
-                        }
+                    if (rustSkillName && !logV2.empty() && s_teachRng() % 5 == 0) {
+                        std::string who = "NPC";
+                        if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                        std::string where = "settlement";
+                        if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                            if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                where = s->name;
+                        logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                            who + "'s " + rustSkillName + " is getting rusty at " + where + ".");
                     }
 
                     // Log at 1-in-10 frequency
@@ -1411,7 +1414,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (auto* prof = registry.try_get<Profession>(entity)) {
                             int oldType = prof->type;
                             int newType = schema.ProfessionForResource(pf.output);
-                            prof->type = newType;
+                            if (newType != INVALID_ID)
+                                prof->type = newType;
 
                             // Skill adjustment on profession change: halve old, boost new by 10%
                             if (oldType != newType
