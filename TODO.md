@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
-
 ## Done
+
+- [x] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
+
 
 - [x] **Elder council road maintenance discount** — In `ConstructionSystem.cpp`'s road maintenance block, when both endpoint settlements have 2+ skilled elders (age>60, skill>=0.7), reduce `ROAD_MAINT_COST_EACH` by 20% for that road. Log "[Road]'s upkeep eased by elder oversight" at 1-in-8 frequency. Reuses the `skilledElderCount` map. Extends the elder council theme to infrastructure maintenance.
 
@@ -114,6 +115,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Elder council road repair priority** — In `ConstructionSystem.cpp`'s autonomous road repair block, when both endpoint settlements have 2+ skilled elders (reuse `skilledElderCount`), reduce `ROAD_REPAIR_COST` by 20% (from 30g to 24g per endpoint). Log "[Road] repaired efficiently under elder guidance" at 1-in-6 frequency. Extends the elder council infrastructure theme to active repairs, not just maintenance.
 
 - [ ] **Elder council morale stabiliser** — In `AgentDecisionSystem.cpp`'s once-per-day block (near the `s_lastSkillGrowthDay` check), when a settlement has 3+ skilled elders (`skilledElderCount >= 3`, pre-computed from the existing elder scan), apply `Settlement::morale += 0.005f` (cap 1.0). Log "[Settlement]'s elder council steadies the community" at 1-in-10 frequency. Gives settlements with many elders passive morale recovery.
+
+- [ ] **Storytelling attendee affinity toward elder** — In `RandomEventSystem.cpp`'s elder storytelling event block, after the event triggers, each attendee also gains +0.02 affinity toward the storytelling elder (not just mutual among attendees). Log "[NPC] is captivated by [Elder]'s tales at [Settlement]" at 1-in-6 frequency per attendee. Strengthens the elder-community bond bidirectionally.
+
+- [ ] **Repeated storytelling familiarity** — In `RandomEventSystem.cpp`'s elder storytelling event block, track a `static std::map<entt::entity, int> s_storyCount` counting how many times each elder has told stories. On 3rd+ telling, increase the morale boost from +0.02 to +0.04 and affinity gains from +0.02 to +0.03 (the elder's tales grow richer with retelling). Log "[Elder] enthralls [Settlement] with their legendary tales" on 3rd+ telling. Creates progression in the storytelling mechanic.
 
 ## Recently Done
 
