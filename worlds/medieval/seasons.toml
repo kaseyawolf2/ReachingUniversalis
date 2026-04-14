@@ -5,16 +5,19 @@
 # Systems compare per-season heatDrainMod / productionMod against these breakpoints.
 # Modders can tune these to change when visual tints, schedule contractions,
 # price floors, and migration penalties kick in.
+#
+# Compile-time defaults live in WorldSchema.h (DEFAULT_HARSH_COLD, etc.).
+# If you omit a key below, the loader falls back to that constant.
 
 # Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
-harsh_cold    = 0.8    # winter-like: schedule contraction, migration penalty, icy-blue sky tint
-moderate_cold = 0.3    # autumn-like: amber/orange sky tint
-cold_season   = 0.2    # wood becomes essential heating fuel
-mild_cold     = 0.05   # spring-like: slight green sky tint
+harsh_cold    = 0.8    # winter-like: schedule contraction, migration penalty, icy-blue sky tint  (DEFAULT_HARSH_COLD)
+moderate_cold = 0.3    # autumn-like: amber/orange sky tint                                       (DEFAULT_MODERATE_COLD)
+cold_season   = 0.2    # wood becomes essential heating fuel                                      (DEFAULT_COLD_SEASON)
+mild_cold     = 0.05   # spring-like: slight green sky tint                                       (DEFAULT_MILD_COLD)
 
 # Production-mod thresholds (compared against SeasonDef::productionMod)
-harvest_season = 1.1   # high-production: more frequent work shanties, harvest shanty song variant
-low_production = 0.5   # scarce-output: food price floor doubles
+harvest_season = 1.1   # high-production: more frequent work shanties, harvest shanty song variant (DEFAULT_HARVEST_SEASON)
+low_production = 0.5   # scarce-output: food price floor doubles                                  (DEFAULT_LOW_PRODUCTION)
 
 [[seasons]]
 name             = "Spring"
