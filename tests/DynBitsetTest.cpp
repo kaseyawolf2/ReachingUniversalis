@@ -587,6 +587,164 @@ TEST(move_assign_inline) {
 }
 
 // ---------------------------------------------------------------------------
+// Assignment operator edge cases — overwrite, cross-mode, self-assign
+// ---------------------------------------------------------------------------
+
+TEST(copy_assign_inline_overwrites_existing) {
+    // Destination already has bits set — copy-assign must replace them
+    auto a = DynBitset::singleBit(10);
+    a.set(20);
+    auto b = DynBitset::singleBit(30);
+    b.set(40);
+    a = b;
+    // a should now have exactly bits 30 and 40
+    assert(a.test(30));
+    assert(a.test(40));
+    assert(!a.test(10)); // old bit cleared
+    assert(!a.test(20)); // old bit cleared
+    assert(a == b);
+    // Mutate a, verify b unchanged
+    a.set(50);
+    assert(a.test(50));
+    assert(!b.test(50));
+}
+
+TEST(copy_assign_heap_overwrites_existing) {
+    // Destination already has heap-mode bits — copy-assign must replace them
+    auto a = DynBitset::singleBit(100);
+    a.set(200);
+    auto b = DynBitset::singleBit(150);
+    b.set(250);
+    a = b;
+    // a should now have exactly bits 150 and 250
+    assert(a.test(150));
+    assert(a.test(250));
+    assert(!a.test(100)); // old bit cleared
+    assert(!a.test(200)); // old bit cleared
+    assert(a == b);
+    // Mutate a, verify b unchanged
+    a.set(300);
+    assert(a.test(300));
+    assert(!b.test(300));
+}
+
+TEST(copy_assign_heap_to_inline_dest) {
+    // Destination is inline, source is heap — must promote destination
+    auto a = DynBitset::singleBit(5);
+    auto b = DynBitset::singleBit(100);
+    b.set(5);
+    a = b;
+    assert(a.test(5));
+    assert(a.test(100));
+    assert(a == b);
+    // Mutate a, verify b unchanged
+    a.set(200);
+    assert(!b.test(200));
+}
+
+TEST(copy_assign_inline_to_heap_dest) {
+    // Destination is heap, source is inline — must shrink/replace
+    auto a = DynBitset::singleBit(100);
+    a.set(200);
+    auto b = DynBitset::singleBit(5);
+    b.set(10);
+    a = b;
+    assert(a.test(5));
+    assert(a.test(10));
+    assert(!a.test(100)); // old heap bit cleared
+    assert(!a.test(200)); // old heap bit cleared
+    assert(a == b);
+    // Mutate a, verify b unchanged
+    a.set(20);
+    assert(!b.test(20));
+}
+
+TEST(move_assign_inline_overwrites_existing) {
+    // Destination already has bits set — move-assign must replace them
+    auto a = DynBitset::singleBit(10);
+    a.set(20);
+    auto b = DynBitset::singleBit(30);
+    b.set(40);
+    a = std::move(b);
+    // a should now have exactly bits 30 and 40
+    assert(a.test(30));
+    assert(a.test(40));
+    assert(!a.test(10)); // old bit cleared
+    assert(!a.test(20)); // old bit cleared
+    // In inline mode, source retains value (scalar copy)
+    assert(b.test(30));
+    assert(b.test(40));
+}
+
+TEST(move_assign_heap_overwrites_existing) {
+    // Destination already has heap-mode bits — move-assign must replace them
+    auto a = DynBitset::singleBit(100);
+    a.set(200);
+    auto b = DynBitset::singleBit(150);
+    b.set(250);
+    a = std::move(b);
+    // a should now have exactly bits 150 and 250
+    assert(a.test(150));
+    assert(a.test(250));
+    assert(!a.test(100)); // old bit cleared
+    assert(!a.test(200)); // old bit cleared
+    // Heap move leaves source empty
+    assert(b.none());
+}
+
+TEST(move_assign_heap_to_inline_dest) {
+    // Destination is inline, source is heap
+    auto a = DynBitset::singleBit(5);
+    auto b = DynBitset::singleBit(100);
+    b.set(5);
+    a = std::move(b);
+    assert(a.test(5));
+    assert(a.test(100));
+    // Heap move leaves source empty
+    assert(b.none());
+}
+
+TEST(move_assign_inline_to_heap_dest) {
+    // Destination is heap, source is inline
+    auto a = DynBitset::singleBit(100);
+    a.set(200);
+    auto b = DynBitset::singleBit(5);
+    b.set(10);
+    a = std::move(b);
+    assert(a.test(5));
+    assert(a.test(10));
+    assert(!a.test(100)); // old heap bit cleared
+    assert(!a.test(200)); // old heap bit cleared
+    // Inline move leaves source intact (scalar copy)
+    assert(b.test(5));
+    assert(b.test(10));
+}
+
+TEST(copy_assign_self_inline) {
+    auto a = DynBitset::singleBit(5);
+    a.set(10);
+    a.set(63);
+    const auto& ref = a;
+    a = ref; // self-assignment
+    // All bits must survive
+    assert(a.test(5));
+    assert(a.test(10));
+    assert(a.test(63));
+}
+
+TEST(copy_assign_self_heap) {
+    auto a = DynBitset::singleBit(100);
+    a.set(5);
+    a.set(200);
+    const auto& ref = a;
+    a = ref; // self-assignment
+    // All bits must survive
+    assert(a.test(5));
+    assert(a.test(100));
+    assert(a.test(200));
+}
+
+// ---------------------------------------------------------------------------
 // Additional edge cases
 // ---------------------------------------------------------------------------
 
@@ -801,6 +959,18 @@ int main() {
     RUN(copy_assign_inline);
     RUN(move_construct_inline);
     RUN(move_assign_inline);
+
+    // Assignment operator edge cases — overwrite, cross-mode, self-assign
+    RUN(copy_assign_inline_overwrites_existing);
+    RUN(copy_assign_heap_overwrites_existing);
+    RUN(copy_assign_heap_to_inline_dest);
+    RUN(copy_assign_inline_to_heap_dest);
+    RUN(move_assign_inline_overwrites_existing);
+    RUN(move_assign_heap_overwrites_existing);
+    RUN(move_assign_heap_to_inline_dest);
+    RUN(move_assign_inline_to_heap_dest);
+    RUN(copy_assign_self_inline);
+    RUN(copy_assign_self_heap);
 
     // Additional edge cases
     RUN(default_constructed_is_empty);
