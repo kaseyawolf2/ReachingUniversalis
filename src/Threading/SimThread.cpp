@@ -22,9 +22,17 @@ SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const World
     WorldGenerator::Populate(m_registry, m_schema);
 
     // Cache skill display names once; schema is immutable after load.
-    m_cachedSkillNames.resize(m_schema.skills.size());
-    for (int i = 0; i < (int)m_schema.skills.size(); ++i)
-        m_cachedSkillNames[i] = m_schema.skills[i].displayName;
+    // Stored as a shared_ptr so RenderSnapshot can share it without deep-copying
+    // the string vector every frame.
+    {
+        auto names = std::make_shared<std::vector<std::string>>(m_schema.skills.size());
+        for (int i = 0; i < (int)m_schema.skills.size(); ++i)
+            (*names)[i] = m_schema.skills[i].displayName;
+        m_cachedSkillNames = std::move(names);
+    }
+
+    // Set the shared pointer on the snapshot once; it never changes.
+    m_snapshot.skillNames = m_cachedSkillNames;
 }
 
 SimThread::~SimThread() {
@@ -2618,7 +2626,6 @@ void SimThread::WriteSnapshot() {
     float playerAgeDays = 0.f, playerMaxDays = 80.f;
     float playerGold = 0.f;
     std::vector<float> playerSkillLevels;
-    std::vector<std::string> playerSkillNames;
     std::map<int, int> playerInventory;
     int   playerInventoryCapacity = 15;
     {
@@ -2646,7 +2653,6 @@ void SimThread::WriteSnapshot() {
             }
             if (const auto* sk = m_registry.try_get<Skills>(pe)) {
                 playerSkillLevels = sk->levels;
-                playerSkillNames = m_cachedSkillNames;
             }
         }
     }
@@ -2827,8 +2833,7 @@ void SimThread::WriteSnapshot() {
         m_snapshot.facilities   = std::move(facilities);
         m_snapshot.worldStatus  = std::move(worldStatus);
         m_snapshot.stockpilePanel = std::move(panel);
-        // Skill names are cached once at construction; assign from cache.
-        m_snapshot.skillNames = m_cachedSkillNames;
+        // Skill names shared_ptr was set once at construction; no per-frame copy needed.
         m_snapshot.day          = day;
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;
@@ -2860,7 +2865,6 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerMaxDays  = playerMaxDays;
         m_snapshot.playerGold       = playerGold;
         m_snapshot.playerSkills      = std::move(playerSkillLevels);
-        m_snapshot.playerSkillNames  = std::move(playerSkillNames);
         m_snapshot.playerInventory         = std::move(playerInventory);
         m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
         m_snapshot.tradeHint               = std::move(tradeHint);

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <mutex>
 
 // Written by the simulation thread at the end of each frame.
@@ -299,8 +300,10 @@ struct RenderSnapshot {
     std::vector<SettlementStatus> worldStatus;
     StockpilePanel                stockpilePanel;
 
-    // Skill display names from schema (indexed by SkillID). Shared across all agents.
-    std::vector<std::string>      skillNames;
+    // Skill display names from schema (indexed by SkillID). Shared across all
+    // agents and the player panel. Set once at construction by SimThread;
+    // never changes, so readers can copy the shared_ptr without a deep copy.
+    std::shared_ptr<const std::vector<std::string>> skillNames;
 
     // HUD — clock
     int    day         = 1;
@@ -336,7 +339,7 @@ struct RenderSnapshot {
     float         playerMaxDays  = 80.f;
     float         playerGold     = 0.f;
     std::vector<float>       playerSkills;       // per SkillID; empty = no Skills component
-    std::vector<std::string> playerSkillNames;   // display names, parallel to playerSkills
+    // Player skill display names: uses the shared skillNames pointer above.
     std::map<int, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity
 
