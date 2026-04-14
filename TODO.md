@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
-
 ## Done
+
+- [x] **Second-chance hauler graduation bonus** — In `EconomicMobilitySystem.cpp`'s NPC→Hauler graduation block, when the graduating NPC has `DeprivationTimer::bankruptSurvivor == true`, set `Hauler::mentorBonus = 0.15f` (higher than normal 0.1) as a self-taught advantage. Log "[Name] returns to hauling with hard-won wisdom at [Settlement]." No new fields needed — reuses existing mentorBonus.
 
 - [x] **Bankruptcy survivor inspiration** — In `AgentDecisionSystem.cpp`'s idle chat block, when a bankruptcy survivor (`DeprivationTimer::bankruptSurvivor == true`) chats with a non-survivor NPC at the same settlement, 1-in-10 chance to boost the non-survivor's `Relations::affinity` toward the survivor by +0.02 and log "[Survivor] inspires [Other] with their comeback story at [Settlement]." Uses existing idle chat stagger and proximity check.
 
@@ -4500,3 +4500,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Survivor mentorship network** — In `AgentDecisionSystem.cpp`'s idle chat block, when two bankruptcy survivors (`DeprivationTimer::bankruptSurvivor == true` on both) chat at the same settlement, boost mutual affinity by +0.03 instead of the normal +0.02. Log "[SurvivorA] and [SurvivorB] compare notes on hard times at [Settlement]" at 1-in-8 frequency. Uses existing idle chat stagger. Creates a self-reinforcing survivor community.
 
 - [ ] **Survivor morale resilience** — In `NeedDrainSystem.cpp`'s need drain loop, when an NPC has `DeprivationTimer::bankruptSurvivor == true` and `Needs::values[Hunger] < 0.3` (low hunger), reduce the hunger drain rate by 15% (survivor knows how to stretch food). No log needed — the effect is passive. Uses existing `Needs` array index and `DeprivationTimer`. Creates a tangible survival advantage from past hardship.
+
+- [ ] **Second-chance hauler celebration** — In `EconomicMobilitySystem.cpp`'s graduation block, when a bankruptcy survivor graduates to hauler, scan NPCs at the same settlement with `Relations::affinity >= 0.4` toward the graduate. Boost their affinity by +0.02 and log "[Friend] cheers on [Survivor]'s return to hauling at [Settlement]" at 1-in-4 frequency. Uses existing `Relations` scan pattern. Creates a community response to the comeback story.
+
+- [ ] **Bankruptcy near-miss relief** — In `EconomicMobilitySystem.cpp`'s bankruptcy timer reset block (where balance goes above threshold and timer is erased), when `hauler.bankruptProgress >= BANKRUPTCY_HOURS * 0.5f` (was close to going bankrupt), apply +0.01 to `Settlement::morale` (cap 1.0) and log "[Hauler] narrowly avoids bankruptcy at [Settlement]" at 1-in-4 frequency. Uses existing `bankruptProgress` field. Creates tension and relief around near-bankruptcy events.
