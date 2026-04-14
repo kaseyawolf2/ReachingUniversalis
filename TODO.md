@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Work buddy grief support** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter's `Relations::workBestFriend` equals the grieving NPC, double the comfort effectiveness (reduce `griefTimer` by 1.0 instead of 0.5) and boost mutual affinity by +0.03. Log "[Comforter] stays by work buddy [Griever]'s side at [Settlement]" at 1-in-5 frequency. Uses existing `workBestFriend` field. Creates deeper emotional support between coworkers.
-
 ## Done
+
+- [x] **Work buddy grief support** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter's `Relations::workBestFriend` equals the grieving NPC, double the comfort effectiveness (reduce `griefTimer` by 1.0 instead of 0.5) and boost mutual affinity by +0.03. Log "[Comforter] stays by work buddy [Griever]'s side at [Settlement]" at 1-in-5 frequency. Uses existing `workBestFriend` field. Creates deeper emotional support between coworkers.
+
 
 - [x] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
 
@@ -149,6 +150,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Grief count on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `int griefCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. Set from the existing `SettlAgg::griefCount`. In `HUD.cpp`'s settlement tooltip, after the vigil badge, show "Grieving: N" as a new line when `griefCount > 0`. Gives the player a numeric read on how widespread grief is.
 
 - [ ] **Vigil ring colour** — In `RenderSystem.cpp`'s settlement ring drawing, when `SettlementEntry::vigil == true`, blend a subtle purple tint into the ring colour (lerp toward `{100, 50, 150, 255}` by 0.3). No new fields needed — uses existing `vigil` bool. Creates a visual indicator of communal grief visible from the map view without hovering.
+
+- [ ] **Work buddy grief vigil priority** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, when a work buddy pair (`Relations::workBestFriend`) are both in the vigil (both have `griefTimer > 0` at the same settlement), boost their mutual affinity by +0.04 instead of the normal vigil +0.02. Log "[NPC1] and [NPC2] lean on each other through the vigil at [Settlement]" at 1-in-4 frequency. Adds work buddy depth to the vigil system.
+
+- [ ] **Work buddy comfort badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool workBuddyNearby = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC's `Relations::workBestFriend` is at the same settlement and within 30 units (check via `Position`). In `HUD.cpp`'s NPC tooltip, display "[Buddy]" in warm yellow after existing badges. Makes the work buddy relationship visible to the player.
 
 ## Recently Done
 
