@@ -340,7 +340,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         bool justStole = false;
         if (canSteal) {
             // Steal food if close to dying of hunger
-            if (timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
+            if ((int)timer.needsAtZero.size() > 0
+                && timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
                 foodStock -= STEAL_AMOUNT;
                 // Don't refill need — they'll pick it up as consumption next tick
                 theftRec->stealCooldown = STEAL_COOLDOWN;
@@ -375,7 +376,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 }
             }
             // Steal water if close to dying of thirst
-            else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
+            else if ((int)timer.needsAtZero.size() > 1
+                     && timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
                 waterStock -= STEAL_AMOUNT;
                 theftRec->stealCooldown = STEAL_COOLDOWN;
                 if (auto* bs = registry.try_get<BanditState>(entity))

@@ -963,7 +963,7 @@ static entt::entity SpawnNPC(entt::registry& registry, entt::entity target,
     registry.emplace<Needs>(npc, npcNeeds);
     registry.emplace<AgentState>(npc);
     registry.emplace<HomeSettlement>(npc, HomeSettlement{target});
-    DeprivationTimer dt;
+    auto dt = DeprivationTimer::Make(schema);
     dt.migrateThreshold = std::uniform_real_distribution<float>(
         skilled ? 2.f : 1.f, skilled ? 5.f : 10.f)(rng) * 60.f;
     registry.emplace<DeprivationTimer>(npc, dt);

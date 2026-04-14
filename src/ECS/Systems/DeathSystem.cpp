@@ -15,7 +15,7 @@ static constexpr float SECS_PER_GAME_DAY = 24.f * 60.f;
 
 static std::mt19937 s_wisdomDeathRng{ std::random_device{}() };
 
-void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     float gameDt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
@@ -82,9 +82,8 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 timer.needsAtZero[i] += gameDt;
                 if (timer.needsAtZero[i] >= DEATH_THRESHOLD) {
                     toRemove.push_back(entity);
-                    const char* cause = (i == 0) ? "hunger" :
-                                        (i == 1) ? "thirst" :
-                                        (i == 2) ? "exhaustion" : "cold";
+                    const char* cause = (i >= 0 && i < (int)schema.needs.size())
+                                        ? schema.needs[i].name.c_str() : "deprivation";
                     std::string who = "NPC";
                     if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
                     int ageInt = 0;

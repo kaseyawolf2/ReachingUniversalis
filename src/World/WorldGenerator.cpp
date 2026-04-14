@@ -83,7 +83,7 @@ static void SpawnNPCs(entt::registry& registry,
         // Randomise migration threshold: NPCs flee at different times (1–10 game-hours)
         // Stagger personal event timers (0–48h offset) so events don't cluster on tick 0.
         static std::uniform_real_distribution<float> evt_stagger(0.f, 48.f);
-        DeprivationTimer dt;
+        auto dt = DeprivationTimer::Make(schema);
         dt.migrateThreshold   = migrate_dist(wg_rng) * 60.f;
         registry.emplace<DeprivationTimer>(npc, dt);
         registry.emplace<SocialBehavior>(npc);
@@ -166,7 +166,8 @@ static void SpawnNPCs(entt::registry& registry,
 
 static void SpawnHaulers(entt::registry& registry,
                          entt::entity settlement,
-                         float cx, float cy, int count) {
+                         float cx, float cy, int count,
+                         const WorldSchema& schema) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI + 0.5f;
         auto h = registry.create();
@@ -180,7 +181,7 @@ static void SpawnHaulers(entt::registry& registry,
         registry.get<Needs>(h).list[2].drainRate = 0.f;
         registry.emplace<AgentState>(h);
         registry.emplace<HomeSettlement>(h, HomeSettlement{ settlement });
-        DeprivationTimer hdt;
+        auto hdt = DeprivationTimer::Make(schema);
         hdt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
         registry.emplace<DeprivationTimer>(h, hdt);
         registry.emplace<SocialBehavior>(h);
@@ -344,9 +345,9 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, schema, PROF_LUMBER);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
-    SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);
-    SpawnHaulers(registry, wellsworth, 2000.f, 360.f, 6);
-    SpawnHaulers(registry, millhaven,  1200.f, 200.f, 6);
+    SpawnHaulers(registry, greenfield, 400.f,  360.f, 6, schema);
+    SpawnHaulers(registry, wellsworth, 2000.f, 360.f, 6, schema);
+    SpawnHaulers(registry, millhaven,  1200.f, 200.f, 6, schema);
 
     // ---- Player ----
     auto player = registry.create();
@@ -356,7 +357,7 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     registry.emplace<Needs>(player, MakeNeeds());
     registry.emplace<AgentState>(player);
     registry.emplace<HomeSettlement>(player, HomeSettlement{ greenfield });
-    registry.emplace<DeprivationTimer>(player);
+    registry.emplace<DeprivationTimer>(player, DeprivationTimer::Make(schema));
     registry.emplace<SocialBehavior>(player);
     registry.emplace<GriefState>(player);
     registry.emplace<TheftRecord>(player);
