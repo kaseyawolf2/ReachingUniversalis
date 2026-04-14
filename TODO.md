@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Lonely migrant morale drain** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (all friends are elsewhere), apply -0.005 to home `Settlement::morale` per game-day via a `static std::set<entt::entity> s_lonelyChecked` per-day guard. Log "[Name] feels lonely at [Settlement]" at 1-in-10 frequency. Creates a visible cost of social isolation after migration.
+
+## Backlog
 
 - [ ] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
