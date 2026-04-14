@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
-
 ## Done
+
+- [x] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
+
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
 
@@ -2037,4 +2038,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **NPC tooltip skill mini-bars** — In `HUD.cpp`'s `DrawHoverTooltip`, replace the skill text line with three small horizontal bars (farming/water/wood) using the `DrawMiniBar` helper. Each bar 30px wide, labeled with a single letter (F/W/D). Color by level. Makes skill comparison between NPCs instantly visual rather than requiring reading numbers.
 
 - [ ] **Settlement tooltip resource bars** — In `HUD.cpp`'s `DrawSettlementTooltip`, replace the plain text stock/price lines with horizontal resource bars (Food/Water/Wood) using `DrawMiniBar`. Show stock as bar fill (max ~200 units), with price text beside each bar. Color code by stock level (red <10, orange <30, green). Matches the world status bar card style.
+
+- [ ] **Harmony decay from unresolved rivalries** — In `AgentDecisionSystem.cpp`'s once-per-day block (staggered frame scan), when an NPC has 2+ entries in `Relations::affinity` below 0.15 toward same-settlement NPCs, apply -0.005 to `Settlement::morale` (floor 0.0). Log "[NPC] sows discord at [Settlement]" at 1-in-10 frequency via `static std::mt19937`. Uses the existing `s_entitySettlement` cache and `Relations::affinity` map. Creates pressure for settlements to resolve low-affinity pairs or lose them to migration.
+
+- [ ] **Harmony attracts new births** — In `BirthSystem.cpp`'s birth probability check, use the `s_harmonyCache` from `AgentDecisionSystem.cpp` (make it extern or recompute locally). When settlement harmony > 0.3, multiply birth probability by `1.0 + 0.3 * harmony`. Log "[Settlement]'s warm community welcomes a new child" at 1-in-8 frequency when the harmony bonus triggers a birth that wouldn't have occurred otherwise. Reward socially cohesive settlements with population growth.
+
+- [ ] **Migration farewell letter to work buddy** — In `AgentDecisionSystem.cpp`'s migration farewell block (after friend farewell loop around line 1920), check if the migrant's `Relations::workBestFriend` is at the same settlement. If so, apply -0.04 affinity decay (instead of the standard -0.02 for regular friends) and boost the buddy's `griefTimer` by +0.5f. Log "[Buddy] struggles without their work partner [Migrant]" at 1-in-6 frequency. Creates deeper emotional impact when workplace bonds are broken by migration.
 
