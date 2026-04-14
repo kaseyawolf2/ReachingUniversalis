@@ -925,6 +925,31 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 registry.emplace<Rumour>(residents[k], Rumour{RumourType::PlagueNearby, target, 3});
         }
         SoftenRivalryOnSharedCrisis(registry, target, *settl, "Plague", log, day, hour);
+        // Plague solidarity: residents with existing bonds support each other
+        {
+            std::vector<entt::entity> plagueResidents;
+            registry.view<HomeSettlement, Relations>(
+                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, const HomeSettlement& hs, const Relations&) {
+                    if (hs.settlement == target) plagueResidents.push_back(e);
+                });
+            for (size_t i = 0; i < plagueResidents.size(); ++i) {
+                auto* relA = registry.try_get<Relations>(plagueResidents[i]);
+                if (!relA) continue;
+                for (size_t j = i + 1; j < plagueResidents.size(); ++j) {
+                    auto itA = relA->affinity.find(plagueResidents[j]);
+                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
+                    auto* relB = registry.try_get<Relations>(plagueResidents[j]);
+                    if (!relB) continue;
+                    auto itB = relB->affinity.find(plagueResidents[i]);
+                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
+                    itA->second = std::min(1.f, itA->second + 0.03f);
+                    itB->second = std::min(1.f, itB->second + 0.03f);
+                }
+            }
+            if (log)
+                log->Push(day, hour, settl->name + " residents support each other through the plague.");
+        }
         break;
     }
 
