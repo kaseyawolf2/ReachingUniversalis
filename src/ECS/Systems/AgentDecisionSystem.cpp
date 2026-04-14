@@ -559,7 +559,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 auto cit = childProfBySettl.find(settl);
                 if (cit != childProfBySettl.end()) {
                     DynBitset overlap = elderMask & cit->second;
-                    if (overlap.any()) activeMentoring[settl] = overlap;
+                    if (overlap.any()) activeMentoring[settl] = std::move(overlap);
                 }
             }
             static std::mt19937 s_rivalRng{ std::random_device{}() };

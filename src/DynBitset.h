@@ -92,6 +92,13 @@ public:
         }
         // Slow path: at least one uses heap
         size_t n = std::min(wordCount(), other.wordCount());
+        if (n <= 1) {
+            // Only one word of overlap — stay in inline mode to avoid
+            // heapWord() on an empty vector (DynBitset(64) is inline).
+            DynBitset result;
+            result.m_inline = wordAt(0) & other.wordAt(0);
+            return result;
+        }
         DynBitset result(n * 64);
         for (size_t i = 0; i < n; ++i)
             result.heapWord(i) = wordAt(i) & other.wordAt(i);
