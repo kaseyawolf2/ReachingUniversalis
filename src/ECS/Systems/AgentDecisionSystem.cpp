@@ -595,7 +595,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Don't boost masters themselves
                     SkillID profSkId = SkillForProfession(prof.type, schema);
-                    float skillGrowthRate = schema.SkillGrowthRate(profSkId);
+                    float skillGrowthRate = (profSkId != INVALID_ID)
+                        ? schema.SkillGrowthRate(profSkId) : 1.f;
                     float growth = BASE_SKILL_GROWTH * skillGrowthRate;
                     bool masterGrowthApplied = false;
                     // Loyalty bonus: NPCs who never changed profession grow faster
