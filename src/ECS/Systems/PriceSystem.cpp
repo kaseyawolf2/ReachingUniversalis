@@ -1,5 +1,6 @@
 #include "PriceSystem.h"
 #include "ECS/Components.h"
+#include "World/SeasonThresholds.h"
 #include "World/WorldSchema.h"
 #include <cmath>
 #include <algorithm>
@@ -26,7 +27,7 @@ static float SeasonPriceFloor(int res, const SeasonDef& sdef) {
     if (res == RES_FOOD) {
         // Food is harder to produce in low-production seasons; floor rises as production drops
         // productionMod: 0.2 (winter) → floor 2.0, 1.0+ → floor 1.0
-        return (sdef.productionMod < 0.5f) ? 2.0f : 1.0f;
+        return (sdef.productionMod < SeasonThreshold::LOW_PRODUCTION) ? 2.0f : 1.0f;
     }
     return PRICE_MIN;
 }
