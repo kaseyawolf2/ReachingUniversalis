@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
+
 ## Done
 
 - [x] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
@@ -56,8 +58,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
 
 - [ ] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
 
