@@ -271,7 +271,6 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.spreadChance          = OptFloat(*item, "spread_chance", 0.0f);
         def.spreadKillFraction    = OptFloat(*item, "spread_kill_fraction", 0.0f);
         def.facilityDestroyChance = OptFloat(*item, "facility_destroy_chance", 0.0f);
-        def.seasonConstraint      = OptStr(*item, "season_constraint", "");
         def.seasonMinHeatDrain    = OptFloat(*item, "season_min_heat_drain", -1.0f);
         def.seasonMaxHeatDrain    = OptFloat(*item, "season_max_heat_drain", 999.0f);
         def.seasonMinTemp         = OptFloat(*item, "season_min_temp", -999.0f);

@@ -130,7 +130,6 @@ struct EventDef {
     float       facilityDestroyChance = 0.0f;
 
     // Season constraints: event only fires when season matches
-    std::string seasonConstraint;             // "winter", "spring", "summer", "autumn" or empty
     float       seasonMinHeatDrain = -1.0f;   // min heatDrainMod for season (-1 = no constraint)
     float       seasonMaxHeatDrain = 999.0f;  // max heatDrainMod for season
     float       seasonMinTemp      = -999.0f; // min baseTemperature for season

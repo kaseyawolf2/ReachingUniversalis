@@ -1406,17 +1406,14 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) return;
 
-        std::uniform_real_distribution<float> burnFrac(
-            std::max(0.f, ev.effectValue - 0.10f),
-            std::min(1.f, ev.effectValue + 0.10f));
-
         // Destroy resources specified in the destroyResources vector
         std::string lostDesc;
         for (const auto& [resId, baseFrac] : ev.destroyResources) {
-            float fraction = burnFrac(m_rng);
+            float frac = baseFrac + std::uniform_real_distribution<float>(-0.10f, 0.10f)(m_rng);
+            frac = std::clamp(frac, 0.f, 1.f);
             auto fit = sp->quantities.find(resId);
             if (fit != sp->quantities.end() && fit->second > 5.f) {
-                float lost = fit->second * fraction;
+                float lost = fit->second * frac;
                 fit->second -= lost;
                 if (!lostDesc.empty()) lostDesc += ", ";
                 std::string resName = (resId >= 0 && resId < (int)schema.resources.size())
