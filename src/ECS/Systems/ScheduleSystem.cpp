@@ -728,6 +728,24 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                     logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour,
                                         who + " leads a work song at " + where + ".");
                                 }
+                                // Work song morale lift: 4+ coworkers boost settlement morale
+                                if (coworkers.size() >= 4) {
+                                    if (home.settlement != entt::null && registry.valid(home.settlement)) {
+                                        if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                                            settl->morale = std::min(1.f, settl->morale + 0.01f);
+                                    }
+                                    if (s_rng() % 4 == 0) {
+                                        auto logV2 = registry.view<EventLog>();
+                                        if (!logV2.empty()) {
+                                            std::string where2 = "Settlement";
+                                            if (home.settlement != entt::null && registry.valid(home.settlement))
+                                                if (const auto* s2 = registry.try_get<Settlement>(home.settlement))
+                                                    where2 = s2->name;
+                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, hour,
+                                                where2 + " hums along.");
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
