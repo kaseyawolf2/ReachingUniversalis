@@ -230,9 +230,12 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         rangeCheck(st.harvestSeason, "harvest_season");
         rangeCheck(st.lowProduction, "low_production");
 
-        if (!(st.mildCold < st.moderateCold))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: mild_cold (%.3f) should be less than moderate_cold (%.3f)\n",
-                    path.c_str(), st.mildCold, st.moderateCold);
+        if (!(st.mildCold < st.coldSeason))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: mild_cold (%.3f) should be less than cold_season (%.3f)\n",
+                    path.c_str(), st.mildCold, st.coldSeason);
+        if (!(st.coldSeason < st.moderateCold))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: cold_season (%.3f) should be less than moderate_cold (%.3f)\n",
+                    path.c_str(), st.coldSeason, st.moderateCold);
         if (!(st.moderateCold < st.harshCold))
             fprintf(stderr, "[WorldLoader] WARNING: %s: moderate_cold (%.3f) should be less than harsh_cold (%.3f)\n",
                     path.c_str(), st.moderateCold, st.harshCold);
