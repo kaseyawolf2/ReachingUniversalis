@@ -676,10 +676,16 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                 if (s_reconHours[key] < 3) return;
                                 // 1-in-10 chance to reconcile
                                 if (s_rng() % 10 != 0) return;
-                                // Reconcile: boost mutual affinity by +0.05
-                                myRelR->affinity[other] = std::min(1.f, aff + 0.05f);
+                                // Track repeated reconciliations for escalating bond
+                                static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount;
+                                ++s_reconCount[key];
+                                int reconTimes = s_reconCount[key];
+                                float affinityBoost = (reconTimes >= 2) ? 0.08f : 0.05f;
+                                float glowDuration  = (reconTimes >= 2) ? 4.f   : 2.f;
+                                // Reconcile: boost mutual affinity
+                                myRelR->affinity[other] = std::min(1.f, aff + affinityBoost);
                                 if (auto* oRel = registry.try_get<Relations>(other))
-                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.05f);
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityBoost);
                                 s_reconHours.erase(key);
                                 // Log
                                 auto logVR = registry.view<EventLog>();
@@ -710,11 +716,26 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                         }
                                     }
                                 }
-                                // Set reconcileGlow on both NPCs (2 game-hours of +5% work output)
+                                // Set reconcileGlow on both NPCs
                                 if (auto* tmrA = registry.try_get<DeprivationTimer>(entity))
-                                    tmrA->reconcileGlow = 2.f;
+                                    tmrA->reconcileGlow = glowDuration;
                                 if (auto* tmrB = registry.try_get<DeprivationTimer>(other))
-                                    tmrB->reconcileGlow = 2.f;
+                                    tmrB->reconcileGlow = glowDuration;
+                                // 3rd+ reconciliation: escalating friendship log
+                                if (reconTimes >= 3) {
+                                    auto ufLogV = registry.view<EventLog>();
+                                    if (!ufLogV.empty()) {
+                                        std::string un1 = "NPC", un2 = "NPC";
+                                        if (const auto* nm = registry.try_get<Name>(entity)) un1 = nm->value;
+                                        if (const auto* nm2 = registry.try_get<Name>(other)) un2 = nm2->value;
+                                        std::string uw = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                uw = s->name;
+                                        ufLogV.get<EventLog>(*ufLogV.begin()).Push(tm.day, hour,
+                                            un1 + " and " + un2 + " are becoming unlikely friends at " + uw + ".");
+                                    }
+                                }
                             });
                         }
                     }
