@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
 ## Done
 
 - [x] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
@@ -30,8 +32,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
 - [ ] **Wisdom lineage tracking** — In `DeathSystem.cpp`'s elder wisdom fading block, when `wisdomGriefDays` is applied to a mourner, also set a new `entt::entity wisdomLineage = entt::null` field on `Skills` in `Components.h` to the deceased elder's entity (for narrative tracking). In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with `wisdomLineage != entt::null` crosses skill >= 0.8, log "[NPC] carries on [Elder]'s legacy at [Settlement]" at full frequency and clear the field. Creates a narrative thread connecting elder deaths to future mastery.
 
