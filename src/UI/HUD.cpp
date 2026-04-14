@@ -16,6 +16,8 @@ static const int BAR_X    = 10;
 static const int BAR_Y0   = 10;
 static const int BAR_GAP  = 26;
 
+static const std::vector<std::string> emptyNames;
+
 static const char* BehaviorLabel(AgentBehavior b) {
     switch (b) {
         case AgentBehavior::Idle:         return "Idle";
@@ -120,7 +122,6 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     }
 
     // Dereference shared skill names once; empty fallback if not yet set.
-    static const std::vector<std::string> emptyNames;
     const auto& playerSkillNames = playerSkillNamesPtr ? *playerSkillNamesPtr : emptyNames;
 
     // ---- Player panel (top-left) ----
@@ -589,7 +590,6 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         skillNamesPtr = snap.skillNames;
     }
     // Dereference once; empty fallback if not yet set.
-    static const std::vector<std::string> emptyNames;
     const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames;
 
     // Build surname→count and familyName→count maps for family cluster display.
