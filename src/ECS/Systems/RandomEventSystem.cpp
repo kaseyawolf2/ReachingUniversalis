@@ -1067,12 +1067,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
     const EventDef& ev = schema.events[pickedIdx];
 
-    // ---- Apply event effects based on effectType ----
+    // ---- Apply event effects based on effectType enum (resolved at load time) ----
 
-    const std::string& etype = ev.effectType;
-
-    // --- Production modifier events (Drought, Plague, Harvest Bounty, Heat Wave, Festival) ---
-    if (etype == "production_modifier") {
+    switch (ev.effectEnum) {
+    case EventEffectType::ProductionModifier: {
         // Duration-based production modifier requires no existing modifier
         if (ev.durationHours > 0.f) {
             if (settl->modifierDuration > 0.f) return;  // already has an active event
@@ -1159,9 +1157,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                     + ev.displayName + ".");
             }
         }
+        break;
     }
     // --- Stockpile destroy events (Blight, Spring Flood) ---
-    else if (etype == "stockpile_destroy") {
+    case EventEffectType::StockpileDestroy: {
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) return;
         int resId = (ev.targetResourceId != INVALID_ID) ? ev.targetResourceId : RES_FOOD;
@@ -1186,9 +1185,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             if (ev.triggersSolidarity)
                 log->Push(day, hour, settl->name + " residents share what little remains.");
         }
+        break;
     }
     // --- Road block events (Bandits, Blizzard) ---
-    else if (etype == "road_block") {
+    case EventEffectType::RoadBlock: {
         float blockDur = ev.roadBlockDuration > 0.f ? ev.roadBlockDuration : BANDIT_DURATION;
         if (ev.blockAllRoads) {
             int blockedCount = 0;
@@ -1219,17 +1219,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 ev.displayName + " blocking road ("
                 + std::to_string((int)blockDur) + "h)");
         }
+        break;
     }
     // --- Treasury boost (Trade Boom) ---
-    else if (etype == "treasury_boost") {
+    case EventEffectType::TreasuryBoost: {
         float gold = ev.treasuryChange > 0.f ? ev.treasuryChange : ev.effectValue;
         settl->treasury += gold;
         if (log) log->Push(day, hour,
             ev.displayName + " at " + settl->name + " " + popTag
             + " -- treasury +" + std::to_string((int)gold) + "g");
+        break;
     }
     // --- Spawn NPCs (Migration Wave, Skilled Immigrant) ---
-    else if (etype == "spawn_npcs") {
+    case EventEffectType::SpawnNpcs: {
         const auto* tpos = registry.try_get<Position>(target);
         if (!tpos) return;
 
@@ -1281,9 +1283,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 + " arrived at " + settl->name + " "
                 + BuildPopTag(popCount + arrivals, m_prevPop, target));
         }
+        break;
     }
     // --- Stockpile add (Rainstorm, Lumber Windfall) ---
-    else if (etype == "stockpile_add") {
+    case EventEffectType::StockpileAdd: {
         int addResId = (ev.addResourceId != INVALID_ID) ? ev.addResourceId : RES_WATER;
         float amount = ev.addAmount;
         // Lumber windfall: randomise amount slightly
@@ -1329,9 +1332,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 log->Push(day, hour, buf);
             }
         }
+        break;
     }
     // --- Convoy (Off-Map Trade) ---
-    else if (etype == "convoy") {
+    case EventEffectType::Convoy: {
         auto* mkt  = registry.try_get<Market>(target);
         auto* sp   = registry.try_get<Stockpile>(target);
         if (!mkt || !sp) return;
@@ -1364,9 +1368,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             ev.displayName + " at " + settl->name + " " + popTag + " +"
             + std::to_string((int)amount) + " " + resName
             + " (paid " + std::to_string((int)cost) + "g)");
+        break;
     }
     // --- Earthquake ---
-    else if (etype == "earthquake") {
+    case EventEffectType::Earthquake: {
         // Block connected roads and damage their condition
         float blockDur = ev.roadBlockDuration > 0.f ? ev.roadBlockDuration : 6.f;
         int blockedRoads = 0;
@@ -1407,9 +1412,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 destroyed, destroyed == 1 ? "y" : "ies", (int)blockDur);
             log->Push(day, hour, buf);
         }
+        break;
     }
     // --- Fire ---
-    else if (etype == "fire") {
+    case EventEffectType::Fire: {
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) return;
 
@@ -1441,9 +1447,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 lostDesc.empty() ? "nothing" : lostDesc.c_str(), killed);
             log->Push(day, hour, buf);
         }
+        break;
     }
     // --- Price spike (Market Crisis) ---
-    else if (etype == "price_spike") {
+    case EventEffectType::PriceSpike: {
         auto* mkt = registry.try_get<Market>(target);
         if (!mkt) return;
 
@@ -1466,16 +1473,21 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(), actualSpike);
             log->Push(day, hour, buf);
         }
+        break;
     }
     // --- Morale boost (standalone, no production modifier) ---
-    else if (etype == "morale_boost") {
+    case EventEffectType::MoraleBoost: {
         if (ev.moraleImpact != 0.f)
             settl->morale = std::clamp(settl->morale + ev.moraleImpact, 0.f, 1.f);
         if (ev.treasuryChange != 0.f)
             settl->treasury += ev.treasuryChange;
         if (log) log->Push(day, hour,
             ev.displayName + " at " + settl->name + " " + popTag);
+        break;
     }
+    case EventEffectType::None:
+        break;
+    } // end switch
 }
 
 // ---- KillFraction -------------------------------------------------------

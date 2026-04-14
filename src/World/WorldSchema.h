@@ -75,11 +75,28 @@ struct ProfessionDef {
 
 // SeasonDef is defined in SeasonDef.h
 
+// Resolved enum for EventDef::effectType (no string comparisons in hot loops)
+enum class EventEffectType {
+    None,
+    ProductionModifier,
+    StockpileDestroy,
+    RoadBlock,
+    TreasuryBoost,
+    SpawnNpcs,
+    StockpileAdd,
+    Convoy,
+    Earthquake,
+    Fire,
+    PriceSpike,
+    MoraleBoost,
+};
+
 struct EventDef {
     EventID     id            = INVALID_ID;
     std::string name;                         // "Drought", "Plague", ...
     std::string displayName;
     std::string effectType;                   // "production_modifier", "stockpile_destroy", etc.
+    EventEffectType effectEnum = EventEffectType::None;  // resolved at load time
     float       effectValue   = 1.0f;         // magnitude of the effect
     float       durationHours = 0.0f;         // game-hours the effect lasts (0 = instant)
     float       chance        = 0.01f;        // probability per check (per settlement per hour)
