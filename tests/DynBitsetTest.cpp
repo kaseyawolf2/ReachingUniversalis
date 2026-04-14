@@ -4,6 +4,7 @@
 #include "DynBitset.h"
 #include <cassert>
 #include <cstdio>
+#include <utility>
 
 static int passed = 0;
 
@@ -374,6 +375,218 @@ TEST(orAssign_preserves_existing_bits) {
 }
 
 // ---------------------------------------------------------------------------
+// Copy/move semantics — heap mode
+// ---------------------------------------------------------------------------
+
+TEST(copy_construct_heap) {
+    // Create a heap-mode bitset with several bits set
+    auto original = DynBitset::singleBit(100);
+    original.set(5);
+    original.set(64);
+    original.set(200);
+
+    // Copy-construct
+    DynBitset copy(original);
+
+    // Verify the copy has the same bits
+    assert(copy.test(5));
+    assert(copy.test(64));
+    assert(copy.test(100));
+    assert(copy.test(200));
+    assert(copy == original);
+
+    // Mutate the copy
+    copy.set(300);
+    assert(copy.test(300));
+
+    // Verify original is untouched
+    assert(!original.test(300));
+    assert(original.test(5));
+    assert(original.test(64));
+    assert(original.test(100));
+    assert(original.test(200));
+    assert(copy != original);
+}
+
+TEST(copy_assign_heap) {
+    // Create a heap-mode bitset
+    auto original = DynBitset::singleBit(100);
+    original.set(5);
+    original.set(64);
+
+    // Copy-assign into a different bitset
+    DynBitset copy;
+    copy = original;
+
+    // Verify the copy has the same bits
+    assert(copy.test(5));
+    assert(copy.test(64));
+    assert(copy.test(100));
+    assert(copy == original);
+
+    // Mutate the copy
+    copy.set(250);
+    assert(copy.test(250));
+
+    // Verify original is untouched
+    assert(!original.test(250));
+    assert(original.test(5));
+    assert(original.test(64));
+    assert(original.test(100));
+    assert(copy != original);
+}
+
+TEST(move_construct_heap) {
+    // Create a heap-mode bitset
+    auto original = DynBitset::singleBit(100);
+    original.set(5);
+    original.set(64);
+    original.set(200);
+
+    // Move-construct
+    DynBitset moved(std::move(original));
+
+    // Verify the moved-to bitset has all the bits
+    assert(moved.test(5));
+    assert(moved.test(64));
+    assert(moved.test(100));
+    assert(moved.test(200));
+
+    // Verify the source is in a valid moved-from state (empty).
+    // After std::move on a vector member, the source vector is empty,
+    // so the bitset falls back to inline mode with m_inline == 0.
+    assert(original.none());
+    assert(!original.test(5));
+    assert(!original.test(100));
+}
+
+TEST(move_assign_heap) {
+    // Create a heap-mode bitset
+    auto original = DynBitset::singleBit(100);
+    original.set(5);
+    original.set(64);
+
+    // Move-assign into a different bitset
+    DynBitset moved;
+    moved = std::move(original);
+
+    // Verify the moved-to bitset has all the bits
+    assert(moved.test(5));
+    assert(moved.test(64));
+    assert(moved.test(100));
+
+    // Verify the source is in a valid moved-from state (empty)
+    assert(original.none());
+    assert(!original.test(5));
+    assert(!original.test(100));
+}
+
+// ---------------------------------------------------------------------------
+// Copy/move semantics — inline mode
+// ---------------------------------------------------------------------------
+
+TEST(copy_construct_inline) {
+    // Create an inline-mode bitset (all bits < 64)
+    auto original = DynBitset::singleBit(5);
+    original.set(10);
+    original.set(63);
+
+    // Copy-construct
+    DynBitset copy(original);
+
+    // Verify the copy has the same bits
+    assert(copy.test(5));
+    assert(copy.test(10));
+    assert(copy.test(63));
+    assert(copy == original);
+
+    // Mutate the copy
+    copy.set(0);
+    assert(copy.test(0));
+
+    // Verify original is untouched
+    assert(!original.test(0));
+    assert(original.test(5));
+    assert(original.test(10));
+    assert(original.test(63));
+    assert(copy != original);
+}
+
+TEST(copy_assign_inline) {
+    // Create an inline-mode bitset (all bits < 64)
+    auto original = DynBitset::singleBit(7);
+    original.set(20);
+    original.set(50);
+
+    // Copy-assign into a different bitset
+    DynBitset copy;
+    copy = original;
+
+    // Verify the copy has the same bits
+    assert(copy.test(7));
+    assert(copy.test(20));
+    assert(copy.test(50));
+    assert(copy == original);
+
+    // Mutate the copy
+    copy.set(0);
+    assert(copy.test(0));
+
+    // Verify original is untouched
+    assert(!original.test(0));
+    assert(original.test(7));
+    assert(original.test(20));
+    assert(original.test(50));
+    assert(copy != original);
+}
+
+TEST(move_construct_inline) {
+    // Create an inline-mode bitset (all bits < 64)
+    auto original = DynBitset::singleBit(3);
+    original.set(15);
+    original.set(62);
+
+    // Move-construct
+    DynBitset moved(std::move(original));
+
+    // Verify the moved-to bitset has all the bits
+    assert(moved.test(3));
+    assert(moved.test(15));
+    assert(moved.test(62));
+
+    // In inline mode, m_inline is a scalar (uint64_t), so std::move just
+    // copies it — the source retains its value. This is the expected
+    // "valid but unspecified" moved-from state for trivial types.
+    // The key invariant: source is still a valid DynBitset we can query.
+    assert(original.test(3));
+    assert(original.test(15));
+    assert(original.test(62));
+}
+
+TEST(move_assign_inline) {
+    // Create an inline-mode bitset (all bits < 64)
+    auto original = DynBitset::singleBit(1);
+    original.set(30);
+    original.set(63);
+
+    // Move-assign into a different bitset
+    DynBitset moved;
+    moved = std::move(original);
+
+    // Verify the moved-to bitset has all the bits
+    assert(moved.test(1));
+    assert(moved.test(30));
+    assert(moved.test(63));
+
+    // In inline mode, m_inline is a scalar (uint64_t), so move-assign
+    // just copies it — the source retains its value. This is the expected
+    // "valid but unspecified" moved-from state for trivial types.
+    assert(original.test(1));
+    assert(original.test(30));
+    assert(original.test(63));
+}
+
+// ---------------------------------------------------------------------------
 // Additional edge cases
 // ---------------------------------------------------------------------------
 
@@ -485,6 +698,18 @@ int main() {
     RUN(orAssign_heap_inline);
     RUN(orAssign_heap_heap);
     RUN(orAssign_preserves_existing_bits);
+
+    // Copy/move semantics — heap mode
+    RUN(copy_construct_heap);
+    RUN(copy_assign_heap);
+    RUN(move_construct_heap);
+    RUN(move_assign_heap);
+
+    // Copy/move semantics — inline mode
+    RUN(copy_construct_inline);
+    RUN(copy_assign_inline);
+    RUN(move_construct_inline);
+    RUN(move_assign_inline);
 
     // Additional edge cases
     RUN(default_constructed_is_empty);
