@@ -168,7 +168,7 @@ struct DeprivationTimer {
     float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
 };
 
-// ---- Optional social-mechanic components (factored out of DeprivationTimer) ----
+// ---- Mandatory social-mechanic components (factored out of DeprivationTimer) ----
 
 // Social interaction cooldowns and one-shot flags.
 // Mandatory component emplaced on all NPCs at spawn; use get<> in the main

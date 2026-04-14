@@ -1314,15 +1314,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         [&](auto other, AgentState& oState, const Position& oPos) {
                             if (other == entity) return;
                             if (oState.behavior != AgentBehavior::Idle) return;
-                            auto& oSb = registry.get<SocialBehavior>(other);
-                            if (oSb.skillCelebrateTimer > 0.f) return; // already celebrating
+                            auto* oSb = registry.try_get<SocialBehavior>(other);
+                            if (!oSb) return;
+                            if (oSb->skillCelebrateTimer > 0.f) return; // already celebrating
                             float ddx = oPos.x - pos.x, ddy = oPos.y - pos.y;
                             if (ddx * ddx + ddy * ddy > 30.f * 30.f) return;
                             auto it = myRel->affinity.find(other);
                             if (it == myRel->affinity.end() || it->second < 0.2f) return;
                             // Recruit friend into celebration
                             oState.behavior = AgentBehavior::Celebrating;
-                            oSb.skillCelebrateTimer = 0.25f;
+                            oSb->skillCelebrateTimer = 0.25f;
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
@@ -2831,10 +2832,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 // Only struggling NPCs (avg < 0.4) can receive mood contagion
                 if (avgNeeds < 0.4f && socialBeh.moodContagionCooldown <= 0.f
                     && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
-                    registry.view<Needs, Position, AgentState, DeprivationTimer, Name>(
+                    registry.view<Needs, Position, AgentState, Name>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>).each(
                         [&](auto other, const Needs& oNeeds, const Position& oPos,
-                            const AgentState& oState, DeprivationTimer&, const Name& oName) {
+                            const AgentState& oState, const Name& oName) {
                             if (other == entity) return;
                             if (oState.behavior != AgentBehavior::Idle) return;
                             float oAvg = 0.f;
@@ -4260,10 +4261,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             // Nearby non-bandit NPCs panic-flee from the bandit
             if (intercepted) {
                 static constexpr float PANIC_RANGE = 60.f;
-                registry.view<Position, Velocity, MoveSpeed, DeprivationTimer>(
+                registry.view<Position, Velocity, MoveSpeed>(
                     entt::exclude<BanditTag, PlayerTag, Hauler>).each(
                     [&](auto npcE, const Position& npos, Velocity& nvel,
-                        const MoveSpeed& nspd, DeprivationTimer& ntmr) {
+                        const MoveSpeed& nspd) {
                         float pdx = npos.x - pos.x, pdy = npos.y - pos.y;
                         float d2 = pdx * pdx + pdy * pdy;
                         if (d2 > PANIC_RANGE * PANIC_RANGE || d2 < 0.01f) return;

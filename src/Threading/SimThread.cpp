@@ -736,8 +736,8 @@ void SimThread::ProcessInput() {
                                 if (wdx*wdx + wdy*wdy > WITNESS_RANGE * WITNESS_RANGE) return;
                                 wrep.score += 0.1f;
                                 // Witness remembers the player — enables gratitude greeting later
-                                auto& wSocial = m_registry.get<SocialBehavior>(we);
-                                wSocial.lastHelper = pe3;
+                                auto* wSocial = m_registry.try_get<SocialBehavior>(we);
+                                if (wSocial) wSocial->lastHelper = pe3;
                                 ++witnessCount;
                             });
                         if (plog && witnessCount > 0) {
