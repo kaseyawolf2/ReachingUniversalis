@@ -77,21 +77,21 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **DynBitset unit tests** — `DynBitset` has SBO with inline/heap modes and edge cases at the 64-bit boundary. Add a test file (`tests/DynBitsetTest.cpp`) that validates: singleBit for bits 0-63 (inline) and 64+ (heap), operator& across inline/heap combinations, intersectsAny, containsAll, operator|= mixed modes, and the n==1 edge case in operator&.
 
-- [ ] **Rename m_plagueSpreadTimer** — `RandomEventSystem::m_plagueSpreadTimer` still uses plague-specific naming after the multi-spreading generalization. Rename to `m_spreadTimers` and update all references. Also rename `SpreadEntry` comment from "Active plagues" to "Active spreading events".
+- [x] **Rename m_plagueSpreadTimer** — `RandomEventSystem::m_plagueSpreadTimer` still uses plague-specific naming after the multi-spreading generalization. Rename to `m_spreadTimers` and update all references. Also rename `SpreadEntry` comment from "Active plagues" to "Active spreading events".
 
-- [ ] **Cache FindNeed results in ConsumptionSystem** — `ConsumptionSystem::Update()` calls `schema.FindNeed("Hunger")` and `schema.FindNeed("Thirst")` (string map lookups) every tick. Cache these as member variables initialized once in the constructor or first `Update()` call.
+- [x] **Cache FindNeed results in ConsumptionSystem** — `ConsumptionSystem::Update()` calls `schema.FindNeed("Hunger")` and `schema.FindNeed("Thirst")` (string map lookups) every tick. Cache these as member variables initialized once in the constructor or first `Update()` call.
 
-- [ ] **Validate all EventEffectType variants in WorldLoader** — The TOML validation switch covers 7 of 11 effect types. Add validation for `SpawnNpcs`, `RoadBlock`, `Earthquake`, and `MoraleBoost` — checking their required fields (e.g., `roadBlockDuration` for Earthquake, `spawnCount` for SpawnNpcs).
+- [x] **Validate all EventEffectType variants in WorldLoader** — The TOML validation switch covers 7 of 11 effect types. Add validation for `SpawnNpcs`, `RoadBlock`, `Earthquake`, and `MoraleBoost` — checking their required fields (e.g., `roadBlockDuration` for Earthquake, `spawnCount` for SpawnNpcs).
 
-- [ ] **DeprivationTimer Make() with migrateThreshold param** — All 9 call sites of `DeprivationTimer::Make(schema)` immediately set `migrateThreshold` afterward. Add an optional `migrateThreshold` parameter to `Make()` to eliminate the construct-then-mutate pattern.
+- [x] **DeprivationTimer Make() with migrateThreshold param** — All 9 call sites of `DeprivationTimer::Make(schema)` immediately set `migrateThreshold` afterward. Add an optional `migrateThreshold` parameter to `Make()` to eliminate the construct-then-mutate pattern.
 
-- [ ] **Shared skillNames pointer in RenderSnapshot** — `m_cachedSkillNames` is copied 4 times per frame into different snapshot fields. Replace with a `std::shared_ptr<const std::vector<std::string>>` set once at construction, eliminating per-frame string vector copies.
+- [x] **Shared skillNames pointer in RenderSnapshot** — `m_cachedSkillNames` is copied 4 times per frame into different snapshot fields. Replace with a `std::shared_ptr<const std::vector<std::string>>` set once at construction, eliminating per-frame string vector copies.
 
-- [ ] **EventLog-based diagnostic warnings** — `RandomEventSystem.cpp` and `WorldLoader.cpp` use `fprintf(stderr, ...)` for diagnostic warnings, which is invisible in-game. Route these through `EventLog::Push` or a dedicated diagnostic log channel so they appear in the HUD event log during gameplay.
+- [x] **EventLog-based diagnostic warnings** — `RandomEventSystem.cpp` and `WorldLoader.cpp` use `fprintf(stderr, ...)` for diagnostic warnings, which is invisible in-game. Route these through `EventLog::Push` or a dedicated diagnostic log channel so they appear in the HUD event log during gameplay.
 
-- [ ] **Dead effectType string field cleanup** — `EventDef::effectType` (std::string) is now dead weight at runtime after the `EventEffectType` enum was added. Remove it from `EventDef` in `WorldSchema.h` or mark it `#ifndef NDEBUG` for debug-only retention. Saves 32 bytes per event definition.
+- [x] **Dead effectType string field cleanup** — `EventDef::effectType` (std::string) is now dead weight at runtime after the `EventEffectType` enum was added. Remove it from `EventDef` in `WorldSchema.h` or mark it `#ifndef NDEBUG` for debug-only retention. Saves 32 bytes per event definition.
 
-- [ ] **Flat array resourceToProfession** — `WorldSchema::resourceToProfession` is still an `unordered_map<int,int>` but `ResourceID` is a dense integer (same pattern fixed for `resourceToSkill`). Replace with `std::vector<ProfessionID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead in `ProfessionForResource()`.
+- [x] **Flat array resourceToProfession** — `WorldSchema::resourceToProfession` is still an `unordered_map<int,int>` but `ResourceID` is a dense integer (same pattern fixed for `resourceToSkill`). Replace with `std::vector<ProfessionID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead in `ProfessionForResource()`.
 
 - [ ] **SocialBehavior sub-struct relocation** — `MoodState::skillCelebrateTimer` and `MoodState::reconcileGlow` are functionally cooldown timers gating behavior, not persistent mood flags. Move them to `InteractionCooldowns` for consistency, and update all access sites in `AgentDecisionSystem.cpp`, `ProductionSystem.cpp`, and `ScheduleSystem.cpp`.
 
@@ -120,6 +120,36 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Schema-driven PriceSystem floor thresholds** — `PriceSystem::SeasonPriceFloor()` now takes `const SeasonThresholds&` but still uses hardcoded logic for which thresholds trigger price floors. Make the price floor rules data-driven: add a `priceFloorThreshold` field to `SeasonDef` in `WorldSchema.h` so each season can specify its own floor multiplier.
 
 - [ ] **WorldLoader OptFloat default source-of-truth** — `LoadSeasons()` uses `OptFloat(tbl, key, struct_default)` where the default comes from the struct's in-class initializer. If someone changes the struct default without updating the TOML comment, they silently diverge. Add a comment warning about this coupling, or define named constants in `WorldSchema.h` used by both the struct initializer and the TOML comment.
+
+- [ ] **Dead GoalDef string fields cleanup** — `GoalDef` still carries dead `std::string checkType`, `targetMode`, and `behaviourMod` fields alongside their resolved enums — the same pattern just removed from `EventDef`. Remove them from `GoalDef` in `WorldSchema.h` and use local variables in `WorldLoader.cpp` during parsing.
+
+- [ ] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill` and `resourceToProfession`.
+
+- [ ] **Cache FindNeed in NeedDrainSystem** — `NeedDrainSystem::Update()` likely calls `schema.FindNeed()` by string every tick, same pattern fixed in `ConsumptionSystem`. Add cached member variables for frequently-used NeedIDs, initialized on first `Update()` call.
+
+- [ ] **Cache FindNeed in DeathSystem** — `DeathSystem::Update()` may call `schema.FindNeed()` by string for death cause determination. Cache the NeedIDs as member variables to eliminate per-tick string lookups.
+
+- [ ] **Spread timer comment cleanup** — `RandomEventSystem.cpp` still has `(drought/spreading event recovery)` as an awkward half-rename. Either go fully generic (`(event recovery)`) or use two concrete examples consistently.
+
+- [ ] **Duplicate static const emptyNames in HUD.cpp** — `HUD.cpp` declares three separate `static const std::vector<std::string> emptyNames;` in different methods. Consolidate into a single file-scope `static const` to eliminate duplication.
+
+- [ ] **DeprivationTimer Make() default constant** — `DeprivationTimer::Make()` default parameter `2.f * 60.f` duplicates the member initializer `migrateThreshold = 2.f * 60.f`. Define a named constant (e.g., `DEFAULT_MIGRATE_THRESHOLD`) used by both to prevent drift.
+
+- [ ] **DeprivationTimer units comment fix** — `DeprivationTimer::migrateThreshold` comment says "game-min" but the sim ticks in game-seconds. Fix the comment to say "game-seconds" to match the actual units.
+
+- [ ] **RenderSnapshot immutable field comment** — `RenderSnapshot::skillNames` shared_ptr is written once at construction and never mutated, unlike every other field which is written per frame under mutex. Add a comment `// Immutable after construction; not protected by mutex` to prevent future maintainers from moving it into WriteSnapshot.
+
+- [ ] **EventLog system-name prefix** — `RandomEventSystem.cpp` diagnostic warnings use `[WARNING]` prefix, dropping the system name. Restore `[RandomEventSystem]` prefix so stderr grep can identify the source system.
+
+- [ ] **SpawnNpcs effectValue runtime clamp** — `RandomEventSystem.cpp` line ~1297 casts `effectValue` to `int` for `maxArrivals` without clamping, so values < 1 produce UB in `uniform_int_distribution`. Add `maxArrivals = std::max(1, (int)ev.effectValue)` as a runtime safety net alongside the load-time validation.
+
+- [ ] **WorldLoader stderr to structured logging** — All 26+ `fprintf(stderr, ...)` calls in `WorldLoader.cpp` output unstructured text. Define a `LoadWarning` struct or use a vector to collect warnings during loading, then dump them after load completes. Enables future UI display of load diagnostics.
+
+- [ ] **ConsumptionSystem remove redundant bool** — `ConsumptionSystem::m_needsCached` bool is redundant since `m_hungerNeedId` is initialized to `-1` (INVALID_ID). Remove the bool and use `m_hungerNeedId < 0` as the cache-miss sentinel.
+
+- [ ] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
+
+- [ ] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
 
 ## Phase 2 — UI Decoupling
 
