@@ -45,10 +45,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
 
     // Cache need IDs for theft desperation checks (schema-driven, not hardcoded).
     // Looked up once and stored as member variables to avoid string map lookups every tick.
-    if (!m_needsCached) {
+    if (m_hungerNeedId == NOT_CACHED) {
         m_hungerNeedId = m_schema.FindNeed("Hunger");
         m_thirstNeedId = m_schema.FindNeed("Thirst");
-        m_needsCached  = true;
     }
     const NeedID hungerNeedId = m_hungerNeedId;
     const NeedID thirstNeedId = m_thirstNeedId;
