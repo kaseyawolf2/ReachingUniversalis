@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Bankruptcy survivor inspiration** — In `AgentDecisionSystem.cpp`'s idle chat block, when a bankruptcy survivor (`DeprivationTimer::bankruptSurvivor == true`) chats with a non-survivor NPC at the same settlement, 1-in-10 chance to boost the non-survivor's `Relations::affinity` toward the survivor by +0.02 and log "[Survivor] inspires [Other] with their comeback story at [Settlement]." Uses existing idle chat stagger and proximity check.
-
 ## Done
+
+- [x] **Bankruptcy survivor inspiration** — In `AgentDecisionSystem.cpp`'s idle chat block, when a bankruptcy survivor (`DeprivationTimer::bankruptSurvivor == true`) chats with a non-survivor NPC at the same settlement, 1-in-10 chance to boost the non-survivor's `Relations::affinity` toward the survivor by +0.02 and log "[Survivor] inspires [Other] with their comeback story at [Settlement]." Uses existing idle chat stagger and proximity check.
 
 - [x] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
 
@@ -4496,3 +4496,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Retirement morale boost** — In `TransportSystem.cpp`'s retireList processing, after the farewell toast block, apply +0.02 to `Settlement::morale` (cap 1.0) on the retiree's home settlement when the retiree had `Hauler::lifetimeTrips >= 20`. Log "[Settlement] celebrates [Retiree]'s long career" at full frequency. Uses existing `HomeSettlement` and `Settlement::morale`. Creates a community-wide positive event from veteran retirement.
 
 - [ ] **Retiree reputation transfer** — In `TransportSystem.cpp`'s retireList processing, after the farewell toast, if the retiree has `Reputation::score >= 0.4`, find the youngest hauler (lowest `Hauler::lifetimeTrips`) at the same settlement and boost their `Reputation::score` by +0.1 (cap 1.0). Log "[Retiree] passes their good name to [Successor] at [Settlement]" at full frequency. Uses existing `Reputation` and `Hauler::lifetimeTrips`. Creates a legacy transfer mechanic.
+
+- [ ] **Survivor mentorship network** — In `AgentDecisionSystem.cpp`'s idle chat block, when two bankruptcy survivors (`DeprivationTimer::bankruptSurvivor == true` on both) chat at the same settlement, boost mutual affinity by +0.03 instead of the normal +0.02. Log "[SurvivorA] and [SurvivorB] compare notes on hard times at [Settlement]" at 1-in-8 frequency. Uses existing idle chat stagger. Creates a self-reinforcing survivor community.
+
+- [ ] **Survivor morale resilience** — In `NeedDrainSystem.cpp`'s need drain loop, when an NPC has `DeprivationTimer::bankruptSurvivor == true` and `Needs::values[Hunger] < 0.3` (low hunger), reduce the hunger drain rate by 15% (survivor knows how to stretch food). No log needed — the effect is passive. Uses existing `Needs` array index and `DeprivationTimer`. Creates a tangible survival advantage from past hardship.
