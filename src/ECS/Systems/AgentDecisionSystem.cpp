@@ -1048,7 +1048,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (sk.wisdomGriefDays <= 0.f || hs.settlement != settlE) return;
                         st.behavior = AgentBehavior::Celebrating;
                         if (auto* sbP = registry.try_get<SocialBehavior>(e))
-                            sbP->mood.skillCelebrateTimer = 1.0f; // 1 game-hour
+                            sbP->cooldowns.skillCelebrateTimer = 1.0f; // 1 game-hour
                         participants.push_back(e);
                     });
 
@@ -1313,9 +1313,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             bool skillCelebration = false;
             {
                 float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                if (socialBeh.mood.skillCelebrateTimer > 0.f) {
-                    socialBeh.mood.skillCelebrateTimer = std::max(0.f, socialBeh.mood.skillCelebrateTimer - ghDt);
-                    skillCelebration = (socialBeh.mood.skillCelebrateTimer > 0.f);
+                if (socialBeh.cooldowns.skillCelebrateTimer > 0.f) {
+                    socialBeh.cooldowns.skillCelebrateTimer = std::max(0.f, socialBeh.cooldowns.skillCelebrateTimer - ghDt);
+                    skillCelebration = (socialBeh.cooldowns.skillCelebrateTimer > 0.f);
                 }
             }
 
@@ -1330,14 +1330,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (oState.behavior != AgentBehavior::Idle) return;
                             auto* oSb = registry.try_get<SocialBehavior>(other);
                             if (!oSb) return;
-                            if (oSb->mood.skillCelebrateTimer > 0.f) return; // already celebrating
+                            if (oSb->cooldowns.skillCelebrateTimer > 0.f) return; // already celebrating
                             float ddx = oPos.x - pos.x, ddy = oPos.y - pos.y;
                             if (ddx * ddx + ddy * ddy > 30.f * 30.f) return;
                             auto it = myRel->affinity.find(other);
                             if (it == myRel->affinity.end() || it->second < 0.2f) return;
                             // Recruit friend into celebration
                             oState.behavior = AgentBehavior::Celebrating;
-                            oSb->mood.skillCelebrateTimer = 0.25f;
+                            oSb->cooldowns.skillCelebrateTimer = 0.25f;
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
@@ -2595,7 +2595,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             bool isWorkBuddy = (myRel->workBestFriend == other);
                             // Post-procession comfort: comforter who was in a mourning procession → double comfort
                             bool processionComfort = false;
-                            if (socialBeh.mood.skillCelebrateTimer > 0.f) {
+                            if (socialBeh.cooldowns.skillCelebrateTimer > 0.f) {
                                 const auto* comforterSk = registry.try_get<Skills>(entity);
                                 if (comforterSk && comforterSk->wisdomGriefDays > 0.f)
                                     processionComfort = true;
