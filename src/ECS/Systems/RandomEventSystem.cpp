@@ -71,6 +71,35 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
                 // Post-festival afterglow: morale drift halved for 12 game-hours
                 if (wasFestival)
                     s.afterglowHours = 12.f;
+                // Post-crisis community gathering: surviving drought/plague strengthens bonds
+                bool wasDrought = (s.modifierName == "Drought");
+                if (wasDrought || wasPlague) {
+                    std::vector<entt::entity> survivors;
+                    registry.view<HomeSettlement, Relations>(
+                        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                        [&](auto npc, const HomeSettlement& hs, const Relations&) {
+                            if (hs.settlement == e) survivors.push_back(npc);
+                        });
+                    for (size_t i = 0; i < survivors.size(); ++i) {
+                        auto* relA = registry.try_get<Relations>(survivors[i]);
+                        if (!relA) continue;
+                        for (size_t j = i + 1; j < survivors.size(); ++j) {
+                            auto itA = relA->affinity.find(survivors[j]);
+                            if (itA == relA->affinity.end() || itA->second < 0.2f) continue;
+                            auto* relB = registry.try_get<Relations>(survivors[j]);
+                            if (!relB) continue;
+                            auto itB = relB->affinity.find(survivors[i]);
+                            if (itB == relB->affinity.end() || itB->second < 0.2f) continue;
+                            itA->second = std::min(1.f, itA->second + 0.02f);
+                            itB->second = std::min(1.f, itB->second + 0.02f);
+                        }
+                    }
+                    if (log) {
+                        std::string crisis = wasDrought ? "drought" : "plague";
+                        log->Push(tm.day, (int)tm.hourOfDay,
+                            s.name + " celebrates surviving the " + crisis);
+                    }
+                }
                 s.modifierName.clear();
                 if (wasPlague) m_plagueSpreadTimer.erase(e);
             }
