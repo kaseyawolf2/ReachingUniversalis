@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
 #include <algorithm>
+#include <cstdio>
 #include <set>
 #include <unordered_set>
 #include <vector>
@@ -440,6 +441,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     // Collect new infections to add after iteration (cannot modify map during iteration)
     std::vector<std::pair<entt::entity, SpreadEntry>> newInfections;
     std::unordered_set<entt::entity> newInfectionSet;  // O(1) duplicate check
+    std::vector<entt::entity> staleSpreadEntries;      // entries to erase after iteration
 
     for (auto& [plagueSettl, entry] : m_plagueSpreadTimer) {
         if (!registry.valid(plagueSettl)) continue;
@@ -447,12 +449,15 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         if (entry.timer > 0.f) continue;
 
         // Look up the event definition for this particular spreading event.
-        // If the stored index is out of range and no spread events exist, skip this entry.
+        // If the stored index is out of range, the entry is corrupt -- mark for removal.
         if (entry.eventIdx < 0 || entry.eventIdx >= (int)schema.events.size()) {
-            if (spreadEventIndices.empty()) continue;
-            entry.eventIdx = spreadEventIndices[0];
+            fprintf(stderr, "[RandomEventSystem] WARNING: spread entry for settlement has out-of-range eventIdx %d (schema has %d events) -- removing entry\n",
+                    entry.eventIdx, (int)schema.events.size());
+            staleSpreadEntries.push_back(plagueSettl);
+            continue;
         }
         const EventDef& sDef = schema.events[entry.eventIdx];
+        if (!sDef.spreads) continue;  // guard against non-spreading event at this index
 
         entry.timer = sDef.spreadInterval;
 
@@ -512,6 +517,9 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             log->Push(tm.day, (int)tm.hourOfDay, buf);
         }
     }
+    // Remove stale/corrupt spread entries
+    for (auto& ent : staleSpreadEntries)
+        m_plagueSpreadTimer.erase(ent);
     // Apply deferred new infections
     for (auto& [ent, se] : newInfections)
         m_plagueSpreadTimer[ent] = se;
