@@ -231,6 +231,18 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Check for --screenshot flag: capture a frame after N seconds and exit
+    // Usage: --screenshot <output.png> [delay_seconds]
+    const char* screenshotFile = nullptr;
+    int screenshotDelay = 5;  // default 5 seconds
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--screenshot") == 0) {
+            screenshotFile = (i + 1 < argc) ? argv[i + 1] : "screenshot.png";
+            screenshotDelay = (i + 2 < argc) ? atoi(argv[i + 2]) : 5;
+            break;
+        }
+    }
+
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(DESIGN_W, DESIGN_H, "ReachingUniversalis");
     SetTargetFPS(0);
@@ -277,6 +289,18 @@ int main(int argc, char* argv[]) {
                 { 0, 0 }, 0.f, WHITE
             );
         EndDrawing();
+
+        // Auto-screenshot after delay
+        if (screenshotFile) {
+            static float elapsed = 0.f;
+            elapsed += dt;
+            if (elapsed >= (float)screenshotDelay) {
+                TakeScreenshot(screenshotFile);
+                // Give one extra frame for the file to flush, then exit
+                BeginDrawing(); EndDrawing();
+                break;
+            }
+        }
     }
 
     UnloadRenderTexture(target);
