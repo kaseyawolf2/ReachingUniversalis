@@ -2202,6 +2202,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                     rB->affinity[a] = std::min(1.f, rB->affinity[a] + 0.02f);
                             }
                         }
+                        // Vigil morale recovery: collective healing
+                        if (auto* settlV = registry.try_get<Settlement>(home.settlement))
+                            settlV->morale = std::min(1.f, settlV->morale + 0.03f);
                         // Log once
                         auto vlv = registry.view<EventLog>();
                         if (!vlv.empty()) {
@@ -2210,6 +2213,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                 where = st->name;
                             vlv.get<EventLog>(*vlv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                 where + " holds a vigil for the fallen");
+                            // Vigil morale recovery log at 1-in-3 frequency
+                            static std::mt19937 s_vigilMoraleRng{ std::random_device{}() };
+                            if (s_vigilMoraleRng() % 3 == 0)
+                                vlv.get<EventLog>(*vlv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    where + "'s vigil brings comfort.");
                         }
                     }
                 }
