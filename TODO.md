@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
+
 ## Done
 
 - [x] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
@@ -50,8 +52,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
 
 - [ ] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
 
