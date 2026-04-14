@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
-
 ## Done
+
+- [x] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
+
 
 - [x] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
 
@@ -129,6 +130,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Elder mediation reputation** — In `ScheduleSystem.cpp`'s elder mediation block (just added), after a successful mediation, boost the elder's `Reputation::score` by +0.1 (cap 1.0). Uses existing `Reputation` component via `try_get`. Log "[Elder] gains respect for keeping the peace" at 1-in-4 frequency. Connects elder conflict resolution to the reputation system.
 
 - [ ] **Repeated mediation friendship arc** — In `ScheduleSystem.cpp`'s elder mediation block, track mediations per pair via `static std::map<std::pair<entt::entity,entt::entity>, int> s_mediationCount`. On 3rd+ mediation for the same pair, the two rivals also gain +0.02 mutual affinity (growing respect through repeated elder guidance). Log "[NPC1] and [NPC2] learn to respect each other at [Settlement]" at full frequency on 3rd+. Creates a progression from rivalry to grudging respect.
+
+- [ ] **Grief anniversary vigil gathering** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, extend the check to also gather NPCs in anniversary grief (triggered by the grief anniversary system). When 2+ NPCs at the same settlement have `griefTimer > 0` from anniversary triggers (both have `lastGriefDay % 30 < 2`), boost mutual affinity by +0.03 instead of the normal vigil +0.02. Log "[Settlement] holds a remembrance vigil" at 1-in-3 frequency. Creates a communal anniversary event.
+
+- [ ] **Grief fading over time** — In `AgentDecisionSystem.cpp`'s grief anniversary block, reduce the anniversary grief duration based on how many months have passed. When `daysSince / 30 >= 3`, the anniversary grief lasts only 0.5 hours instead of 1. When `daysSince / 30 >= 6`, the anniversary stops triggering entirely (grief has healed). Log "[NPC] has found peace at [Settlement]" once when the final anniversary passes. Creates a natural arc of emotional recovery.
 
 ## Recently Done
 
