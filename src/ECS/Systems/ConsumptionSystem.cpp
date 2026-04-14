@@ -26,6 +26,9 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 
 static std::map<entt::entity, float> s_desperateCooldown;
 
+ConsumptionSystem::ConsumptionSystem(const WorldSchema& schema)
+    : m_schema(schema) {}
+
 void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;

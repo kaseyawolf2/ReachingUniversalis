@@ -17,7 +17,8 @@ static constexpr float SIM_STEP_DT   = 1.f / 60.f;
 static constexpr int   MAX_CATCHUP   = 4;
 
 SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
-    : m_input(input), m_snapshot(snapshot), m_schema(schema)
+    : m_input(input), m_snapshot(snapshot), m_schema(schema),
+      m_consumptionSystem(schema)
 {
     WorldGenerator::Populate(m_registry, m_schema);
 
