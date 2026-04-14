@@ -459,7 +459,7 @@ struct Skills {
     // Advances the relevant skill for a resource by delta (capped at 1).
     void Advance(int rt, float delta, const WorldSchema& schema) {
         int sid = SkillIdForResource(rt, schema);
-        if (sid != INVALID_ID)
+        if (sid != INVALID_ID && sid >= 0 && sid < (int)levels.size())
             levels[sid] = std::min(1.f, levels[sid] + delta);
     }
 

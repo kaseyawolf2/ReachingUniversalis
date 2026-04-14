@@ -931,7 +931,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
                     // Only the active profession's skill is exempt from rust.
-                    std::vector<float> preSkills = sk.levels;
+                    // Snapshot skill levels before rust using a small stack buffer
+                    // (avoids per-NPC heap allocation on the hot path).
+                    static constexpr int MAX_STACK_SKILLS = 16;
+                    float preSkillsBuf[MAX_STACK_SKILLS];
+                    int nSkills = sk.Size();
+                    int preCount = std::min(nSkills, MAX_STACK_SKILLS);
+                    for (int si = 0; si < preCount; ++si)
+                        preSkillsBuf[si] = sk.levels[si];
                     for (int si = 0; si < sk.Size(); ++si) {
                         if (si == profSkId) continue; // active skill doesn't rust
                         sk.levels[si] = std::max(SKILL_RUST_FLOOR, sk.levels[si] - SKILL_RUST);
@@ -941,7 +948,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (!logV2.empty() && s_teachRng() % 5 == 0) {
                         const char* rustSkill = nullptr;
                         for (int si = 0; si < sk.Size() && !rustSkill; ++si) {
-                            if (si < (int)preSkills.size() && preSkills[si] >= 0.5f && sk.levels[si] < 0.5f)
+                            if (si < preCount && preSkillsBuf[si] >= 0.5f && sk.levels[si] < 0.5f)
                                 rustSkill = (si < (int)schema.skills.size()) ? schema.skills[si].displayName.c_str() : "skill";
                         }
                         if (rustSkill) {

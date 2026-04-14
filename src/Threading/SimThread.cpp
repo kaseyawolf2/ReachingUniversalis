@@ -1699,14 +1699,10 @@ void SimThread::WriteSnapshot() {
 
         // Skills snapshot
         std::vector<float> agentSkillLevels;
-        std::vector<std::string> agentSkillNames;
         float wagePerHour = 0.f;
         bool wisdomHeir = false;
         if (const auto* sk = m_registry.try_get<Skills>(e)) {
             agentSkillLevels = sk->levels;
-            agentSkillNames.resize(m_schema.skills.size());
-            for (int si = 0; si < (int)m_schema.skills.size(); ++si)
-                agentSkillNames[si] = m_schema.skills[si].displayName;
             wisdomHeir = (sk->wisdomLineage != entt::null);
             // Compute wage estimate for working NPCs (same formula as ConsumptionSystem)
             if (!isHauler && !isPlayer && astate.behavior == AgentBehavior::Working) {
@@ -1921,7 +1917,7 @@ void SimThread::WriteSnapshot() {
                            std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
                            homeX, homeY, hasHome,
-                           std::move(agentSkillLevels), std::move(agentSkillNames),
+                           std::move(agentSkillLevels),
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, recentlyTaught, isGrievingSnap, griefHoursLeft, charityReady, charityTimerLeft,
@@ -2802,6 +2798,13 @@ void SimThread::WriteSnapshot() {
         m_snapshot.facilities   = std::move(facilities);
         m_snapshot.worldStatus  = std::move(worldStatus);
         m_snapshot.stockpilePanel = std::move(panel);
+        // Populate schema skill names once (shared by all agents/settlements)
+        {
+            int nsk = (int)m_schema.skills.size();
+            m_snapshot.skillNames.resize(nsk);
+            for (int i = 0; i < nsk; ++i)
+                m_snapshot.skillNames[i] = m_schema.skills[i].displayName;
+        }
         m_snapshot.day          = day;
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;

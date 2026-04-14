@@ -665,7 +665,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     std::uniform_real_distribution<float> windfall_dist(5.f, 15.f);
     std::uniform_real_distribution<float> skillGain_dist(0.08f, 0.12f);
     std::uniform_int_distribution<int>    needIdxDist(0, 2);   // Hunger/Thirst/Energy only
-    std::uniform_int_distribution<int>    skillIdxDist(0, 2);
+    int totalSkillCount = (int)schema.skills.size();
+    std::uniform_int_distribution<int>    skillIdxDist(0, std::max(0, totalSkillCount - 1));
 
     registry.view<DeprivationTimer, Skills, Money, Name>(
         entt::exclude<PlayerTag, BanditTag>)
@@ -727,7 +728,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             switch (evtTypeDist(m_rng)) {
                 case 0: {   // Skill discovery — +0.1 to a random skill
                     int nsk = skills.Size();
-                    int idx = (nsk > 0) ? (skillIdxDist(m_rng) % nsk) : 0;
+                    int idx = (nsk > 0) ? std::uniform_int_distribution<int>(0, nsk - 1)(m_rng) : 0;
                     float gain = skillGain_dist(m_rng);
                     if (idx >= 0 && idx < nsk)
                         skills.Set(idx, std::min(1.f, skills.Get(idx) + gain));

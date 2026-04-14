@@ -893,8 +893,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         for (int i = 1; i < (int)best->skillLevels.size(); ++i)
             if (best->skillLevels[i] > best->skillLevels[bestIdx]) bestIdx = i;
         sk = best->skillLevels[bestIdx];
-        if (bestIdx < (int)best->skillNames.size() && !best->skillNames[bestIdx].empty())
-            skLabel = best->skillNames[bestIdx];
+        if (bestIdx < (int)snap.skillNames.size() && !snap.skillNames[bestIdx].empty())
+            skLabel = snap.skillNames[bestIdx];
         const char* rank = (sk >= 0.85f) ? " [Master]"  :
                            (sk >= 0.65f) ? " [Expert]"  :
                            (sk >= 0.40f) ? " [Trained]" :
@@ -919,7 +919,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         for (int i = 0; i < (int)best->skillLevels.size(); ++i) {
             if (best->skillLevels[i] > bestSk) {
                 bestSk = best->skillLevels[i];
-                bestType = (i < (int)best->skillNames.size()) ? best->skillNames[i] : "Unknown";
+                bestType = (i < (int)snap.skillNames.size()) ? snap.skillNames[i] : "Unknown";
             }
         }
         if (bestSk >= 0.5f) {
@@ -1346,7 +1346,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         std::snprintf(lineMasters, sizeof(lineMasters), "Masters: %d", best->masterCount);
 
     // Line: average skills
-    char lineSkills[64] = {};
+    char lineSkills[256] = {};
     bool showSkills = std::any_of(best->avgSkills.begin(), best->avgSkills.end(), [](float v){ return v > 0.f; });
     if (showSkills) {
         std::string skillStr = "Skills:";

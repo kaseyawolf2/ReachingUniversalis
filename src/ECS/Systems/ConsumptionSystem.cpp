@@ -345,11 +345,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    if (!sk->levels.empty()) {
-                        char sb[32];
-                        std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sk->levels[0] * 100));
-                        skillSuffix = sb;
-                    }
+                    float foodSkill = sk->ForResource(RES_FOOD, schema);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(foodSkill * 100));
+                    skillSuffix = sb;
                 }
                 // Log it
                 auto lv3 = registry.view<EventLog>();
@@ -376,11 +375,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix2;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    if (sk->Size() > 1) {
-                        char sb[32];
-                        std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(sk->levels[1] * 100));
-                        skillSuffix2 = sb;
-                    }
+                    float waterSkill = sk->ForResource(RES_WATER, schema);
+                    char sb[32];
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(waterSkill * 100));
+                    skillSuffix2 = sb;
                 }
                 auto lv3 = registry.view<EventLog>();
                 auto tv3 = registry.view<TimeManager>();

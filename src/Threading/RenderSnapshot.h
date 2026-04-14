@@ -46,8 +46,6 @@ struct RenderSnapshot {
         bool  hasHome = false;
         // Skill levels (0-1) indexed by SkillID; empty if entity has no Skills component
         std::vector<float> skillLevels;
-        // Skill display names, parallel to skillLevels (populated from schema)
-        std::vector<std::string> skillNames;
         // Contentment: weighted average of all needs (0 = miserable, 1 = thriving)
         // Hunger 30%, Thirst 30%, Energy 20%, Heat 20%
         float contentment = 1.f;
@@ -302,6 +300,9 @@ struct RenderSnapshot {
     std::vector<FacilityEntry>    facilities;
     std::vector<SettlementStatus> worldStatus;
     StockpilePanel                stockpilePanel;
+
+    // Skill display names from schema (indexed by SkillID). Shared across all agents.
+    std::vector<std::string>      skillNames;
 
     // HUD — clock
     int    day         = 1;
