@@ -378,44 +378,45 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         def.name        = ReqStr(*item, "name", ctx, err);
         if (!err.empty()) return false;
         def.displayName       = OptStr(*item, "display_name", def.name);
-        def.checkType         = OptStr(*item, "check_type", "none");
         def.targetValue       = OptFloat(*item, "target_value", 0.0f);
-        def.targetMode        = OptStr(*item, "target_mode", "fixed");
         def.offset            = OptFloat(*item, "offset", 0.0f);
         def.weight            = OptFloat(*item, "weight", 1.0f);
         def.unit              = OptStr(*item, "unit", "");
         def.completionMessage = OptStr(*item, "completion_message", "{name} completed a goal!");
-        def.behaviourMod      = OptStr(*item, "behaviour_mod", "");
         def.completionCooldown = OptFloat(*item, "completion_cooldown", 5.0f);
 
         // Resolve string enums to int enums at load time (no string comparisons in hot loops)
-        if (def.checkType == "balance_gte")         def.checkTypeEnum = GoalCheckType::BalanceGte;
-        else if (def.checkType == "age_gte")        def.checkTypeEnum = GoalCheckType::AgeGte;
-        else if (def.checkType == "has_family")     def.checkTypeEnum = GoalCheckType::HasFamily;
-        else if (def.checkType == "has_profession") def.checkTypeEnum = GoalCheckType::HasProfession;
-        else if (def.checkType == "none")           def.checkTypeEnum = GoalCheckType::None;
+        std::string checkType    = OptStr(*item, "check_type", "none");
+        std::string targetMode   = OptStr(*item, "target_mode", "fixed");
+        std::string behaviourMod = OptStr(*item, "behaviour_mod", "");
+
+        if (checkType == "balance_gte")         def.checkTypeEnum = GoalCheckType::BalanceGte;
+        else if (checkType == "age_gte")        def.checkTypeEnum = GoalCheckType::AgeGte;
+        else if (checkType == "has_family")     def.checkTypeEnum = GoalCheckType::HasFamily;
+        else if (checkType == "has_profession") def.checkTypeEnum = GoalCheckType::HasProfession;
+        else if (checkType == "none")           def.checkTypeEnum = GoalCheckType::None;
         else {
             fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown check_type '%s', defaulting to None\n",
-                    path.c_str(), def.name.c_str(), def.checkType.c_str());
+                    path.c_str(), def.name.c_str(), checkType.c_str());
             def.checkTypeEnum = GoalCheckType::None;
         }
 
-        if (def.targetMode == "fixed")                  def.targetModeEnum = GoalTargetMode::Fixed;
-        else if (def.targetMode == "relative_balance")  def.targetModeEnum = GoalTargetMode::RelativeBalance;
-        else if (def.targetMode == "relative_age")      def.targetModeEnum = GoalTargetMode::RelativeAge;
+        if (targetMode == "fixed")                  def.targetModeEnum = GoalTargetMode::Fixed;
+        else if (targetMode == "relative_balance")  def.targetModeEnum = GoalTargetMode::RelativeBalance;
+        else if (targetMode == "relative_age")      def.targetModeEnum = GoalTargetMode::RelativeAge;
         else {
             fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown target_mode '%s', defaulting to Fixed\n",
-                    path.c_str(), def.name.c_str(), def.targetMode.c_str());
+                    path.c_str(), def.name.c_str(), targetMode.c_str());
             def.targetModeEnum = GoalTargetMode::Fixed;
         }
 
-        if (def.behaviourMod.empty() || def.behaviourMod == "none")
+        if (behaviourMod.empty() || behaviourMod == "none")
             def.behaviourModEnum = GoalBehaviourMod::None;
-        else if (def.behaviourMod == "hoard")      def.behaviourModEnum = GoalBehaviourMod::Hoard;
-        else if (def.behaviourMod == "ambitious")  def.behaviourModEnum = GoalBehaviourMod::Ambitious;
+        else if (behaviourMod == "hoard")      def.behaviourModEnum = GoalBehaviourMod::Hoard;
+        else if (behaviourMod == "ambitious")  def.behaviourModEnum = GoalBehaviourMod::Ambitious;
         else {
             fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown behaviour_mod '%s', defaulting to None\n",
-                    path.c_str(), def.name.c_str(), def.behaviourMod.c_str());
+                    path.c_str(), def.name.c_str(), behaviourMod.c_str());
             def.behaviourModEnum = GoalBehaviourMod::None;
         }
 
