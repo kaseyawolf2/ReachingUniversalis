@@ -144,6 +144,8 @@ struct RenderSnapshot {
         bool generousDonor = false;
         // True if this NPC has an active reconciliation glow (reconcileGlow > 0)
         bool reconciling = false;
+        // True if this NPC carries an elder's unfinished legacy (wisdomLineage != null)
+        bool wisdomHeir = false;
     };
 
     struct SettlementEntry {

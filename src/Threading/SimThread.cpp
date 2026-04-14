@@ -1656,10 +1656,12 @@ void SimThread::WriteSnapshot() {
         // Skills snapshot
         float farmSkill = -1.f, waterSkill = -1.f, woodSkill = -1.f;
         float wagePerHour = 0.f;
+        bool wisdomHeir = false;
         if (const auto* sk = m_registry.try_get<Skills>(e)) {
             farmSkill  = sk->farming;
             waterSkill = sk->water_drawing;
             woodSkill  = sk->woodcutting;
+            wisdomHeir = (sk->wisdomLineage != entt::null);
             // Compute wage estimate for working NPCs (same formula as ConsumptionSystem)
             if (!isHauler && !isPlayer && astate.behavior == AgentBehavior::Working) {
                 float bestSkill = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
@@ -1885,7 +1887,7 @@ void SimThread::WriteSnapshot() {
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
-                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling });
+                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir });
     });
 
     // ---- Settlements ----
