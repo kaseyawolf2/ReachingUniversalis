@@ -307,9 +307,14 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
     // If both pay → slow decay; one pays → medium decay; neither → fast decay.
     // Roads below ROAD_COLLAPSE_THRESHOLD are auto-blocked until the player repairs them.
     {
+        static std::mt19937 s_elderRoadRng{ std::random_device{}() };
         std::vector<entt::entity> toBlock;
         registry.view<Road>().each([&](auto re, Road& road) {
             if (!registry.valid(road.from) || !registry.valid(road.to)) return;
+
+            // Elder council road maintenance discount: 20% off when both endpoints have 2+ skilled elders
+            bool elderRoadDiscount = (skilledElderCount[road.from] >= 2 && skilledElderCount[road.to] >= 2);
+            float maintCost = elderRoadDiscount ? std::floor(ROAD_MAINT_COST_EACH * 0.8f) : ROAD_MAINT_COST_EACH;
 
             // Collect maintenance contribution from each endpoint settlement
             int paidCount = 0;
@@ -317,13 +322,24 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt) {
                 if (se == entt::null || !registry.valid(se)) return;
                 auto* s = registry.try_get<Settlement>(se);
                 if (!s) return;
-                if (s->treasury >= ROAD_MAINT_COST_EACH) {
-                    s->treasury -= ROAD_MAINT_COST_EACH;
+                if (s->treasury >= maintCost) {
+                    s->treasury -= maintCost;
                     ++paidCount;
                 }
             };
             tryPay(road.from);
             tryPay(road.to);
+
+            // Log elder road discount at 1-in-8 frequency
+            if (elderRoadDiscount && paidCount == 2 && log && s_elderRoadRng() % 8 == 0) {
+                std::string nameA = "?", nameB = "?";
+                if (const auto* sa = registry.try_get<Settlement>(road.from)) nameA = sa->name;
+                if (const auto* sb = registry.try_get<Settlement>(road.to))   nameB = sb->name;
+                char buf[140];
+                std::snprintf(buf, sizeof(buf), "%s–%s road's upkeep eased by elder oversight",
+                              nameA.c_str(), nameB.c_str());
+                log->Push(tm.day, (int)tm.hourOfDay, buf);
+            }
 
             float decayFrac = (paidCount == 2) ? ROAD_DECAY_MAINTAINED  :
                               (paidCount == 1) ? ROAD_DECAY_PARTIAL      :
