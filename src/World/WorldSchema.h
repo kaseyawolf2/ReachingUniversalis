@@ -325,11 +325,25 @@ struct WorldSchema {
     // Find the "Hauler" profession ID (O(1) via cached field set by BuildMaps).
     ProfessionID FindHaulerProfession() const { return haulerProfessionId; }
 
-    // Get the growthRate for a skill ID (returns 1.f if out of range).
+    // ---- Skill rate helpers (safe fallback on out-of-range) ----
+
+    // Returns the growth-rate multiplier for the given skill.
+    // Out-of-range IDs fall back to 1.0f, matching SkillDef::growthRate's default.
     float SkillGrowthRate(SkillID id) const {
         if (id >= 0 && id < (int)skills.size())
             return skills[id].growthRate;
-        return 1.f;
+        return 1.0f;  // SkillDef::growthRate default
+    }
+
+    // Returns the per-game-day decay rate for the given skill.
+    // Out-of-range IDs fall back to 0.0005f, which comes from the legacy
+    // SKILL_RUST constant -- NOT from SkillDef::decayRate (which defaults
+    // to 0.0f).  This is intentional: out-of-range skills still decay
+    // slightly rather than being immortal.
+    float SkillDecayRate(SkillID id) const {
+        if (id >= 0 && id < (int)skills.size())
+            return skills[id].decayRate;
+        return 0.0005f;  // SKILL_RUST legacy constant, not SkillDef default
     }
 
     // Check if a profession produces a resource (i.e., is not Idle/Hauler).
