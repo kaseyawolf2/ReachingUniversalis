@@ -2444,7 +2444,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             bool empathicComfort = (timer.lastGriefDay >= 0.f && oTimer.lastGriefDay >= 0.f);
                             // Work buddy grief support: work best friend → double comfort + affinity boost
                             bool isWorkBuddy = (myRel->workBestFriend == other);
-                            float comfortAmount = (empathicComfort || isWorkBuddy) ? 1.0f : 0.5f;
+                            // Post-procession comfort: comforter who was in a mourning procession → double comfort
+                            bool processionComfort = false;
+                            if (timer.skillCelebrateTimer > 0.f) {
+                                const auto* comforterSk = registry.try_get<Skills>(entity);
+                                if (comforterSk && comforterSk->wisdomGriefDays > 0.f)
+                                    processionComfort = true;
+                            }
+                            float comfortAmount = (empathicComfort || isWorkBuddy || processionComfort) ? 1.0f : 0.5f;
                             oTimer.griefTimer = std::max(0.f, oTimer.griefTimer - comfortAmount);
                             timer.comfortCooldown = 180.f; // 180 real-seconds
                             // Work buddy mutual affinity boost
@@ -2469,6 +2476,17 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                         lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                             (myName ? myName->value : std::string("An NPC")) +
                                             " stays by work buddy " + oName.value + "'s side at " + where + ".");
+                                    }
+                                } else if (processionComfort) {
+                                    static std::mt19937 s_procComfortRng{ std::random_device{}() };
+                                    if (s_procComfortRng() % 6 == 0) {
+                                        std::string where = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                where = s->name;
+                                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                            (myName ? myName->value : std::string("An NPC")) +
+                                            " draws strength from the procession to comfort " + oName.value + ".");
                                     }
                                 } else if (empathicComfort) {
                                     static std::mt19937 s_empathyRng{ std::random_device{}() };
