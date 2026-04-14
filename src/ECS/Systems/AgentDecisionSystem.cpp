@@ -803,8 +803,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     float preActiveSkill = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
                     if (profSkId != INVALID_ID) {
                         if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD) {
-                            // NOTE: master-growth intentionally replaces base growth;
-                            // rivalry bonus is not compounded (inherited behavior).
+                            // NOTE: master-growth intentionally replaces base growth (inherited behavior).
+                            // This discards all previously accumulated bonuses: rivalry 1.1x,
+                            // elder wisdom (+0.0003), bankruptcy survivor (+0.0002),
+                            // wisdom grief (-0.0002), tribute days (+0.0003),
+                            // expert teaching chain (+0.0004), and jealousy motivation (+0.0003).
+                            // Only loyalty bonus is re-applied below.
                             growth = BASE_MASTER_GROWTH * skillGrowthRate + (loyal ? LOYALTY_BONUS : 0.f);
                             masterGrowthApplied = true;
                         }
