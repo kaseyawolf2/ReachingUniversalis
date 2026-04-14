@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
-
 ## Done
+
+- [x] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
+
 
 - [x] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
 
@@ -124,6 +125,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Farewell feast morale recovery** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who both attended a farewell feast (check mutual affinity >= 0.4 at the same settlement after an elder departure) chat, 1-in-8 chance to log "[NPC1] and [NPC2] reminisce about [Settlement]'s farewell feast" and apply `Settlement::morale += 0.005f` (cap 1.0). Creates a slow morale recovery arc after an elder leaves.
 
 - [ ] **Elder welcome feast on migration arrival** — In `AgentDecisionSystem.cpp`'s migration arrival block (where `Migrating` NPCs reach their destination), when an elder (age>60) arrives at a new settlement with 5+ residents, apply `Settlement::morale += 0.01f` (cap 1.0) and boost the elder's affinity toward all residents by +0.01. Log "[Settlement] welcomes [Elder] with open arms" once. Mirrors the farewell feast with a welcoming event at the destination.
+
+- [ ] **Elder mediation reputation** — In `ScheduleSystem.cpp`'s elder mediation block (just added), after a successful mediation, boost the elder's `Reputation::score` by +0.1 (cap 1.0). Uses existing `Reputation` component via `try_get`. Log "[Elder] gains respect for keeping the peace" at 1-in-4 frequency. Connects elder conflict resolution to the reputation system.
+
+- [ ] **Repeated mediation friendship arc** — In `ScheduleSystem.cpp`'s elder mediation block, track mediations per pair via `static std::map<std::pair<entt::entity,entt::entity>, int> s_mediationCount`. On 3rd+ mediation for the same pair, the two rivals also gain +0.02 mutual affinity (growing respect through repeated elder guidance). Log "[NPC1] and [NPC2] learn to respect each other at [Settlement]" at full frequency on 3rd+. Creates a progression from rivalry to grudging respect.
 
 ## Recently Done
 
