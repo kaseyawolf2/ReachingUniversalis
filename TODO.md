@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
+
 ## Done
 
 - [x] **Elder mediation of workplace rivalry** — In `ScheduleSystem.cpp`'s rival profession taunt block, when an elder (age>60, skill>=0.7) is working at the same facility, 1-in-6 chance the taunt is suppressed and both rivals gain +0.02 affinity toward the elder instead. Log "[Elder] calms tensions between [NPC1] and [NPC2]" at full frequency. Uses existing `Age`, `Skills` try_get. Gives elders a conflict-resolution role beyond skill teaching.
@@ -53,8 +55,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
 
 - [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
 
