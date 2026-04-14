@@ -596,7 +596,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         if (storyteller != entt::null) return; // already found one
                         if (hs.settlement != settlE) return;
                         if (age.days <= 60.f) return;
-                        if (sk.farming < 0.7f && sk.water_drawing < 0.7f && sk.woodcutting < 0.7f) return;
+                        if (!sk.AnyAbove(0.7f)) return;
                         storyteller = npc;
                     });
                 if (storyteller == entt::null) return;
@@ -726,14 +726,14 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
             switch (evtTypeDist(m_rng)) {
                 case 0: {   // Skill discovery — +0.1 to a random skill
-                    int idx = skillIdxDist(m_rng);
+                    int nsk = skills.Size();
+                    int idx = (nsk > 0) ? (skillIdxDist(m_rng) % nsk) : 0;
                     float gain = skillGain_dist(m_rng);
-                    int rt = (idx == 0) ? RES_FOOD :
-                                      (idx == 1) ? RES_WATER : RES_WOOD;
-                    skills.Advance(rt, gain);
+                    if (idx >= 0 && idx < nsk)
+                        skills.Set(idx, std::min(1.f, skills.Get(idx) + gain));
                     if (log) {
-                        const char* skillName = (idx == 0) ? "farming" :
-                                                (idx == 1) ? "water drawing" : "woodcutting";
+                        std::string skillName = (idx >= 0 && idx < (int)schema.skills.size())
+                            ? schema.skills[idx].displayName : "skill";
                         const char* settName = "the wilds";
                         if (const auto* hs = registry.try_get<HomeSettlement>(e))
                             if (hs->settlement != entt::null && registry.valid(hs->settlement))
@@ -741,7 +741,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                     settName = stt->name.c_str();
                         char buf[120];
                         std::snprintf(buf, sizeof(buf), "%s had a skill insight in %s at %s",
-                            name.value.c_str(), skillName, settName);
+                            name.value.c_str(), skillName.c_str(), settName);
                         log->Push(tm.day, (int)tm.hourOfDay, buf);
                     }
                     break;
@@ -809,14 +809,11 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             if (!dt.wisdomFired) {
                 const auto* age = registry.try_get<Age>(e);
                 if (age && age->days > 70.f) {
-                    float bestSkill = std::max({skills.farming, skills.water_drawing, skills.woodcutting});
+                    float bestSkill = skills.BestValue();
                     if (bestSkill >= 0.6f) {
-                        // Find the best skill type to transfer
-                        int bestType = RES_FOOD;
-                        if (skills.water_drawing >= skills.farming && skills.water_drawing >= skills.woodcutting)
-                            bestType = RES_WATER;
-                        else if (skills.woodcutting >= skills.farming)
-                            bestType = RES_WOOD;
+                        int bestSkillId = skills.BestSkillId();
+                        int bestType = (bestSkillId >= 0 && bestSkillId < (int)schema.skills.size())
+                            ? schema.skills[bestSkillId].forResource : RES_FOOD;
 
                         // Find a younger co-settled NPC to receive the knowledge
                         const auto* hs = registry.try_get<HomeSettlement>(e);
@@ -834,11 +831,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                 std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
                                 auto target = candidates[pick(m_rng)];
                                 auto* tSkills = registry.try_get<Skills>(target);
-                                if (tSkills) {
-                                    float& tVal = (bestType == RES_FOOD) ? tSkills->farming :
-                                                  (bestType == RES_WATER) ? tSkills->water_drawing :
-                                                  tSkills->woodcutting;
-                                    tVal = std::min(0.8f, tVal + 0.1f);
+                                if (tSkills && bestSkillId != INVALID_ID) {
+                                    tSkills->Set(bestSkillId, std::min(0.8f, tSkills->Get(bestSkillId) + 0.1f));
                                     dt.wisdomFired = true;
 
                                     if (log) {
@@ -1213,7 +1207,12 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.emplace<Age>(npc, age);
             std::string nm = std::string(FIRSTS[fd(m_rng)]) + " " + LASTS[ld(m_rng)];
             registry.emplace<Name>(npc, Name{nm});
-            registry.emplace<Skills>(npc, Skills{ skill_dist(m_rng), skill_dist(m_rng), skill_dist(m_rng) });
+            {
+                Skills migSk = Skills::Make(schema);
+                for (int si = 0; si < (int)schema.skills.size(); ++si)
+                    migSk.levels[si] = std::clamp(schema.skills[si].startValue + (skill_dist(m_rng) - 0.5f), 0.f, 1.f);
+                registry.emplace<Skills>(npc, std::move(migSk));
+            }
         }
         if (log) log->Push(day, hour,
             "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name
@@ -1475,15 +1474,16 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         std::string immName = std::string(FIRST_N[fn(m_rng)]) + " " + LAST_N[ln(m_rng)];
         registry.emplace<Name>(npc16, Name{ immName });
 
-        std::uniform_int_distribution<int> apt16(0, 2);
+        int nSkills16 = (int)schema.skills.size();
+        std::uniform_int_distribution<int> apt16(0, std::max(0, nSkills16 - 1));
         int aptIdx16 = apt16(m_rng);
         float highSkill = 0.75f + std::uniform_real_distribution<float>(0.f, 0.20f)(m_rng);
-        Skills sk16{ 0.35f, 0.35f, 0.35f };
-        const char* specialty16 = "Farmer";
-        if      (aptIdx16 == 0) { sk16.farming       = highSkill; specialty16 = "Farmer";       }
-        else if (aptIdx16 == 1) { sk16.water_drawing  = highSkill; specialty16 = "Water Carrier"; }
-        else                    { sk16.woodcutting    = highSkill; specialty16 = "Woodcutter";    }
-        registry.emplace<Skills>(npc16, sk16);
+        Skills sk16 = Skills::Make(schema, 0.35f);
+        if (aptIdx16 >= 0 && aptIdx16 < nSkills16)
+            sk16.levels[aptIdx16] = highSkill;
+        const char* specialty16 = (aptIdx16 >= 0 && aptIdx16 < (int)schema.skills.size())
+            ? schema.skills[aptIdx16].displayName.c_str() : "Worker";
+        registry.emplace<Skills>(npc16, std::move(sk16));
 
         if (log) {
             char buf[140];

@@ -137,8 +137,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
             if (deadAge && deadAge->days > 60.f && deadSkills && hs
                 && hs->settlement != entt::null && registry.valid(hs->settlement)) {
                 // Check if elder had any skill >= 0.8
-                bool wasWise = (deadSkills->farming >= 0.8f || deadSkills->water_drawing >= 0.8f
-                                || deadSkills->woodcutting >= 0.8f);
+                bool wasWise = deadSkills->AnyAbove(0.8f);
                 if (wasWise) {
                     registry.view<Relations, Skills, HomeSettlement>(
                         entt::exclude<PlayerTag, BanditTag>).each(

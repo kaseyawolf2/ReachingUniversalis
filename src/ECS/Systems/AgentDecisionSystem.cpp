@@ -172,11 +172,11 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
     // Determine the NPC's strongest skill (if any) for affinity matching.
     int affinityType = RES_FOOD;
     bool         hasAffinity  = false;
-    if (skills) {
-        float best = skills->farming;
-        affinityType = RES_FOOD;
-        if (skills->water_drawing > best) { best = skills->water_drawing; affinityType = RES_WATER; }
-        if (skills->woodcutting   > best) {                               affinityType = RES_WOOD;  }
+    if (skills && !skills->levels.empty()) {
+        int bestId = skills->BestSkillId();
+        float best = skills->Get(bestId);
+        if (bestId >= 0 && bestId < (int)schema.skills.size())
+            affinityType = schema.skills[bestId].forResource;
         // Only apply affinity bonus if the skill is meaningfully developed (> 0.25)
         hasAffinity = (best > 0.25f);
     }
@@ -513,7 +513,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
                     uint32_t f = profFlag(prof.type);
-                    if (f && sk.ForResource(profRes(prof.type)) >= MASTER_THRESHOLD)
+                    SkillID psid = SkillForProfession(prof.type, schema);
+                    if (f && psid != INVALID_ID && sk.Get(psid) >= MASTER_THRESHOLD)
                         masterFlags[hs.settlement] |= f;
                 });
 
@@ -525,7 +526,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
                     uint32_t f = profFlag(prof.type);
-                    if (f && sk.ForResource(profRes(prof.type)) >= 0.8f)
+                    SkillID epsid = SkillForProfession(prof.type, schema);
+                    if (f && epsid != INVALID_ID && sk.Get(epsid) >= 0.8f)
                         expertFlags[hs.settlement] |= f;
                 });
 
@@ -569,7 +571,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](auto elder, const Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days <= 60.f || hs.settlement == entt::null) return;
                     uint32_t f = profFlag(prof.type);
-                    if (f && sk.ForResource(profRes(prof.type)) >= 0.8f)
+                    SkillID sid = SkillForProfession(prof.type, schema);
+                    if (f && sid != INVALID_ID && sk.Get(sid) >= 0.8f)
                         skilledElders[hs.settlement].push_back({elder, f});
                 });
             static std::mt19937 s_wisdomRng{ std::random_device{}() };
@@ -600,8 +603,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Mentorship rivalry: skilled NPCs (≥ 0.7) at settlements with
                     // active mentoring of their profession train 10% harder.
                     bool rivalryActive = false;
-                    if (myProfFlag && hs.settlement != entt::null) {
-                        float activeSkill = sk.ForResource(myProfRes);
+                    SkillID profSkId = SkillForProfession(prof.type, schema);
+                    if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
+                        float activeSkill = sk.Get(profSkId);
                         if (activeSkill >= 0.7f) {
                             auto ait = activeMentoring.find(hs.settlement);
                             if (ait != activeMentoring.end() && (ait->second & myProfFlag)) {
@@ -701,8 +705,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Mastery teaching chain: experts (skill >= 0.8) teach novices (skill < 0.5)
-                    if (myProfFlag && hs.settlement != entt::null) {
-                        float activeSkill2 = sk.ForResource(myProfRes);
+                    if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
+                        float activeSkill2 = sk.Get(profSkId);
                         if (activeSkill2 < 0.5f) {
                             auto xit = expertFlags.find(hs.settlement);
                             if (xit != expertFlags.end() && (xit->second & myProfFlag)) {
@@ -730,7 +734,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (!tProf || tProf->type != prof.type) continue;
                                         const auto* tSk = registry.try_get<Skills>(target);
                                         if (!tSk) continue;
-                                        float tSkill = tSk->ForResource(myProfRes);
+                                        float tSkill = tSk->Get(profSkId);
                                         if (tSkill >= 0.8f) {
                                             aff = std::min(1.f, aff + 0.02f);
                                             if (s_teachRng() % 8 == 0 && !logV2.empty()) {
@@ -766,7 +770,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (!tProf || tProf->type != prof.type) continue;
                                 const auto* tSk = registry.try_get<Skills>(target);
                                 if (!tSk) continue;
-                                float rivalSkill = tSk->ForResource(myProfRes);
+                                float rivalSkill = tSk->Get(profSkId);
                                 if (rivalSkill >= 0.8f) {
                                     jealousMotivated = true;
                                     rivalE = target;
@@ -793,18 +797,17 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Capture pre-growth skill for loyalty streak crossing detection
-                    float preActiveSkill = sk.ForResource(myProfRes);
-                    // Apply growth to the profession's skill
-                    if (myProfRes != -1) {
-                        if (hasMaster && sk.ForResource(myProfRes) < MASTER_THRESHOLD)
+                    float preActiveSkill = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
+                    if (profSkId != INVALID_ID) {
+                        if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD)
                             growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
-                        sk.Advance(myProfRes, growth);
+                        sk.Set(profSkId, std::min(1.f, sk.Get(profSkId) + growth));
                     }
                     // Loyalty streak: log when a loyal NPC crosses the 0.7 skill threshold
                     {
-                        float postActiveSkill = sk.ForResource(myProfRes);
+                        float postActiveSkill = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
                         const char* profName = schema.ProfessionLabel(prof.type);
-                        if (loyal && myProfRes != -1 && preActiveSkill < 0.7f && postActiveSkill >= 0.7f
+                        if (loyal && profSkId != INVALID_ID && preActiveSkill < 0.7f && postActiveSkill >= 0.7f
                             && !logV2.empty() && s_teachRng() % 5 == 0) {
                             std::string who = "NPC";
                             if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
@@ -818,8 +821,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Skill recovery celebration: log when active skill rises back above 0.5
                     {
-                        float postActiveSkill2 = sk.ForResource(myProfRes);
-                        const char* recSkill = schema.ProfessionLabel(prof.type);
+                        float postActiveSkill2 = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
+                        const char* recSkill = (profSkId >= 0 && profSkId < (int)schema.skills.size())
+                            ? schema.skills[profSkId].displayName.c_str() : nullptr;
                         if (recSkill && preActiveSkill < 0.5f && postActiveSkill2 >= 0.5f) {
                             // Morale boost: recovering NPCs lift community spirits
                             if (hs.settlement != entt::null && registry.valid(hs.settlement))
@@ -840,9 +844,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Profession pride announcement: when skill crosses 0.8, boost same-prof affinity
                     {
-                        float postSkill3 = sk.ForResource(myProfRes);
+                        float postSkill3 = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
                         const char* prideProfName = schema.ProfessionLabel(prof.type);
-                        if (myProfRes != -1 && preActiveSkill < 0.8f && postSkill3 >= 0.8f) {
+                        if (profSkId != INVALID_ID && preActiveSkill < 0.8f && postSkill3 >= 0.8f) {
                             // Boost affinity +0.02 toward all same-profession NPCs at same settlement
                             auto* myRel = registry.try_get<Relations>(e);
                             if (myRel && hs.settlement != entt::null) {
@@ -894,7 +898,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (jealousE == e) return;
                                         if (jHs.settlement != hs.settlement) return;
                                         if (jPr.type != prof.type) return;
-                                        float jSkill = jSk.ForResource(myProfRes);
+                                        int jProfSkId = SkillForProfession(jPr.type, schema);
+                                        float jSkill = (jProfSkId >= 0) ? jSk.Get(jProfSkId) : 0.f;
                                         if (jSkill < 0.6f || jSkill >= 0.8f) return;
                                         // 1-in-4 chance to feel jealousy
                                         if (s_teachRng() % 4 != 0) return;
@@ -920,41 +925,35 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
                         if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
-                            if (!dt->masterSettled && (sk.farming >= MASTER_THRESHOLD ||
-                                sk.water_drawing >= MASTER_THRESHOLD || sk.woodcutting >= MASTER_THRESHOLD))
+                            if (!dt->masterSettled && sk.AnyAbove(MASTER_THRESHOLD))
                                 dt->masterSettled = true;
                         }
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
-                    // Iterate over all professions from the schema; for each profession
-                    // that produces a resource different from this NPC's active profession,
-                    // decay the corresponding skill.
-                    const char* rustSkillName = nullptr;
-                    for (const auto& pd : schema.professions) {
-                        if (pd.producesResource == INVALID_ID) continue;  // skip Idle/Hauler
-                        if (pd.producesResource == myProfRes) continue;   // active profession's resource — no decay
-                        float preVal = sk.ForResource(pd.producesResource);
-                        if (preVal > SKILL_RUST_FLOOR) {
-                            sk.Advance(pd.producesResource, -SKILL_RUST);
-                            float postVal = sk.ForResource(pd.producesResource);
-                            if (postVal < SKILL_RUST_FLOOR)
-                                sk.Advance(pd.producesResource, SKILL_RUST_FLOOR - postVal);
-                            // Track first skill that crosses below 0.5 for notification
-                            if (!rustSkillName && preVal >= 0.5f && sk.ForResource(pd.producesResource) < 0.5f)
-                                rustSkillName = pd.displayName.c_str();
-                        }
+                    // Only the active profession's skill is exempt from rust.
+                    std::vector<float> preSkills = sk.levels;
+                    for (int si = 0; si < sk.Size(); ++si) {
+                        if (si == profSkId) continue; // active skill doesn't rust
+                        sk.levels[si] = std::max(SKILL_RUST_FLOOR, sk.levels[si] - SKILL_RUST);
                     }
 
                     // Skill rust notification: log when a skill drops below 0.5
-                    if (rustSkillName && !logV2.empty() && s_teachRng() % 5 == 0) {
-                        std::string who = "NPC";
-                        if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
-                        std::string where = "settlement";
-                        if (hs.settlement != entt::null && registry.valid(hs.settlement))
-                            if (const auto* s = registry.try_get<Settlement>(hs.settlement))
-                                where = s->name;
-                        logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                            who + "'s " + rustSkillName + " is getting rusty at " + where + ".");
+                    if (!logV2.empty() && s_teachRng() % 5 == 0) {
+                        const char* rustSkill = nullptr;
+                        for (int si = 0; si < sk.Size() && !rustSkill; ++si) {
+                            if (si < (int)preSkills.size() && preSkills[si] >= 0.5f && sk.levels[si] < 0.5f)
+                                rustSkill = (si < (int)schema.skills.size()) ? schema.skills[si].displayName.c_str() : "skill";
+                        }
+                        if (rustSkill) {
+                            std::string who = "NPC";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            std::string where = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    where = s->name;
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                who + "'s " + rustSkill + " is getting rusty at " + where + ".");
+                        }
                     }
 
                     // Log at 1-in-10 frequency
@@ -965,10 +964,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (hs.settlement != entt::null && registry.valid(hs.settlement))
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     settlName = s->name;
-                            const char* skillName = schema.ProfessionLabel(prof.type);
+                            std::string skillName2 = (profSkId >= 0 && profSkId < (int)schema.skills.size())
+                                ? schema.skills[profSkId].displayName : "craft";
                             std::string msg = "A master inspires " +
                                 std::string(nm ? nm->value : "an NPC") +
-                                "'s " + skillName + " at " + settlName + ".";
+                                "'s " + skillName2 + " at " + settlName + ".";
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
                         }
                     }
@@ -1124,22 +1124,26 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     for (const auto& elder : it->second) {
                         if (elder.prof != prof.type) continue;
                         // Apply mentor skill growth
-                        int childProfRes = profRes(prof.type);
-                        if (childProfRes != -1)
-                            sk.Advance(childProfRes, MENTOR_SKILL_GROWTH);
+                        {
+                            SkillID mentSk = SkillForProfession(prof.type, schema);
+                            if (mentSk != INVALID_ID)
+                                sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + MENTOR_SKILL_GROWTH));
+                        }
                         // Log at 1-in-5 frequency
                         if (!logV.empty() && s_mentorRng() % 5 == 0) {
                             std::string elderName = "An elder";
                             if (const auto* nm = registry.try_get<Name>(elder.e))
                                 elderName = nm->value;
-                            const char* skillName = schema.ProfessionLabel(prof.type);
+                            SkillID mentSkId = SkillForProfession(prof.type, schema);
+                            std::string skillNameM = (mentSkId >= 0 && mentSkId < (int)schema.skills.size())
+                                ? schema.skills[mentSkId].displayName : "craft";
                             std::string settlName = "settlement";
                             if (registry.valid(hs.settlement))
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     settlName = s->name;
                             logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay,
                                 elderName + " mentors " + childName.value + " in " +
-                                skillName + " at " + settlName + ".");
+                                skillNameM + " at " + settlName + ".");
                         }
                         break; // one mentor per child per day
                     }
@@ -1429,10 +1433,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     int oldRes = profRes(oldType);
                                     int newRes = profRes(newType);
                                     // Halve old skill
-                                    float oldVal = sk->ForResource(oldRes);
-                                    sk->Advance(oldRes, -(oldVal * 0.5f));
+                                    float oldVal = sk->ForResource(oldRes, schema);
+                                    sk->Advance(oldRes, -(oldVal * 0.5f), schema);
                                     // Boost new skill by 10% (capped at 1.0 by Advance)
-                                    sk->Advance(newRes, 0.1f);
+                                    sk->Advance(newRes, 0.1f, schema);
                                 }
                             }
                         }
@@ -1483,9 +1487,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (dt->masterSettled) {
                         const auto* sk = registry.try_get<Skills>(entity);
                         if (sk) {
-                            const char* masterSkill = (sk->farming >= 0.9f)       ? "farmer"       :
-                                                      (sk->water_drawing >= 0.9f) ? "water-drawer" :
-                                                      (sk->woodcutting >= 0.9f)   ? "lumberjack"   : nullptr;
+                            const char* masterSkill = nullptr;
+                            for (int si = 0; si < sk->Size(); ++si) {
+                                if (sk->levels[si] >= 0.9f && si < (int)schema.skills.size()) {
+                                    masterSkill = schema.skills[si].displayName.c_str();
+                                    break;
+                                }
+                            }
                             if (masterSkill) {
                                 auto lv2 = registry.view<EventLog>();
                                 if (!lv2.empty()) {
@@ -1937,9 +1945,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 // ---- Master exodus warning: losing a master hurts the settlement ----
                 if (skills) {
                     const char* masterSkill = nullptr;
-                    if (skills->farming >= 0.9f)       masterSkill = "farming";
-                    else if (skills->water_drawing >= 0.9f) masterSkill = "water-drawing";
-                    else if (skills->woodcutting >= 0.9f)   masterSkill = "woodcutting";
+                    std::string masterSkillName;
+                    int bestId = skills->BestSkillId();
+                    if (bestId >= 0 && skills->Get(bestId) >= 0.9f) {
+                        if (bestId < (int)schema.skills.size())
+                            masterSkillName = schema.skills[bestId].displayName;
+                        else
+                            masterSkillName = "unknown";
+                        masterSkill = masterSkillName.c_str();
+                    }
                     if (masterSkill) {
                         auto lv3 = registry.view<EventLog>();
                         if (!lv3.empty()) {
@@ -2157,9 +2171,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
                     // Social shame penalty: reduce all skills by 0.02 (ostracism effect)
                     if (auto* sk = registry.try_get<Skills>(entity)) {
-                        sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                        sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                        sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                        sk->DecayAll(0.02f, 0.f);
                     }
 
                     // Log the theft
@@ -2756,15 +2768,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
                         // Find a skill where teacher is ≥0.6 and learner is <0.3
-                        struct { int rt; float tVal; float lVal; const char* name; } candidates[3] = {
-                            { RES_FOOD,  mySkills->farming,       oSkills.farming,       "farming" },
-                            { RES_WATER, mySkills->water_drawing, oSkills.water_drawing, "water carrying" },
-                            { RES_WOOD,  mySkills->woodcutting,   oSkills.woodcutting,   "woodcutting" },
+                        struct { int rt; float tVal; float lVal; const char* name; } candidates[] = {
+                            { RES_FOOD,  mySkills->ForResource(RES_FOOD, schema),  oSkills.ForResource(RES_FOOD, schema),  "farming" },
+                            { RES_WATER, mySkills->ForResource(RES_WATER, schema), oSkills.ForResource(RES_WATER, schema), "water carrying" },
+                            { RES_WOOD,  mySkills->ForResource(RES_WOOD, schema),  oSkills.ForResource(RES_WOOD, schema),  "woodcutting" },
                         };
                         for (auto& c : candidates) {
                             if (c.tVal >= TEACH_MIN && c.lVal < LEARN_MAX) {
                                 float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                                oSkills.Advance(c.rt, SKILL_GAIN * ghDt);
+                                oSkills.Advance(c.rt, SKILL_GAIN * ghDt, schema);
                                 // Mutual affinity boost
                                 if (auto* rel = registry.try_get<Relations>(entity))
                                     rel->affinity[other] = std::min(1.f, rel->affinity[other] + 0.02f);
@@ -3013,9 +3025,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             const auto* skB   = registry.try_get<Skills>(other);
                             if (profA && profB && skA && skB && profA->type == profB->type
                                 && schema.ProfessionProduces(profA->type)) {
-                                int chatProfRes = profRes(profA->type);
-                                float sA = skA->ForResource(chatProfRes);
-                                float sB = skB->ForResource(chatProfRes);
+                                SkillID chatSkId = SkillForProfession(profA->type, schema);
+                                float sA = (chatSkId != INVALID_ID) ? skA->Get(chatSkId) : 0.f;
+                                float sB = (chatSkId != INVALID_ID) ? skB->Get(chatSkId) : 0.f;
                                 entt::entity novice = entt::null, expert = entt::null;
                                 if (sA < 0.5f && sB >= 0.8f) { novice = entity; expert = other; }
                                 else if (sB < 0.5f && sA >= 0.8f) { novice = other; expert = entity; }
