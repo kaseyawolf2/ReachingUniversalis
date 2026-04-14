@@ -261,10 +261,31 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         GoalDef def;
         def.name        = ReqStr(*item, "name", ctx, err);
         if (!err.empty()) return false;
-        def.displayName = OptStr(*item, "display_name", def.name);
-        def.checkType   = OptStr(*item, "check_type", "none");
-        def.targetValue = OptFloat(*item, "target_value", 0.0f);
-        def.weight      = OptFloat(*item, "weight", 1.0f);
+        def.displayName       = OptStr(*item, "display_name", def.name);
+        def.checkType         = OptStr(*item, "check_type", "none");
+        def.targetValue       = OptFloat(*item, "target_value", 0.0f);
+        def.targetMode        = OptStr(*item, "target_mode", "fixed");
+        def.offset            = OptFloat(*item, "offset", 0.0f);
+        def.weight            = OptFloat(*item, "weight", 1.0f);
+        def.unit              = OptStr(*item, "unit", "");
+        def.completionMessage = OptStr(*item, "completion_message", "{name} completed a goal!");
+        def.behaviourMod      = OptStr(*item, "behaviour_mod", "");
+
+        // Resolve string enums to int enums at load time (no string comparisons in hot loops)
+        if (def.checkType == "balance_gte")       def.checkTypeEnum = GoalCheckType::BalanceGte;
+        else if (def.checkType == "age_gte")      def.checkTypeEnum = GoalCheckType::AgeGte;
+        else if (def.checkType == "has_family")    def.checkTypeEnum = GoalCheckType::HasFamily;
+        else if (def.checkType == "has_profession") def.checkTypeEnum = GoalCheckType::HasProfession;
+        else                                       def.checkTypeEnum = GoalCheckType::None;
+
+        if (def.targetMode == "relative_balance")      def.targetModeEnum = GoalTargetMode::RelativeBalance;
+        else if (def.targetMode == "relative_age")     def.targetModeEnum = GoalTargetMode::RelativeAge;
+        else                                           def.targetModeEnum = GoalTargetMode::Fixed;
+
+        if (def.behaviourMod == "hoard")           def.behaviourModEnum = GoalBehaviourMod::Hoard;
+        else if (def.behaviourMod == "ambitious")  def.behaviourModEnum = GoalBehaviourMod::Ambitious;
+        else                                       def.behaviourModEnum = GoalBehaviourMod::None;
+
         schema.goals.push_back(std::move(def));
     }
     return true;
@@ -471,6 +492,35 @@ static bool ResolveCrossRefs(const std::string& worldDir,
                         return false;
                     }
                     schema.agentTemplates[i].startProfession = id;
+                }
+            }
+        }
+    }
+
+    // Resolve goals.target_profession for has_profession checks
+    {
+        auto tbl = ParseFile(worldDir + "/goals.toml", err);
+        if (!err.empty()) return false;
+        auto arr = tbl["goals"].as_array();
+        if (arr) {
+            for (size_t i = 0; i < arr->size() && i < schema.goals.size(); ++i) {
+                auto* item = arr->get(i)->as_table();
+                if (!item) continue;
+                // For has_profession goals, resolve optional target_profession string
+                if (schema.goals[i].checkTypeEnum == GoalCheckType::HasProfession) {
+                    std::string prof = OptStr(*item, "target_profession", "");
+                    if (!prof.empty()) {
+                        auto id = schema.FindProfession(prof);
+                        if (id == INVALID_ID) {
+                            err = worldDir + "/goals.toml: goal '" + schema.goals[i].name
+                                + "' references unknown profession '" + prof + "'";
+                            return false;
+                        }
+                        schema.goals[i].targetProfessionId = id;
+                    } else {
+                        // Default: check for hauler profession if no explicit target
+                        schema.goals[i].targetProfessionId = schema.haulerProfessionId;
+                    }
                 }
             }
         }

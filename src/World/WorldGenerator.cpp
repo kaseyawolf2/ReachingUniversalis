@@ -107,23 +107,40 @@ static void SpawnNPCs(entt::registry& registry,
         registry.emplace<Reputation>(npc);
         registry.emplace<Profession>(npc, Profession{ profession });
 
-        // Assign a random initial personal goal
-        static std::uniform_int_distribution<int> goal_type_dist(0, 3);
-        Goal initialGoal;
-        initialGoal.type = static_cast<GoalType>(goal_type_dist(wg_rng));
-        switch (initialGoal.type) {
-            case GoalType::SaveGold:
-                initialGoal.target = 100.f;          // accumulate 100 gold
-                break;
-            case GoalType::ReachAge:
-                initialGoal.target = age.days + 25.f; // reach current age + 25 days
-                break;
-            case GoalType::FindFamily:
-            case GoalType::BecomeHauler:
-                initialGoal.target = 1.f;
-                break;
+        // Assign a random initial personal goal from schema (weighted selection)
+        if (!schema.goals.empty()) {
+            // Build cumulative weight table for weighted random selection
+            float totalWeight = 0.f;
+            for (const auto& gd : schema.goals) totalWeight += gd.weight;
+            std::uniform_real_distribution<float> wdist(0.f, totalWeight);
+            float roll = wdist(wg_rng);
+            GoalTypeID selectedGoal = (int)schema.goals.size() - 1;  // default to last (boundary safety)
+            float cumul = 0.f;
+            for (int gi = 0; gi < (int)schema.goals.size(); ++gi) {
+                cumul += schema.goals[gi].weight;
+                if (roll < cumul) { selectedGoal = gi; break; }
+            }
+
+            const auto& gdef = schema.goals[selectedGoal];
+            Goal initialGoal;
+            initialGoal.goalId = selectedGoal;
+
+            // Compute per-NPC target based on targetMode (int enum, no string comparisons)
+            switch (gdef.targetModeEnum) {
+                case GoalTargetMode::RelativeBalance: {
+                    float bal = registry.try_get<Money>(npc) ? registry.get<Money>(npc).balance : 0.f;
+                    initialGoal.target = std::max(gdef.targetValue, bal + gdef.offset);
+                    break;
+                }
+                case GoalTargetMode::RelativeAge:
+                    initialGoal.target = age.days + gdef.offset;
+                    break;
+                default:
+                    initialGoal.target = gdef.targetValue;
+                    break;
+            }
+            registry.emplace<Goal>(npc, initialGoal);
         }
-        registry.emplace<Goal>(npc, initialGoal);
 
         // Assign migration memory pre-seeded with the home settlement's initial prices.
         // This gives NPCs "local knowledge" so their first migration uses remembered data.
