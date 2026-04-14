@@ -103,13 +103,13 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill`.
 
-- [ ] **DynBitset promotion-path test** — Add a test to `tests/DynBitsetTest.cpp` that calls `set(200)` on a default-constructed (empty inline) `DynBitset`, exercising the `promoteIfNeeded` path from truly empty inline state to heap allocation. Verify `test(200)` returns true and `test(0)` returns false.
+- [x] **DynBitset promotion-path test** — Add a test to `tests/DynBitsetTest.cpp` that calls `set(200)` on a default-constructed (empty inline) `DynBitset`, exercising the `promoteIfNeeded` path from truly empty inline state to heap allocation. Verify `test(200)` returns true and `test(0)` returns false.
 
 - [x] **Remove SeasonThresholds.h references from TODO.md** — Cleaned up stale `SeasonThresholds.h` references in two completed TODO items. The header was deleted when season thresholds moved to TOML.
 
-- [ ] **Assert-to-runtime check in BuildResourceToSkillMap** — `BuildResourceToSkillMap()` uses `assert(crossRefsResolved)` which compiles to nothing in release builds. Replace with a runtime check (`if (!crossRefsResolved) { fprintf(stderr, ...); return; }`) since this is a load-time path, not a hot path, and should catch misordering even in release.
+- [x] **Assert-to-runtime check in BuildResourceToSkillMap** — `BuildResourceToSkillMap()` uses `assert(crossRefsResolved)` which compiles to nothing in release builds. Replace with a runtime check (`if (!crossRefsResolved) { fprintf(stderr, ...); return; }`) since this is a load-time path, not a hot path, and should catch misordering even in release.
 
-- [ ] **ConsumptionSystem schema reference** — `ConsumptionSystem` receives `const WorldSchema&` in `Update()` but doesn't store it. Add a `const WorldSchema& m_schema` member initialized in the constructor so `FindNeed()` results can be cached as member variables (prerequisite for the "Cache FindNeed results" task).
+- [x] **ConsumptionSystem schema reference** — `ConsumptionSystem` receives `const WorldSchema&` in `Update()` but doesn't store it. Add a `const WorldSchema& m_schema` member initialized in the constructor so `FindNeed()` results can be cached as member variables (prerequisite for the "Cache FindNeed results" task).
 
 - [ ] **GameState m_schema member ordering** — `GameState::m_schema` is declared between camera fields and `m_renderSystem`. Move it next to `m_simThread` since both hold references from the same constructor parameter, improving readability of the private section.
 
@@ -174,6 +174,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **GoalDef resolved enum validation** — After removing dead string fields from `GoalDef`, the resolved enums (`checkEnum`, `targetEnum`, `behaviourEnum`) are the only source of truth. Add validation in `WorldLoader.cpp` that warns if any resolved enum is the default/unknown value after parsing, indicating the TOML had an unrecognized string that was silently defaulted.
 
 - [ ] **GoalDef field documentation** — `GoalDef` in `WorldSchema.h` has no doc comments on its remaining fields after the dead string removal. Add `///` comments for each field explaining its purpose, valid range, and which system consumes it (e.g., `completionCooldown` is consumed by `AgentDecisionSystem`).
+
+- [ ] **DynBitset promoteIfNeeded capacity test** — Add a test to `tests/DynBitsetTest.cpp` that sets bits 0 (inline), then 65 (promoting to heap), then 200 (growing heap), verifying all three bits remain set after each promotion step. Tests that promotion preserves existing bits across multiple resizes.
+
+- [ ] **DynBitset count() method** — `DynBitset` has `none()` but no `count()` to return the number of set bits (population count). Add `size_t count() const` using `__builtin_popcountll` for each word (inline and heap). Add tests for empty, single-bit, full-word, and multi-word cases.
+
+- [ ] **BuildResourceToSkillMap abort test** — The assert-to-runtime change replaced `assert(crossRefsResolved)` with `fprintf + std::abort()`. Add a comment in `WorldSchema.h` documenting that `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` will abort if called before `ResolveCrossRefs()`, and reference the call ordering in `WorldLoader.cpp`.
+
+- [ ] **WorldSchema InitDerivedData() method** — `WorldLoader.cpp` calls `ResolveCrossRefs()`, `BuildResourceToSkillMap()`, `BuildProfessionToSkillMap()` in sequence. Bundle these into a single `WorldSchema::InitDerivedData()` method that enforces the correct call order internally, eliminating the class of ordering bugs that the runtime abort guards against.
+
+- [ ] **NeedDrainSystem schema reference** — Same pattern as ConsumptionSystem: `NeedDrainSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in NeedDrainSystem.
+
+- [ ] **DeathSystem schema reference** — Same pattern as ConsumptionSystem: `DeathSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in DeathSystem.
 
 ## Phase 2 — UI Decoupling
 
