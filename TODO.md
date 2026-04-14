@@ -33,11 +33,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Generic Seasons** — Replace `enum Season` and hardcoded modifier functions (`SeasonProductionModifier`, `SeasonHeatDrainMult`, etc.) with schema lookups. TimeManager references season definitions by index.
 
-- [ ] **Generic Events** — Replace hardcoded event cases in RandomEventSystem with event definitions from schema. Each event specifies its effect type, value, duration, and spread behavior.
+- [x] **Generic Events** — Replace hardcoded event cases in RandomEventSystem with event definitions from schema. Each event specifies its effect type, value, duration, and spread behavior.
 
-- [ ] **Generic Goals** — Replace `enum GoalType` with GoalTypeID. Goal assignment and completion check become data-driven.
+- [x] **Generic Goals** — Replace `enum GoalType` with GoalTypeID. Goal assignment and completion check become data-driven.
 
-- [ ] **Slim down DeprivationTimer** — The 40+ fields in DeprivationTimer are medieval-specific social mechanics. Factor out into optional components: SocialBehavior, BanditState, GriefState, etc. Core DeprivationTimer only tracks need-at-zero timers and migration threshold.
+- [x] **Slim down DeprivationTimer** — The 40+ fields in DeprivationTimer are medieval-specific social mechanics. Factor out into optional components: SocialBehavior, BanditState, GriefState, etc. Core DeprivationTimer only tracks need-at-zero timers and migration threshold.
 
 - [ ] **Schema-driven skill growth/decay rates** — `SkillDef` already has `growthRate` and `decayRate` fields but `Skills::Advance()` and the rust logic in `AgentDecisionSystem.cpp` use hardcoded `SKILL_GROWTH = 0.001f` / `SKILL_RUST = 0.0005f`. Wire the schema values through so each skill can have its own rate.
 
@@ -50,6 +50,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Reduce per-frame RenderSnapshot allocations** — `SimThread::WriteSnapshot()` rebuilds `skillNames`, `settlSkillNames`, and nested `std::map<int, SkillAccum>` every frame under the mutex. Store schema-derived names once at construction, and replace `std::map<int, SkillAccum>` with flat `std::vector<SkillAccum>` indexed by SkillID.
 
 - [ ] **Remove per-agent skillNames duplication in SettlementEntry** — `SettlementEntry::skillNames` is populated identically for every settlement from schema data. Store it once on `RenderSnapshot` (like `AgentEntry` was already fixed) and reference the shared copy in HUD rendering.
+
+- [ ] **Event effect type as enum** — `RandomEventSystem.cpp` compares `ev.effectType` strings (`"production_modifier"`, `"road_block"`, etc.) in per-event hot paths. Add an `enum class EventEffectType` resolved at load time in WorldLoader, and switch on it instead of string comparisons.
+
+- [ ] **Multi-spreading event support** — `RandomEventSystem.cpp` spreading logic finds only the first `ev.spreads == true` event. Support multiple spreadable events by storing a vector of spreading event indices and iterating all of them in the spread tick.
+
+- [ ] **Goal completion cooldown** — When `goalCount == 1` or fixed-target goals (e.g., FindFamily target=1) are re-assigned, NPCs re-complete immediately every tick, spamming celebration logs. Add a `completionCooldown` field to GoalDef (or a per-NPC cooldown timer) to prevent instant re-completion.
+
+- [ ] **Validate TOML at load time** — WorldLoader silently accepts invalid field values (e.g., `chance = 0` for all events causes UB in weighted selection, unknown `check_type` strings default silently). Add validation passes in WorldLoader that log warnings or errors for: zero total weight, unknown enum strings, missing required fields for specific effect/check types.
+
+- [ ] **Generic DeprivationTimer need timers** — `DeprivationTimer` still has hardcoded `float hungerTimer, thirstTimer, energyTimer, heatTimer`. Replace with `std::vector<float>` indexed by NeedID, sized from `schema.needs`. Systems iterate generically instead of by named field.
+
+- [ ] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
 
 ## Phase 2 — UI Decoupling
 

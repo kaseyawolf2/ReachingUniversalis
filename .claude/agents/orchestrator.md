@@ -91,7 +91,18 @@ After all merges are done:
 4. Append 2 new concrete `- [ ]` tasks to the Backlog for each completed task (following the style and theme of existing tasks)
 5. Commit and push the TODO.md update
 
-### 6. Report and repeat
+### 6. Clean up worktrees
+
+After all merges and TODO updates, remove leftover worktrees:
+
+```bash
+for wt in .claude/worktrees/agent-*; do git worktree remove --force "$wt" 2>/dev/null; done
+rm -rf .claude/worktrees/
+```
+
+Verify with `git worktree list` — only the main worktree should remain.
+
+### 7. Report and repeat
 
 Summarize in a short table: task name, PR number, rounds of review, final verdict, merged/skipped. Then start the next cycle from step 1.
 
