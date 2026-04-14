@@ -1,5 +1,4 @@
 #include "AgentDecisionSystem.h"
-#include "World/SeasonThresholds.h"
 #include "World/WorldSchema.h"
 #include <cassert>
 #include <chrono>
@@ -320,7 +319,7 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                 SeasonID msid = tmv2.get<TimeManager>(*tmv2.begin()).CurrentSeason(schema.seasons);
                 if (msid >= 0 && msid < (int)schema.seasons.size()) {
                     float hd = schema.seasons[msid].heatDrainMod;
-                    if (hd >= SeasonThreshold::HARSH_COLD) total *= 0.8f;  // harsh cold penalises migration
+                    if (hd >= schema.seasonThresholds.harshCold) total *= 0.8f;  // harsh cold penalises migration
                 }
             }
         }

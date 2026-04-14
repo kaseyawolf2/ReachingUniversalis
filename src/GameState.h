@@ -49,6 +49,8 @@ private:
     float m_zoomMin      = 0.25f;
     float m_zoomMax      = 3.0f;
 
+    const WorldSchema& m_schema;
+
     RenderSystem m_renderSystem;
     HUD          m_hud;
 

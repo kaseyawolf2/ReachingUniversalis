@@ -202,6 +202,17 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
 
+    // ---- Global season thresholds (top-level keys, with compile-time defaults) ----
+    {
+        SeasonThresholds& st = schema.seasonThresholds;
+        st.harshCold     = OptFloat(tbl, "harsh_cold",     st.harshCold);
+        st.moderateCold  = OptFloat(tbl, "moderate_cold",  st.moderateCold);
+        st.coldSeason    = OptFloat(tbl, "cold_season",    st.coldSeason);
+        st.mildCold      = OptFloat(tbl, "mild_cold",      st.mildCold);
+        st.harvestSeason = OptFloat(tbl, "harvest_season", st.harvestSeason);
+        st.lowProduction = OptFloat(tbl, "low_production", st.lowProduction);
+    }
+
     auto arr = tbl["seasons"].as_array();
     if (!arr) { err = path + ": missing [[seasons]] array"; return false; }
 
