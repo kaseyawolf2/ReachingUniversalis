@@ -35,7 +35,7 @@ static bool InRange(const Position& a, const Position& b, float r) {
     return (dx * dx + dy * dy) <= r * r;
 }
 
-void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -43,12 +43,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
     if (gameDt <= 0.f) return;
 
     int hour   = (int)tm.hourOfDay;
-    Season season = tm.CurrentSeason();
+    SeasonID season = tm.CurrentSeason(schema);
 
     // ---- Early exit: cache expensive pre-computations when hour hasn't changed ----
-    static int    s_cachedHour = -1;
-    static int    s_cachedDay  = -1;
-    static Season s_cachedSeason = Season::Spring;
+    static int      s_cachedHour = -1;
+    static int      s_cachedDay  = -1;
+    static SeasonID s_cachedSeason = 0;
     bool hourChanged = (hour != s_cachedHour || tm.day != s_cachedDay || season != s_cachedSeason);
     if (hourChanged) {
         s_cachedHour   = hour;
@@ -188,9 +188,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
         //   Winter: shorter days — sleep 2h earlier, wake 1h later, end work 2h earlier
         //   Summer: slightly longer productive hours — no adjustment needed (baseline)
         //   Spring/Autumn: base schedule
-        int seasonSleepAdj  = (season == Season::Winter) ? -2 : 0;  // negative = earlier sleep
-        int seasonWakeAdj   = (season == Season::Winter) ?  1 : 0;  // positive = later wake
-        int seasonWorkEndAdj = (season == Season::Winter) ? -2 : 0; // negative = earlier end
+        bool isWinter = (season >= 0 && season < (int)schema.seasons.size()
+                         && schema.seasons[season].name == "Winter");
+        int seasonSleepAdj  = isWinter ? -2 : 0;  // negative = earlier sleep
+        int seasonWakeAdj   = isWinter ?  1 : 0;  // positive = later wake
+        int seasonWorkEndAdj = isWinter ? -2 : 0;  // negative = earlier end
 
         int effSleepHour = sched.sleepHour + seasonSleepAdj;
         int effWakeHour  = sched.wakeHour  + seasonWakeAdj;
@@ -761,8 +763,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 coworkers.push_back(other);
                             });
                             // Seasonal work shanty: Autumn = more frequent songs, Winter = stronger bonds
-                            int songChance = (season == Season::Autumn) ? 15 : 30;
-                            float songAffinityGain = (season == Season::Winter) ? 0.02f : 0.01f;
+                            std::string curSeasonName;
+                            if (season >= 0 && season < (int)schema.seasons.size())
+                                curSeasonName = schema.seasons[season].name;
+                            int songChance = (curSeasonName == "Autumn") ? 15 : 30;
+                            float songAffinityGain = (curSeasonName == "Winter") ? 0.02f : 0.01f;
                             if (coworkers.size() >= 3 && s_rng() % songChance == 0) {
                                 // Boost all coworkers' mutual affinity
                                 for (size_t i = 0; i < coworkers.size(); ++i) {
@@ -784,9 +789,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                             where = s->name;
                                     std::string songMsg;
-                                    if (season == Season::Autumn)
+                                    if (curSeasonName == "Autumn")
                                         songMsg = who + " leads a harvest shanty at " + where + ".";
-                                    else if (season == Season::Winter)
+                                    else if (curSeasonName == "Winter")
                                         songMsg = who + " leads a fireside song at " + where + ".";
                                     else
                                         songMsg = who + " leads a work song at " + where + ".";

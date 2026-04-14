@@ -78,7 +78,10 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     int         playerInventoryCapacity = 15;
     std::string tradeHint;
     AgentBehavior behavior;
-    Season season;
+    SeasonID    seasonId;
+    std::string seasonName;
+    float       seasonProductionMod;
+    float       seasonHeatDrainMod;
     std::vector<RenderSnapshot::TradeRecord> tradeLedger;
 
     {
@@ -108,7 +111,10 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerInventoryCapacity = snap.playerInventoryCapacity;
         tradeHint            = snap.tradeHint;
         tradeLedger          = snap.tradeLedger;
-        season               = snap.season;
+        seasonId             = snap.seasonId;
+        seasonName           = snap.seasonName;
+        seasonProductionMod  = snap.seasonProductionMod;
+        seasonHeatDrainMod   = snap.seasonHeatDrainMod;
         temperature          = snap.temperature;
         playerInPlagueZone   = snap.playerInPlagueZone;
         playerReputation     = snap.playerReputation;
@@ -275,16 +281,16 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         std::snprintf(fpsBuf,   sizeof(fpsBuf),   "FPS: %d  (%.1f ms)",
                       GetFPS(), GetFrameTime() * 1000.f);
         std::snprintf(seasBuf, sizeof(seasBuf), "%s  %.0f°C",
-                      SeasonName(season), temperature);
+                      seasonName.c_str(), temperature);
 
         int pw = std::max({ MeasureText(timeBuf, 16), MeasureText(speedBuf, 14),
                             MeasureText(seasBuf, 13),
                             MeasureText(popBuf, 13),  MeasureText(fpsBuf, 12) }) + 16;
         int px = SCREEN_W - pw - 4;
 
-        Color seasonColor = (season == Season::Spring) ? GREEN  :
-                            (season == Season::Summer) ? YELLOW :
-                            (season == Season::Autumn) ? ORANGE : SKYBLUE;
+        Color seasonColor = (seasonName == "Spring") ? GREEN  :
+                            (seasonName == "Summer") ? YELLOW :
+                            (seasonName == "Autumn") ? ORANGE : SKYBLUE;
         // Temperature color: blue below 0, grey near 0, normal above
         Color tempColor = (temperature < 0.f) ? Color{150,200,255,255} :
                           (temperature < 5.f) ? LIGHTGRAY : seasonColor;
@@ -338,15 +344,17 @@ static void DrawMiniBar(int x, int y, int w, int h, float value, float maxVal,
 
 void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     std::vector<RenderSnapshot::SettlementStatus> ws;
-    Season season;
+    std::string seasonNameLocal;
+    float seasonHeatDrainLocal;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
-        ws     = snap.worldStatus;
-        season = snap.season;
+        ws                  = snap.worldStatus;
+        seasonNameLocal     = snap.seasonName;
+        seasonHeatDrainLocal = snap.seasonHeatDrainMod;
     }
     if (ws.empty()) return;
 
-    bool showWood = (season == Season::Autumn || season == Season::Winter);
+    bool showWood = (seasonNameLocal == "Autumn" || seasonNameLocal == "Winter");
 
     // Morale trend tracking
     static std::map<std::string, float> s_prevMorale;
@@ -439,7 +447,7 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
         rx += MINI_BAR_W + 4;
 
         // Wood (always show but dim in spring/summer)
-        Color woodFill = (s.wood < 20.f && (season == Season::Winter)) ? RED :
+        Color woodFill = (s.wood < 20.f && seasonNameLocal == "Winter") ? RED :
                          (s.wood < 30.f) ? ORANGE : Fade(BROWN, 0.9f);
         float woodAlpha = showWood ? 1.f : 0.5f;
         DrawText("D", rx, ry, DATA_FONT, Fade(LIGHTGRAY, 0.6f * woodAlpha));
@@ -1185,10 +1193,10 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     }
     if (!best) return;
 
-    Season curSeason;
+    float seasonMult;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
-        curSeason = snap.season;
+        seasonMult = snap.seasonProductionMod;
     }
 
     const char* typeName = (best->output == RES_FOOD)  ? "Farm"        :
@@ -1200,7 +1208,6 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     static constexpr int BASE_WORKERS = 5;
     float scale      = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
     float skillMult  = 0.5f + best->avgSkill;             // same formula as ProductionSystem
-    float seasonMult = SeasonProductionModifier(curSeason);
     // Morale production factor: same formula as ProductionSystem
     float moraleFactor = 1.0f + 0.3f * (best->morale - 0.5f);
     float estOutput  = best->baseRate * scale * skillMult * seasonMult * moraleFactor;
@@ -1729,7 +1736,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
 void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     int agents, tickSpeed, speedIndex, pop, deaths, simSteps, entities, haulerCount;
     bool paused;
-    Season dbgSeason;
+    std::string dbgSeasonName;
     float  dbgTemp, econTotal, econAvg, econRichest;
     std::string econRichestName;
     std::vector<RenderSnapshot::AgentEntry>        agentCopy;
@@ -1744,7 +1751,7 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
         paused    = snap.paused;
         simSteps  = snap.simStepsPerSec;
         entities  = snap.totalEntities;
-        dbgSeason = snap.season;
+        dbgSeasonName = snap.seasonName;
         dbgTemp   = snap.temperature;
         agentCopy = snap.agents;
         settlCopy = snap.worldStatus;
@@ -1782,7 +1789,7 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
                   paused ? " (PAUSED)" : "");
     std::snprintf(lines[4],  64, "Entities:     %d", entities);
     std::snprintf(lines[5],  64, "Population:   %d  Deaths: %d", pop, deaths);
-    std::snprintf(lines[6],  64, "Season:       %s  %.1f°C", SeasonName(dbgSeason), dbgTemp);
+    std::snprintf(lines[6],  64, "Season:       %s  %.1f°C", dbgSeasonName.c_str(), dbgTemp);
     std::snprintf(lines[7],  64, "--- NPC behavior ---");
     std::snprintf(lines[8],  64, "  Working:    %d", nWorking);
     std::snprintf(lines[9],  64, "  Sleeping:   %d", nSleeping);

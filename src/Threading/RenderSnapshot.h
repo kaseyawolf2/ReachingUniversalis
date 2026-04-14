@@ -163,7 +163,8 @@ struct RenderSnapshot {
         float        woodStock  = 0.f;   // for health ring in winter
         int          pop        = 0;     // 0 = collapsed
         int          popCap     = 35;    // max population cap (for visual indicator)
-        Season       season     = Season::Spring;   // snapshot season for ring logic
+        SeasonID     seasonId   = 0;                 // snapshot season for ring logic
+        std::string  seasonName;                      // display name of current season
         std::string  specialty;          // e.g. "Farming", "Water", "Lumber"
         std::string  modifierName;       // active event name (e.g. "Plague", "Drought")
         float        ruinTimer  = 0.f;   // > 0 while settlement is in post-collapse ruin state
@@ -307,8 +308,11 @@ struct RenderSnapshot {
     int    hour        = 6;
     int    minute      = 0;
     float  hourOfDay   = 6.f;   // float, for sky colour interpolation
-    Season season      = Season::Spring;
-    float  temperature = 10.f;  // ambient °C
+    SeasonID    seasonId   = 0;
+    std::string seasonName = "Spring";
+    float       seasonProductionMod = 1.f;   // current season's production modifier
+    float       seasonHeatDrainMod  = 0.f;   // current season's heat drain modifier
+    float       temperature = 10.f;  // ambient °C
 
     // HUD — simulation state
     int  tickSpeed  = 1;

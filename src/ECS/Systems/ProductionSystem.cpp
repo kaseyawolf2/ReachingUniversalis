@@ -18,7 +18,7 @@ static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 // 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
 static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
 
-void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -26,13 +26,17 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     if (gameDt <= 0.0f) return;
 
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.0f;
-    Season season     = tm.CurrentSeason();
-    float seasonMod   = SeasonProductionModifier(season);
+    SeasonID seasonId = tm.CurrentSeason(schema);
+    float seasonMod   = SeasonProductionModifier(seasonId, schema);
 
     // ---- Food spoilage ----
     // Summer doubles the spoilage rate (heat); winter halves it (cold preserves food).
-    float spoilageMult = (season == Season::Summer) ? 2.0f :
-                         (season == Season::Winter) ? 0.5f : 1.0f;
+    // Look up season name from schema for behaviour that was previously enum-based.
+    std::string seasonName;
+    if (seasonId >= 0 && seasonId < (int)schema.seasons.size())
+        seasonName = schema.seasons[seasonId].name;
+    float spoilageMult = (seasonName == "Summer") ? 2.0f :
+                         (seasonName == "Winter") ? 0.5f : 1.0f;
     float spoilFraction = FOOD_SPOILAGE_RATE * spoilageMult * gameHoursDt;
     registry.view<Stockpile>().each([&](Stockpile& sp) {
         auto it = sp.quantities.find(RES_FOOD);

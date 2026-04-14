@@ -327,57 +327,43 @@ struct Renderable {
 // GAME_MINS_PER_REAL_SEC controls how fast game time runs relative to real time.
 static constexpr float GAME_MINS_PER_REAL_SEC = 1.0f;
 
-// Season cycle: 30 game-days each, repeating Spring→Summer→Autumn→Winter.
-enum class Season { Spring = 0, Summer = 1, Autumn = 2, Winter = 3 };
+// Season helpers — look up season properties from WorldSchema at runtime.
+// SeasonID is defined in WorldSchema.h (plain int, index into schema.seasons).
 
-static constexpr int DAYS_PER_SEASON = 30;
+#include "World/WorldSchema.h"
 
-inline const char* SeasonName(Season s) {
-    switch (s) {
-        case Season::Spring: return "Spring";
-        case Season::Summer: return "Summer";
-        case Season::Autumn: return "Autumn";
-        case Season::Winter: return "Winter";
-    }
-    return "Spring";
+inline const char* SeasonName(SeasonID id, const WorldSchema& schema) {
+    if (id >= 0 && id < (int)schema.seasons.size())
+        return schema.seasons[id].displayName.c_str();
+    return "Unknown";
 }
 
-// Production modifier per season (applied on top of all other modifiers).
-inline float SeasonProductionModifier(Season s) {
-    switch (s) {
-        case Season::Spring: return 0.8f;   // growth season, moderate output
-        case Season::Summer: return 1.0f;   // peak production
-        case Season::Autumn: return 1.2f;   // harvest bonus
-        case Season::Winter: return 0.2f;   // very low production
-    }
+inline float SeasonProductionModifier(SeasonID id, const WorldSchema& schema) {
+    if (id >= 0 && id < (int)schema.seasons.size())
+        return schema.seasons[id].productionMod;
     return 1.0f;
 }
 
-// Energy drain multiplier per season (1.0 = normal; winter = more drain).
-inline float SeasonEnergyDrainMult(Season s) {
-    return (s == Season::Winter) ? 1.8f : 1.0f;
+inline float SeasonEnergyDrainMult(SeasonID id, const WorldSchema& schema) {
+    if (id >= 0 && id < (int)schema.seasons.size())
+        return schema.seasons[id].energyDrainMod;
+    return 1.0f;
 }
 
-// Approximate air temperature in degrees Celsius.
-// Combines season baseline with time-of-day variation (cooler at night).
-inline float AmbientTemperature(Season s, float hourOfDay) {
-    // Season baseline (°C at noon)
-    float base = (s == Season::Spring) ? 12.f :
-                 (s == Season::Summer) ? 28.f :
-                 (s == Season::Autumn) ? 8.f  : -8.f;  // winter
-    // Diurnal swing: ±8°C, coldest at 4am, hottest at 2pm
-    float swing = -8.f * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
-    return base + swing;
-}
-
-// Heat drain multiplier per season — summer = no cold, winter = full cold.
-inline float SeasonHeatDrainMult(Season s) {
-    switch (s) {
-        case Season::Spring: return 0.15f;
-        case Season::Summer: return 0.0f;
-        case Season::Autumn: return 0.4f;
-        case Season::Winter: return 1.0f;
+inline float AmbientTemperature(SeasonID id, const WorldSchema& schema, float hourOfDay) {
+    float base = 20.f, swing = 8.f;
+    if (id >= 0 && id < (int)schema.seasons.size()) {
+        base  = schema.seasons[id].baseTemperature;
+        swing = schema.seasons[id].tempSwing;
     }
+    // Diurnal swing: coldest at 4am, hottest at 2pm
+    float diurnal = -swing * std::cos((hourOfDay - 14.f) * 3.14159f / 12.f);
+    return base + diurnal;
+}
+
+inline float SeasonHeatDrainMult(SeasonID id, const WorldSchema& schema) {
+    if (id >= 0 && id < (int)schema.seasons.size())
+        return schema.seasons[id].heatDrainMod;
     return 0.0f;
 }
 
@@ -396,12 +382,17 @@ struct TimeManager {
         return realDt;
     }
 
-    Season CurrentSeason() const {
-        int seasonDay = (day - 1) % (DAYS_PER_SEASON * 4);
-        if (seasonDay < DAYS_PER_SEASON)     return Season::Spring;
-        if (seasonDay < DAYS_PER_SEASON * 2) return Season::Summer;
-        if (seasonDay < DAYS_PER_SEASON * 3) return Season::Autumn;
-        return Season::Winter;
+    SeasonID CurrentSeason(const WorldSchema& schema) const {
+        int totalCycleDays = 0;
+        for (const auto& s : schema.seasons) totalCycleDays += s.durationDays;
+        if (totalCycleDays <= 0) return 0;
+        int dayInCycle = (day - 1) % totalCycleDays;
+        int accum = 0;
+        for (const auto& s : schema.seasons) {
+            accum += s.durationDays;
+            if (dayInCycle < accum) return s.id;
+        }
+        return 0;
     }
 };
 

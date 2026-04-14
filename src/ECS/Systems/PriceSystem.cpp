@@ -15,22 +15,26 @@ static constexpr float PRICE_MAX        =  25.f;   // raised slightly — season
 
 // Seasonal demand pressure: some resources are more valuable in certain seasons.
 // Returns a target floor price below which the price won't fall via decay.
-static float SeasonPriceFloor(int res, Season season) {
+// Uses the season's heat drain modifier as a proxy for cold-demand intensity.
+static float SeasonPriceFloor(int res, SeasonID seasonId, const WorldSchema& schema) {
+    float heatMod = 0.f;
+    std::string seasonName;
+    if (seasonId >= 0 && seasonId < (int)schema.seasons.size()) {
+        heatMod    = schema.seasons[seasonId].heatDrainMod;
+        seasonName = schema.seasons[seasonId].name;
+    }
     if (res == RES_WOOD) {
-        // Wood is essential in cold seasons; price floor rises with demand
-        switch (season) {
-            case Season::Spring: return 1.0f;
-            case Season::Summer: return 0.5f;
-            case Season::Autumn: return 2.5f;
-            case Season::Winter: return 5.0f;
-        }
+        // Wood is essential in cold seasons; price floor rises with heat drain
+        // Spring=0.15→1.0, Summer=0.0→0.5, Autumn=0.4→2.5, Winter=1.0→5.0
+        if (heatMod <= 0.f) return 0.5f;
+        if (heatMod < 0.2f) return 1.0f;
+        if (heatMod < 0.5f) return 2.5f;
+        return 5.0f;
     }
     if (res == RES_FOOD) {
         // Food is harder to produce in winter; minimum viable price
-        switch (season) {
-            case Season::Winter: return 2.0f;
-            default:             return 1.0f;
-        }
+        if (seasonName == "Winter") return 2.0f;
+        return 1.0f;
     }
     return PRICE_MIN;
 }
@@ -39,14 +43,14 @@ static float SeasonPriceFloor(int res, Season season) {
 // on an open road. Low enough to preserve meaningful differentials.
 static constexpr float ARBITRAGE_RATE = 0.003f;
 
-void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());
     float gameDt = tm.GameDt(realDt);
     if (gameDt <= 0.f) return;
     float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-    Season season = tm.CurrentSeason();
+    SeasonID season = tm.CurrentSeason(schema);
 
     // ---- Supply/demand price adjustment per settlement ----
     // Price spike cooldown: (entity, resourceType) → game-hours remaining
@@ -72,7 +76,7 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 else if (stock < PRICE_LOW_STOCK)
                     price *= std::pow(1.f + PRICE_RISE_RATE, gameHoursDt);
 
-                float floor = SeasonPriceFloor(res, season);
+                float floor = SeasonPriceFloor(res, season, schema);
                 price = std::max(floor, std::min(PRICE_MAX, price));
 
                 // Log price spikes > 20% (rate-limited to once per 12 game-hours per resource)
@@ -128,9 +132,8 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
             priceA += (mid - priceA) * convergeFrac;
             priceB += (mid - priceB) * convergeFrac;
             // Re-apply floors after convergence
-            Season s = season;
-            priceA = std::max(SeasonPriceFloor(res, s), priceA);
-            priceB = std::max(SeasonPriceFloor(res, s), priceB);
+            priceA = std::max(SeasonPriceFloor(res, season, schema), priceA);
+            priceB = std::max(SeasonPriceFloor(res, season, schema), priceB);
         }
     });
 }

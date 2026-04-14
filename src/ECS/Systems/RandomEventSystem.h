@@ -31,7 +31,7 @@ private:
     std::set<std::pair<uint32_t,uint32_t>> m_loggedAlliances;
     std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalryRecovery;  // tracks -0.3 recovery crossing
 
-    void TriggerEvent(entt::registry& registry, int day, int hour);
+    void TriggerEvent(entt::registry& registry, int day, int hour, const WorldSchema& schema);
     // Kill killFraction of the settlement's population (excluding player).
     // Returns number of NPCs killed. Used by both initial outbreak and spread.
     int KillFraction(entt::registry& registry, entt::entity settl, float fraction);

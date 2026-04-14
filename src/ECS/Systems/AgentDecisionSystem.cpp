@@ -138,6 +138,7 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement,
+                                                        const WorldSchema& schema,
                                                         const Skills* skills,
                                                         const Profession* profession,
                                                         const MigrationMemory* memory,
@@ -273,8 +274,8 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         // Settlements with good wood reserve get a bonus — cold NPCs flee to warmth.
         auto tmv = registry.view<TimeManager>();
         if (!tmv.empty()) {
-            Season season = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason();
-            float heatMult = SeasonHeatDrainMult(season);
+            SeasonID season = tmv.get<TimeManager>(*tmv.begin()).CurrentSeason(schema);
+            float heatMult = SeasonHeatDrainMult(season, schema);
             if (heatMult > 0.f) {
                 total += wood * heatMult * 1.5f;  // weight wood by how cold the season is
             }
@@ -310,8 +311,10 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         {
             auto tmv2 = registry.view<TimeManager>();
             if (!tmv2.empty()) {
-                Season s = tmv2.get<TimeManager>(*tmv2.begin()).CurrentSeason();
-                if (s == Season::Winter) total *= 0.8f;
+                SeasonID s = tmv2.get<TimeManager>(*tmv2.begin()).CurrentSeason(schema);
+                std::string sName;
+                if (s >= 0 && s < (int)schema.seasons.size()) sName = schema.seasons[s].name;
+                if (sName == "Winter") total *= 0.8f;
             }
         }
 
@@ -384,7 +387,7 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
 // ---- Main update ----
 
-void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     // Sub-block profiling setup
     using Clock = std::chrono::steady_clock;
     if (m_subProfile[0].name == nullptr) {
@@ -1848,7 +1851,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 }
             }
 
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, schema, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
             if (dest != entt::null) {
                 home.prevSettlement  = home.settlement;
                 timer.homesickTimer  = 0.f;
@@ -2066,7 +2069,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         auto* fHome  = registry.try_get<HomeSettlement>(bestFriend);
                         auto* fState = registry.try_get<AgentState>(bestFriend);
                         entt::entity friendDest = FindMigrationTarget(registry, fHome->settlement,
-                            fSkills, fProfession, fMemory, tm.day, fSatisfaction);
+                            schema, fSkills, fProfession, fMemory, tm.day, fSatisfaction);
                         // Friend follows if they have any valid migration target (score > 0)
                         if (friendDest != entt::null) {
                             // Send friend to same destination as the initiator
@@ -2095,7 +2098,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         auto* cTimerPtr   = registry.try_get<DeprivationTimer>(candidate);
                                         float cSat = cTimerPtr ? cTimerPtr->lastSatisfaction : 0.5f;
                                         entt::entity cDest = FindMigrationTarget(registry, home.settlement,
-                                            cSkills, cProfession, cMemory, tm.day, cSat);
+                                            schema, cSkills, cProfession, cMemory, tm.day, cSat);
                                         if (cDest != entt::null) {
                                             bestThirdAff = aff;
                                             thirdNpc = candidate;
