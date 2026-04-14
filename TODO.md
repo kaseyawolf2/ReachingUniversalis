@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Post-procession comfort bonus** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter was a participant in a mourning procession (check `skillCelebrateTimer > 0` and `wisdomGriefDays > 0`), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] draws strength from the procession to comfort [Griever]" at 1-in-6 frequency. Creates a connection between the group mourning event and individual grief support.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Post-procession comfort bonus** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter was a participant in a mourning procession (check `skillCelebrateTimer > 0` and `wisdomGriefDays > 0`), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] draws strength from the procession to comfort [Griever]" at 1-in-6 frequency. Creates a connection between the group mourning event and individual grief support.
 
 - [x] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
 
@@ -4613,3 +4613,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Mourning procession size scaling** — In `AgentDecisionSystem.cpp`'s mourning procession block, scale the morale boost by procession size: `0.02f + 0.005f * (participants.size() - 3)` (capped at +0.05). Larger processions have more community healing impact. Log variant when 5+ participants: "[Settlement] holds a grand procession for [Elder]" at full frequency. Uses existing `participants` vector size.
 
 - [ ] **Shared grief friendship persistence** — In `AgentDecisionSystem.cpp`'s mourning procession block, after the mutual affinity boost among participants, set a new `bool processedGrief = false` on `DeprivationTimer` in `Components.h` to `true` for each participant. In the idle chat block, when both chatters have `processedGrief == true`, boost affinity by an extra +0.01. Log "[NPC1] and [NPC2] share a quiet moment of remembrance at [Settlement]" at 1-in-8 frequency. Creates lasting bonds from shared mourning experiences.
+
+- [ ] **Comforter reputation gain** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after successfully comforting a grieving NPC, boost the comforter's `Reputation::score` by +0.02 (cap 1.0). Log "[Comforter] earns respect for tending to the grieving at [Settlement]" at 1-in-8 frequency. Uses existing `Reputation` component. Creates a reputation path through emotional labour, not just economic activity.
+
+- [ ] **Grief contagion in families** — In `AgentDecisionSystem.cpp`'s grief timer drain block, when a grieving NPC has a `FamilyTag` and another NPC at the same settlement shares the same `FamilyTag::name`, 1-in-8 chance to set the family member's `griefTimer = 0.5f` (mild sympathy grief). Log "[FamilyMember] worries about [Griever] at [Settlement]" at 1-in-6 frequency. Uses existing `FamilyTag` component. Creates emotional contagion within family units.
