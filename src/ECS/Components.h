@@ -89,11 +89,11 @@ struct Profession {
     int careerChanges    = 0;
 };
 
-// Helper: ProfessionID → SkillID via cached professionToSkill map.
-// Returns INVALID_ID if the profession has no primary skill.
+// Helper: ProfessionID → SkillID via direct vector indexing.
+// Returns INVALID_ID if the profession ID is out of range.
 inline SkillID SkillForProfession(int profId, const WorldSchema& schema) {
-    auto it = schema.professionToSkill.find(profId);
-    return (it != schema.professionToSkill.end()) ? it->second : INVALID_ID;
+    if (profId < 0 || profId >= (int)schema.professions.size()) return INVALID_ID;
+    return schema.professions[profId].primarySkill;
 }
 
 // ---- World components ----

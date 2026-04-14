@@ -683,6 +683,9 @@ bool WorldLoader::Load(const std::string& worldDir,
     // Resolve cross-references (string names → integer IDs)
     if (!ResolveCrossRefs(dir, schema, errorMsg)) return false;
 
+    // Build cached lookup maps that depend on resolved cross-references
+    schema.BuildResourceToSkillMap();
+
     // Final validation
     if (schema.needs.empty()) {
         errorMsg = worldDir + ": no needs defined (need at least one)";
