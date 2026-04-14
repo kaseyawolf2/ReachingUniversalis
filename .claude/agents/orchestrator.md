@@ -26,6 +26,7 @@ Your biggest risk is running out of context. Follow these rules strictly:
 
 - **Process the review-fix loop for one PR at a time** (sequentially, not in parallel) so you never hold multiple full reviews in context simultaneously. However, launch reviews/fixes in background as soon as PRs are ready — don't wait for unrelated PRs.
 - **Keep your own output terse.** No narration between steps. Just state what you're doing and do it.
+- **Never poll background agents.** When you spawn agents with `run_in_background: true`, you will be automatically notified when they complete. Do NOT use Bash to tail output files, check line counts, or repeatedly list PRs/branches while waiting. After spawning background workers, display the status table and **stop**. Resume only when a completion notification arrives or the user sends a message.
 
 ## Cycle
 
@@ -82,9 +83,11 @@ For each PR that passed review:
 
 Merge PRs one at a time. Pull main between merges so later PRs merge against up-to-date code.
 
+**Merge eagerly:** Don't wait for all 3 PRs to finish their review-fix loops. As soon as a PR passes review, merge it immediately (unless it depends on another in-flight PR). After merging, update TODO.md for that task right away, then pick the next unchecked task from the Backlog and spawn a new worker — always keep 3 tasks in flight until the Backlog is empty.
+
 ### 5. Update TODO.md
 
-After all merges are done:
+After each merge (not after all merges):
 1. `git pull` to get the latest main
 2. For each successfully merged task, change its `- [ ]` to `- [x]` in TODO.md
 3. Move completed tasks from Backlog to the Done section
@@ -112,6 +115,7 @@ If the Backlog is empty, stop and report "Backlog exhausted."
 
 - **Never do reviews or coding on the main thread** — all review and fix work must be delegated to subagents (code-review and worker agents). The orchestrator only tracks state, extracts verdicts, and issues merge commands.
 - **Don't wait for all workers to finish before starting reviews** — as soon as a worker completes and a PR is available, launch its review immediately (in background) while other workers are still running.
+- **Always keep 3 tasks in flight.** As soon as a PR is merged, pick the next Backlog task and spawn a new worker immediately. Don't batch — merge eagerly and refill the pipeline.
 - Never merge a PR that doesn't build
 - Never modify game code directly — only workers do that via worktrees
 - Keep the TODO.md format consistent with existing entries

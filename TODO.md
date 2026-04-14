@@ -39,11 +39,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Slim down DeprivationTimer** — The 40+ fields in DeprivationTimer are medieval-specific social mechanics. Factor out into optional components: SocialBehavior, BanditState, GriefState, etc. Core DeprivationTimer only tracks need-at-zero timers and migration threshold.
 
-- [ ] **Schema-driven skill growth/decay rates** — `SkillDef` already has `growthRate` and `decayRate` fields but `Skills::Advance()` and the rust logic in `AgentDecisionSystem.cpp` use hardcoded `SKILL_GROWTH = 0.001f` / `SKILL_RUST = 0.0005f`. Wire the schema values through so each skill can have its own rate.
+- [x] **Schema-driven skill growth/decay rates** — `SkillDef` already has `growthRate` and `decayRate` fields but `Skills::Advance()` and the rust logic in `AgentDecisionSystem.cpp` use hardcoded `SKILL_GROWTH = 0.001f` / `SKILL_RUST = 0.0005f`. Wire the schema values through so each skill can have its own rate.
 
-- [ ] **Cache hot-path schema lookups** — `Skills::ForResource()` in `Components.h` does a linear scan of `schema.skills` on every call; `SkillForProfession()` does an `unordered_map::find` per call. Add `resourceToSkill` and `professionToSkill` lookup maps to `WorldSchema`, populated in `BuildMaps()`, and use them in these methods.
+- [x] **Cache hot-path schema lookups** — `Skills::ForResource()` in `Components.h` does a linear scan of `schema.skills` on every call; `SkillForProfession()` does an `unordered_map::find` per call. Add `resourceToSkill` and `professionToSkill` lookup maps to `WorldSchema`, populated in `BuildMaps()`, and use them in these methods.
 
-- [ ] **Named season thresholds** — `RandomEventSystem.cpp` and `ScheduleSystem.cpp` use magic float thresholds (`0.8f`, `0.3f`, `0.15f`) for season property checks (heatDrainMod, productionMod). Define named constants (e.g., `HARSH_COLD_THRESHOLD`, `FLOOD_HEAT_DRAIN_MAX`) in a shared header or as SeasonDef metadata so modders can tune them.
+- [x] **Named season thresholds** — `RandomEventSystem.cpp` and `ScheduleSystem.cpp` use magic float thresholds (`0.8f`, `0.3f`, `0.15f`) for season property checks (heatDrainMod, productionMod). Define named constants (e.g., `HARSH_COLD_THRESHOLD`, `FLOOD_HEAT_DRAIN_MAX`) in a shared header or as SeasonDef metadata so modders can tune them.
 
 - [ ] **Profession bitmask scalability** — All profession diversity checks use `uint32_t` bitmasks with `assert(professions.size() < 32)` in `BuildMaps()`. Replace with `std::bitset` or a variable-width bitfield to support worlds with 32+ professions.
 
@@ -62,6 +62,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Generic DeprivationTimer need timers** — `DeprivationTimer` still has hardcoded `float hungerTimer, thirstTimer, energyTimer, heatTimer`. Replace with `std::vector<float>` indexed by NeedID, sized from `schema.needs`. Systems iterate generically instead of by named field.
 
 - [ ] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
+
+- [ ] **Per-skill growth rate helpers** — Factor the repeated `profSkId >= 0 && profSkId < (int)schema.skills.size() ? schema.skills[profSkId].growthRate : 1.f` ternary in `AgentDecisionSystem.cpp` (lines ~598, ~804, ~1147) and `Components.h` (~503) into a single `WorldSchema::SkillGrowthRate(SkillID)` helper that encapsulates the bounds check and fallback.
+
+- [ ] **Symmetric skill fallback defaults** — In `AgentDecisionSystem.cpp`, out-of-range skill indices fall back to `growthRate = 1.f` (normal growth) but `decayRate = 0.f` (no decay). Unify the policy: add `WorldSchema::SkillDecayRate(SkillID)` with a documented default, and add a comment explaining the asymmetry or make both fall back to their `SkillDef` defaults.
+
+- [ ] **Flat array resourceToSkill** — `WorldSchema::resourceToSkill` is `unordered_map<int,int>` but `ResourceID` is a dense integer. Replace with `std::vector<SkillID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead on the hot path in `Skills::ForResource()` and `Skills::SkillIdForResource()`.
+
+- [ ] **Use `inline constexpr` in SeasonThresholds.h** — `SeasonThresholds.h` uses `static constexpr` which creates separate copies per translation unit. Switch to `inline constexpr` (C++17) for single-definition constants across all TUs that include the header.
+
+- [ ] **Season threshold config in TOML** — Move the named constants in `SeasonThresholds.h` (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema` stores them; systems read from schema instead of compile-time constants. Enables modders to tune season breakpoints per world.
+
+- [ ] **BuildMaps/ResolveCrossRefs ordering guard** — `WorldSchema::BuildResourceToSkillMap()` must be called after `ResolveCrossRefs()` or the map is empty. Add an `assert(crossRefsResolved)` flag to `WorldSchema` set by `ResolveCrossRefs()` and checked in `BuildResourceToSkillMap()` to catch misordering at dev time.
 
 ## Phase 2 — UI Decoupling
 
