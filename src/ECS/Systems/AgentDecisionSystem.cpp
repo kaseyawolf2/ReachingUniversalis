@@ -631,7 +631,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 float bestAffinity = 0.f;
                                 entt::entity bestElder = entt::null;
                                 for (const auto& info : eit->second) {
-                                    if (!(info.profBits & myProfFlag).any()) continue;
+                                    if (!info.profBits.intersectsAny(myProfFlag)) continue;
                                     auto ait2 = rel->affinity.find(info.e);
                                     if (ait2 != rel->affinity.end() && ait2->second >= 0.6f) {
                                         growth += 0.0003f;
@@ -714,7 +714,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float activeSkill2 = sk.Get(profSkId);
                         if (activeSkill2 < 0.5f) {
                             auto xit = expertFlags.find(hs.settlement);
-                            if (xit != expertFlags.end() && (xit->second & myProfFlag).any()) {
+                            if (xit != expertFlags.end() && xit->second.intersectsAny(myProfFlag)) {
                                 growth += 0.0004f;
                                 if (s_teachRng() % 10 == 0 && !logV2.empty()) {
                                     std::string who = "An expert";
