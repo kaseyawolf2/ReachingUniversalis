@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Seasonal work shanty** — In `ScheduleSystem.cpp`'s work song block, check `TimeManager::season`. During harvest season (`Season::Autumn`), increase the work song chance from 1-in-30 to 1-in-15 (more singing during busy harvest). During winter (`Season::Winter`), boost the affinity gain from +0.01 to +0.02 (huddling together). Log variant: "[Name] leads a harvest shanty" (autumn) or "[Name] leads a fireside song" (winter). Uses existing `TimeManager` season field.
-
 ## Done
+
+- [x] **Seasonal work shanty** — In `ScheduleSystem.cpp`'s work song block, check `TimeManager::season`. During harvest season (`Season::Autumn`), increase the work song chance from 1-in-30 to 1-in-15 (more singing during busy harvest). During winter (`Season::Winter`), boost the affinity gain from +0.01 to +0.02 (huddling together). Log variant: "[Name] leads a harvest shanty" (autumn) or "[Name] leads a fireside song" (winter). Uses existing `TimeManager` season field.
 
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
@@ -4474,3 +4474,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Shared meal affinity boost** — In `ConsumptionSystem.cpp`'s buy-from-stockpile block, when 2+ NPCs at the same settlement purchase food in the same sim step, treat it as a shared meal: boost mutual affinity by +0.005 among all buyers (cap 1.0). Use a `static std::vector<std::pair<entt::entity, entt::entity>> s_mealBuyers` collected per settlement per step. Log "[Name] and [Name] share a meal at [Settlement]" at 1-in-12 frequency. Adds a passive social bonding mechanic tied to basic need fulfilment.
 
 - [ ] **Night watch camaraderie** — In `ScheduleSystem.cpp`'s sleep transition block, when an NPC's schedule says Sleep but they have `Needs::energy > 0.7` (not tired), 1-in-20 chance they stay awake as a night watch. Find other night-watch NPCs at same settlement (same condition triggered that step); if 2+ are awake, boost mutual affinity +0.01. Log "[Name] and [Name] keep watch together at [Settlement]" at 1-in-6 frequency. Creates a rare late-night bonding event between energetic NPCs.
+
+- [ ] **Spring festival work song** — In `ScheduleSystem.cpp`'s work song block, during `Season::Spring`, when a work song triggers with 5+ coworkers, 1-in-10 chance to trigger a spring festival: all NPCs at the settlement (not just coworkers) gain +0.01 mutual affinity with each participant. Apply +0.02 to `Settlement::morale` (cap 1.0). Log "[Settlement] celebrates the spring with song and dance." at full frequency. Uses existing `HomeSettlement` scan pattern. Creates a rare communal event tied to the seasonal work shanty system.
+
+- [ ] **Seasonal production enthusiasm** — In `ProductionSystem.cpp`'s worker contribution block, check `TimeManager::season`. During `Season::Autumn` (harvest), if the facility type is `ResourceType::Food`, apply a +10% `workerContrib` bonus. During `Season::Spring`, apply +5% to all facility types (renewed energy). Log "[Name] works with seasonal vigour at [Settlement]" at 1-in-15 frequency via a `static std::mt19937 s_seasonProdRng`. Uses existing `TimeManager` and `Facility::type` checks.
+
+- [ ] **Winter huddle need drain reduction** — In `NeedDrainSystem.cpp`, when `Season::Winter` and 3+ NPCs share the same `HomeSettlement`, reduce the `heatDrainMult` by 10% for each NPC at that settlement (pre-compute settlement population counts before the drain loop). Log "[Settlement] residents huddle together for warmth" once per day per qualifying settlement at 1-in-8 frequency via `static std::mt19937 s_huddleRng`. Uses existing `SeasonHeatDrainMult` and `HomeSettlement` component.
