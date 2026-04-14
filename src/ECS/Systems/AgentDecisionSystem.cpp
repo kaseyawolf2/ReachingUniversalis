@@ -1994,6 +1994,39 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Work buddy co-migration: workBestFriend follows if close to migrating ----
+                if (const auto* rel = registry.try_get<Relations>(entity)) {
+                    entt::entity workBuddy = rel->workBestFriend;
+                    if (workBuddy != entt::null && registry.valid(workBuddy)) {
+                        auto* wbState = registry.try_get<AgentState>(workBuddy);
+                        auto* wbTimer = registry.try_get<DeprivationTimer>(workBuddy);
+                        auto* wbHome  = registry.try_get<HomeSettlement>(workBuddy);
+                        if (wbState && wbTimer && wbHome
+                            && wbHome->settlement == home.settlement
+                            && wbState->behavior != AgentBehavior::Migrating
+                            && wbTimer->stockpileEmpty >= wbTimer->migrateThreshold * 0.7f) {
+                            static std::mt19937 s_wbCoMigRng{ std::random_device{}() };
+                            if (s_wbCoMigRng() % 4 == 0) {
+                                wbState->behavior = AgentBehavior::Migrating;
+                                wbState->target   = dest;
+                                wbTimer->stockpileEmpty = 0.f;
+                                // Log at full frequency
+                                auto lvWb = registry.view<EventLog>();
+                                if (!lvWb.empty()) {
+                                    std::string buddyName = "A worker";
+                                    if (const auto* bn = registry.try_get<Name>(workBuddy)) buddyName = bn->value;
+                                    std::string migrantName = "someone";
+                                    if (const auto* mn = registry.try_get<Name>(entity)) migrantName = mn->value;
+                                    std::string destName = "?";
+                                    if (const auto* ds = registry.try_get<Settlement>(dest)) destName = ds->name;
+                                    lvWb.get<EventLog>(*lvWb.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        buddyName + " follows work partner " + migrantName + " to " + destName + ".");
+                                }
+                            }
+                        }
+                    }
+                }
+
                 continue;
             }
         }
