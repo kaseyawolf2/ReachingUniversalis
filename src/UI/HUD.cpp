@@ -1918,9 +1918,12 @@ void HUD::DrawMinimap(const RenderSnapshot& snap) const {
         playerY = snap.playerWorldY;
     }
 
-    // Background
-    DrawRectangle(MM_X - 1, MM_Y - 1, MM_W + 2, MM_H + 2, Fade(BLACK, 0.70f));
-    DrawRectangleLines(MM_X - 1, MM_Y - 1, MM_W + 2, MM_H + 2, Fade(LIGHTGRAY, 0.4f));
+    // Background with title area
+    DrawRectangle(MM_X - 1, MM_Y - 13, MM_W + 2, MM_H + 14, Fade(BLACK, 0.70f));
+    DrawRectangle(MM_X - 1, MM_Y - 13, MM_W + 2, 12, Fade(WHITE, 0.04f));
+    DrawText("MAP", MM_X + 2, MM_Y - 12, 8, Fade(LIGHTGRAY, 0.5f));
+    DrawRectangle(MM_X - 1, MM_Y - 1, MM_W + 2, 1, Fade(LIGHTGRAY, 0.15f));
+    DrawRectangleLines(MM_X - 1, MM_Y - 13, MM_W + 2, MM_H + 14, Fade(LIGHTGRAY, 0.25f));
 
     // Roads
     for (const auto& r : roads) {
@@ -1946,14 +1949,23 @@ void HUD::DrawMinimap(const RenderSnapshot& snap) const {
         DrawCircleV(p, dotR,       dotCol);
         if (!s.modifierName.empty())
             DrawCircleLines((int)p.x, (int)p.y, dotR + 2.f, Fade(ModifierColour(s.modifierName), 0.8f));
+        // Settlement name label (truncated)
+        if (!s.name.empty()) {
+            char shortName[8];
+            std::snprintf(shortName, sizeof(shortName), "%.6s", s.name.c_str());
+            int labelW = MeasureText(shortName, 7);
+            int lx = (int)p.x - labelW / 2;
+            // Clamp within minimap bounds
+            if (lx < MM_X + 1) lx = MM_X + 1;
+            if (lx + labelW > MM_X + MM_W - 1) lx = MM_X + MM_W - labelW - 1;
+            DrawText(shortName, lx, (int)p.y - (int)dotR - 8, 7, Fade(WHITE, 0.5f));
+        }
     }
 
     // Player position — small white dot
     Vector2 pp = worldToMM(playerX, playerY);
     DrawCircleV(pp, 2.5f, WHITE);
 
-    // Label
-    DrawText("MAP", MM_X + 2, MM_Y + 2, 8, Fade(LIGHTGRAY, 0.4f));
 }
 
 // ---- Road hover tooltip ----
