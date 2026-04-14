@@ -5,5 +5,14 @@ struct WorldSchema;
 
 class NeedDrainSystem {
 public:
-    void Update(entt::registry& registry, float dt, const WorldSchema& schema);
+    explicit NeedDrainSystem(const WorldSchema& schema);
+
+    void Update(entt::registry& registry, float dt);
+
+private:
+    const WorldSchema& m_schema;
+
+    int  m_energyNeedId = -1;
+    int  m_heatNeedId   = -1;
+    bool m_needsCached  = false;
 };
