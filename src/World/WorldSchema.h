@@ -169,6 +169,9 @@ struct WorldSchema {
     std::unordered_map<std::string, int>          facilitiesByName;
     std::unordered_map<std::string, int>          agentTemplatesByName;
 
+    // Resource → Profession reverse lookup (built by BuildMaps from ProfessionDef::producesResource)
+    std::unordered_map<ResourceID, ProfessionID> resourceToProfession;
+
     // ---- Lookup helpers (safe, return INVALID_ID on miss) ----
 
     NeedID       FindNeed(const std::string& name) const       { auto it = needsByName.find(name);       return it != needsByName.end()       ? it->second : INVALID_ID; }
@@ -179,6 +182,38 @@ struct WorldSchema {
     EventID      FindEvent(const std::string& name) const      { auto it = eventsByName.find(name);      return it != eventsByName.end()      ? it->second : INVALID_ID; }
     GoalTypeID   FindGoal(const std::string& name) const       { auto it = goalsByName.find(name);       return it != goalsByName.end()       ? it->second : INVALID_ID; }
 
+    // Map a resource ID to the profession that produces it (INVALID_ID if none).
+    ProfessionID ProfessionForResource(ResourceID res) const {
+        auto it = resourceToProfession.find(res);
+        return it != resourceToProfession.end() ? it->second : FindIdleProfession();
+    }
+
+    // Get the display name for a profession ID (empty string if out of range).
+    const char* ProfessionLabel(ProfessionID id) const {
+        if (id >= 0 && id < (int)professions.size())
+            return professions[id].displayName.c_str();
+        return "Idle";
+    }
+
+    // Find the "Idle" profession ID (cached after BuildMaps, or linear scan).
+    ProfessionID FindIdleProfession() const {
+        for (auto& p : professions) if (p.isIdle) return p.id;
+        return INVALID_ID;
+    }
+
+    // Find the "Hauler" profession ID.
+    ProfessionID FindHaulerProfession() const {
+        for (auto& p : professions) if (p.isHauler) return p.id;
+        return INVALID_ID;
+    }
+
+    // Check if a profession produces a resource (i.e., is not Idle/Hauler).
+    bool ProfessionProduces(ProfessionID id) const {
+        if (id >= 0 && id < (int)professions.size())
+            return professions[id].producesResource != INVALID_ID;
+        return false;
+    }
+
     // ---- Build lookup maps from definition vectors ----
     void BuildMaps() {
         needsByName.clear();
@@ -188,7 +223,13 @@ struct WorldSchema {
         skillsByName.clear();
         for (auto& d : skills)       { d.id = (SkillID)(&d - skills.data());              skillsByName[d.name] = d.id; }
         professionsByName.clear();
-        for (auto& d : professions)  { d.id = (ProfessionID)(&d - professions.data());    professionsByName[d.name] = d.id; }
+        resourceToProfession.clear();
+        for (auto& d : professions)  {
+            d.id = (ProfessionID)(&d - professions.data());
+            professionsByName[d.name] = d.id;
+            if (d.producesResource != INVALID_ID)
+                resourceToProfession[d.producesResource] = d.id;
+        }
         seasonsByName.clear();
         for (auto& d : seasons)      { d.id = (SeasonID)(&d - seasons.data());            seasonsByName[d.name] = d.id; }
         eventsByName.clear();

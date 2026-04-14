@@ -57,7 +57,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
-    // Profession diversity: bitmask per settlement (bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack)
+    // Profession diversity: bitmask per settlement (bit N = professionID N that produces a resource)
     std::unordered_map<entt::entity, uint8_t> profDiversity;
 
     auto resIdx = [](int rt) -> int {
@@ -141,12 +141,9 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             }
             // Track profession diversity for settlement bonus
             if (const auto* prof = registry.try_get<Profession>(e)) {
-                switch (prof->type) {
-                    case ProfessionType::Farmer:      profDiversity[hs.settlement] |= 1; break;
-                    case ProfessionType::WaterCarrier: profDiversity[hs.settlement] |= 2; break;
-                    case ProfessionType::Lumberjack:   profDiversity[hs.settlement] |= 4; break;
-                    default: break;
-                }
+                if (prof->type >= 0 && prof->type < (int)schema.professions.size()
+                    && schema.professions[prof->type].producesResource != INVALID_ID)
+                    profDiversity[hs.settlement] |= (1 << prof->type);
             }
             workers[hs.settlement] += workerContrib;
             workerHeadCount[hs.settlement]++;
@@ -159,11 +156,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
         });
 
     // ---- Settlement profession diversity bonus ----
-    // Settlements with all 3 professions (Farmer, WaterCarrier, Lumberjack) get +3% production.
+    // Settlements with all producing professions get +3% production.
+    int fullProfMask = 0;
+    for (auto& pd : schema.professions)
+        if (pd.producesResource != INVALID_ID) fullProfMask |= (1 << pd.id);
     {
         static std::map<entt::entity, int> s_diverseLogged;
         for (auto& [settl, w] : workers) {
-            if (profDiversity.count(settl) && profDiversity[settl] == 7) {
+            if (fullProfMask != 0 && profDiversity.count(settl)
+                && (profDiversity[settl] & fullProfMask) == fullProfMask) {
                 w *= 1.03f;
                 // Log once per game-day at 1-in-10 frequency
                 if (s_diverseLogged.count(settl) == 0 || s_diverseLogged[settl] != tm.day) {

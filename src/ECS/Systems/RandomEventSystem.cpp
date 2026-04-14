@@ -529,14 +529,15 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     entt::exclude<Hauler, PlayerTag, BanditTag, ChildTag>).each(
                     [&](const Profession& prof, const HomeSettlement& hs) {
                         if (hs.settlement != e) return;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      profMask |= 1; break;
-                            case ProfessionType::WaterCarrier: profMask |= 2; break;
-                            case ProfessionType::Lumberjack:   profMask |= 4; break;
-                            default: break;
-                        }
+                        if (prof.type >= 0 && prof.type < (int)schema.professions.size()
+                            && schema.professions[prof.type].producesResource != INVALID_ID)
+                            profMask |= (1 << prof.type);
                     });
-                if ((profMask & 7) != 7) return;  // not all 3 professions present
+                // Check all producing professions are present
+                int fullProfMask2 = 0;
+                for (auto& pd : schema.professions)
+                    if (pd.producesResource != INVALID_ID) fullProfMask2 |= (1 << pd.id);
+                if (fullProfMask2 == 0 || (profMask & fullProfMask2) != fullProfMask2) return;
 
                 // 1-in-200 chance per game-day
                 if (m_rng() % 200 != 0) return;

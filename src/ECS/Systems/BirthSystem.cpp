@@ -126,7 +126,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             stockpile.quantities[RES_WATER] -= BIRTH_WATER_COST;
 
             // Determine this settlement's primary profession from its highest-rate facility.
-            ProfessionType settlProfession = ProfessionType::Idle;
+            int settlProfession = schema.FindIdleProfession();
             {
                 float maxRate = 0.f;
                 registry.view<ProductionFacility>().each(
@@ -134,7 +134,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                         if (fac.settlement != settl) return;
                         if (fac.baseRate > maxRate) {
                             maxRate = fac.baseRate;
-                            settlProfession = ProfessionForResource(fac.output);
+                            settlProfession = schema.ProfessionForResource(fac.output);
                         }
                     });
             }

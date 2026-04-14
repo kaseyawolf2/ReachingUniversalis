@@ -1,5 +1,6 @@
 #include "EconomicMobilitySystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <cmath>
 #include <map>
 #include <vector>
@@ -26,7 +27,7 @@ static constexpr float CHECK_INTERVAL        = 6.f;
 // Drain rates matching WorldGenerator values (used when restoring NPC status)
 static constexpr float DRAIN_ENERGY_NPC = 0.00050f;
 
-void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());
@@ -219,9 +220,9 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
         h.waitTimer  = 0.f;
         registry.emplace<Hauler>(e, h);
         {
-            ProfessionType oldProf = ProfessionType::Idle;
+            int oldProf = schema.FindIdleProfession();
             if (const auto* p = registry.try_get<Profession>(e)) oldProf = p->type;
-            registry.emplace_or_replace<Profession>(e, Profession{ ProfessionType::Hauler, oldProf });
+            registry.emplace_or_replace<Profession>(e, Profession{ schema.FindHaulerProfession(), oldProf });
         }
         registry.emplace_or_replace<Inventory>(e, Inventory{ {}, 15 });
 
