@@ -149,7 +149,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
 
-- [ ] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
+- [x] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
 
 - [ ] **SocialBehavior InteractionCooldowns doc comment** — `InteractionCooldowns` in `Components.h` now holds `skillCelebrateTimer` and `reconcileGlow` after the sub-struct relocation, but has no doc comment explaining that these are behavior-gating cooldowns (not mood state). Add a brief `///` comment above the struct listing each timer's purpose and units (game-seconds).
 
@@ -250,6 +250,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Shared emptyNames constant** — `GameState.cpp` and `HUD.cpp` each define their own `static const std::vector<std::string> emptyNames` for sharedSkillNames fallback. Extract into a shared file-scope constant in a common header (e.g., `RenderSnapshot.h` near the skillNames shared_ptr) so both translation units reference the same empty vector.
 
 - [ ] **GameState skillNames variable naming** — `GameState.cpp` uses `skillNames` as the local variable name after the emptyNames fallback, while `HUD.cpp` uses `sharedSkillNames`. Unify to the same name across all 4 consumer sites for grep-ability and consistency.
+
+- [ ] **SkillForProfession bounds-check assert** — `WorldSchema::SkillForProfession()` has the same bounds-check-and-fallback pattern as `ProfessionForResource()` but lacks the debug assert added in PR #72. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for consistency.
+
+- [ ] **SkillIdForResource bounds-check assert** — `WorldSchema::SkillIdForResource()` indexes `resourceToSkill` vector without a debug assert. Add `assert(res >= 0 && res < (int)resourceToSkill.size())` consistent with `ProfessionForResource()`.
 
 ## Phase 2 — UI Decoupling
 
