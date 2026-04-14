@@ -61,21 +61,21 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Generic DeprivationTimer need timers** — `DeprivationTimer` still has hardcoded `float hungerTimer, thirstTimer, energyTimer, heatTimer`. Replace with `std::vector<float>` indexed by NeedID, sized from `schema.needs`. Systems iterate generically instead of by named field.
 
-- [ ] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
+- [x] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
 
-- [ ] **Per-skill growth rate helpers** — Factor the repeated `profSkId >= 0 && profSkId < (int)schema.skills.size() ? schema.skills[profSkId].growthRate : 1.f` ternary in `AgentDecisionSystem.cpp` (lines ~598, ~804, ~1147) and `Components.h` (~503) into a single `WorldSchema::SkillGrowthRate(SkillID)` helper that encapsulates the bounds check and fallback.
+- [x] **Per-skill growth rate helpers** — Factor the repeated `profSkId >= 0 && profSkId < (int)schema.skills.size() ? schema.skills[profSkId].growthRate : 1.f` ternary in `AgentDecisionSystem.cpp` (lines ~598, ~804, ~1147) and `Components.h` (~503) into a single `WorldSchema::SkillGrowthRate(SkillID)` helper that encapsulates the bounds check and fallback.
 
-- [ ] **Symmetric skill fallback defaults** — In `AgentDecisionSystem.cpp`, out-of-range skill indices fall back to `growthRate = 1.f` (normal growth) but `decayRate = 0.f` (no decay). Unify the policy: add `WorldSchema::SkillDecayRate(SkillID)` with a documented default, and add a comment explaining the asymmetry or make both fall back to their `SkillDef` defaults.
+- [x] **Symmetric skill fallback defaults** — In `AgentDecisionSystem.cpp`, out-of-range skill indices fall back to `growthRate = 1.f` (normal growth) but `decayRate = 0.f` (no decay). Unify the policy: add `WorldSchema::SkillDecayRate(SkillID)` with a documented default, and add a comment explaining the asymmetry or make both fall back to their `SkillDef` defaults.
 
-- [ ] **Flat array resourceToSkill** — `WorldSchema::resourceToSkill` is `unordered_map<int,int>` but `ResourceID` is a dense integer. Replace with `std::vector<SkillID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead on the hot path in `Skills::ForResource()` and `Skills::SkillIdForResource()`.
+- [x] **Flat array resourceToSkill** — `WorldSchema::resourceToSkill` is `unordered_map<int,int>` but `ResourceID` is a dense integer. Replace with `std::vector<SkillID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead on the hot path in `Skills::ForResource()` and `Skills::SkillIdForResource()`.
 
-- [ ] **Use `inline constexpr` in SeasonThresholds.h** — `SeasonThresholds.h` uses `static constexpr` which creates separate copies per translation unit. Switch to `inline constexpr` (C++17) for single-definition constants across all TUs that include the header.
+- [x] **Use `inline constexpr` in SeasonThresholds.h** — `SeasonThresholds.h` uses `static constexpr` which creates separate copies per translation unit. Switch to `inline constexpr` (C++17) for single-definition constants across all TUs that include the header.
 
-- [ ] **Season threshold config in TOML** — Move the named constants in `SeasonThresholds.h` (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema` stores them; systems read from schema instead of compile-time constants. Enables modders to tune season breakpoints per world.
+- [x] **Season threshold config in TOML** — Move the named constants in `SeasonThresholds.h` (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema` stores them; systems read from schema instead of compile-time constants. Enables modders to tune season breakpoints per world.
 
-- [ ] **BuildMaps/ResolveCrossRefs ordering guard** — `WorldSchema::BuildResourceToSkillMap()` must be called after `ResolveCrossRefs()` or the map is empty. Add an `assert(crossRefsResolved)` flag to `WorldSchema` set by `ResolveCrossRefs()` and checked in `BuildResourceToSkillMap()` to catch misordering at dev time.
+- [x] **BuildMaps/ResolveCrossRefs ordering guard** — `WorldSchema::BuildResourceToSkillMap()` must be called after `ResolveCrossRefs()` or the map is empty. Add an `assert(crossRefsResolved)` flag to `WorldSchema` set by `ResolveCrossRefs()` and checked in `BuildResourceToSkillMap()` to catch misordering at dev time.
 
-- [ ] **DynBitset unit tests** — `DynBitset` has SBO with inline/heap modes and edge cases at the 64-bit boundary. Add a test file (`tests/DynBitsetTest.cpp`) that validates: singleBit for bits 0-63 (inline) and 64+ (heap), operator& across inline/heap combinations, intersectsAny, containsAll, operator|= mixed modes, and the n==1 edge case in operator&.
+- [x] **DynBitset unit tests** — `DynBitset` has SBO with inline/heap modes and edge cases at the 64-bit boundary. Add a test file (`tests/DynBitsetTest.cpp`) that validates: singleBit for bits 0-63 (inline) and 64+ (heap), operator& across inline/heap combinations, intersectsAny, containsAll, operator|= mixed modes, and the n==1 edge case in operator&.
 
 - [ ] **Rename m_plagueSpreadTimer** — `RandomEventSystem::m_plagueSpreadTimer` still uses plague-specific naming after the multi-spreading generalization. Rename to `m_spreadTimers` and update all references. Also rename `SpreadEntry` comment from "Active plagues" to "Active spreading events".
 
@@ -90,6 +90,36 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **EventLog-based diagnostic warnings** — `RandomEventSystem.cpp` and `WorldLoader.cpp` use `fprintf(stderr, ...)` for diagnostic warnings, which is invisible in-game. Route these through `EventLog::Push` or a dedicated diagnostic log channel so they appear in the HUD event log during gameplay.
 
 - [ ] **Dead effectType string field cleanup** — `EventDef::effectType` (std::string) is now dead weight at runtime after the `EventEffectType` enum was added. Remove it from `EventDef` in `WorldSchema.h` or mark it `#ifndef NDEBUG` for debug-only retention. Saves 32 bytes per event definition.
+
+- [ ] **Flat array resourceToProfession** — `WorldSchema::resourceToProfession` is still an `unordered_map<int,int>` but `ResourceID` is a dense integer (same pattern fixed for `resourceToSkill`). Replace with `std::vector<ProfessionID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead in `ProfessionForResource()`.
+
+- [ ] **SocialBehavior sub-struct relocation** — `MoodState::skillCelebrateTimer` and `MoodState::reconcileGlow` are functionally cooldown timers gating behavior, not persistent mood flags. Move them to `InteractionCooldowns` for consistency, and update all access sites in `AgentDecisionSystem.cpp`, `ProductionSystem.cpp`, and `ScheduleSystem.cpp`.
+
+- [ ] **WorldSchema::SkillGrowthRate INVALID_ID guard** — `AgentDecisionSystem.cpp` line ~598 passes the result of `SkillForProfession()` directly into `SkillGrowthRate()` without checking for `INVALID_ID` (-1). Add an explicit guard (`if (profSkId != INVALID_ID)`) before calling `SkillGrowthRate()`, consistent with the mentor growth call site at line ~1151 which already guards.
+
+- [ ] **DynBitset copy/move semantics tests** — `DynBitset` relies on compiler-generated copy/move constructors with a `vector<uint64_t>` heap member. Add tests to `tests/DynBitsetTest.cpp` that copy a heap-mode bitset and mutate the copy (verifying original is untouched), and move a heap-mode bitset (verifying source is empty).
+
+- [ ] **Season threshold TOML validation** — `WorldLoader::LoadSeasons()` accepts any float values for season thresholds without sanity checks. Add validation that `mildCold < moderateCold < harshCold`, all values are in `[0.0, 2.0]`, and log warnings for inverted or out-of-range values.
+
+- [ ] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill`.
+
+- [ ] **DynBitset promotion-path test** — Add a test to `tests/DynBitsetTest.cpp` that calls `set(200)` on a default-constructed (empty inline) `DynBitset`, exercising the `promoteIfNeeded` path from truly empty inline state to heap allocation. Verify `test(200)` returns true and `test(0)` returns false.
+
+- [ ] **Remove SeasonThresholds.h references from TODO.md** — Two completed TODO items (lines ~72, ~74) still reference `SeasonThresholds.h` as if it exists. The header was deleted when season thresholds moved to TOML. Clean up stale references.
+
+- [ ] **Assert-to-runtime check in BuildResourceToSkillMap** — `BuildResourceToSkillMap()` uses `assert(crossRefsResolved)` which compiles to nothing in release builds. Replace with a runtime check (`if (!crossRefsResolved) { fprintf(stderr, ...); return; }`) since this is a load-time path, not a hot path, and should catch misordering even in release.
+
+- [ ] **ConsumptionSystem schema reference** — `ConsumptionSystem` receives `const WorldSchema&` in `Update()` but doesn't store it. Add a `const WorldSchema& m_schema` member initialized in the constructor so `FindNeed()` results can be cached as member variables (prerequisite for the "Cache FindNeed results" task).
+
+- [ ] **GameState m_schema member ordering** — `GameState::m_schema` is declared between camera fields and `m_renderSystem`. Move it next to `m_simThread` since both hold references from the same constructor parameter, improving readability of the private section.
+
+- [ ] **DynBitset rename n1 test** — Rename `and_n1_both_heap_single_word` in `tests/DynBitsetTest.cpp` to `and_heap_heap_word0_only` since the test exercises the general heap loop (n=2), not the n<=1 branch. The companion `and_n1_edge_case` is the one that actually hits n<=1.
+
+- [ ] **Validate season threshold ordering in WorldLoader** — After loading season thresholds from TOML, verify the ordering invariant `mildCold < moderateCold < harshCold` and `lowProduction < harvestSeason`. Log a warning if thresholds are inverted, as this would cause nonsensical sky tints and schedule behavior.
+
+- [ ] **Schema-driven PriceSystem floor thresholds** — `PriceSystem::SeasonPriceFloor()` now takes `const SeasonThresholds&` but still uses hardcoded logic for which thresholds trigger price floors. Make the price floor rules data-driven: add a `priceFloorThreshold` field to `SeasonDef` in `WorldSchema.h` so each season can specify its own floor multiplier.
+
+- [ ] **WorldLoader OptFloat default source-of-truth** — `LoadSeasons()` uses `OptFloat(tbl, key, struct_default)` where the default comes from the struct's in-class initializer. If someone changes the struct default without updating the TOML comment, they silently diverge. Add a comment warning about this coupling, or define named constants in `WorldSchema.h` used by both the struct initializer and the TOML comment.
 
 ## Phase 2 — UI Decoupling
 
