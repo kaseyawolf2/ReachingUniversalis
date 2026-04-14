@@ -18,6 +18,7 @@ struct SeasonDef {
     float       heatDrainMod   = 0.0f;        // multiplier on heat need drain (0 = no cold)
     float       baseTemperature = 20.0f;      // noon temperature in °C
     float       tempSwing       = 8.0f;       // ± degrees from diurnal cycle
+    float       priceFloorMult  = 1.0f;       // multiplier on PRICE_MIN for seasonal price floors
 };
 
 // Approximate air temperature in degrees Celsius.

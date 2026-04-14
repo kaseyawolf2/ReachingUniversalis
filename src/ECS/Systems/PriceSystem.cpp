@@ -16,19 +16,9 @@ static constexpr float PRICE_MAX        =  25.f;   // raised slightly — season
 
 // Seasonal demand pressure: some resources are more valuable in certain seasons.
 // Returns a target floor price below which the price won't fall via decay.
-// Uses heatDrainMod and productionMod from the season definition to derive floors.
-static float SeasonPriceFloor(int res, const SeasonDef& sdef, const SeasonThresholds& st) {
-    if (res == RES_WOOD) {
-        // Wood is essential in cold seasons; price floor rises with heat drain demand
-        // heatDrainMod: 0 (summer) → floor 0.5, 0.15 (spring) → 1.0, 0.4 (autumn) → 2.5, 1.0 (winter) → 5.0
-        return 0.5f + 4.5f * sdef.heatDrainMod;
-    }
-    if (res == RES_FOOD) {
-        // Food is harder to produce in low-production seasons; floor rises as production drops
-        // productionMod: 0.2 (winter) → floor 2.0, 1.0+ → floor 1.0
-        return (sdef.productionMod < st.lowProduction) ? 2.0f : 1.0f;
-    }
-    return PRICE_MIN;
+// Driven by SeasonDef::priceFloorMult from the world schema (seasons.toml).
+static float SeasonPriceFloor(const SeasonDef& sdef) {
+    return PRICE_MIN * sdef.priceFloorMult;
 }
 
 // Fraction of price gap that closes per game-hour due to arbitrage pressure
@@ -72,7 +62,7 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 else if (stock < PRICE_LOW_STOCK)
                     price *= std::pow(1.f + PRICE_RISE_RATE, gameHoursDt);
 
-                float floor = SeasonPriceFloor(res, seasonDef, schema.seasonThresholds);
+                float floor = SeasonPriceFloor(seasonDef);
                 price = std::max(floor, std::min(PRICE_MAX, price));
 
                 // Log price spikes > 20% (rate-limited to once per 12 game-hours per resource)
@@ -128,8 +118,8 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
             priceA += (mid - priceA) * convergeFrac;
             priceB += (mid - priceB) * convergeFrac;
             // Re-apply floors after convergence
-            priceA = std::max(SeasonPriceFloor(res, seasonDef, schema.seasonThresholds), priceA);
-            priceB = std::max(SeasonPriceFloor(res, seasonDef, schema.seasonThresholds), priceB);
+            priceA = std::max(SeasonPriceFloor(seasonDef), priceA);
+            priceB = std::max(SeasonPriceFloor(seasonDef), priceB);
         }
     });
 }

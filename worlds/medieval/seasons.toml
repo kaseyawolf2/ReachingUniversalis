@@ -28,6 +28,7 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.15     # mild cold
 base_temperature = 12.0     # noon °C
 temp_swing       = 8.0      # ± degrees from diurnal cycle
+price_floor_mult = 2.0      # mild seasonal pressure on prices
 
 [[seasons]]
 name             = "Summer"
@@ -38,6 +39,7 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.0      # no cold
 base_temperature = 28.0
 temp_swing       = 8.0
+price_floor_mult = 1.0      # no seasonal price pressure
 
 [[seasons]]
 name             = "Autumn"
@@ -48,6 +50,7 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.4      # moderate cold
 base_temperature = 8.0
 temp_swing       = 8.0
+price_floor_mult = 2.0      # moderate cold raises price floors
 
 [[seasons]]
 name             = "Winter"
@@ -58,3 +61,4 @@ energy_drain_mod = 1.8      # exhausting cold
 heat_drain_mod   = 1.0      # full cold drain
 base_temperature = -8.0
 temp_swing       = 8.0
+price_floor_mult = 4.0      # scarcity and cold drive high price floors

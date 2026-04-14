@@ -276,6 +276,7 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         def.heatDrainMod    = OptFloat(*item, "heat_drain_mod", 0.0f);
         def.baseTemperature = OptFloat(*item, "base_temperature", 20.0f);
         def.tempSwing       = OptFloat(*item, "temp_swing", 8.0f);
+        def.priceFloorMult  = OptFloat(*item, "price_floor_mult", 1.0f);
         schema.seasons.push_back(std::move(def));
     }
     return true;
