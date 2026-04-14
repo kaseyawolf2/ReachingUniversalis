@@ -267,6 +267,9 @@ struct WorldSchema {
     // Resource → Profession reverse lookup (built by BuildMaps from ProfessionDef::producesResource)
     std::unordered_map<ResourceID, ProfessionID> resourceToProfession;
 
+    // Resource → Skill reverse lookup (built by BuildResourceToSkillMap after cross-refs resolved)
+    std::unordered_map<int, int> resourceToSkill;
+
     // Cached special profession IDs (populated by BuildMaps; INVALID_ID if absent)
     ProfessionID idleProfessionId   = INVALID_ID;
     ProfessionID haulerProfessionId = INVALID_ID;
@@ -338,5 +341,15 @@ struct WorldSchema {
         for (auto& d : facilities)   { d.id = (int)(&d - facilities.data());              facilitiesByName[d.name] = d.id; }
         agentTemplatesByName.clear();
         for (auto& d : agentTemplates) { d.id = (int)(&d - agentTemplates.data());        agentTemplatesByName[d.name] = d.id; }
+    }
+
+    // Build the resourceToSkill reverse lookup from SkillDef::forResource.
+    // Must be called AFTER ResolveCrossRefs populates forResource fields.
+    void BuildResourceToSkillMap() {
+        resourceToSkill.clear();
+        for (const auto& d : skills) {
+            if (d.forResource != INVALID_ID)
+                resourceToSkill[d.forResource] = d.id;
+        }
     }
 };

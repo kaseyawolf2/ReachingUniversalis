@@ -89,7 +89,7 @@ struct Profession {
     int careerChanges    = 0;
 };
 
-// Helper: ProfessionID → SkillID via schema's primarySkill mapping.
+// Helper: ProfessionID → SkillID via direct vector indexing.
 // Returns INVALID_ID if the profession ID is out of range.
 inline SkillID SkillForProfession(int profId, const WorldSchema& schema) {
     if (profId < 0 || profId >= (int)schema.professions.size()) return INVALID_ID;
@@ -481,18 +481,17 @@ struct Skills {
             levels[skillId] = v;
     }
 
-    // Returns the relevant skill for a given resource output type, using schema mappings.
+    // Returns the relevant skill for a given resource output type, using cached map.
     float ForResource(int rt, const WorldSchema& schema) const {
-        for (const auto& sd : schema.skills)
-            if (sd.forResource == rt) return Get(sd.id);
+        auto it = schema.resourceToSkill.find(rt);
+        if (it != schema.resourceToSkill.end()) return Get(it->second);
         return 0.5f;  // no skill mapped to this resource
     }
 
     // Returns the SkillID that maps to a given resource, or INVALID_ID.
     static int SkillIdForResource(int rt, const WorldSchema& schema) {
-        for (const auto& sd : schema.skills)
-            if (sd.forResource == rt) return sd.id;
-        return INVALID_ID;
+        auto it = schema.resourceToSkill.find(rt);
+        return (it != schema.resourceToSkill.end()) ? it->second : INVALID_ID;
     }
 
     // Advances the relevant skill for a resource by delta (capped at 1).
