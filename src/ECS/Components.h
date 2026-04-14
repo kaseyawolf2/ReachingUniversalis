@@ -89,11 +89,10 @@ struct Profession {
     int careerChanges    = 0;
 };
 
-// Helper: ProfessionID → SkillID via direct vector indexing.
+// Helper: ProfessionID → SkillID via flat professionToSkill vector.
 // Returns INVALID_ID if the profession ID is out of range.
 inline SkillID SkillForProfession(int profId, const WorldSchema& schema) {
-    if (profId < 0 || profId >= (int)schema.professions.size()) return INVALID_ID;
-    return schema.professions[profId].primarySkill;
+    return schema.SkillForProfession(profId);
 }
 
 // ---- World components ----
