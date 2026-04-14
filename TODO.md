@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Migration letter home** — In `AgentDecisionSystem.cpp`'s migration arrival block (where NPC arrives at new settlement), for each friend from the old settlement whose affinity dropped below 0.5 due to farewell strain, add +0.03 affinity recovery to both sides (cap at pre-farewell - 0.05). Track via a new `entt::entity previousSettlement = entt::null` field on `HomeSettlement` in `Components.h` (set before reassignment). Log "[Migrant] sends word back to [Friend]" at 1-in-4 frequency. Partially offsets farewell strain for strong bonds.
-
 ## Backlog
 
 - [ ] **Lonely migrant morale drain** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (all friends are elsewhere), apply -0.005 to home `Settlement::morale` per game-day via a `static std::set<entt::entity> s_lonelyChecked` per-day guard. Log "[Name] feels lonely at [Settlement]" at 1-in-10 frequency. Creates a visible cost of social isolation after migration.
@@ -85,7 +83,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Crisis memory affects migration scoring** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a new `float crisisMemory = 0.f` field to `DeprivationTimer` in `Components.h`. Set to `3.f` (game-days) when a Drought or Plague starts at the NPC's settlement (in `RandomEventSystem.cpp` drought/plague trigger blocks). In migration scoring, if `crisisMemory > 0`, apply a `-0.2` penalty to the NPC's current settlement score (making them more likely to leave). Tick down `crisisMemory` by 1 per game-day in `NeedDrainSystem.cpp`. Creates a lasting psychological impact of crisis.
 
+- [ ] **Return letter from old friends** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC chats with someone whose `Relations::affinity` toward a migrant (at a different settlement, tracked via `prevSettlement`) is >= 0.4, 1-in-12 chance the chatting NPC gains +0.01 affinity toward the migrant too (word of mouth). Log "[NPC] hears news of [Migrant] from [Friend]" at 1-in-8 frequency. Creates indirect social connections that maintain migrant relevance in old communities.
+
+- [ ] **Migrant nostalgia on crisis** — In `RandomEventSystem.cpp`'s drought/plague trigger blocks, when a crisis begins, scan NPCs at the settlement whose `HomeSettlement::prevSettlement` is non-null (recent migrants). For each, if they have 2+ friends (affinity >= 0.4) at their old settlement, apply `effectiveMigrateThreshold *= 0.7f` via a new `bool nostalgicMigrant = false` flag on `DeprivationTimer`. Log "[Migrant] longs for [OldSettlement] during the crisis" at 1-in-6 frequency. Crisis makes homesick migrants more likely to return.
+
 ## Recently Done
+
+- [x] **Migration letter home** — On arrival at new settlement, scans friends at old settlement with
+  strained affinity (0.05-0.5), recovers +0.03 on both sides. Logs at 1-in-4.
 
 - [x] **Post-crisis community gathering** — In `RandomEventSystem.cpp` modifier expiry block, when
   Drought or Plague ends, scans NPC pairs with mutual affinity >= 0.2, boosts by +0.02. Logs once.
