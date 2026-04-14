@@ -853,6 +853,41 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                             logV2.get<EventLog>(*logV2.begin()).Push(tm3.day, (int)tm3.hourOfDay, pbuf);
                         }
                     }
+
+                    // ---- Hauler trade gossip: share route info with nearby same-home haulers ----
+                    if (tripProfit > 50.f) {
+                        static std::mt19937 s_gossipRng{std::random_device{}()};
+                        std::string routeName = (cargoSourceName.empty() ? "???" : cargoSourceName)
+                            + std::string("\xe2\x86\x92") + (destSettl ? destSettl->name : "???");
+                        auto* myHsG = registry.try_get<HomeSettlement>(entity);
+                        if (myHsG && myHsG->settlement != entt::null) {
+                            registry.view<Hauler, HomeSettlement, Position>(entt::exclude<PlayerTag>).each(
+                                [&](auto other, Hauler& otherH, const HomeSettlement& otherHs, const Position& oPos) {
+                                    if (other == entity) return;
+                                    if (otherHs.settlement != myHsG->settlement) return;
+                                    float dx = oPos.x - pos.x, dy = oPos.y - pos.y;
+                                    if (dx*dx + dy*dy > 80.f * 80.f) return;
+                                    // Share route info
+                                    otherH.bestRoute = routeName;
+                                    // Log at 1-in-6 frequency
+                                    if (s_gossipRng() % 6 == 0) {
+                                        auto logVG = registry.view<EventLog>();
+                                        auto tmVG  = registry.view<TimeManager>();
+                                        if (!logVG.empty() && !tmVG.empty()) {
+                                            const auto& tmG = tmVG.get<TimeManager>(*tmVG.begin());
+                                            std::string n1 = "Hauler", n2 = "Hauler";
+                                            if (auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                            if (auto* nm = registry.try_get<Name>(other)) n2 = nm->value;
+                                            char gbuf[200];
+                                            std::snprintf(gbuf, sizeof(gbuf),
+                                                "%s tips off %s about the %s route",
+                                                n1.c_str(), n2.c_str(), routeName.c_str());
+                                            logVG.get<EventLog>(*logVG.begin()).Push(tmG.day, (int)tmG.hourOfDay, gbuf);
+                                        }
+                                    }
+                                });
+                        }
+                    }
                 }
 
                 // ---- Hauler mentorship: veterans teach novices at the same settlement ----
