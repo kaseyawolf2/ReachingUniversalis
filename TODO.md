@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
+
 ## Done
 
 - [x] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
@@ -22,8 +24,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
 
 - [ ] **Bankruptcy survivor inspiration** — In `AgentDecisionSystem.cpp`'s idle chat block, when a bankruptcy survivor (`DeprivationTimer::bankruptSurvivor == true`) chats with a non-survivor NPC at the same settlement, 1-in-10 chance to boost the non-survivor's `Relations::affinity` toward the survivor by +0.02 and log "[Survivor] inspires [Other] with their comeback story at [Settlement]." Uses existing idle chat stagger and proximity check.
 
