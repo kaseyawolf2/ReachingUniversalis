@@ -638,6 +638,22 @@ TEST(explicit_size_constructor_heap) {
     assert(b.test(64));
 }
 
+TEST(promotion_from_empty_inline_to_heap) {
+    // Default-constructed DynBitset: m_inline == 0, m_heap is empty (inline mode).
+    // Calling set(200) must promote from truly empty inline state to heap
+    // allocation via promoteIfNeeded, since word index 200/64 == 3 > 0.
+    DynBitset b;
+    assert(b.none());
+    b.set(200);
+    assert(b.test(200));
+    assert(!b.test(0));
+    assert(!b.test(63));
+    assert(!b.test(64));
+    assert(!b.test(199));
+    assert(!b.test(201));
+    assert(b.any());
+}
+
 // ---------------------------------------------------------------------------
 
 int main() {
@@ -718,6 +734,7 @@ int main() {
     RUN(inequality_inline_heap);
     RUN(explicit_size_constructor_inline);
     RUN(explicit_size_constructor_heap);
+    RUN(promotion_from_empty_inline_to_heap);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
