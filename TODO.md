@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
-
 ## Done
+
+- [x] **Elder departure farewell feast** — In `AgentDecisionSystem.cpp`'s migration block, when an elder (age>60) with 3+ local friends does eventually migrate (threshold exceeded despite resistance), all friends at the old settlement lose -0.01 morale on `Settlement` and gain +0.03 mutual affinity among themselves (bonding over shared loss). Log "[Settlement] holds a farewell feast for [Elder]" once. Creates a memorable social event when a community pillar finally leaves.
+
 
 - [x] **Elder storytelling event** — In `RandomEventSystem.cpp`, add a new stochastic event (1-in-200 per settlement per check). When triggered, find an elder (age>60, skill>=0.7) at the settlement. All NPCs at the settlement with `Relations::affinity >= 0.2` toward the elder gain +0.02 mutual affinity. The elder gains +0.01 affinity toward all attendees. Log "[Elder] tells tales of the old days at [Settlement]" once. Boost settlement morale by +0.02. Creates a social gathering event around respected elders.
 
@@ -119,6 +120,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Storytelling attendee affinity toward elder** — In `RandomEventSystem.cpp`'s elder storytelling event block, after the event triggers, each attendee also gains +0.02 affinity toward the storytelling elder (not just mutual among attendees). Log "[NPC] is captivated by [Elder]'s tales at [Settlement]" at 1-in-6 frequency per attendee. Strengthens the elder-community bond bidirectionally.
 
 - [ ] **Repeated storytelling familiarity** — In `RandomEventSystem.cpp`'s elder storytelling event block, track a `static std::map<entt::entity, int> s_storyCount` counting how many times each elder has told stories. On 3rd+ telling, increase the morale boost from +0.02 to +0.04 and affinity gains from +0.02 to +0.03 (the elder's tales grow richer with retelling). Log "[Elder] enthralls [Settlement] with their legendary tales" on 3rd+ telling. Creates progression in the storytelling mechanic.
+
+- [ ] **Farewell feast morale recovery** — In `AgentDecisionSystem.cpp`'s idle chat block, when two NPCs who both attended a farewell feast (check mutual affinity >= 0.4 at the same settlement after an elder departure) chat, 1-in-8 chance to log "[NPC1] and [NPC2] reminisce about [Settlement]'s farewell feast" and apply `Settlement::morale += 0.005f` (cap 1.0). Creates a slow morale recovery arc after an elder leaves.
+
+- [ ] **Elder welcome feast on migration arrival** — In `AgentDecisionSystem.cpp`'s migration arrival block (where `Migrating` NPCs reach their destination), when an elder (age>60) arrives at a new settlement with 5+ residents, apply `Settlement::morale += 0.01f` (cap 1.0) and boost the elder's affinity toward all residents by +0.01. Log "[Settlement] welcomes [Elder] with open arms" once. Mirrors the farewell feast with a welcoming event at the destination.
 
 ## Recently Done
 
