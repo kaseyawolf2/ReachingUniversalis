@@ -19,6 +19,11 @@ SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const World
     : m_input(input), m_snapshot(snapshot), m_schema(schema)
 {
     WorldGenerator::Populate(m_registry, m_schema);
+
+    // Cache skill display names once; schema is immutable after load.
+    m_cachedSkillNames.resize(m_schema.skills.size());
+    for (int i = 0; i < (int)m_schema.skills.size(); ++i)
+        m_cachedSkillNames[i] = m_schema.skills[i].displayName;
 }
 
 SimThread::~SimThread() {
@@ -2024,7 +2029,6 @@ void SimThread::WriteSnapshot() {
         // Master count and average skills from pre-computed aggregate
         int masterCount = settlAgg.count(e) ? settlAgg[e].masterCount : 0;
         std::vector<float> avgSkills;
-        std::vector<std::string> settlSkillNames;
         if (settlAgg.count(e) && settlAgg[e].skillCount > 0) {
             float n = (float)settlAgg[e].skillCount;
             const auto& sums = settlAgg[e].skillSums;
@@ -2032,10 +2036,6 @@ void SimThread::WriteSnapshot() {
             for (int si = 0; si < (int)sums.size(); ++si)
                 avgSkills[si] = sums[si] / n;
         }
-        // Populate skill names from schema
-        settlSkillNames.resize(m_schema.skills.size());
-        for (int si = 0; si < (int)m_schema.skills.size(); ++si)
-            settlSkillNames[si] = m_schema.skills[si].displayName;
 
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
@@ -2078,7 +2078,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            std::move(avgSkills), std::move(settlSkillNames), diverse, afterglow, vigilActive, mourningActive, harmony
+            std::move(avgSkills), m_cachedSkillNames, diverse, afterglow, vigilActive, mourningActive, harmony
         });
     });
 
@@ -2146,17 +2146,20 @@ void SimThread::WriteSnapshot() {
     // skill is pre-aggregated into a (sum, count) pair per settlement + resource type.
     {
         // Build skill accum: [settlement][resourceId] = {sum, count}
+        // Flat vector indexed by ResourceID replaces nested std::map for less allocation.
         struct SA { float sum = 0.f; int count = 0; };
-        std::map<entt::entity, std::map<int, SA>> facSkillAccum;  // resource-keyed
-        std::map<entt::entity, int> facWorkers;   // settlement → working count
+        const int nResources = (int)m_schema.resources.size();
+        std::unordered_map<entt::entity, std::vector<SA>> facSkillAccum;  // resource-keyed
+        std::unordered_map<entt::entity, int> facWorkers;   // settlement → working count
         m_registry.view<AgentState, HomeSettlement>().each(
             [&](auto e, const AgentState& as, const HomeSettlement& hs) {
             if (as.behavior != AgentBehavior::Working) return;
             facWorkers[hs.settlement]++;
             if (const auto* sk = m_registry.try_get<Skills>(e)) {
                 auto& acc = facSkillAccum[hs.settlement];
+                if (acc.empty()) acc.resize(nResources);
                 for (const auto& sd : m_schema.skills) {
-                    if (sd.forResource != INVALID_ID) {
+                    if (sd.forResource != INVALID_ID && sd.forResource < nResources) {
                         acc[sd.forResource].sum += sk->Get(sd.id);
                         acc[sd.forResource].count++;
                     }
@@ -2170,10 +2173,11 @@ void SimThread::WriteSnapshot() {
 
             int  workers  = facWorkers.count(fac.settlement) ? facWorkers.at(fac.settlement) : 0;
             float avgSkill = 0.5f;
-            if (facSkillAccum.count(fac.settlement)) {
-                auto it = facSkillAccum.at(fac.settlement).find(fac.output);
-                if (it != facSkillAccum.at(fac.settlement).end() && it->second.count > 0)
-                    avgSkill = it->second.sum / it->second.count;
+            {
+                auto it = facSkillAccum.find(fac.settlement);
+                if (it != facSkillAccum.end() && fac.output >= 0 && fac.output < nResources
+                    && it->second[fac.output].count > 0)
+                    avgSkill = it->second[fac.output].sum / it->second[fac.output].count;
             }
             std::string sname;
             float facMorale = 0.5f;
@@ -2526,9 +2530,7 @@ void SimThread::WriteSnapshot() {
                 int nSkills = (int)m_schema.skills.size();
                 panel.masterCount.assign(nSkills, 0);
                 panel.journeymanCount.assign(nSkills, 0);
-                panel.skillNames.resize(nSkills);
-                for (int i = 0; i < nSkills; ++i)
-                    panel.skillNames[i] = m_schema.skills[i].displayName;
+                panel.skillNames = m_cachedSkillNames;
                 m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
                     [&](auto, const Skills& sk, const HomeSettlement& hs) {
                         if (hs.settlement != e) return;
@@ -2644,9 +2646,7 @@ void SimThread::WriteSnapshot() {
             }
             if (const auto* sk = m_registry.try_get<Skills>(pe)) {
                 playerSkillLevels = sk->levels;
-                playerSkillNames.resize(m_schema.skills.size());
-                for (int si = 0; si < (int)m_schema.skills.size(); ++si)
-                    playerSkillNames[si] = m_schema.skills[si].displayName;
+                playerSkillNames = m_cachedSkillNames;
             }
         }
     }
@@ -2827,13 +2827,8 @@ void SimThread::WriteSnapshot() {
         m_snapshot.facilities   = std::move(facilities);
         m_snapshot.worldStatus  = std::move(worldStatus);
         m_snapshot.stockpilePanel = std::move(panel);
-        // Populate schema skill names once (shared by all agents/settlements)
-        {
-            int nsk = (int)m_schema.skills.size();
-            m_snapshot.skillNames.resize(nsk);
-            for (int i = 0; i < nsk; ++i)
-                m_snapshot.skillNames[i] = m_schema.skills[i].displayName;
-        }
+        // Skill names are cached once at construction; assign from cache.
+        m_snapshot.skillNames = m_cachedSkillNames;
         m_snapshot.day          = day;
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;
