@@ -69,7 +69,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     float hungerPct, thirstPct, energyPct, heatPct;
     float hungerCrit, thirstCrit, energyCrit, heatCrit;
     float playerAgeDays, playerMaxDays, playerGold;
-    float playerFarmSkill, playerWaterSkill, playerWoodSkill;
+    std::vector<float> playerSkills;
+    std::vector<std::string> playerSkillNames;
     float temperature;
     bool  playerInPlagueZone;
     int   playerReputation;
@@ -103,9 +104,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerAgeDays   = snap.playerAgeDays;
         playerMaxDays   = snap.playerMaxDays;
         playerGold      = snap.playerGold;
-        playerFarmSkill  = snap.playerFarmSkill;
-        playerWaterSkill = snap.playerWaterSkill;
-        playerWoodSkill  = snap.playerWoodSkill;
+        playerSkills      = snap.playerSkills;
+        playerSkillNames  = snap.playerSkillNames;
         playerInventory         = snap.playerInventory;
         playerInventoryCapacity = snap.playerInventoryCapacity;
         tradeHint            = snap.tradeHint;
@@ -122,7 +122,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     // ---- Player panel (top-left) ----
     if (playerAlive) {
         int invItemLines = std::max(1, (int)playerInventory.size()); // at least 1 for "(empty)"
-        int skillLine    = (playerFarmSkill >= 0.f) ? 1 : 0;
+        int skillLine    = !playerSkills.empty() ? 1 : 0;
         int tradeLines   = tradeHint.empty() ? 0 : 1;
         int ledgerLines  = tradeLedger.empty() ? 0 : (1 + std::min((int)tradeLedger.size(), 4));
         int plagueLines  = playerInPlagueZone ? 1 : 0;
@@ -183,16 +183,25 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
 
         // Skills (shown only when player has skills component)
         int skillsEndY = repY + BAR_GAP;
-        if (playerFarmSkill >= 0.f) {
-            char skBuf[64];
+        if (!playerSkills.empty()) {
             auto skCol = [](float s) -> Color {
                 return (s >= 0.65f) ? Fade(GOLD, 0.9f) : (s >= 0.35f) ? GREEN : Fade(GRAY, 0.8f);
             };
-            std::snprintf(skBuf, sizeof(skBuf), "Farm:%.0f%% Wtr:%.0f%% Wood:%.0f%%",
-                          playerFarmSkill*100.f, playerWaterSkill*100.f, playerWoodSkill*100.f);
-            float bestSk = std::max({playerFarmSkill, playerWaterSkill, playerWoodSkill});
+            // Build a compact skill summary string
+            std::string skStr;
+            float bestSk = 0.f;
+            for (int si = 0; si < (int)playerSkills.size(); ++si) {
+                if (si > 0) skStr += " ";
+                // Use a short label (first 4 chars of display name)
+                std::string label = (si < (int)playerSkillNames.size() && !playerSkillNames[si].empty())
+                    ? playerSkillNames[si].substr(0, 4) : "Sk" + std::to_string(si);
+                char tmp[24];
+                std::snprintf(tmp, sizeof(tmp), "%s:%.0f%%", label.c_str(), playerSkills[si] * 100.f);
+                skStr += tmp;
+                if (playerSkills[si] > bestSk) bestSk = playerSkills[si];
+            }
             DrawText("Skills:", BAR_X, skillsEndY, 11, LIGHTGRAY);
-            DrawText(skBuf, BAR_X + 52, skillsEndY, 11, skCol(bestSk));
+            DrawText(skStr.c_str(), BAR_X + 52, skillsEndY, 11, skCol(bestSk));
             skillsEndY += BAR_GAP;
         }
 
@@ -569,9 +578,11 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     Vector2 world = GetScreenToWorld2D(mouse, cam);
 
     std::vector<RenderSnapshot::AgentEntry> agents;
+    std::vector<std::string> skillNames;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents = snap.agents;
+        skillNames = snap.skillNames;
     }
 
     // Build surname→count and familyName→count maps for family cluster display.
@@ -873,30 +884,25 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
                    (best->illNeedIdx == 2) ? "(ill: fatigue)" : "(ill)";
     }
 
-    // Skill line: show the relevant skill for this agent's profession
+    // Skill line: show the best skill for this agent
     bool showSkill = false;
     Color skillColor = GREEN;
-    if (best->farmingSkill >= 0.f) {
-        float sk = 0.5f;
-        const char* skLabel = "Skill";
-        if (best->profession == "Farmer") {
-            sk = best->farmingSkill; skLabel = "Farming";
-        } else if (best->profession == "Water Carrier") {
-            sk = best->waterSkill; skLabel = "Water";
-        } else if (best->profession == "Woodcutter") {
-            sk = best->woodcuttingSkill; skLabel = "Woodcutting";
-        } else {
-            // For unspecialized/child: show highest skill
-            sk = std::max({best->farmingSkill, best->waterSkill, best->woodcuttingSkill});
-            skLabel = (sk == best->farmingSkill) ? "Farming" :
-                      (sk == best->waterSkill)   ? "Water"   : "Woodcutting";
-        }
+    if (!best->skillLevels.empty()) {
+        float sk = 0.f;
+        std::string skLabel = "Skill";
+        // Find best skill
+        int bestIdx = 0;
+        for (int i = 1; i < (int)best->skillLevels.size(); ++i)
+            if (best->skillLevels[i] > best->skillLevels[bestIdx]) bestIdx = i;
+        sk = best->skillLevels[bestIdx];
+        if (bestIdx < (int)skillNames.size() && !skillNames[bestIdx].empty())
+            skLabel = skillNames[bestIdx];
         const char* rank = (sk >= 0.85f) ? " [Master]"  :
                            (sk >= 0.65f) ? " [Expert]"  :
                            (sk >= 0.40f) ? " [Trained]" :
                            (sk >= 0.15f) ? " [Novice]"  : " [Unskilled]";
         skillColor = (sk >= 0.65f) ? Fade(GOLD, 0.9f) : (sk >= 0.35f) ? GREEN : Fade(GRAY, 0.8f);
-        std::snprintf(line6, sizeof(line6), "%s: %.0f%%%s", skLabel, sk * 100.f, rank);
+        std::snprintf(line6, sizeof(line6), "%s: %.0f%%%s", skLabel.c_str(), sk * 100.f, rank);
         showSkill = true;
     }
 
@@ -908,20 +914,18 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         std::snprintf(milestoneLine, sizeof(milestoneLine), "%s", best->specialisation.c_str());
         milestoneColor = Fade(GOLD, 0.9f);
         showMilestone = true;
-    } else if (best->farmingSkill >= 0.f) {
+    } else if (!best->skillLevels.empty()) {
         // Journeyman title for skills >= 0.5 (below master threshold)
         float bestSk = -1.f;
-        const char* bestType = "";
-        struct { float val; const char* name; } skills[] = {
-            { best->farmingSkill, "Farmer" },
-            { best->waterSkill, "Water Carrier" },
-            { best->woodcuttingSkill, "Woodcutter" }
-        };
-        for (auto& s : skills) {
-            if (s.val > bestSk) { bestSk = s.val; bestType = s.name; }
+        std::string bestType;
+        for (int i = 0; i < (int)best->skillLevels.size(); ++i) {
+            if (best->skillLevels[i] > bestSk) {
+                bestSk = best->skillLevels[i];
+                bestType = (i < (int)skillNames.size()) ? skillNames[i] : "Unknown";
+            }
         }
         if (bestSk >= 0.5f) {
-            std::snprintf(milestoneLine, sizeof(milestoneLine), "Journeyman %s", bestType);
+            std::snprintf(milestoneLine, sizeof(milestoneLine), "Journeyman %s", bestType.c_str());
             milestoneColor = Fade(GOLD, 0.6f);
             showMilestone = true;
         }
@@ -946,7 +950,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     bool showSkillDecay = false;
     if (best->behavior != AgentBehavior::Working &&
         best->role != RenderSnapshot::AgentRole::Player &&
-        (best->farmingSkill >= 0.5f || best->waterSkill >= 0.5f || best->woodcuttingSkill >= 0.5f)) {
+        std::any_of(best->skillLevels.begin(), best->skillLevels.end(), [](float v){ return v >= 0.5f; })) {
         showSkillDecay = true;
     }
 
@@ -1344,11 +1348,20 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         std::snprintf(lineMasters, sizeof(lineMasters), "Masters: %d", best->masterCount);
 
     // Line: average skills
-    char lineSkills[64] = {};
-    bool showSkills = (best->avgFarming > 0.f || best->avgWater > 0.f || best->avgWood > 0.f);
-    if (showSkills)
-        std::snprintf(lineSkills, sizeof(lineSkills), "Skills: Farm %d%% Water %d%% Wood %d%%",
-                      (int)(best->avgFarming * 100), (int)(best->avgWater * 100), (int)(best->avgWood * 100));
+    char lineSkills[256] = {};
+    bool showSkills = std::any_of(best->avgSkills.begin(), best->avgSkills.end(), [](float v){ return v > 0.f; });
+    if (showSkills) {
+        std::string skillStr = "Skills:";
+        for (int i = 0; i < (int)best->avgSkills.size(); ++i) {
+            if (best->avgSkills[i] <= 0.f) continue;
+            std::string label = (i < (int)best->skillNames.size() && !best->skillNames[i].empty())
+                ? best->skillNames[i].substr(0, 4) : "?";
+            char tmp[32];
+            std::snprintf(tmp, sizeof(tmp), " %s %d%%", label.c_str(), (int)(best->avgSkills[i] * 100));
+            skillStr += tmp;
+        }
+        std::snprintf(lineSkills, sizeof(lineSkills), "%s", skillStr.c_str());
+    }
 
     // Line 7 (optional): pending estates
     char lineEst[48] = {};

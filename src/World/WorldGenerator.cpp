@@ -63,6 +63,7 @@ static Needs MakeNeeds() {
 static void SpawnNPCs(entt::registry& registry,
                       entt::entity settlement,
                       float cx, float cy, int count,
+                      const WorldSchema& schema,
                       int profession = -1) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI;
@@ -95,9 +96,14 @@ static void SpawnNPCs(entt::registry& registry,
         age.maxDays = lifespan_dist(wg_rng);
         registry.emplace<Age>(npc, age);
         registry.emplace<Name>(npc, Name{ MakeName() });
-        // Starting skills: vary ±0.15 around 0.5 baseline
-        static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
-        registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
+        // Starting skills: vary ±0.15 around each skill's startValue
+        {
+            static std::uniform_real_distribution<float> skill_var(-0.15f, 0.15f);
+            Skills npcSkills = Skills::Make(schema);
+            for (int si = 0; si < (int)schema.skills.size(); ++si)
+                npcSkills.levels[si] = std::clamp(schema.skills[si].startValue + skill_var(wg_rng), 0.f, 1.f);
+            registry.emplace<Skills>(npc, std::move(npcSkills));
+        }
         registry.emplace<Reputation>(npc);
         registry.emplace<Profession>(npc, Profession{ profession });
 
@@ -303,9 +309,9 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     }
 
     // ---- Population ----
-    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, PROF_FARMER);
-    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, PROF_WATER);
-    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, PROF_LUMBER);
+    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, schema, PROF_FARMER);
+    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, schema, PROF_WATER);
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, schema, PROF_LUMBER);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);
@@ -331,6 +337,6 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     playerAge.days    = 0.f;
     playerAge.maxDays = lifespan_dist(wg_rng);
     registry.emplace<Age>(player, playerAge);
-    // Player starts with slightly above average skills — represents a capable adult
-    registry.emplace<Skills>(player, Skills{ 0.4f, 0.4f, 0.4f });
+    // Player starts with slightly below-average skills — represents a capable adult
+    registry.emplace<Skills>(player, Skills::Make(schema, 0.4f));
 }

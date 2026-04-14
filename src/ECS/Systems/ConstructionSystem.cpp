@@ -100,7 +100,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
     std::map<entt::entity, int> skilledElderCount;
     registry.view<Age, Skills, HomeSettlement>(entt::exclude<PlayerTag>).each(
         [&](const Age& age, const Skills& sk, const HomeSettlement& hs) {
-        if (age.days > 60.f && (sk.farming >= 0.7f || sk.water_drawing >= 0.7f || sk.woodcutting >= 0.7f))
+        if (age.days > 60.f && sk.AnyAbove(0.7f))
             ++skilledElderCount[hs.settlement];
     });
 

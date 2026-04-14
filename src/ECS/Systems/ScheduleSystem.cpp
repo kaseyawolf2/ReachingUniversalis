@@ -139,7 +139,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                     });
                 }
                 if (auto* sk = registry.try_get<Skills>(entity))
-                    sk->Advance(primary, 0.15f);
+                    sk->Advance(primary, 0.15f, schema);
 
                 // Capture the followed adult's name before removing ChildTag
                 std::string raisedBy;
@@ -177,13 +177,15 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         msg += " (raised by " + raisedBy + ")";
                     // Append highest skill and value
                     if (const auto* sk = registry.try_get<Skills>(entity)) {
-                        float best = sk->farming;
-                        const char* skName = "Farming";
-                        if (sk->water_drawing > best) { best = sk->water_drawing; skName = "Water"; }
-                        if (sk->woodcutting   > best) { best = sk->woodcutting;   skName = "Woodcutting"; }
-                        char skBuf[48];
-                        std::snprintf(skBuf, sizeof(skBuf), " — best skill: %s %.0f%%", skName, best * 100.f);
-                        msg += skBuf;
+                        int bestId = sk->BestSkillId();
+                        if (bestId >= 0) {
+                            float best = sk->Get(bestId);
+                            std::string skName = (bestId < (int)schema.skills.size())
+                                ? schema.skills[bestId].displayName : "Skill";
+                            char skBuf[64];
+                            std::snprintf(skBuf, sizeof(skBuf), " — best skill: %s %.0f%%", skName.c_str(), best * 100.f);
+                            msg += skBuf;
+                        }
                     }
                     logv2.get<EventLog>(*logv2.begin()).Push(
                         tm.day, (int)tm.hourOfDay, msg);
@@ -319,12 +321,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
             int aptitude    = RES_FOOD;
             bool         hasAptitude = false;
             if (const auto* skills = registry.try_get<Skills>(entity)) {
-                float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
-                if (mx > 0.25f) {
+                int bestId = skills->BestSkillId();
+                if (bestId >= 0 && skills->Get(bestId) > 0.25f) {
                     hasAptitude = true;
-                    if      (skills->water_drawing == mx) aptitude = RES_WATER;
-                    else if (skills->woodcutting   == mx) aptitude = RES_WOOD;
-                    // else stays Food/farming
+                    if (bestId < (int)schema.skills.size())
+                        aptitude = schema.skills[bestId].forResource;
                 }
             }
 
@@ -410,17 +411,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 }
                                 // Skill transfer: experienced workers carry knowledge to new careers
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
-                                    // Check old profession's skill level
-                                    int oldRes = (prof->type >= 0 && prof->type < (int)schema.professions.size())
-                                                 ? schema.professions[prof->type].producesResource : -1;
-                                    float oldSkill = sk->ForResource(oldRes);
+                                    SkillID oldSkId = SkillForProfession(prof->type, schema);
+                                    float oldSkill = (oldSkId != INVALID_ID) ? sk->Get(oldSkId) : 0.f;
                                     if (oldSkill >= 0.5f) {
-                                        // Grant +0.05 to the new profession's skill (capped at 0.5)
-                                        int newRes = (newProf >= 0 && newProf < (int)schema.professions.size())
-                                                     ? schema.professions[newProf].producesResource : -1;
-                                        float cur = sk->ForResource(newRes);
-                                        if (cur < 0.5f)
-                                            sk->Advance(newRes, std::min(0.05f, 0.5f - cur));
+                                        SkillID newSkId = SkillForProfession(newProf, schema);
+                                        if (newSkId != INVALID_ID)
+                                            sk->Set(newSkId, std::min(0.5f, sk->Get(newSkId) + 0.05f));
                                     }
                                 }
                                 prof->prevType = prof->type;
@@ -487,9 +483,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         auto* myRel2 = registry.try_get<Relations>(entity);
                         if (mySkills && myProf && myRel2) {
                             // Determine this NPC's profession skill level
-                            int myProfRes = (myProf->type >= 0 && myProf->type < (int)schema.professions.size())
-                                            ? schema.professions[myProf->type].producesResource : -1;
-                            float myProfSkill = mySkills->ForResource(myProfRes);
+                            SkillID myProfSkId = SkillForProfession(myProf->type, schema);
+                            float myProfSkill = (myProfSkId != INVALID_ID) ? mySkills->Get(myProfSkId) : 0.f;
                             if (myProfSkill >= 0.7f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
                                     entt::exclude<Hauler, PlayerTag, ChildTag>).each(
@@ -502,9 +497,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
                                     // Check other NPC's matching profession skill
-                                    int oProfRes = (oPr.type >= 0 && oPr.type < (int)schema.professions.size())
-                                                   ? schema.professions[oPr.type].producesResource : -1;
-                                    float otherSkill = oSk.ForResource(oProfRes);
+                                    SkillID oSkId = SkillForProfession(oPr.type, schema);
+                                    float otherSkill = (oSkId != INVALID_ID) ? oSk.Get(oSkId) : 0.f;
                                     if (otherSkill < 0.7f) return;
                                     // 1-in-20 chance per hour
                                     if (s_rng() % 20 != 0) return;
@@ -541,9 +535,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         auto* myRelT = registry.try_get<Relations>(entity);
                         if (mySkillsT && myProfT && myRelT
                             && schema.ProfessionProduces(myProfT->type)) {
-                            int myProfResT = (myProfT->type >= 0 && myProfT->type < (int)schema.professions.size())
-                                             ? schema.professions[myProfT->type].producesResource : -1;
-                            float mySkillT = mySkillsT->ForResource(myProfResT);
+                            SkillID mySkIdT = SkillForProfession(myProfT->type, schema);
+                            float mySkillT = (mySkIdT != INVALID_ID) ? mySkillsT->Get(mySkIdT) : 0.f;
                             if (mySkillT >= 0.5f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
                                     entt::exclude<Hauler, PlayerTag, ChildTag>).each(
@@ -556,9 +549,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     if (!schema.ProfessionProduces(oPr.type)) return;
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
-                                    int oProfResT = (oPr.type >= 0 && oPr.type < (int)schema.professions.size())
-                                                    ? schema.professions[oPr.type].producesResource : -1;
-                                    float otherSkillT = oSk.ForResource(oProfResT);
+                                    SkillID oSkIdT = SkillForProfession(oPr.type, schema);
+                                    float otherSkillT = (oSkIdT != INVALID_ID) ? oSk.Get(oSkIdT) : 0.f;
                                     if (otherSkillT < 0.5f) return;
                                     // 1-in-25 chance per hour
                                     if (s_rng() % 25 != 0) return;
@@ -573,7 +565,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             if (me == entity || me == other) return;
                                             if (meSt.behavior != AgentBehavior::Working) return;
                                             if (meAge.days <= 60.f) return;
-                                            if (meSk.farming < 0.7f && meSk.water_drawing < 0.7f && meSk.woodcutting < 0.7f) return;
+                                            if (!meSk.AnyAbove(0.7f)) return;
                                             float mdx = mePos.x - fpos.x, mdy = mePos.y - fpos.y;
                                             if (mdx*mdx + mdy*mdy > WORK_ARRIVE * WORK_ARRIVE) return;
                                             mediator = me;
@@ -819,9 +811,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 }
                             }
                         }
-                        float before = skills->ForResource(facType);
-                        skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt * gainMult);
-                        float after = skills->ForResource(facType);
+                        float before = skills->ForResource(facType, schema);
+                        skills->Advance(facType, SKILL_GAIN_PER_GAME_HOUR * gameHoursDt * gainMult, schema);
+                        float after = skills->ForResource(facType, schema);
 
                         // Skill milestone log: Journeyman (0.5) and Master (0.9)
                         // Key: entity id * 10 + milestone index (0=Journeyman, 1=Master)
@@ -896,13 +888,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                        ? 2.0f : 1.0f;
                     float grow = CHILD_SKILL_GAIN_PER_HOUR * gHrs * multiplier;
                     // The highest skill is the aptitude — it gets a slightly higher cap.
-                    float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
-                    float capF = (skills->farming       == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
-                    float capW = (skills->water_drawing == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
-                    float capL = (skills->woodcutting   == mx) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
-                    skills->farming       = std::min(capF, skills->farming       + grow);
-                    skills->water_drawing = std::min(capW, skills->water_drawing + grow);
-                    skills->woodcutting   = std::min(capL, skills->woodcutting   + grow);
+                    int bestId = skills->BestSkillId();
+                    for (int si = 0; si < skills->Size(); ++si) {
+                        float cap = (si == bestId) ? CHILD_SKILL_CAP_APTITUDE : CHILD_SKILL_CAP_BASE;
+                        skills->levels[si] = std::min(cap, skills->levels[si] + grow);
+                    }
                 }
             } else if (state.behavior != AgentBehavior::Working) {
                 // Adult not working: decay.
@@ -912,9 +902,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                     float decayMult = isElder ? 2.0f : 1.0f;
                     float floor     = isElder ? 0.1f  : 0.f;
                     float decay = SKILL_DECAY_PER_HOUR * gHrs * decayMult;
-                    skills->farming       = std::max(floor, skills->farming       - decay);
-                    skills->water_drawing = std::max(floor, skills->water_drawing - decay);
-                    skills->woodcutting   = std::max(floor, skills->woodcutting   - decay);
+                    skills->DecayAll(decay, floor);
                 }
             }
         }

@@ -216,13 +216,15 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             // through childhood passive growth, creating gentle specialisation by
             // the time the NPC enters the workforce. The aptitude also influences which
             // settlement they'll prefer when migrating (skill-aware migration targeting).
-            static std::uniform_int_distribution<int> apt_dist(0, 2);
+            int nSkills = (int)schema.skills.size();
+            std::uniform_int_distribution<int> apt_dist(0, std::max(0, nSkills - 1));
             int aptIdx = apt_dist(s_rng);
-            Skills npcSkills{ 0.08f, 0.08f, 0.08f };
-            if      (aptIdx == 0) npcSkills.farming       = 0.15f;
-            else if (aptIdx == 1) npcSkills.water_drawing = 0.15f;
-            else                  npcSkills.woodcutting   = 0.15f;
-            registry.emplace<Skills>(npc, npcSkills);
+            {
+                Skills npcSkills = Skills::Make(schema, 0.08f);
+                if (aptIdx >= 0 && aptIdx < nSkills)
+                    npcSkills.levels[aptIdx] = 0.15f;
+                registry.emplace<Skills>(npc, std::move(npcSkills));
+            }
             registry.emplace<Profession>(npc, Profession{ settlProfession });
             registry.emplace<ChildTag>(npc);
 
@@ -334,11 +336,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 auto& twinNeeds = registry.get<Needs>(npc2);
                 for (auto& need : twinNeeds.list) need.drainRate *= trait_dist(s_rng);
                 // Twin shares same aptitude bias as first sibling (family trait)
-                Skills twinSkills{ 0.08f, 0.08f, 0.08f };
-                if      (aptIdx == 0) twinSkills.farming       = 0.15f;
-                else if (aptIdx == 1) twinSkills.water_drawing = 0.15f;
-                else                  twinSkills.woodcutting   = 0.15f;
-                registry.emplace<Skills>(npc2, twinSkills);
+                {
+                    Skills twinSkills = Skills::Make(schema, 0.08f);
+                    if (aptIdx >= 0 && aptIdx < (int)schema.skills.size())
+                        twinSkills.levels[aptIdx] = 0.15f;
+                    registry.emplace<Skills>(npc2, std::move(twinSkills));
+                }
                 registry.emplace<Profession>(npc2, Profession{ settlProfession });
                 registry.emplace<ChildTag>(npc2);
 

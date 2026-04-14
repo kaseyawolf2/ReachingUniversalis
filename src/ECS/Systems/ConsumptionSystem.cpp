@@ -73,7 +73,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (const auto* sk = registry.try_get<Skills>(entity)) {
                     // Use the highest skill as the wage modifier regardless of exact facility.
                     // This rewards NPCs that have developed their aptitude.
-                    float bestSkill = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                    float bestSkill = sk->BestValue();
                     skillMult = 0.5f + bestSkill;  // range [0.5, 1.5]
                 }
                 float wage = WAGE_RATE * skillMult * gameHoursDt;
@@ -344,11 +344,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 // Social ostracism: theft erodes skills slightly
                 std::string skillSuffix;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
-                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                    sk->DecayAll(0.02f, 0.f);
+                    float foodSkill = sk->ForResource(RES_FOOD, schema);
                     char sb[32];
-                    std::snprintf(sb, sizeof(sb), " (farming %d%%)", (int)(sk->farming * 100));
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(foodSkill * 100));
                     skillSuffix = sb;
                 }
                 // Log it
@@ -375,11 +374,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (settl) settl->theftCount++;
                 std::string skillSuffix2;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
-                    sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                    sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                    sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                    sk->DecayAll(0.02f, 0.f);
+                    float waterSkill = sk->ForResource(RES_WATER, schema);
                     char sb[32];
-                    std::snprintf(sb, sizeof(sb), " (water %d%%)", (int)(sk->water_drawing * 100));
+                    std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(waterSkill * 100));
                     skillSuffix2 = sb;
                 }
                 auto lv3 = registry.view<EventLog>();

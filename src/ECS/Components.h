@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <entt/entt.hpp>
-#include "World/SeasonDef.h"
+#include "World/WorldSchema.h"
 
 // ---- Domain enums ----
 
@@ -88,6 +88,13 @@ struct Profession {
     int prevType = -1;   // previous ProfessionID
     int careerChanges    = 0;
 };
+
+// Helper: ProfessionID → SkillID via schema's primarySkill mapping.
+// Returns INVALID_ID if the profession ID is out of range.
+inline SkillID SkillForProfession(int profId, const WorldSchema& schema) {
+    if (profId < 0 || profId >= (int)schema.professions.size()) return INVALID_ID;
+    return schema.professions[profId].primarySkill;
+}
 
 // ---- World components ----
 
@@ -412,28 +419,101 @@ struct Age {
 // Each value is 0-1: 0 = unskilled, 0.5 = average, 1 = mastery.
 // Skills improve through practice. Skill multiplies a worker's production
 // contribution in ProductionSystem (average skill of working NPCs scales output).
+//
+// Generic: `levels` is indexed by SkillID (int) from WorldSchema::skills.
+// ForResource() and Advance() use schema mappings (SkillDef::forResource).
 struct Skills {
-    float farming       = 0.5f;  // food production efficiency
-    float water_drawing = 0.5f;  // water production efficiency
-    float woodcutting   = 0.5f;  // wood production efficiency
+    std::vector<float> levels;  // indexed by SkillID; size == schema.skills.size()
 
-    // Returns the relevant skill for a given resource output type.
-    float ForResource(int rt) const {
-        if (rt == RES_FOOD)  return farming;
-        if (rt == RES_WATER) return water_drawing;
-        if (rt == RES_WOOD)  return woodcutting;
-        return 0.5f;
+    // Construct with a given number of skills, all set to a default value.
+    static Skills Make(const WorldSchema& schema, float defaultValue = 0.5f) {
+        Skills sk;
+        sk.levels.assign(schema.skills.size(), defaultValue);
+        return sk;
     }
 
-    // Advances the relevant skill by delta (capped at 1).
-    void Advance(int rt, float delta) {
-        float* target = nullptr;
-        if      (rt == RES_FOOD)  target = &farming;
-        else if (rt == RES_WATER) target = &water_drawing;
-        else if (rt == RES_WOOD)  target = &woodcutting;
-        else return;
-        *target = std::min(1.f, *target + delta);
+    // Direct access by SkillID.
+    float Get(int skillId) const {
+        if (skillId < 0 || skillId >= (int)levels.size()) return 0.f;
+        return levels[skillId];
     }
+    void Set(int skillId, float v) {
+        if (skillId >= 0 && skillId < (int)levels.size())
+            levels[skillId] = v;
+    }
+
+    // Returns the relevant skill for a given resource output type, using schema mappings.
+    float ForResource(int rt, const WorldSchema& schema) const {
+        for (const auto& sd : schema.skills)
+            if (sd.forResource == rt) return Get(sd.id);
+        return 0.5f;  // no skill mapped to this resource
+    }
+
+    // Returns the SkillID that maps to a given resource, or INVALID_ID.
+    static int SkillIdForResource(int rt, const WorldSchema& schema) {
+        for (const auto& sd : schema.skills)
+            if (sd.forResource == rt) return sd.id;
+        return INVALID_ID;
+    }
+
+    // Advances the relevant skill for a resource by delta (capped at 1).
+    void Advance(int rt, float delta, const WorldSchema& schema) {
+        int sid = SkillIdForResource(rt, schema);
+        if (sid != INVALID_ID && sid >= 0 && sid < (int)levels.size())
+            levels[sid] = std::min(1.f, levels[sid] + delta);
+    }
+
+    // Returns the SkillID with the highest value, or INVALID_ID if empty.
+    int BestSkillId() const {
+        if (levels.empty()) return INVALID_ID;
+        int best = 0;
+        for (int i = 1; i < (int)levels.size(); ++i)
+            if (levels[i] > levels[best]) best = i;
+        return best;
+    }
+
+    // Returns the highest skill value across all skills.
+    float BestValue() const {
+        float mx = 0.f;
+        for (float v : levels) mx = std::max(mx, v);
+        return mx;
+    }
+
+    // Returns the lowest skill value across all skills.
+    float WorstValue() const {
+        if (levels.empty()) return 0.f;
+        float mn = levels[0];
+        for (float v : levels) mn = std::min(mn, v);
+        return mn;
+    }
+
+    // True if any skill is at or above the threshold.
+    bool AnyAbove(float threshold) const {
+        for (float v : levels) if (v >= threshold) return true;
+        return false;
+    }
+
+    // True if all skills are at or above the threshold.
+    // Returns false for an empty levels vector (no skills = not above anything).
+    bool AllAbove(float threshold) const {
+        if (levels.empty()) return false;
+        for (float v : levels) if (v < threshold) return false;
+        return true;
+    }
+
+    // Decay all skills by amount, clamped to floor.
+    void DecayAll(float amount, float floor = 0.f) {
+        for (float& v : levels)
+            v = std::max(floor, v - amount);
+    }
+
+    // Grow all skills by amount, clamped to cap.
+    void GrowAll(float amount, float cap = 1.f) {
+        for (float& v : levels)
+            v = std::min(cap, v + amount);
+    }
+
+    int Size() const { return (int)levels.size(); }
 
     float wisdomGriefDays = 0.f;  // days remaining of skill growth penalty after a wise elder dies
     entt::entity wisdomLineage = entt::null;  // deceased elder whose legacy this NPC carries

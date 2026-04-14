@@ -44,10 +44,8 @@ struct RenderSnapshot {
         // Home settlement world position (for return-trip line rendering)
         float homeX = 0.f, homeY = 0.f;
         bool  hasHome = false;
-        // Skill levels (0-1); -1 if entity has no Skills component
-        float farmingSkill     = -1.f;
-        float waterSkill       = -1.f;
-        float woodcuttingSkill = -1.f;
+        // Skill levels (0-1) indexed by SkillID; empty if entity has no Skills component
+        std::vector<float> skillLevels;
         // Contentment: weighted average of all needs (0 = miserable, 1 = thriving)
         // Hunger 30%, Thirst 30%, Energy 20%, Heat 20%
         float contentment = 1.f;
@@ -175,10 +173,9 @@ struct RenderSnapshot {
         int          desperatePurchases = 0; // emergency market purchases this 24h cycle
         float        moodScore = 0.5f;     // 0-1 average NPC need satisfaction
         int          friendshipPairs = 0; // count of mutual friendship pairs (affinity ≥ 0.5)
-        int          masterCount = 0;    // NPCs with any skill ≥ 0.9
-        float        avgFarming = 0.f;  // average farming skill (0-1)
-        float        avgWater   = 0.f;  // average water-drawing skill (0-1)
-        float        avgWood    = 0.f;  // average woodcutting skill (0-1)
+        int          masterCount = 0;    // NPCs with any skill >= 0.9
+        std::vector<float> avgSkills;   // average skill per SkillID (0-1)
+        std::vector<std::string> skillNames; // display names, parallel to avgSkills
         bool         diverse    = false; // all 3 profession types present
         bool         afterglow  = false; // post-festival morale afterglow active
         bool         vigil     = false; // 3+ NPCs grieving at this settlement
@@ -280,9 +277,10 @@ struct RenderSnapshot {
         };
         std::vector<AgentInfo>        residents;
         int                           strugglingHaulers = 0; // haulers with bankruptWarned at this settlement
-        // Skill summary: masterCount[0]=farming, [1]=water, [2]=woodcutting; same for journeymen
-        int                           masterCount[3]     = {};
-        int                           journeymanCount[3] = {};
+        // Skill summary: masterCount and journeymanCount indexed by SkillID
+        std::vector<int>              masterCount;      // per-skill master count (skill >= 0.9)
+        std::vector<int>              journeymanCount;  // per-skill journeyman count (skill >= 0.7)
+        std::vector<std::string>      skillNames;       // display names, parallel to masterCount
         // Hauler routes — up to 3 haulers homed at this settlement
         struct HaulerInfo {
             std::string name;
@@ -302,6 +300,9 @@ struct RenderSnapshot {
     std::vector<FacilityEntry>    facilities;
     std::vector<SettlementStatus> worldStatus;
     StockpilePanel                stockpilePanel;
+
+    // Skill display names from schema (indexed by SkillID). Shared across all agents.
+    std::vector<std::string>      skillNames;
 
     // HUD — clock
     int    day         = 1;
@@ -336,9 +337,8 @@ struct RenderSnapshot {
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;
     float         playerGold     = 0.f;
-    float         playerFarmSkill  = -1.f;   // -1 = no Skills component
-    float         playerWaterSkill = -1.f;
-    float         playerWoodSkill  = -1.f;
+    std::vector<float>       playerSkills;       // per SkillID; empty = no Skills component
+    std::vector<std::string> playerSkillNames;   // display names, parallel to playerSkills
     std::map<int, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity
 
