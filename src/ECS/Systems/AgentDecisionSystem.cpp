@@ -990,6 +990,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     logVP.get<EventLog>(*logVP.begin()).Push(tm.day, (int)tm.hourOfDay,
                         where + " gathers to honour " + elderName + "'s memory.");
                 }
+                // Morale boost from collective mourning
+                if (registry.valid(settlE)) {
+                    if (auto* settl = registry.try_get<Settlement>(settlE))
+                        settl->morale = std::min(1.f, settl->morale + 0.02f);
+                }
+                // Log community healing at 1-in-3 frequency
+                static std::mt19937 s_procMoraleRng{ std::random_device{}() };
+                if (s_procMoraleRng() % 3 == 0 && !logVP.empty()) {
+                    std::string where2 = "A settlement";
+                    if (registry.valid(settlE))
+                        if (const auto* s = registry.try_get<Settlement>(settlE))
+                            where2 = s->name;
+                    logVP.get<EventLog>(*logVP.begin()).Push(tm.day, (int)tm.hourOfDay,
+                        where2 + " finds solace in shared grief.");
+                }
             }
 
             // Prune s_honouredElders to prevent unbounded growth (keep last 50)
