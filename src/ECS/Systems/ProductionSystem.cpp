@@ -77,11 +77,12 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                                 && ageComp
                                 && ageComp->days >= 12.f
                                 && ageComp->days < 15.f;
-            // BecomeHauler goal: motivated workers produce 10% more (ambition bonus)
-            bool hasBecomeHaulerGoal = false;
+            // "ambitious" behaviour modifier: motivated workers produce 10% more
+            bool hasAmbitiousGoal = false;
             if (const auto* g = registry.try_get<Goal>(e))
-                hasBecomeHaulerGoal = (g->type == GoalType::BecomeHauler);
-            float workerContrib = isApprentice ? 0.2f : (hasBecomeHaulerGoal ? 1.1f : 1.0f);
+                if (g->goalId >= 0 && g->goalId < (int)schema.goals.size())
+                    hasAmbitiousGoal = (schema.goals[g->goalId].behaviourMod == "ambitious");
+            float workerContrib = isApprentice ? 0.2f : (hasAmbitiousGoal ? 1.1f : 1.0f);
             // Peak-age bonus: prime working years (25–55) get +10% output
             if (!isApprentice && ageComp && ageComp->days >= 25.f && ageComp->days <= 55.f)
                 workerContrib *= 1.1f;

@@ -243,7 +243,9 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
             as->behavior = AgentBehavior::Celebrating;
         if (auto* goal = registry.try_get<Goal>(e)) {
             goal->celebrateTimer = 2.f;
-            if (goal->type == GoalType::BecomeHauler)
+            // If the NPC's goal checks for this profession, mark it complete
+            if (goal->goalId >= 0 && goal->goalId < (int)schema.goals.size()
+                && schema.goals[goal->goalId].checkType == "has_profession")
                 goal->progress = goal->target;
         }
         if (auto* settl = registry.try_get<Settlement>(hs.settlement))

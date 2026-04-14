@@ -566,25 +566,34 @@ struct Rumour {
 
 // ---- Personal goals ----
 // Each NPC holds one active goal. When met, a celebration fires and a new
-// goal is assigned. Goals influence behaviour (SaveGold → hoard; BecomeHauler
-// → work harder for production bonus).
-enum class GoalType { SaveGold, ReachAge, FindFamily, BecomeHauler };
+// goal is assigned. Goals influence behaviour via GoalDef::behaviourMod.
+// GoalTypeID (int) indexes into WorldSchema::goals.
+
+// DEPRECATED: GoalType is retained only for backward compatibility during the
+// transition to data-driven goals (WorldSchema).  Prefer GoalTypeID (int) for new code.
+enum class GoalType { SaveGold = 0, ReachAge = 1, FindFamily = 2, BecomeHauler = 3 };
 
 struct Goal {
-    GoalType type          = GoalType::SaveGold;
+    GoalTypeID goalId       = INVALID_ID; // index into WorldSchema::goals
     float    progress      = 0.f;   // current measured value
     float    target        = 100.f; // threshold to complete
     float    celebrateTimer = 0.f;  // game-hours remaining for personal celebration
     bool     halfwayLogged = false; // true once the 50% milestone log has fired
+
+    // DEPRECATED: kept for transition only; use goalId instead
+    GoalType type          = GoalType::SaveGold;
 };
 
-// Helper: human-readable goal description (e.g. for the event log)
-inline const char* GoalLabel(GoalType g) {
-    switch (g) {
-        case GoalType::SaveGold:     return "Save Gold";
-        case GoalType::ReachAge:     return "Reach Age";
-        case GoalType::FindFamily:   return "Find Family";
-        case GoalType::BecomeHauler: return "Become Merchant";
-    }
+// Helper: data-driven goal label via schema lookup; falls back to "Unknown" if out of range.
+inline const char* GoalLabel(GoalTypeID goalId, const WorldSchema& schema) {
+    if (goalId >= 0 && goalId < (int)schema.goals.size())
+        return schema.goals[goalId].displayName.c_str();
     return "Unknown";
+}
+
+// Helper: data-driven goal unit suffix via schema lookup.
+inline const char* GoalUnit(GoalTypeID goalId, const WorldSchema& schema) {
+    if (goalId >= 0 && goalId < (int)schema.goals.size())
+        return schema.goals[goalId].unit.c_str();
+    return "";
 }

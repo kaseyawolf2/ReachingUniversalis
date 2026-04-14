@@ -1,29 +1,65 @@
 # Medieval World — NPC Goal Definitions
+#
+# check_type controls how progress is measured:
+#   "balance_gte"   — progress = Money::balance; complete when >= target_value
+#   "age_gte"       — progress = Age::days;      complete when >= target_value
+#   "has_family"    — progress = 1 if FamilyTag present, else 0; target = 1
+#   "has_profession"— progress = 1 if Profession::type == profession_id; target = 1
+#
+# target_mode controls how the per-NPC target is computed at assignment:
+#   "fixed"         — use target_value directly
+#   "relative_balance" — target = max(target_value, current balance + offset)
+#   "relative_age"  — target = current age + offset
+#
+# behaviour_mod specifies an optional behavioural modifier while the goal is active:
+#   "hoard"         — doubles emergency purchase interval (ConsumptionSystem)
+#   "ambitious"     — +10% production contribution (ProductionSystem)
+#   ""              — no modifier
 
 [[goals]]
-name         = "SaveGold"
-display_name = "Save Gold"
-check_type   = "balance_gte"
-target_value = 100.0
-weight       = 1.0
+name              = "SaveGold"
+display_name      = "Save Gold"
+check_type        = "balance_gte"
+target_value      = 100.0
+target_mode       = "relative_balance"
+offset            = 75.0
+weight            = 1.0
+unit              = "g"
+completion_message = "{name} reached their savings goal!"
+behaviour_mod     = "hoard"
 
 [[goals]]
-name         = "ReachAge"
-display_name = "Reach Age"
-check_type   = "age_gte"
-target_value = 0.0      # actual target set per-NPC at assignment
-weight       = 1.0
+name              = "ReachAge"
+display_name      = "Reach Age"
+check_type        = "age_gte"
+target_value      = 25.0
+target_mode       = "relative_age"
+offset            = 25.0
+weight            = 1.0
+unit              = "d"
+completion_message = "{name} celebrated a life milestone!"
+behaviour_mod     = ""
 
 [[goals]]
-name         = "FindFamily"
-display_name = "Find Family"
-check_type   = "has_relation"
-target_value = 1.0
-weight       = 0.5
+name              = "FindFamily"
+display_name      = "Find Family"
+check_type        = "has_family"
+target_value      = 1.0
+target_mode       = "fixed"
+offset            = 0.0
+weight            = 0.5
+unit              = ""
+completion_message = "{name} found a family!"
+behaviour_mod     = ""
 
 [[goals]]
-name         = "BecomeHauler"
-display_name = "Become Merchant"
-check_type   = "profession_is"
-target_value = 0.0      # checked against Hauler profession ID
-weight       = 0.5
+name              = "BecomeHauler"
+display_name      = "Become Merchant"
+check_type        = "has_profession"
+target_value      = 1.0
+target_mode       = "fixed"
+offset            = 0.0
+weight            = 0.5
+unit              = ""
+completion_message = "{name} achieved their dream of becoming a merchant!"
+behaviour_mod     = "ambitious"

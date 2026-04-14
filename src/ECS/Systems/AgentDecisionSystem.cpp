@@ -4262,39 +4262,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
     spFlush(5); // AD:Bandits
 
     // ============================================================
-    // PERSONAL GOAL SYSTEM
+    // PERSONAL GOAL SYSTEM (data-driven via WorldSchema::goals)
     // Every frame: update progress for all NPCs with a Goal component.
     // When progress >= target: log a celebration, set Celebrating state
-    // for 2 game-hours, then assign a fresh random goal.
+    // for 2 game-hours, then assign a fresh random goal from schema.
     // ============================================================
-    static std::mt19937       s_goalRng{ std::random_device{}() };
-    static std::uniform_int_distribution<int> s_goalTypeDist(0, 3);
+    static std::mt19937 s_goalRng{ std::random_device{}() };
+    const int goalCount = (int)schema.goals.size();
 
     registry.view<Goal>(entt::exclude<PlayerTag>).each(
         [&](auto e, Goal& goal)
         {
+            if (goalCount == 0) return;  // no goals defined
+
             // Drain personal celebration timer
             if (goal.celebrateTimer > 0.f) {
                 goal.celebrateTimer = std::max(0.f, goal.celebrateTimer - gameHoursDt);
                 return;  // still celebrating — skip progress check this tick
             }
 
-            // Update progress for the active goal type
-            switch (goal.type) {
-                case GoalType::SaveGold:
-                    if (const auto* m = registry.try_get<Money>(e))
-                        goal.progress = m->balance;
-                    break;
-                case GoalType::ReachAge:
-                    if (const auto* a = registry.try_get<Age>(e))
-                        goal.progress = a->days;
-                    break;
-                case GoalType::FindFamily:
-                    goal.progress = registry.all_of<FamilyTag>(e) ? 1.f : 0.f;
-                    break;
-                case GoalType::BecomeHauler:
-                    goal.progress = registry.all_of<Hauler>(e) ? 1.f : 0.f;
-                    break;
+            // Validate goalId
+            if (goal.goalId < 0 || goal.goalId >= goalCount) return;
+            const GoalDef& gdef = schema.goals[goal.goalId];
+
+            // Update progress based on checkType
+            if (gdef.checkType == "balance_gte") {
+                if (const auto* m = registry.try_get<Money>(e))
+                    goal.progress = m->balance;
+            } else if (gdef.checkType == "age_gte") {
+                if (const auto* a = registry.try_get<Age>(e))
+                    goal.progress = a->days;
+            } else if (gdef.checkType == "has_family") {
+                goal.progress = registry.all_of<FamilyTag>(e) ? 1.f : 0.f;
+            } else if (gdef.checkType == "has_profession") {
+                // Check if NPC has the hauler profession (the only profession_is goal currently)
+                goal.progress = registry.all_of<Hauler>(e) ? 1.f : 0.f;
             }
 
             // ---- Halfway milestone log ----
@@ -4305,13 +4307,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 if (hmlv.begin() != hmlv.end()) {
                     std::string who = "An NPC";
                     if (const auto* n = registry.try_get<Name>(e)) who = n->value;
-                    const char* unit = (goal.type == GoalType::SaveGold) ? "g" :
-                                       (goal.type == GoalType::ReachAge) ? "d" : "";
                     char buf[160];
                     std::snprintf(buf, sizeof(buf),
                         "%s is halfway to their %s goal (%.0f/%.0f%s).",
-                        who.c_str(), GoalLabel(goal.type),
-                        goal.progress, goal.target, unit);
+                        who.c_str(), GoalLabel(goal.goalId, schema),
+                        goal.progress, goal.target, GoalUnit(goal.goalId, schema));
                     hmlv.get<EventLog>(*hmlv.begin()).Push(charityDay, charityHour, buf);
                 }
             }
@@ -4319,22 +4319,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             if (goal.progress < goal.target) return;  // not yet met
 
             // ---- Goal completed! ----
-            // Log the event
+            // Log the event using the schema-defined completion message
             auto gelv = registry.view<EventLog>();
             if (gelv.begin() != gelv.end()) {
                 std::string who = "An NPC";
                 if (const auto* n = registry.try_get<Name>(e)) who = n->value;
-                std::string msg;
-                switch (goal.type) {
-                    case GoalType::SaveGold:
-                        msg = who + " reached their savings goal!";    break;
-                    case GoalType::ReachAge:
-                        msg = who + " celebrated a life milestone!";   break;
-                    case GoalType::FindFamily:
-                        msg = who + " found a family!";                break;
-                    case GoalType::BecomeHauler:
-                        msg = who + " achieved their dream of becoming a merchant!"; break;
-                }
+                // Replace {name} placeholder in completion message
+                std::string msg = gdef.completionMessage;
+                auto pos = msg.find("{name}");
+                if (pos != std::string::npos) msg.replace(pos, 6, who);
                 gelv.get<EventLog>(*gelv.begin()).Push(charityDay, charityHour, msg);
             }
 
@@ -4345,31 +4338,36 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     st->behavior = AgentBehavior::Celebrating;
             }
 
-            // Assign a new goal (avoid immediately re-assigning the same type)
-            GoalType newType = static_cast<GoalType>(s_goalTypeDist(s_goalRng));
-            if (newType == goal.type)
-                newType = static_cast<GoalType>((static_cast<int>(newType) + 1) % 4);
+            // Assign a new goal (weighted random, avoid re-assigning the same type)
+            // Build cumulative weight table
+            float totalWeight = 0.f;
+            for (const auto& gd : schema.goals) totalWeight += gd.weight;
+            std::uniform_real_distribution<float> wdist(0.f, totalWeight);
 
-            goal.type     = newType;
+            GoalTypeID newGoalId = goal.goalId;
+            for (int attempt = 0; attempt < 5 && newGoalId == goal.goalId; ++attempt) {
+                float roll = wdist(s_goalRng);
+                float cumul = 0.f;
+                for (int gi = 0; gi < goalCount; ++gi) {
+                    cumul += schema.goals[gi].weight;
+                    if (roll < cumul) { newGoalId = gi; break; }
+                }
+            }
+
+            const GoalDef& newDef = schema.goals[newGoalId];
+            goal.goalId = newGoalId;
             goal.progress = 0.f;
             goal.halfwayLogged = false;
-            switch (newType) {
-                case GoalType::SaveGold: {
-                    float bal = registry.try_get<Money>(e)
-                                ? registry.get<Money>(e).balance : 0.f;
-                    goal.target = std::max(50.f, bal + 75.f);   // save 75g more
-                    break;
-                }
-                case GoalType::ReachAge: {
-                    float days = registry.try_get<Age>(e)
-                                 ? registry.get<Age>(e).days : 0.f;
-                    goal.target = days + 20.f;
-                    break;
-                }
-                case GoalType::FindFamily:
-                case GoalType::BecomeHauler:
-                    goal.target = 1.f;
-                    break;
+
+            // Compute per-NPC target based on targetMode
+            if (newDef.targetMode == "relative_balance") {
+                float bal = registry.try_get<Money>(e) ? registry.get<Money>(e).balance : 0.f;
+                goal.target = std::max(newDef.targetValue, bal + newDef.offset);
+            } else if (newDef.targetMode == "relative_age") {
+                float days = registry.try_get<Age>(e) ? registry.get<Age>(e).days : 0.f;
+                goal.target = days + newDef.offset;
+            } else {
+                goal.target = newDef.targetValue;
             }
         });
 

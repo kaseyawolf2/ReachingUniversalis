@@ -261,10 +261,15 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         GoalDef def;
         def.name        = ReqStr(*item, "name", ctx, err);
         if (!err.empty()) return false;
-        def.displayName = OptStr(*item, "display_name", def.name);
-        def.checkType   = OptStr(*item, "check_type", "none");
-        def.targetValue = OptFloat(*item, "target_value", 0.0f);
-        def.weight      = OptFloat(*item, "weight", 1.0f);
+        def.displayName       = OptStr(*item, "display_name", def.name);
+        def.checkType         = OptStr(*item, "check_type", "none");
+        def.targetValue       = OptFloat(*item, "target_value", 0.0f);
+        def.targetMode        = OptStr(*item, "target_mode", "fixed");
+        def.offset            = OptFloat(*item, "offset", 0.0f);
+        def.weight            = OptFloat(*item, "weight", 1.0f);
+        def.unit              = OptStr(*item, "unit", "");
+        def.completionMessage = OptStr(*item, "completion_message", "{name} completed a goal!");
+        def.behaviourMod      = OptStr(*item, "behaviour_mod", "");
         schema.goals.push_back(std::move(def));
     }
     return true;

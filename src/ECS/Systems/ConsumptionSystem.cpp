@@ -255,11 +255,12 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         // ---- Emergency market purchase ----
         // When stockpile is empty, an NPC with money can buy goods at market price.
         // Gold flows to the settlement treasury; need is refilled.
-        // SaveGold goal: NPCs hoarding gold buy less frequently (4h interval instead of 2h).
+        // "hoard" behaviour modifier: NPCs with this goal buy less frequently (4h interval instead of 2h).
         timer.purchaseTimer += gameHoursDt;
         float effectivePurchaseInterval = PURCHASE_INTERVAL;
         if (const auto* g = registry.try_get<Goal>(entity))
-            if (g->type == GoalType::SaveGold)
+            if (g->goalId >= 0 && g->goalId < (int)schema.goals.size()
+                && schema.goals[g->goalId].behaviourMod == "hoard")
                 effectivePurchaseInterval *= 2.f;   // hoarders delay emergency purchases
         if (timer.purchaseTimer >= effectivePurchaseInterval && settl && money && money->balance > 0.f) {
             auto* mkt = registry.try_get<Market>(home.settlement);

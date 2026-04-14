@@ -91,9 +91,14 @@ struct GoalDef {
     GoalTypeID  id          = INVALID_ID;
     std::string name;                         // "SaveGold", "ReachAge", ...
     std::string displayName;                  // "Save Gold", "Reach Age", ...
-    std::string checkType;                    // "balance_gte", "age_gte", "has_relation", etc.
-    float       targetValue = 0.0f;           // threshold for completion
+    std::string checkType;                    // "balance_gte", "age_gte", "has_family", "has_profession"
+    float       targetValue = 0.0f;           // threshold for completion (or base target)
+    std::string targetMode  = "fixed";        // "fixed", "relative_balance", "relative_age"
+    float       offset      = 0.0f;           // added to current value for relative targets
     float       weight      = 1.0f;           // selection weight when assigning goals
+    std::string unit;                         // display unit suffix ("g", "d", "")
+    std::string completionMessage;            // "{name} reached their savings goal!" — {name} is replaced at runtime
+    std::string behaviourMod;                 // "hoard", "ambitious", "" — behavioural modifier while active
 };
 
 struct FacilityDef {

@@ -1877,14 +1877,13 @@ void SimThread::WriteSnapshot() {
             }
         }
 
-        // Goal description for tooltip
+        // Goal description for tooltip (data-driven via schema)
         std::string goalDesc;
         if (const auto* goal = m_registry.try_get<Goal>(e)) {
             char buf[128];
-            const char* unit = (goal->type == GoalType::SaveGold) ? "g" :
-                               (goal->type == GoalType::ReachAge) ? "d" : "";
             std::snprintf(buf, sizeof(buf), "Goal: %s (%.0f/%.0f%s)",
-                          GoalLabel(goal->type), goal->progress, goal->target, unit);
+                          GoalLabel(goal->goalId, m_schema), goal->progress, goal->target,
+                          GoalUnit(goal->goalId, m_schema));
             goalDesc = buf;
         }
 
