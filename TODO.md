@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
+
 ## Done
 
 - [x] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
@@ -18,8 +20,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
 
 - [ ] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
 
