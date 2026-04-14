@@ -161,7 +161,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **DynBitset copy assignment operator test** — `tests/DynBitsetTest.cpp` tests copy/move constructors but not copy/move assignment operators. Add tests for `DynBitset a; a = b;` (copy assign) and `DynBitset a; a = std::move(b);` (move assign) for both inline and heap modes, verifying independence and source state.
 
-- [ ] **DynBitset clear() method** — `DynBitset` has no `clear()` or `reset()` method to zero all bits without reallocating. Add `void clear()` that zeros all words (inline and heap) without changing capacity, and `void reset()` that returns to default-constructed empty state. Add corresponding tests.
+- [x] **DynBitset clear() method** — `DynBitset` has no `clear()` or `reset()` method to zero all bits without reallocating. Add `void clear()` that zeros all words (inline and heap) without changing capacity, and `void reset()` that returns to default-constructed empty state. Add corresponding tests.
 
 - [ ] **Season threshold TOML test config** — Add a `tests/test_seasons_invalid.toml` with intentionally inverted thresholds (`harshCold < mildCold`) and a test or script that runs `WorldLoader::LoadSeasons()` against it, verifying the warning is logged. Documents the validation behavior for future modders.
 
@@ -266,6 +266,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **SkillRate boundary test** — `tests/SkillRateTest.cpp` tests `SkillGrowthRate(999)` but not the exact boundary `SkillGrowthRate(2)` (first out-of-range for a 2-skill schema). Add boundary-exact tests for both `SkillGrowthRate` and `SkillDecayRate` at `id == skills.size()`, where off-by-one bugs live.
 
 - [ ] **SkillRate empty schema test** — `tests/SkillRateTest.cpp` doesn't test behavior when `skills` vector is empty (default-constructed `WorldSchema` without `BuildMaps()`). Add a test calling `SkillGrowthRate(0)` and `SkillDecayRate(0)` on an empty schema to verify the fallback path handles zero-size vectors.
+
+- [ ] **DynBitset clear/reset naming review** — `DynBitset::clear()` zeros bits (like `std::bitset::reset()`) while `DynBitset::reset()` releases memory (like `std::vector::clear()`). The names are swapped relative to STL conventions. Consider renaming to `clearBits()` and `releaseMemory()`, or add comments explaining the naming choice to prevent confusion.
+
+- [ ] **DynBitset clear/reset sequencing test** — `tests/DynBitsetTest.cpp` tests `clear()` and `reset()` independently but not in combination. Add tests for `clear()` after `reset()` and `reset()` after `clear()` to verify no interaction bugs between the two operations.
 
 ## Phase 2 — UI Decoupling
 
