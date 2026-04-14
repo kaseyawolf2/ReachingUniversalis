@@ -262,7 +262,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             if (mcIt != mc.end() && mcIt->second >= 3) {
                 specBonus = 1.15f;
                 // Log once per settlement+type
-                uint64_t specKey = (uint64_t)entt::to_integral(fac.settlement) * 10000 + facSkillId;
+                uint64_t specKey = ((uint64_t)entt::to_integral(fac.settlement) << 32) | (uint32_t)facSkillId;
                 if (s_specLogged.insert(specKey).second) {
                     std::string typeName = (facSkillId < (int)schema.skills.size())
                         ? schema.skills[facSkillId].displayName : "Skill";

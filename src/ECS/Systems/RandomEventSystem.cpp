@@ -665,9 +665,6 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     std::uniform_real_distribution<float> windfall_dist(5.f, 15.f);
     std::uniform_real_distribution<float> skillGain_dist(0.08f, 0.12f);
     std::uniform_int_distribution<int>    needIdxDist(0, 2);   // Hunger/Thirst/Energy only
-    int totalSkillCount = (int)schema.skills.size();
-    std::uniform_int_distribution<int>    skillIdxDist(0, std::max(0, totalSkillCount - 1));
-
     registry.view<DeprivationTimer, Skills, Money, Name>(
         entt::exclude<PlayerTag, BanditTag>)
         .each([&](auto e, DeprivationTimer& dt, Skills& skills, Money& money, const Name& name) {

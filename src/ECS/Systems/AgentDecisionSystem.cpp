@@ -2775,15 +2775,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
                         // Find a skill where teacher is ≥0.6 and learner is <0.3
-                        struct { int rt; float tVal; float lVal; const char* name; } candidates[] = {
-                            { RES_FOOD,  mySkills->ForResource(RES_FOOD, schema),  oSkills.ForResource(RES_FOOD, schema),  "farming" },
-                            { RES_WATER, mySkills->ForResource(RES_WATER, schema), oSkills.ForResource(RES_WATER, schema), "water carrying" },
-                            { RES_WOOD,  mySkills->ForResource(RES_WOOD, schema),  oSkills.ForResource(RES_WOOD, schema),  "woodcutting" },
-                        };
-                        for (auto& c : candidates) {
-                            if (c.tVal >= TEACH_MIN && c.lVal < LEARN_MAX) {
+                        for (const auto& skillDef : schema.skills) {
+                            if (skillDef.forResource == INVALID_ID) continue;
+                            float tVal = mySkills->ForResource(skillDef.forResource, schema);
+                            float lVal = oSkills.ForResource(skillDef.forResource, schema);
+                            if (tVal >= TEACH_MIN && lVal < LEARN_MAX) {
                                 float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                                oSkills.Advance(c.rt, SKILL_GAIN * ghDt, schema);
+                                oSkills.Advance(skillDef.forResource, SKILL_GAIN * ghDt, schema);
                                 // Mutual affinity boost
                                 if (auto* rel = registry.try_get<Relations>(entity))
                                     rel->affinity[other] = std::min(1.f, rel->affinity[other] + 0.02f);
@@ -2800,7 +2798,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     const auto* myName = registry.try_get<Name>(entity);
                                     std::string msg = (myName ? myName->value : "An NPC") +
                                         std::string(" teaches ") + oName.value +
-                                        " about " + c.name + ".";
+                                        " about " + skillDef.displayName + ".";
                                     lv.get<EventLog>(*lv.begin()).Push(
                                         tm.day, (int)tm.hourOfDay, msg);
                                 }
