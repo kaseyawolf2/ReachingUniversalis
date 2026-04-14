@@ -216,6 +216,29 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         st.mildCold      = OptFloat(tbl, "mild_cold",      st.mildCold);
         st.harvestSeason = OptFloat(tbl, "harvest_season", st.harvestSeason);
         st.lowProduction = OptFloat(tbl, "low_production", st.lowProduction);
+
+        // --- Validate season threshold values ---
+        auto rangeCheck = [&](float val, const char* name) {
+            if (val < 0.0f || val > 2.0f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s: '%s' = %.3f is out of range [0.0, 2.0]\n",
+                        path.c_str(), name, val);
+        };
+        rangeCheck(st.harshCold,     "harsh_cold");
+        rangeCheck(st.moderateCold,  "moderate_cold");
+        rangeCheck(st.coldSeason,    "cold_season");
+        rangeCheck(st.mildCold,      "mild_cold");
+        rangeCheck(st.harvestSeason, "harvest_season");
+        rangeCheck(st.lowProduction, "low_production");
+
+        if (!(st.mildCold < st.moderateCold))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: mild_cold (%.3f) should be less than moderate_cold (%.3f)\n",
+                    path.c_str(), st.mildCold, st.moderateCold);
+        if (!(st.moderateCold < st.harshCold))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: moderate_cold (%.3f) should be less than harsh_cold (%.3f)\n",
+                    path.c_str(), st.moderateCold, st.harshCold);
+        if (!(st.lowProduction < st.harvestSeason))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: low_production (%.3f) should be less than harvest_season (%.3f)\n",
+                    path.c_str(), st.lowProduction, st.harvestSeason);
     }
 
     auto arr = tbl["seasons"].as_array();
