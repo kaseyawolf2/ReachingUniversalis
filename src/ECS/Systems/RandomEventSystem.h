@@ -23,8 +23,9 @@ private:
     std::mt19937 m_rng{std::random_device{}()};
     float        m_nextEvent = 72.f;   // game-hours until next event (first fires at day 3)
 
-    // Active plagues: settlement entity → game-hours until next spread attempt
-    std::map<entt::entity, float> m_plagueSpreadTimer;
+    // Active spreading events: settlement entity → {game-hours until next spread attempt, event index}
+    struct SpreadEntry { float timer; int eventIdx; };
+    std::map<entt::entity, SpreadEntry> m_plagueSpreadTimer;
 
     // Canonical pairs (min id, max id) already logged to avoid duplicate rivalry/alliance spam
     std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalries;
