@@ -2470,6 +2470,52 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 } else {
                     vel.vx = vel.vy = 0.f;
 
+                    // ---- Lonely migrant morale drain ----
+                    // NPCs with relations but no local friends (none >= 0.3 at settlement) drain morale.
+                    {
+                        static std::map<int, std::set<entt::entity>> s_lonelyChecked;
+                        static int s_lonelyLastDay = -1;
+                        int today = (int)tm.day;
+                        if (today != s_lonelyLastDay) {
+                            s_lonelyChecked.clear();
+                            s_lonelyLastDay = today;
+                        }
+                        if (s_lonelyChecked[today].find(entity) == s_lonelyChecked[today].end()) {
+                            const auto* rel = registry.try_get<Relations>(entity);
+                            if (rel && !rel->affinity.empty()) {
+                                bool hasLocalFriend = false;
+                                for (const auto& [other, aff] : rel->affinity) {
+                                    if (aff < 0.3f) continue;
+                                    if (!registry.valid(other)) continue;
+                                    const auto* oHome = registry.try_get<HomeSettlement>(other);
+                                    if (oHome && oHome->settlement == home.settlement) {
+                                        hasLocalFriend = true;
+                                        break;
+                                    }
+                                }
+                                if (!hasLocalFriend) {
+                                    if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                                        settl->morale = std::max(0.f, settl->morale - 0.005f);
+                                    // Log at 1-in-10 frequency
+                                    static std::mt19937 s_lonelyRng{ std::random_device{}() };
+                                    if (s_lonelyRng() % 10 == 0) {
+                                        auto llv = registry.view<EventLog>();
+                                        if (!llv.empty()) {
+                                            std::string who = "An NPC";
+                                            if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                                            std::string where = "settlement";
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                where = s->name;
+                                            llv.get<EventLog>(*llv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                                who + " feels lonely at " + where);
+                                        }
+                                    }
+                                }
+                                s_lonelyChecked[today].insert(entity);
+                            }
+                        }
+                    }
+
                     // ---- Idle chat: pair up with a nearby Idle neighbour (staggered: 1/4 per frame) ----
                     // When gathered at home and not chatting, scan for another Idle NPC
                     // from the same settlement within 25 units. Stop both for 30–60 game-seconds.
