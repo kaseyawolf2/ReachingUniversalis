@@ -25,7 +25,7 @@ private:
 
     // Active spreading events: settlement entity → {game-hours until next spread attempt, event index}
     struct SpreadEntry { float timer; int eventIdx; };
-    std::map<entt::entity, SpreadEntry> m_plagueSpreadTimer;
+    std::map<entt::entity, SpreadEntry> m_spreadTimers;
 
     // Canonical pairs (min id, max id) already logged to avoid duplicate rivalry/alliance spam
     std::set<std::pair<uint32_t,uint32_t>> m_loggedRivalries;
