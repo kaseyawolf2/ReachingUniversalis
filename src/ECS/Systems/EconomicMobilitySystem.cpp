@@ -250,6 +250,24 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
 
         ++haulerCount[hs.settlement];
 
+        // Second-chance hauler graduation bonus: bankruptcy survivors get higher mentor bonus
+        if (const auto* dt = registry.try_get<DeprivationTimer>(e)) {
+            if (dt->bankruptSurvivor) {
+                if (auto* hPtr = registry.try_get<Hauler>(e))
+                    hPtr->mentorBonus = 0.15f;
+                if (log) {
+                    std::string who = "NPC";
+                    if (const auto* n = registry.try_get<Name>(e)) who = n->value;
+                    std::string where = "settlement";
+                    if (const auto* s = registry.try_get<Settlement>(hs.settlement)) where = s->name;
+                    char sbuf[180];
+                    std::snprintf(sbuf, sizeof(sbuf), "%s returns to hauling with hard-won wisdom at %s.",
+                                  who.c_str(), where.c_str());
+                    log->Push(tm.day, (int)tm.hourOfDay, sbuf);
+                }
+            }
+        }
+
         if (log) {
             std::string who = "NPC";
             if (const auto* n = registry.try_get<Name>(e)) who = n->value;
