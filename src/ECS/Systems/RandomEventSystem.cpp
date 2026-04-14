@@ -1058,6 +1058,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     float totalWeight = 0.f;
     for (int idx : eligible)
         totalWeight += schema.events[idx].chance;
+    if (totalWeight <= 0.f) return;  // no valid weights; skip to avoid UB in uniform_real_distribution(0,0)
     std::uniform_real_distribution<float> weightDist(0.f, totalWeight);
     float roll = weightDist(m_rng);
     int pickedIdx = eligible.back();  // fallback to last

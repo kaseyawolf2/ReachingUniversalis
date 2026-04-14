@@ -106,6 +106,11 @@ static bool LoadNeeds(const std::string& path, WorldSchema& schema, std::string&
         def.criticalThreshold = OptFloat(*item, "critical_threshold", 0.3f);
         def.startValue        = OptFloat(*item, "start_value", 1.0f);
         def.satisfyBehavior   = OptStr(*item, "satisfy_behavior", "consume");
+        if (def.satisfyBehavior != "consume" && def.satisfyBehavior != "sleep" && def.satisfyBehavior != "warmth") {
+            fprintf(stderr, "[WorldLoader] WARNING: %s: need '%s' has unknown satisfy_behavior '%s' "
+                    "(expected 'consume', 'sleep', or 'warmth')\n",
+                    path.c_str(), def.name.c_str(), def.satisfyBehavior.c_str());
+        }
         // satisfied_by is resolved after resources are loaded
         std::string satBy = OptStr(*item, "satisfied_by", "");
         // Store temporarily in the name field of satisfiedBy — resolved in cross-ref pass
@@ -249,7 +254,12 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         else if (def.effectType == "fire")                def.effectEnum = EventEffectType::Fire;
         else if (def.effectType == "price_spike")         def.effectEnum = EventEffectType::PriceSpike;
         else if (def.effectType == "morale_boost")        def.effectEnum = EventEffectType::MoraleBoost;
-        else                                              def.effectEnum = EventEffectType::None;
+        else if (def.effectType == "none")                def.effectEnum = EventEffectType::None;
+        else {
+            fprintf(stderr, "[WorldLoader] WARNING: %s: event '%s' has unknown effect_type '%s', defaulting to None\n",
+                    path.c_str(), def.name.c_str(), def.effectType.c_str());
+            def.effectEnum = EventEffectType::None;
+        }
 
         def.effectValue   = OptFloat(*item, "effect_value", 1.0f);
         def.durationHours = OptFloat(*item, "duration_hours", 0.0f);
@@ -338,19 +348,35 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         def.completionCooldown = OptFloat(*item, "completion_cooldown", 5.0f);
 
         // Resolve string enums to int enums at load time (no string comparisons in hot loops)
-        if (def.checkType == "balance_gte")       def.checkTypeEnum = GoalCheckType::BalanceGte;
-        else if (def.checkType == "age_gte")      def.checkTypeEnum = GoalCheckType::AgeGte;
-        else if (def.checkType == "has_family")    def.checkTypeEnum = GoalCheckType::HasFamily;
+        if (def.checkType == "balance_gte")         def.checkTypeEnum = GoalCheckType::BalanceGte;
+        else if (def.checkType == "age_gte")        def.checkTypeEnum = GoalCheckType::AgeGte;
+        else if (def.checkType == "has_family")     def.checkTypeEnum = GoalCheckType::HasFamily;
         else if (def.checkType == "has_profession") def.checkTypeEnum = GoalCheckType::HasProfession;
-        else                                       def.checkTypeEnum = GoalCheckType::None;
+        else if (def.checkType == "none")           def.checkTypeEnum = GoalCheckType::None;
+        else {
+            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown check_type '%s', defaulting to None\n",
+                    path.c_str(), def.name.c_str(), def.checkType.c_str());
+            def.checkTypeEnum = GoalCheckType::None;
+        }
 
-        if (def.targetMode == "relative_balance")      def.targetModeEnum = GoalTargetMode::RelativeBalance;
-        else if (def.targetMode == "relative_age")     def.targetModeEnum = GoalTargetMode::RelativeAge;
-        else                                           def.targetModeEnum = GoalTargetMode::Fixed;
+        if (def.targetMode == "fixed")                  def.targetModeEnum = GoalTargetMode::Fixed;
+        else if (def.targetMode == "relative_balance")  def.targetModeEnum = GoalTargetMode::RelativeBalance;
+        else if (def.targetMode == "relative_age")      def.targetModeEnum = GoalTargetMode::RelativeAge;
+        else {
+            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown target_mode '%s', defaulting to Fixed\n",
+                    path.c_str(), def.name.c_str(), def.targetMode.c_str());
+            def.targetModeEnum = GoalTargetMode::Fixed;
+        }
 
-        if (def.behaviourMod == "hoard")           def.behaviourModEnum = GoalBehaviourMod::Hoard;
+        if (def.behaviourMod.empty() || def.behaviourMod == "none")
+            def.behaviourModEnum = GoalBehaviourMod::None;
+        else if (def.behaviourMod == "hoard")      def.behaviourModEnum = GoalBehaviourMod::Hoard;
         else if (def.behaviourMod == "ambitious")  def.behaviourModEnum = GoalBehaviourMod::Ambitious;
-        else                                       def.behaviourModEnum = GoalBehaviourMod::None;
+        else {
+            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown behaviour_mod '%s', defaulting to None\n",
+                    path.c_str(), def.name.c_str(), def.behaviourMod.c_str());
+            def.behaviourModEnum = GoalBehaviourMod::None;
+        }
 
         schema.goals.push_back(std::move(def));
     }
@@ -701,6 +727,117 @@ bool WorldLoader::Load(const std::string& worldDir,
 
     // Build cached lookup maps that depend on resolved cross-references
     schema.BuildResourceToSkillMap();
+
+    // ---- Validation passes ----
+
+    // 1. Check total event weight: if all chance values sum to zero,
+    //    weighted selection in RandomEventSystem produces UB.
+    if (!schema.events.empty()) {
+        float totalChance = 0.f;
+        for (const auto& ev : schema.events)
+            totalChance += ev.chance;
+        if (totalChance <= 0.f) {
+            fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: total event chance is zero "
+                    "(sum of all 'chance' fields = 0); weighted selection will be undefined\n",
+                    worldDir.c_str());
+        }
+    }
+
+    // 2. Validate required fields for specific event effect types.
+    for (const auto& ev : schema.events) {
+        switch (ev.effectEnum) {
+        case EventEffectType::ProductionModifier:
+            if (ev.durationHours <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': production_modifier effect has "
+                        "duration_hours <= 0 (will be treated as instant, no modifier applied)\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::StockpileDestroy:
+            if (ev.targetResource.empty() && ev.destroyResource.empty() && ev.destroyResourceNames.empty())
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_destroy effect has no "
+                        "target_resource, destroy_resource, or destroy_resources specified\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::StockpileAdd:
+            if (ev.addResource.empty())
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_add effect has no "
+                        "add_resource specified\n", worldDir.c_str(), ev.name.c_str());
+            if (ev.addAmount <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_add effect has "
+                        "add_amount <= 0\n", worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::TreasuryBoost:
+            if (ev.treasuryChange == 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': treasury_boost effect has "
+                        "treasury_change = 0 (no gold will be added)\n", worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::Convoy:
+            if (ev.convoyAmount <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': convoy effect has "
+                        "convoy_amount <= 0\n", worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::PriceSpike:
+            if (ev.priceSpikeMultiplier <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': price_spike effect has "
+                        "price_spike_multiplier <= 0\n", worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::Fire:
+            if (ev.destroyResourceNames.empty() && ev.destroyResource.empty())
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': fire effect has no "
+                        "destroy_resources or destroy_resource specified\n", worldDir.c_str(), ev.name.c_str());
+            break;
+        default:
+            break;
+        }
+
+        // Warn if chance is negative (always invalid)
+        if (ev.chance < 0.f)
+            fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': has negative chance value %f\n",
+                    worldDir.c_str(), ev.name.c_str(), ev.chance);
+    }
+
+    // 3. Validate required fields for specific goal check types.
+    for (const auto& goal : schema.goals) {
+        switch (goal.checkTypeEnum) {
+        case GoalCheckType::BalanceGte:
+            if (goal.targetValue <= 0.f && goal.targetModeEnum == GoalTargetMode::Fixed)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': balance_gte check has "
+                        "target_value <= 0 with fixed mode (goal is trivially complete)\n",
+                        worldDir.c_str(), goal.name.c_str());
+            break;
+        case GoalCheckType::AgeGte:
+            if (goal.targetValue <= 0.f && goal.targetModeEnum == GoalTargetMode::Fixed)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': age_gte check has "
+                        "target_value <= 0 with fixed mode (goal is trivially complete)\n",
+                        worldDir.c_str(), goal.name.c_str());
+            break;
+        case GoalCheckType::HasProfession:
+            if (goal.targetProfessionId == INVALID_ID)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': has_profession check has no "
+                        "target_profession resolved (will default to hauler if available)\n",
+                        worldDir.c_str(), goal.name.c_str());
+            break;
+        default:
+            break;
+        }
+
+        // Warn if weight is zero or negative (will never be selected)
+        if (goal.weight <= 0.f)
+            fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': has weight <= 0 "
+                    "(goal will never be assigned to NPCs)\n", worldDir.c_str(), goal.name.c_str());
+    }
+
+    // 4. Check total goal weight: if all weights sum to zero, goal assignment may malfunction.
+    if (!schema.goals.empty()) {
+        float totalGoalWeight = 0.f;
+        for (const auto& g : schema.goals)
+            totalGoalWeight += g.weight;
+        if (totalGoalWeight <= 0.f) {
+            fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: total goal weight is zero "
+                    "(sum of all 'weight' fields = 0); goal assignment will not work\n",
+                    worldDir.c_str());
+        }
+    }
 
     // Final validation
     if (schema.needs.empty()) {
