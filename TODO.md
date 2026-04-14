@@ -19,13 +19,13 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **WorldLoader.h/.cpp** — TOML config parser that reads `worlds/<name>/*.toml` and populates a WorldSchema. Validates cross-references (e.g., profession references a valid resource). Reports clear errors on missing/invalid config.
 
-- [ ] **Wire WorldSchema into SimThread** — SimThread loads a WorldSchema at construction. Systems receive a `const WorldSchema&` reference. No behavior changes yet — just plumbing.
+- [x] **Wire WorldSchema into SimThread** — SimThread loads a WorldSchema at construction. Systems receive a `const WorldSchema&` reference. No behavior changes yet — just plumbing.
 
 ## Phase 1 — Data-Driven Components
 
-- [ ] **Generic Needs component** — Replace `enum NeedType` and fixed `std::array<Need, 4>` with a vector of needs sized from WorldSchema. Systems iterate `schema.needs` instead of hardcoded indices.
+- [x] **Generic Needs component** — Replace `enum NeedType` and fixed `std::array<Need, 4>` with a vector of needs sized from WorldSchema. Systems iterate `schema.needs` instead of hardcoded indices.
 
-- [ ] **Generic Resources** — Replace `enum ResourceType` with ResourceID (int). Stockpile, Inventory, Market, ProductionFacility all key by ResourceID. Existing switch statements become schema lookups.
+- [x] **Generic Resources** — Replace `enum ResourceType` with ResourceID (int). Stockpile, Inventory, Market, ProductionFacility all key by ResourceID. Existing switch statements become schema lookups.
 
 - [ ] **Generic Skills** — Replace `struct Skills { float farming, water_drawing, woodcutting; }` with `std::vector<float>` indexed by SkillID. `ForResource()` and `Advance()` use schema mappings.
 
