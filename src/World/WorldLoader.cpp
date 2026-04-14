@@ -799,9 +799,9 @@ bool WorldLoader::Load(const std::string& worldDir,
                         "destroy_resources or destroy_resource specified\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::SpawnNpcs:
-            if (ev.effectValue <= 0.f && !ev.spawnSkilled)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': spawn_npcs effect has "
-                        "effect_value <= 0 and spawn_skilled is false (no NPCs will spawn)\n",
+            if (ev.effectValue < 1.f && !ev.spawnSkilled)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': SpawnNpcs event has "
+                        "effectValue < 1 (truncates to 0), which causes undefined behavior in spawn count distribution\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::RoadBlock:
