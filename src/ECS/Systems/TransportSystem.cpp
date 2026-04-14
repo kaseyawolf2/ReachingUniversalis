@@ -247,7 +247,7 @@ entt::entity TransportSystem::FindRoadPartner(entt::registry& registry,
     return entt::null;
 }
 
-void TransportSystem::Update(entt::registry& registry, float realDt) {
+void TransportSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     float gameDt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);

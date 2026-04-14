@@ -1,6 +1,8 @@
 #pragma once
 #include <entt/entt.hpp>
 
+struct WorldSchema;
+
 // Allows prosperous settlements to autonomously build new production facilities.
 // When a settlement has surplus gold AND a resource is chronically scarce (high
 // price), it invests in a new facility for that resource type.
@@ -10,7 +12,7 @@
 
 class ConstructionSystem {
 public:
-    void Update(entt::registry& registry, float realDt);
+    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
 
 private:
     float m_checkAccum    = 0.f;   // game-hours since last facility construction check

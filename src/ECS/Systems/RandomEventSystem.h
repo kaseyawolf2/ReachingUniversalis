@@ -5,6 +5,8 @@
 #include <utility>
 #include <random>
 
+struct WorldSchema;
+
 // Fires random world events at intervals to stress the simulation:
 //   Drought  — reduces all production at a settlement for several game-hours
 //   Blight   — destroys a portion of a settlement's food stockpile
@@ -15,7 +17,7 @@
 
 class RandomEventSystem {
 public:
-    void Update(entt::registry& registry, float realDt);
+    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
 
 private:
     std::mt19937 m_rng{std::random_device{}()};

@@ -16,11 +16,11 @@ static constexpr int DESIGN_H = 720;
 // Benchmark mode: run sim at max speed, sample stats, dump report.
 // Usage: ./ReachingUniversalis --benchmark <seconds> [output.txt]
 // --------------------------------------------------------------------
-static void RunBenchmark(int durationSec, const char* outFile) {
+static void RunBenchmark(int durationSec, const char* outFile, const WorldSchema& worldSchema) {
     InitWindow(DESIGN_W, DESIGN_H, "ReachingUniversalis [benchmark]");
     SetTargetFPS(0);
 
-    GameState state;
+    GameState state(worldSchema);
 
     // Set uncapped speed (Speed 5) for benchmark
     state.SetTickSpeed(0);
@@ -222,28 +222,6 @@ static void RunBenchmark(int durationSec, const char* outFile) {
 }
 
 int main(int argc, char* argv[]) {
-    // Check for --benchmark flag
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--benchmark") == 0) {
-            int secs = (i + 1 < argc) ? atoi(argv[i + 1]) : 30;
-            const char* outFile = (i + 2 < argc) ? argv[i + 2] : "benchmark_report.txt";
-            RunBenchmark(secs, outFile);
-            return 0;
-        }
-    }
-
-    // Check for --screenshot flag: capture a frame after N seconds and exit
-    // Usage: --screenshot <output.png> [delay_seconds]
-    const char* screenshotFile = nullptr;
-    int screenshotDelay = 5;  // default 5 seconds
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--screenshot") == 0) {
-            screenshotFile = (i + 1 < argc) ? argv[i + 1] : "screenshot.png";
-            screenshotDelay = (i + 2 < argc) ? atoi(argv[i + 2]) : 5;
-            break;
-        }
-    }
-
     // ---- Load world schema from TOML configs ----
     WorldSchema worldSchema;
     {
@@ -262,6 +240,28 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Check for --benchmark flag
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--benchmark") == 0) {
+            int secs = (i + 1 < argc) ? atoi(argv[i + 1]) : 30;
+            const char* outFile = (i + 2 < argc) ? argv[i + 2] : "benchmark_report.txt";
+            RunBenchmark(secs, outFile, worldSchema);
+            return 0;
+        }
+    }
+
+    // Check for --screenshot flag: capture a frame after N seconds and exit
+    // Usage: --screenshot <output.png> [delay_seconds]
+    const char* screenshotFile = nullptr;
+    int screenshotDelay = 5;  // default 5 seconds
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--screenshot") == 0) {
+            screenshotFile = (i + 1 < argc) ? argv[i + 1] : "screenshot.png";
+            screenshotDelay = (i + 2 < argc) ? atoi(argv[i + 2]) : 5;
+            break;
+        }
+    }
+
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(DESIGN_W, DESIGN_H, "ReachingUniversalis");
     SetTargetFPS(0);
@@ -269,7 +269,7 @@ int main(int argc, char* argv[]) {
     RenderTexture2D target = LoadRenderTexture(DESIGN_W, DESIGN_H);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    GameState state;
+    GameState state(worldSchema);
 
     while (!WindowShouldClose()) {
         // F11 toggles borderless fullscreen

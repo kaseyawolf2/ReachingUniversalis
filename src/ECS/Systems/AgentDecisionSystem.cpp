@@ -384,7 +384,7 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
 // ---- Main update ----
 
-void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
+void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     // Sub-block profiling setup
     using Clock = std::chrono::steady_clock;
     if (m_subProfile[0].name == nullptr) {

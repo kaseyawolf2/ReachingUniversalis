@@ -3,6 +3,7 @@
 #include "Threading/InputSnapshot.h"
 #include "Threading/RenderSnapshot.h"
 #include "Threading/SimThread.h"
+#include "World/WorldSchema.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
 
@@ -16,7 +17,7 @@
 
 class GameState {
 public:
-    GameState();
+    explicit GameState(const WorldSchema& schema);
     ~GameState();
 
     void  Update(float dt);

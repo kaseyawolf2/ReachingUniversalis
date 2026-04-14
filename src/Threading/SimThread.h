@@ -6,6 +6,7 @@
 
 #include "Threading/InputSnapshot.h"
 #include "Threading/RenderSnapshot.h"
+#include "World/WorldSchema.h"
 
 #include "ECS/Systems/TimeSystem.h"
 #include "ECS/Systems/NeedDrainSystem.h"
@@ -32,8 +33,8 @@
 
 class SimThread {
 public:
-    // input and snapshot must outlive this object.
-    SimThread(InputSnapshot& input, RenderSnapshot& snapshot);
+    // input, snapshot, and schema must outlive this object.
+    SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema);
     ~SimThread();
 
     void Start();
@@ -50,8 +51,9 @@ private:
     void        WriteSnapshot();
     void        RespawnPlayer();   // called when PlayerTag entity no longer exists
 
-    InputSnapshot&  m_input;
-    RenderSnapshot& m_snapshot;
+    InputSnapshot&      m_input;
+    RenderSnapshot&     m_snapshot;
+    const WorldSchema&  m_schema;
 
     entt::registry  m_registry;
 

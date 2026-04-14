@@ -6,7 +6,7 @@ static constexpr float MAP_W  = 2400.f;
 static constexpr float MAP_H  =  720.f;
 static constexpr float MARGIN =    5.f;
 
-void MovementSystem::Update(entt::registry& registry, float realDt) {
+void MovementSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     float gameDt = realDt;
     auto timeView = registry.view<TimeManager>();
     if (!timeView.empty())

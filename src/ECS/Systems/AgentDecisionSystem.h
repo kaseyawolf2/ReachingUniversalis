@@ -2,9 +2,11 @@
 #include <entt/entt.hpp>
 #include "ECS/Components.h"
 
+struct WorldSchema;
+
 class AgentDecisionSystem {
 public:
-    void Update(entt::registry& registry, float realDt);
+    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
 
     // Sub-block profiling: smoothed average microseconds per step (1-second window)
     static constexpr int SUB_PROFILE_COUNT = 7;

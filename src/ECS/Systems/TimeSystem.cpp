@@ -1,7 +1,7 @@
 #include "TimeSystem.h"
 #include "ECS/Components.h"
 
-void TimeSystem::Advance(entt::registry& registry, float subDt) {
+void TimeSystem::Advance(entt::registry& registry, float subDt, const WorldSchema& /*schema*/) {
     auto view = registry.view<TimeManager>();
     if (view.empty()) return;
     auto& tm = view.get<TimeManager>(*view.begin());

@@ -18,7 +18,7 @@ static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 // 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
 static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
 
-void ProductionSystem::Update(entt::registry& registry, float realDt) {
+void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());

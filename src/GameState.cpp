@@ -6,8 +6,8 @@ static constexpr float MAP_W    = 2400.f;
 static constexpr float MAP_H    =  720.f;
 static constexpr float LERP_SPD =    5.f;
 
-GameState::GameState()
-    : m_simThread(m_input, m_snapshot)
+GameState::GameState(const WorldSchema& schema)
+    : m_simThread(m_input, m_snapshot, schema)
 {
     m_simThread.Start();
 }

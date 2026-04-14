@@ -26,7 +26,7 @@ static constexpr float CHECK_INTERVAL        = 6.f;
 // Drain rates matching WorldGenerator values (used when restoring NPC status)
 static constexpr float DRAIN_ENERGY_NPC = 0.00050f;
 
-void EconomicMobilitySystem::Update(entt::registry& registry, float realDt) {
+void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());

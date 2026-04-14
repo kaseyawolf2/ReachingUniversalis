@@ -41,7 +41,7 @@ static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
     }
 }
 
-void RandomEventSystem::Update(entt::registry& registry, float realDt) {
+void RandomEventSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());
