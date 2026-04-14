@@ -180,8 +180,8 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
             registry.emplace<Schedule>(e);
 
         // Mark as bankruptcy survivor for extra skill growth
-        if (auto* dt = registry.try_get<DeprivationTimer>(e))
-            dt->bankruptSurvivor = true;
+        if (auto* sb = registry.try_get<SocialBehavior>(e))
+            sb->bankruptSurvivor = true;
 
         // Log the event
         if (log) {
@@ -255,8 +255,8 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
         ++haulerCount[hs.settlement];
 
         // Second-chance hauler graduation bonus: bankruptcy survivors get higher mentor bonus
-        if (const auto* dt = registry.try_get<DeprivationTimer>(e)) {
-            if (dt->bankruptSurvivor) {
+        if (const auto* sb = registry.try_get<SocialBehavior>(e)) {
+            if (sb->bankruptSurvivor) {
                 if (auto* hPtr = registry.try_get<Hauler>(e))
                     hPtr->mentorBonus = 0.15f;
                 if (log) {

@@ -85,8 +85,15 @@ static void SpawnNPCs(entt::registry& registry,
         static std::uniform_real_distribution<float> evt_stagger(0.f, 48.f);
         DeprivationTimer dt;
         dt.migrateThreshold   = migrate_dist(wg_rng) * 60.f;
-        dt.personalEventTimer = evt_stagger(wg_rng);
         registry.emplace<DeprivationTimer>(npc, dt);
+        registry.emplace<SocialBehavior>(npc);
+        registry.emplace<GriefState>(npc);
+        registry.emplace<TheftRecord>(npc);
+        registry.emplace<CharityState>(npc);
+        registry.emplace<BanditState>(npc);
+        PersonalEventState pes;
+        pes.personalEventTimer = evt_stagger(wg_rng);
+        registry.emplace<PersonalEventState>(npc, pes);
         registry.emplace<Schedule>(npc);
         registry.emplace<Relations>(npc);
         registry.emplace<Renderable>(npc, WHITE, 6.f);
@@ -176,6 +183,8 @@ static void SpawnHaulers(entt::registry& registry,
         DeprivationTimer hdt;
         hdt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
         registry.emplace<DeprivationTimer>(h, hdt);
+        registry.emplace<SocialBehavior>(h);
+        registry.emplace<BanditState>(h);
         registry.emplace<Inventory>(h, Inventory{ {}, 15 });
         // Stagger hauler wait timers so they don't all rush for cargo simultaneously
         Hauler haulerComp;
@@ -344,6 +353,7 @@ void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schem
     registry.emplace<AgentState>(player);
     registry.emplace<HomeSettlement>(player, HomeSettlement{ greenfield });
     registry.emplace<DeprivationTimer>(player);
+    registry.emplace<SocialBehavior>(player);
     registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
     registry.emplace<Money>(player);                            // 50 gold starting wallet
     registry.emplace<Renderable>(player, YELLOW, 10.f);

@@ -282,13 +282,14 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
         if (const auto* deadFt = registry.try_get<FamilyTag>(e)) {
             std::string deadName = "Someone";
             if (const auto* nm = registry.try_get<Name>(e)) deadName = nm->value;
-            registry.view<FamilyTag, DeprivationTimer, Name>(entt::exclude<BanditTag>).each(
-                [&](auto other, const FamilyTag& oFt, DeprivationTimer& oTmr, const Name& oNm) {
+            registry.view<FamilyTag, Name>(entt::exclude<BanditTag>).each(
+                [&](auto other, const FamilyTag& oFt, const Name& oNm) {
                     if (other == e) return;
                     for (auto dead : toRemove) if (dead == other) return;
                     if (oFt.name != deadFt->name) return;
-                    oTmr.griefTimer = 4.f;  // 4 game-hours
-                    oTmr.lastGriefDay = timeView.get<TimeManager>(*timeView.begin()).day;
+                    auto& oGs = registry.get_or_emplace<GriefState>(other);
+                    oGs.griefTimer = 4.f;  // 4 game-hours
+                    oGs.lastGriefDay = timeView.get<TimeManager>(*timeView.begin()).day;
                     auto logView5 = registry.view<EventLog>();
                     if (logView5.begin() != logView5.end()) {
                         auto& tm5 = timeView.get<TimeManager>(*timeView.begin());
@@ -373,8 +374,8 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
                     auto it = otherRel->affinity.find(e);
                     if (it == otherRel->affinity.end() || it->second < 0.5f) continue;
                     // Apply grief effects
-                    if (auto* oTmr = registry.try_get<DeprivationTimer>(other))
-                        oTmr->helpedTimer = 0.f;
+                    if (auto* oCs = registry.try_get<CharityState>(other))
+                        oCs->helpedTimer = 0.f;
                     if (const auto* oHs = registry.try_get<HomeSettlement>(other)) {
                         if (oHs->settlement != entt::null && registry.valid(oHs->settlement)) {
                             if (auto* settl = registry.try_get<Settlement>(oHs->settlement))

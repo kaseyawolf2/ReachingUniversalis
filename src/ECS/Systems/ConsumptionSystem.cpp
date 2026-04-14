@@ -111,24 +111,29 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
             needs.list[0].value += needs.list[0].drainRate * gameDt;
             needs.list[0].value  = std::min(needs.list[0].value, 1.f);
             // Remember where this meal came from
-            if (settl) timer.lastMealSource = settl->name;
+            if (settl) {
+                if (auto* sb = registry.try_get<SocialBehavior>(entity))
+                    sb->lastMealSource = settl->name;
+            }
         }
 
         // ---- Gratitude for last meal ----
         // When hunger drops below 0.2, NPC recalls the settlement that fed them.
-        if (needs.list[0].value < 0.2f && !timer.lastMealSource.empty()) {
-            auto lv2 = registry.view<EventLog>();
-            auto tv2 = registry.view<TimeManager>();
-            if (!lv2.empty() && !tv2.empty()) {
-                const auto& tm2 = tv2.get<TimeManager>(*tv2.begin());
-                std::string who = "An NPC";
-                if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
-                char buf[160];
-                std::snprintf(buf, sizeof(buf), "%s is grateful to %s for food.",
-                              who.c_str(), timer.lastMealSource.c_str());
-                lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+        if (auto* sb = registry.try_get<SocialBehavior>(entity)) {
+            if (needs.list[0].value < 0.2f && !sb->lastMealSource.empty()) {
+                auto lv2 = registry.view<EventLog>();
+                auto tv2 = registry.view<TimeManager>();
+                if (!lv2.empty() && !tv2.empty()) {
+                    const auto& tm2 = tv2.get<TimeManager>(*tv2.begin());
+                    std::string who = "An NPC";
+                    if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
+                    char buf[160];
+                    std::snprintf(buf, sizeof(buf), "%s is grateful to %s for food.",
+                                  who.c_str(), sb->lastMealSource.c_str());
+                    lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                }
+                sb->lastMealSource.clear();
             }
-            timer.lastMealSource.clear();
         }
 
         // ---- Water / Thirst ----
@@ -198,9 +203,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
 
         // ---- Starvation begging from friends ----
         // When starving (hunger < 0.1) and broke, beg from a friend at the same settlement.
-        if (timer.begTimer > 0.f) timer.begTimer -= gameHoursDt;
+        auto* sbBeg = registry.try_get<SocialBehavior>(entity);
+        if (sbBeg && sbBeg->begTimer > 0.f) sbBeg->begTimer -= gameHoursDt;
         if (needs.list[0].value < 0.1f && (!money || money->balance < 1.f)
-            && timer.begTimer <= 0.f) {
+            && sbBeg && sbBeg->begTimer <= 0.f) {
             const auto* rel = registry.try_get<Relations>(entity);
             if (rel) {
                 entt::entity bestHelper = entt::null;
@@ -223,7 +229,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                             auto& m = registry.get_or_emplace<Money>(entity);
                             m.balance += 3.f;
                         }
-                        timer.begTimer = 24.f;  // cooldown: once per 24 game-hours
+                        sbBeg->begTimer = 24.f;  // cooldown: once per 24 game-hours
                         auto logV = registry.view<EventLog>();
                         auto tmV  = registry.view<TimeManager>();
                         if (!logV.empty() && !tmV.empty()) {
@@ -325,9 +331,11 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         static constexpr float STEAL_DESPERATION = 6.f * 60.f;   // 6 game-hours of needsAtZero
         static constexpr float STEAL_AMOUNT      = 2.f;           // units stolen
         static constexpr float STEAL_COOLDOWN    = 4.f;           // game-hours between thefts
-        timer.stealCooldown = std::max(0.f, timer.stealCooldown - gameHoursDt);
+        auto* theftRec = registry.try_get<TheftRecord>(entity);
+        if (theftRec)
+            theftRec->stealCooldown = std::max(0.f, theftRec->stealCooldown - gameHoursDt);
 
-        bool canSteal = (timer.stealCooldown <= 0.f)
+        bool canSteal = theftRec && (theftRec->stealCooldown <= 0.f)
                      && (!money || money->balance < 1.f);   // only if broke
         bool justStole = false;
         if (canSteal) {
@@ -335,8 +343,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
             if (timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
                 foodStock -= STEAL_AMOUNT;
                 // Don't refill need — they'll pick it up as consumption next tick
-                timer.stealCooldown = STEAL_COOLDOWN;
-                timer.fleeTimer     = 4.f;   // sprint away for ~4 real seconds
+                theftRec->stealCooldown = STEAL_COOLDOWN;
+                if (auto* bs = registry.try_get<BanditState>(entity))
+                    bs->fleeTimer = 4.f;   // sprint away for ~4 real seconds
                 justStole = true;
 
                 // Theft costs reputation (-0.5 per act; creates component if missing)
@@ -368,8 +377,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
             // Steal water if close to dying of thirst
             else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
                 waterStock -= STEAL_AMOUNT;
-                timer.stealCooldown = STEAL_COOLDOWN;
-                timer.fleeTimer     = 4.f;
+                theftRec->stealCooldown = STEAL_COOLDOWN;
+                if (auto* bs = registry.try_get<BanditState>(entity))
+                    bs->fleeTimer = 4.f;
                 justStole = true;
                 registry.get_or_emplace<Reputation>(entity).score -= 0.5f;
                 if (settl) settl->theftCount++;
@@ -402,19 +412,19 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
             std::string thiefName = "Someone";
             if (auto* n = registry.try_get<Name>(entity)) thiefName = n->value;
             if (thiefPos) {
-                auto dtView = registry.view<DeprivationTimer, Position>();
-                for (auto other : dtView) {
+                auto csView = registry.view<CharityState, Position>();
+                for (auto other : csView) {
                     if (other == entity) continue;
-                    auto& otherTimer = dtView.get<DeprivationTimer>(other);
-                    if (otherTimer.gratitudeTarget != entity || otherTimer.gratitudeTimer <= 0.f)
+                    auto& otherCs = csView.get<CharityState>(other);
+                    if (otherCs.gratitudeTarget != entity || otherCs.gratitudeTimer <= 0.f)
                         continue;
-                    const auto& otherPos = dtView.get<Position>(other);
+                    const auto& otherPos = csView.get<Position>(other);
                     float dx = thiefPos->x - otherPos.x;
                     float dy = thiefPos->y - otherPos.y;
                     if (dx*dx + dy*dy > 80.f * 80.f) continue;
                     // Clear gratitude — betrayed trust
-                    otherTimer.gratitudeTimer  = 0.f;
-                    otherTimer.gratitudeTarget = entt::null;
+                    otherCs.gratitudeTimer  = 0.f;
+                    otherCs.gratitudeTarget = entt::null;
                     // Log
                     auto lv4 = registry.view<EventLog>();
                     auto tv4 = registry.view<TimeManager>();

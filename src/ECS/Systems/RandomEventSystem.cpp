@@ -342,8 +342,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                             as.behavior == AgentBehavior::Idle) {
                             as.behavior = AgentBehavior::Idle;
                         }
-                        if (auto* dt = registry.try_get<DeprivationTimer>(npc)) {
-                            dt->strikeDuration = STRIKE_DURATION_HOURS;
+                        if (auto* pes = registry.try_get<PersonalEventState>(npc)) {
+                            pes->strikeDuration = STRIKE_DURATION_HOURS;
                         }
                         ++strikerCount;
                     });
@@ -669,9 +669,9 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     std::uniform_real_distribution<float> windfall_dist(5.f, 15.f);
     std::uniform_real_distribution<float> skillGain_dist(0.08f, 0.12f);
     std::uniform_int_distribution<int>    needIdxDist(0, 2);   // Hunger/Thirst/Energy only
-    registry.view<DeprivationTimer, Skills, Money, Name>(
+    registry.view<PersonalEventState, Skills, Money, Name>(
         entt::exclude<PlayerTag, BanditTag>)
-        .each([&](auto e, DeprivationTimer& dt, Skills& skills, Money& money, const Name& name) {
+        .each([&](auto e, PersonalEventState& dt, Skills& skills, Money& money, const Name& name) {
             // Drain timers regardless of whether an event fires
             static std::set<entt::entity> s_currentlyIll;
             if (dt.illnessTimer > 0.f) {
@@ -808,7 +808,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             }
 
             // Elder wisdom transfer — one-time event for elders age > 70 with a skill ≥ 0.6
-            if (!dt.wisdomFired) {
+            auto* socialBeh = registry.try_get<SocialBehavior>(e);
+            if (socialBeh && !socialBeh->wisdomFired) {
                 const auto* age = registry.try_get<Age>(e);
                 if (age && age->days > 70.f) {
                     float bestSkill = skills.BestValue();
@@ -835,7 +836,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                 auto* tSkills = registry.try_get<Skills>(target);
                                 if (tSkills && bestSkillId != INVALID_ID) {
                                     tSkills->Set(bestSkillId, std::min(0.8f, tSkills->Get(bestSkillId) + 0.1f));
-                                    dt.wisdomFired = true;
+                                    socialBeh->wisdomFired = true;
 
                                     if (log) {
                                         const auto* stt = registry.try_get<Settlement>(hs->settlement);

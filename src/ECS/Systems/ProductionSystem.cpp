@@ -88,8 +88,8 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                 workerContrib *= 1.1f;
             // Good-harvest personal event: worker is "on fire" — 1.5× contribution
             if (!isApprentice) {
-                if (const auto* dt = registry.try_get<DeprivationTimer>(e))
-                    if (dt->harvestBonusTimer > 0.f)
+                if (const auto* pes = registry.try_get<PersonalEventState>(e))
+                    if (pes->harvestBonusTimer > 0.f)
                         workerContrib = 1.5f;
             }
             // Elder knowledge bonus: working elders provide tacit knowledge (+0.05)
@@ -115,15 +115,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                 workerContrib *= contentFactor;
             }
             // Grief penalty: grieving workers produce at half rate
-            if (const auto* dt = registry.try_get<DeprivationTimer>(e)) {
-                if (dt->griefTimer > 0.f)
+            if (const auto* gs = registry.try_get<GriefState>(e)) {
+                if (gs->griefTimer > 0.f)
                     workerContrib *= 0.5f;
             }
             // Reconciliation glow: recently reconciled workers produce +5%
-            if (auto* dt2 = registry.try_get<DeprivationTimer>(e)) {
-                if (dt2->reconcileGlow > 0.f) {
+            if (auto* sb = registry.try_get<SocialBehavior>(e)) {
+                if (sb->reconcileGlow > 0.f) {
                     workerContrib *= 1.05f;
-                    dt2->reconcileGlow = std::max(0.f, dt2->reconcileGlow - gameHoursDt);
+                    sb->reconcileGlow = std::max(0.f, sb->reconcileGlow - gameHoursDt);
                 }
             }
             // Jack-of-all-trades: generalists with all skills >= 0.4 get +5%
