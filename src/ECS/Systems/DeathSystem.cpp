@@ -146,6 +146,11 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                             if (it == rel.affinity.end() || it->second < 0.6f) return;
                             // Apply wisdom grief: 3 days of growth penalty
                             mSkills.wisdomGriefDays = 3.f;
+                            // Elder apprentice fast-track: if this was the mourner's mentor
+                            if (mSkills.elderMentor == e) {
+                                mSkills.tributeDays = 5.f;
+                                mSkills.elderMentor = entt::null; // mentor is gone
+                            }
                             // Track lineage: mourner carries the elder's legacy
                             mSkills.wisdomLineage = e;
                             if (const auto* nm = registry.try_get<Name>(e))

@@ -569,16 +569,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
                     // Elder wisdom: adult NPCs with strong affinity toward a skilled
                     // elder of the same profession get extra daily skill growth.
+                    // Also tracks the highest-affinity elder as elderMentor.
                     if (profFlag && hs.settlement != entt::null) {
                         auto eit = skilledElders.find(hs.settlement);
                         if (eit != skilledElders.end()) {
                             const auto* rel = registry.try_get<Relations>(e);
                             if (rel) {
+                                float bestAffinity = 0.f;
+                                entt::entity bestElder = entt::null;
                                 for (const auto& info : eit->second) {
                                     if (!(info.profFlag & profFlag)) continue;
                                     auto ait2 = rel->affinity.find(info.e);
                                     if (ait2 != rel->affinity.end() && ait2->second >= 0.6f) {
                                         growth += 0.0003f;
+                                        // Track highest-affinity elder
+                                        if (ait2->second > bestAffinity) {
+                                            bestAffinity = ait2->second;
+                                            bestElder = info.e;
+                                        }
                                         // Log at 1-in-10
                                         if (s_wisdomRng() % 10 == 0 && !logV2.empty()) {
                                             std::string who = "An NPC";
@@ -594,6 +602,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                         }
                                         break;  // Only one elder wisdom bonus per NPC per day
                                     }
+                                }
+                                // Update elderMentor to highest-affinity skilled elder
+                                if (bestElder != entt::null) {
+                                    sk.elderMentor = bestElder;
+                                    if (const auto* nm = registry.try_get<Name>(bestElder))
+                                        sk.elderMentorName = nm->value;
+                                    else
+                                        sk.elderMentorName = "a wise elder";
                                 }
                             }
                         }
@@ -621,6 +637,23 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     if (sk.wisdomGriefDays > 0.f) {
                         sk.wisdomGriefDays = std::max(0.f, sk.wisdomGriefDays - 1.f); // tick down 1 day per day
                         growth = std::max(0.f, growth - 0.0002f);
+                    }
+
+                    // Elder apprentice fast-track: accelerated growth after mentor dies
+                    if (sk.tributeDays > 0.f) {
+                        sk.tributeDays = std::max(0.f, sk.tributeDays - 1.f);
+                        growth += 0.0003f;
+                        if (s_teachRng() % 4 == 0 && !logV2.empty()) {
+                            std::string who = "NPC";
+                            if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                            std::string mentorNm = sk.elderMentorName.empty() ? "a wise elder" : sk.elderMentorName;
+                            std::string where = "settlement";
+                            if (hs.settlement != entt::null && registry.valid(hs.settlement))
+                                if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                    where = s->name;
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                who + " redoubles their efforts in memory of " + mentorNm + " at " + where + ".");
+                        }
                     }
 
                     // Mastery teaching chain: experts (skill >= 0.8) teach novices (skill < 0.5)
