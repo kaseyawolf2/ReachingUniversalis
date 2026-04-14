@@ -9,7 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
+## Done
+
+- [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
 
@@ -4466,3 +4468,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Gift reciprocation cycle** — In `AgentDecisionSystem.cpp`'s trade gift block, add `entt::entity lastGiftFrom = entt::null` to `DeprivationTimer` in `Components.h`. Set it when receiving a gift. On the next gift cycle, if the NPC's best friend matches `lastGiftFrom`, skip the cooldown check (gift back immediately). Creates back-and-forth gift exchanges between close friends. Log "[Name] returns [Friend]'s generosity at [Settlement]." at 1-in-4 frequency.
 
 - [ ] **Friendship decay notification** — In `AgentDecisionSystem.cpp`'s relations decay block (where distance-based affinity decreases), when a pair's affinity drops below 0.3 from above, log "[Name] and [Name] are drifting apart." at 1-in-5 frequency. Uses existing `Relations::affinity` comparison. Shows the social cost of migration — friends who moved away lose touch over time.
+
+- [ ] **Work song contagion across professions** — In `ScheduleSystem.cpp`'s work song block, after the morale lift, scan NPCs of OTHER professions working within 2× WORK_ARRIVE radius at the same settlement. If 2+ other-profession workers are nearby, 1-in-6 chance they start their own work song (boost mutual affinity +0.005 among them). Log "[Name] picks up the tune from the [Profession]s at [Settlement]" at 1-in-6 frequency. Creates cross-profession social bonding triggered by the original song.
+
+- [ ] **Shared meal affinity boost** — In `ConsumptionSystem.cpp`'s buy-from-stockpile block, when 2+ NPCs at the same settlement purchase food in the same sim step, treat it as a shared meal: boost mutual affinity by +0.005 among all buyers (cap 1.0). Use a `static std::vector<std::pair<entt::entity, entt::entity>> s_mealBuyers` collected per settlement per step. Log "[Name] and [Name] share a meal at [Settlement]" at 1-in-12 frequency. Adds a passive social bonding mechanic tied to basic need fulfilment.
+
+- [ ] **Night watch camaraderie** — In `ScheduleSystem.cpp`'s sleep transition block, when an NPC's schedule says Sleep but they have `Needs::energy > 0.7` (not tired), 1-in-20 chance they stay awake as a night watch. Find other night-watch NPCs at same settlement (same condition triggered that step); if 2+ are awake, boost mutual affinity +0.01. Log "[Name] and [Name] keep watch together at [Settlement]" at 1-in-6 frequency. Creates a rare late-night bonding event between energetic NPCs.
