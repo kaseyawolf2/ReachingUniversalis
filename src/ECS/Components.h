@@ -221,14 +221,36 @@ struct SocialBehavior {
     } cooldowns;
 
     // One-shot flags, milestone events, and mood-affecting states.
+    // Field categories:
+    //   Accumulating timer — counts upward over time; reset on specific events (not periodic decay).
+    //   Persistent state   — value set/cleared on discrete events; no time-based decay.
+    //   Persistent flag    — set once (true), never reset; gates one-time milestone logic.
     struct MoodState {
-        float        homesickTimer       = 0.f;   // game-hours since migration arrival; triggers return when > 72h and low satisfaction
-        entt::entity lastHelper          = entt::null; // entity who last gave charity; for gratitude greeting
-        std::string  lastMealSource;                   // settlement name where NPC last ate; cleared after gratitude log
-        bool         wisdomFired         = false;  // true once elder wisdom transfer has fired (one-time event)
-        bool         wealthCelebrated    = false;  // true once NPC's balance crosses 500g (one-time event)
-        bool         masterSettled       = false;  // true once any skill reaches 0.9; permanently boosts migrateThreshold
-        bool         bankruptSurvivor    = false;  // true after hauler bankruptcy; grants extra skill growth
+        /// [Accumulating timer] Incremented each tick while NPC has a prevSettlement;
+        /// triggers homesick return migration when > 72 game-hours and satisfaction < 0.4.
+        /// Reset to 0 on migration start and on arrival at new home.
+        float        homesickTimer       = 0.f;
+        /// [Persistent state] Entity who last gave charity, taught, or helped this NPC.
+        /// Set on receiving aid; cleared to entt::null after a gratitude greeting fires.
+        /// Also propagated to other NPCs via gossip. No time-based decay.
+        entt::entity lastHelper          = entt::null;
+        /// [Persistent state] Settlement name where NPC last ate; set in ConsumptionSystem.
+        /// Cleared (string::clear) after a gratitude log fires. No time-based decay.
+        std::string  lastMealSource;
+        /// [Persistent flag] Set true once when elder wisdom transfer fires (age > 70,
+        /// skill >= 0.6). Never reset. Guards one-time knowledge transfer to a younger NPC.
+        bool         wisdomFired         = false;
+        /// [Persistent flag] Set true once when NPC balance crosses 500g. Never reset.
+        /// Guards one-time wealth celebration event log.
+        bool         wealthCelebrated    = false;
+        /// [Persistent flag] Set true once when any skill reaches 0.9. Never reset.
+        /// Permanently boosts effective migrateThreshold by 1.5x and enables master-
+        /// homecoming / master-departure morale effects on settlements.
+        bool         masterSettled       = false;
+        /// [Persistent flag] Set true after hauler bankruptcy demotes NPC back to worker.
+        /// Never reset. Grants +0.0002 extra skill growth per tick and a higher mentor
+        /// bonus (0.15) on second-chance hauler graduation.
+        bool         bankruptSurvivor    = false;
     } mood;
 
     // State for family visits to other settlements.
