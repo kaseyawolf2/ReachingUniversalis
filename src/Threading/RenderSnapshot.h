@@ -315,6 +315,7 @@ struct RenderSnapshot {
     std::string seasonName = "Spring";
     float seasonProductionMod = 1.f;   // cached for HUD display
     float seasonHeatDrainMod  = 0.f;   // cached for HUD display
+    std::string seasonRegime;          // e.g. "Harsh Cold", "Mild", "Harvest" — set by WriteSnapshot
     float  temperature = 10.f;  // ambient °C
 
     // HUD — simulation state
