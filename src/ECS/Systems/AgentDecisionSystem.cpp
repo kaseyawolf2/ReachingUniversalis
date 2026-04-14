@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include "DynBitset.h"
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
 
@@ -400,13 +401,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             return schema.professions[profId].producesResource;
         return -1;
     };
-    // Bitmask helper: one bit per producing profession. Requires < 32 professions.
-    // (assert is now in WorldSchema::BuildMaps, checked once at load time)
-    auto profFlag = [&](int profId) -> uint32_t {
+    // Dynamic-width bitmask helper: one bit per producing profession.
+    // Returns a DynBitset with the single bit for profId set (empty if invalid or non-producing).
+    auto profFlag = [&](int profId) -> DynBitset {
         if (profId >= 0 && profId < (int)schema.professions.size()
             && schema.professions[profId].producesResource != INVALID_ID)
-            return (uint32_t(1) << profId);
-        return 0;
+            return DynBitset::singleBit(profId);
+        return {};
     };
 
     // Sub-block profiling setup
@@ -507,73 +508,73 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             static constexpr float LOYALTY_BONUS       = 0.0005f;
 
             // Build per-settlement master profession set
-            // Bit flags: bit N = professionID N (only for producing professions)
-            std::unordered_map<entt::entity, uint32_t> masterFlags;
+            // Dynamic bitset: bit N = professionID N (only for producing professions)
+            std::unordered_map<entt::entity, DynBitset> masterFlags;
             registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
-                    uint32_t f = profFlag(prof.type);
+                    DynBitset f = profFlag(prof.type);
                     SkillID psid = SkillForProfession(prof.type, schema);
-                    if (f && psid != INVALID_ID && sk.Get(psid) >= MASTER_THRESHOLD)
+                    if (f.any() && psid != INVALID_ID && sk.Get(psid) >= MASTER_THRESHOLD)
                         masterFlags[hs.settlement] |= f;
                 });
 
             // Pre-compute expert flags: settlement → profBits for NPCs with skill >= 0.8
             // (distinct from masterFlags which requires 0.9 — this is for teaching chain)
-            std::unordered_map<entt::entity, uint32_t> expertFlags;
+            std::unordered_map<entt::entity, DynBitset> expertFlags;
             registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
-                    uint32_t f = profFlag(prof.type);
+                    DynBitset f = profFlag(prof.type);
                     SkillID epsid = SkillForProfession(prof.type, schema);
-                    if (f && epsid != INVALID_ID && sk.Get(epsid) >= 0.8f)
+                    if (f.any() && epsid != INVALID_ID && sk.Get(epsid) >= 0.8f)
                         expertFlags[hs.settlement] |= f;
                 });
 
             // Pre-compute active mentoring: settlement → profMask of professions
             // where an elder (age > 60) AND a child (age 12-14) of matching profession coexist.
             // Used for mentorship rivalry: non-mentor skilled NPCs train harder.
-            std::unordered_map<entt::entity, uint32_t> elderProfBySettl;
+            std::unordered_map<entt::entity, DynBitset> elderProfBySettl;
             registry.view<Age, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Age& age, const Profession& prof, const HomeSettlement& hs) {
                     if (age.days > 60.f && hs.settlement != entt::null) {
-                        uint32_t f = profFlag(prof.type);
-                        if (f) elderProfBySettl[hs.settlement] |= f;
+                        DynBitset f = profFlag(prof.type);
+                        if (f.any()) elderProfBySettl[hs.settlement] |= f;
                     }
                 });
-            std::unordered_map<entt::entity, uint32_t> childProfBySettl;
+            std::unordered_map<entt::entity, DynBitset> childProfBySettl;
             registry.view<ChildTag, Age, Profession, HomeSettlement>().each(
                 [&](auto, const Age& age, const Profession& prof, const HomeSettlement& hs) {
                     if (age.days >= 12.f && age.days <= 14.f && hs.settlement != entt::null) {
-                        uint32_t f = profFlag(prof.type);
-                        if (f) childProfBySettl[hs.settlement] |= f;
+                        DynBitset f = profFlag(prof.type);
+                        if (f.any()) childProfBySettl[hs.settlement] |= f;
                     }
                 });
             // Active mentoring = intersection of elder and child profession bits per settlement
-            std::unordered_map<entt::entity, uint32_t> activeMentoring;
+            std::unordered_map<entt::entity, DynBitset> activeMentoring;
             for (const auto& [settl, elderMask] : elderProfBySettl) {
                 auto cit = childProfBySettl.find(settl);
                 if (cit != childProfBySettl.end()) {
-                    uint32_t overlap = elderMask & cit->second;
-                    if (overlap) activeMentoring[settl] = overlap;
+                    DynBitset overlap = elderMask & cit->second;
+                    if (overlap.any()) activeMentoring[settl] = std::move(overlap);
                 }
             }
             static std::mt19937 s_rivalRng{ std::random_device{}() };
 
             // Pre-compute skilled elders per settlement for elder wisdom boost.
             // Key: settlement → vector of (entity, profFlag) for elders with skill >= 0.8
-            struct ElderInfo { entt::entity e; uint32_t profFlag; };
+            struct ElderInfo { entt::entity e; DynBitset profBits; };
             std::unordered_map<entt::entity, std::vector<ElderInfo>> skilledElders;
             registry.view<Skills, Profession, Age, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](auto elder, const Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days <= 60.f || hs.settlement == entt::null) return;
-                    uint32_t f = profFlag(prof.type);
+                    DynBitset f = profFlag(prof.type);
                     SkillID sid = SkillForProfession(prof.type, schema);
-                    if (f && sid != INVALID_ID && sk.Get(sid) >= 0.8f)
+                    if (f.any() && sid != INVALID_ID && sk.Get(sid) >= 0.8f)
                         skilledElders[hs.settlement].push_back({elder, f});
                 });
             static std::mt19937 s_wisdomRng{ std::random_device{}() };
@@ -587,11 +588,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](auto e, Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days > 60.f) return;  // elders don't grow skills
                     // Check if settlement has a master of this profession
-                    uint32_t myProfFlag = profFlag(prof.type);
+                    DynBitset myProfFlag = profFlag(prof.type);
                     bool hasMaster = false;
-                    if (myProfFlag && hs.settlement != entt::null) {
+                    if (myProfFlag.any() && hs.settlement != entt::null) {
                         auto mit = masterFlags.find(hs.settlement);
-                        hasMaster = (mit != masterFlags.end() && (mit->second & myProfFlag));
+                        hasMaster = (mit != masterFlags.end() && mit->second.containsAll(myProfFlag));
                     }
                     // Don't boost masters themselves
                     // Look up per-skill growthRate from schema
@@ -608,11 +609,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Mentorship rivalry: skilled NPCs (≥ 0.7) at settlements with
                     // active mentoring of their profession train 10% harder.
                     bool rivalryActive = false;
-                    if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
+                    if (myProfFlag.any() && hs.settlement != entt::null && profSkId != INVALID_ID) {
                         float activeSkill = sk.Get(profSkId);
                         if (activeSkill >= 0.7f) {
                             auto ait = activeMentoring.find(hs.settlement);
-                            if (ait != activeMentoring.end() && (ait->second & myProfFlag)) {
+                            if (ait != activeMentoring.end() && ait->second.containsAll(myProfFlag)) {
                                 growth *= 1.1f;
                                 rivalryActive = true;
                             }
@@ -622,7 +623,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Elder wisdom: adult NPCs with strong affinity toward a skilled
                     // elder of the same profession get extra daily skill growth.
                     // Also tracks the highest-affinity elder as elderMentor.
-                    if (myProfFlag && hs.settlement != entt::null) {
+                    if (myProfFlag.any() && hs.settlement != entt::null) {
                         auto eit = skilledElders.find(hs.settlement);
                         if (eit != skilledElders.end()) {
                             const auto* rel = registry.try_get<Relations>(e);
@@ -630,7 +631,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 float bestAffinity = 0.f;
                                 entt::entity bestElder = entt::null;
                                 for (const auto& info : eit->second) {
-                                    if (!(info.profFlag & myProfFlag)) continue;
+                                    if (!info.profBits.intersectsAny(myProfFlag)) continue;
                                     auto ait2 = rel->affinity.find(info.e);
                                     if (ait2 != rel->affinity.end() && ait2->second >= 0.6f) {
                                         growth += 0.0003f;
@@ -709,11 +710,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Mastery teaching chain: experts (skill >= 0.8) teach novices (skill < 0.5)
-                    if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
+                    if (myProfFlag.any() && hs.settlement != entt::null && profSkId != INVALID_ID) {
                         float activeSkill2 = sk.Get(profSkId);
                         if (activeSkill2 < 0.5f) {
                             auto xit = expertFlags.find(hs.settlement);
-                            if (xit != expertFlags.end() && (xit->second & myProfFlag)) {
+                            if (xit != expertFlags.end() && xit->second.intersectsAny(myProfFlag)) {
                                 growth += 0.0004f;
                                 if (s_teachRng() % 10 == 0 && !logV2.empty()) {
                                     std::string who = "An expert";
@@ -760,7 +761,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Jealousy-driven skill motivation: low affinity toward a skilled rival pushes harder training
-                    if (myProfFlag && hs.settlement != entt::null) {
+                    if (myProfFlag.any() && hs.settlement != entt::null) {
                         const auto* myRel = registry.try_get<Relations>(e);
                         if (myRel) {
                             bool jealousMotivated = false;

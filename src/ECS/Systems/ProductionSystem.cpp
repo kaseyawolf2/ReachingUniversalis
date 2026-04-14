@@ -1,4 +1,5 @@
 #include "ProductionSystem.h"
+#include "DynBitset.h"
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
 #include <algorithm>
@@ -57,8 +58,8 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceID] — keyed by resource ID for generic skill mapping
     std::unordered_map<entt::entity, std::map<int, SkillAccum>> skillData;
-    // Profession diversity: bitmask per settlement (bit N = professionID N that produces a resource)
-    std::unordered_map<entt::entity, uint32_t> profDiversity;
+    // Profession diversity: dynamic bitset per settlement (bit N = professionID N that produces a resource)
+    std::unordered_map<entt::entity, DynBitset> profDiversity;
 
     // Include player if Working — they contribute to the facility they're at.
     registry.view<AgentState, HomeSettlement>(entt::exclude<Hauler>)
@@ -135,7 +136,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             if (const auto* prof = registry.try_get<Profession>(e)) {
                 if (prof->type >= 0 && prof->type < (int)schema.professions.size()
                     && schema.professions[prof->type].producesResource != INVALID_ID)
-                    profDiversity[hs.settlement] |= (uint32_t(1) << prof->type);
+                    profDiversity[hs.settlement] |= DynBitset::singleBit(prof->type);
             }
             workers[hs.settlement] += workerContrib;
             workerHeadCount[hs.settlement]++;
@@ -154,14 +155,14 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
 
     // ---- Settlement profession diversity bonus ----
     // Settlements with all producing professions get +3% production.
-    uint32_t fullProfMask = 0;
+    DynBitset fullProfMask(schema.professions.size());
     for (auto& pd : schema.professions)
-        if (pd.producesResource != INVALID_ID) fullProfMask |= (uint32_t(1) << pd.id);
+        if (pd.producesResource != INVALID_ID) fullProfMask.set(pd.id);
     {
         static std::map<entt::entity, int> s_diverseLogged;
         for (auto& [settl, w] : workers) {
-            if (fullProfMask != 0 && profDiversity.count(settl)
-                && (profDiversity[settl] & fullProfMask) == fullProfMask) {
+            if (fullProfMask.any() && profDiversity.count(settl)
+                && profDiversity[settl].containsAll(fullProfMask)) {
                 w *= 1.03f;
                 // Log once per game-day at 1-in-10 frequency
                 if (s_diverseLogged.count(settl) == 0 || s_diverseLogged[settl] != tm.day) {

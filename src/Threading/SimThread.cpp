@@ -1,4 +1,5 @@
 #include "SimThread.h"
+#include "DynBitset.h"
 #include "ECS/Components.h"
 #include "World/WorldGenerator.h"
 #include <cmath>
@@ -1454,7 +1455,7 @@ void SimThread::WriteSnapshot() {
         int   masterCount = 0;
         std::vector<float> skillSums;  // per-SkillID sum; sized on first use
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
-        uint32_t profMask  = 0;  // bitmask: one bit per producing profession (bit N = professionID N)
+        DynBitset profMask;  // dynamic bitset: one bit per producing profession (bit N = professionID N)
         int   griefCount = 0; // NPCs with griefTimer > 0
         int   mourningCount = 0; // NPCs in mourning procession (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
     };
@@ -1523,7 +1524,7 @@ void SimThread::WriteSnapshot() {
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
                     if (prof->type >= 0 && prof->type < (int)m_schema.professions.size()
                         && m_schema.professions[prof->type].producesResource != INVALID_ID)
-                        ag.profMask |= (uint32_t(1) << prof->type);
+                        ag.profMask |= DynBitset::singleBit(prof->type);
                 }
             }
         });
@@ -1989,9 +1990,9 @@ void SimThread::WriteSnapshot() {
     }
 
     // Pre-compute full profession bitmask (constant per schema, used per-settlement below)
-    uint32_t fullProfMask = 0;
+    DynBitset fullProfMask(m_schema.professions.size());
     for (auto& pd : m_schema.professions)
-        if (pd.producesResource != INVALID_ID) fullProfMask |= (uint32_t(1) << pd.id);
+        if (pd.producesResource != INVALID_ID) fullProfMask.set(pd.id);
 
     m_registry.view<Position, Settlement>().each(
         [&](auto e, const Position& pos, const Settlement& s) {
@@ -2061,8 +2062,8 @@ void SimThread::WriteSnapshot() {
         }
 
         // Check all producing professions are present
-        bool diverse = settlAgg.count(e) && fullProfMask != 0
-                       && (settlAgg[e].profMask & fullProfMask) == fullProfMask;
+        bool diverse = settlAgg.count(e) && fullProfMask.any()
+                       && settlAgg[e].profMask.containsAll(fullProfMask);
         bool afterglow = (s.afterglowHours > 0.f);
         bool vigilActive = settlAgg.count(e) && settlAgg[e].griefCount >= 3;
         bool mourningActive = settlAgg.count(e) && settlAgg[e].mourningCount > 0;
