@@ -537,9 +537,9 @@ void GameState::Draw() {
 // Interpolate between two colours by t (0–1)
 static Color LerpColor(Color a, Color b, float t) {
     return {
-        (unsigned char)(a.r + (b.r - a.r) * t),
-        (unsigned char)(a.g + (b.g - a.g) * t),
-        (unsigned char)(a.b + (b.b - a.b) * t),
+        (unsigned char)((float)a.r + ((float)b.r - (float)a.r) * t),
+        (unsigned char)((float)a.g + ((float)b.g - (float)a.g) * t),
+        (unsigned char)((float)a.b + ((float)b.b - (float)a.b) * t),
         255
     };
 }
