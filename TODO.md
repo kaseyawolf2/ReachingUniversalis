@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
 
 - [x] **Post-procession comfort bonus** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter was a participant in a mourning procession (check `skillCelebrateTimer > 0` and `wisdomGriefDays > 0`), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] draws strength from the procession to comfort [Griever]" at 1-in-6 frequency. Creates a connection between the group mourning event and individual grief support.
 
@@ -2019,4 +2019,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Comforter reputation gain** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after successfully comforting a grieving NPC, boost the comforter's `Reputation::score` by +0.02 (cap 1.0). Log "[Comforter] earns respect for tending to the grieving at [Settlement]" at 1-in-8 frequency. Uses existing `Reputation` component. Creates a reputation path through emotional labour, not just economic activity.
 
 - [ ] **Grief contagion in families** — In `AgentDecisionSystem.cpp`'s grief timer drain block, when a grieving NPC has a `FamilyTag` and another NPC at the same settlement shares the same `FamilyTag::name`, 1-in-8 chance to set the family member's `griefTimer = 0.5f` (mild sympathy grief). Log "[FamilyMember] worries about [Griever] at [Settlement]" at 1-in-6 frequency. Uses existing `FamilyTag` component. Creates emotional contagion within family units.
+
+- [ ] **Mourning procession participant count in settlement tooltip** — In `SimThread::WriteSnapshot`'s `SettlAgg` struct, the `mourningCount` field is already computed. Add `int mourningCount = 0` to `SettlementEntry` in `RenderSnapshot.h` and pass it through. In `HUD.cpp`'s settlement tooltip, when `mourning == true`, change badge text from "[Mourning]" to "[Mourning: N]" showing participant count. Makes the scale of the procession visible.
+
+- [ ] **Procession affinity scaling by size** — In `AgentDecisionSystem.cpp`'s mourning procession block, scale the mutual affinity boost by participant count: `0.02f + 0.005f * (participants.size() - 3)` (capped at +0.05). Larger processions create stronger bonds. Log variant when 6+ participants: "[Settlement] holds a grand procession" at full frequency. Uses existing `participants` vector size.
 
