@@ -303,6 +303,7 @@ struct RenderSnapshot {
     // Skill display names from schema (indexed by SkillID). Shared across all
     // agents and the player panel. Set once at construction by SimThread;
     // never changes, so readers can copy the shared_ptr without a deep copy.
+    // Immutable after construction; not protected by mutex
     std::shared_ptr<const std::vector<std::string>> skillNames;
 
     // HUD — clock
