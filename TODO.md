@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Plague solidarity** — In `RandomEventSystem.cpp`'s plague trigger (case 2), mirror the drought solidarity pattern: after applying plague, scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.03 (cap 1.0). Log "[Settlement] residents support each other through the plague." Reuses the same pattern as drought solidarity for consistency across crisis types.
-
 ## Backlog
 
 - [ ] **Post-crisis community gathering** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration` reaches 0), when a "Drought" or "Plague" modifier expires, scan all NPC pairs at the settlement and boost mutual `Relations::affinity` by +0.02 for pairs with affinity >= 0.2 (cap 1.0). Log "[Settlement] celebrates surviving the [crisis]" once. Represents relief and community strengthening after hardship ends.
@@ -81,7 +79,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Low harmony triggers NPC complaints** — In `AgentDecisionSystem.cpp`'s idle chat block, when the home settlement's harmony (pre-computed per settlement) is < 0.15 and both chatting NPCs have `Relations::affinity < 0.3` toward each other, 1-in-10 chance to log "[NPC1] and [NPC2] grumble about tensions at [Settlement]" and apply -0.005 to `Settlement::morale` (floor 0.0). Creates a feedback loop: low harmony → morale drain → potential migration.
 
+- [ ] **Blight solidarity** — In `RandomEventSystem.cpp`'s blight trigger (case 1), after destroying food stockpile, mirror the drought/plague solidarity pattern: scan NPC pairs at the settlement with mutual `Relations::affinity >= 0.3`, boost by +0.02 (cap 1.0). Log "[Settlement] residents share what little food remains." Smaller boost than drought/plague since blight is less severe. Completes the crisis solidarity pattern across all crisis types.
+
+- [ ] **Crisis survivor badge on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool crisisSurvivor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC's home settlement has `modifierName == "Drought"` or `"Plague"`. In `HUD.cpp`'s NPC tooltip, display "[Crisis]" in orange after existing badges. Gives the player visibility into which NPCs are currently enduring hardship.
+
 ## Recently Done
+
+- [x] **Plague solidarity** — Mirrored drought solidarity in `RandomEventSystem.cpp` case 2: NPC pairs
+  with mutual affinity >= 0.3 get +0.03 boost during plague. Logs support message once.
 
 - [x] **Settlement harmony score** — Added `harmony` to `SettlementEntry`, computed in `SimThread::WriteSnapshot`
   as friendshipPairs*2/(pop*(pop-1)). Displayed in settlement tooltip with green/yellow/red coloring.
