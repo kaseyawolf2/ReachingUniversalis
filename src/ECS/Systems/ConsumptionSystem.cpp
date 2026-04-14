@@ -47,6 +47,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         auto& timer  = view.get<DeprivationTimer>(entity);
 
         if (home.settlement == entt::null || !registry.valid(home.settlement)) continue;
+        if (needs.list.size() < 4) continue;   // guard: medieval config requires 4 needs
         auto* stockpile = registry.try_get<Stockpile>(home.settlement);
         if (!stockpile) continue;
 
@@ -90,7 +91,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         // Snapshot worst need before consumption for mood log
         float worstNeedBefore = 1.f;
         int   worstNeedIdx    = -1;
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < (int)needs.list.size(); ++i) {
             if (needs.list[i].value < worstNeedBefore) {
                 worstNeedBefore = needs.list[i].value;
                 worstNeedIdx    = i;
@@ -153,7 +154,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                         std::string stlName = "a settlement";
                         if (settl) stlName = settl->name;
                         static const char* verbs[] = { "eating", "drinking", "resting", "warming up" };
-                        const char* verb = (worstNeedIdx >= 0 && worstNeedIdx < 4)
+                        const char* verb = (worstNeedIdx >= 0 && worstNeedIdx < (int)(sizeof(verbs)/sizeof(verbs[0])))
                                            ? verbs[worstNeedIdx] : "recovering";
                         char buf[160];
                         std::snprintf(buf, sizeof(buf), "%s feels relieved after %s at %s.",
@@ -167,8 +168,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         // ---- Update satisfaction memory ----
         {
             float avg = 0.f;
-            for (int i = 0; i < 4; ++i) avg += needs.list[i].value;
-            timer.lastSatisfaction = avg * 0.25f;
+            for (int i = 0; i < (int)needs.list.size(); ++i) avg += needs.list[i].value;
+            timer.lastSatisfaction = needs.list.empty() ? 0.5f : avg / (float)needs.list.size();
         }
 
         // ---- Starvation desperation log ----

@@ -1185,12 +1185,12 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                                             tpos->y + std::sin(ang)*60.f);
             registry.emplace<Velocity>(npc, 0.f, 0.f);
             registry.emplace<MoveSpeed>(npc, 60.f);
-            Needs npcNeeds{{
+            Needs npcNeeds{ {
                 Need{NeedType::Hunger, 0.6f, DRAIN_HUNGER, 0.3f, REFILL_H},
                 Need{NeedType::Thirst, 0.6f, DRAIN_THIRST, 0.3f, REFILL_T},
                 Need{NeedType::Energy, 0.8f, DRAIN_ENERGY, 0.3f, REFILL_E},
                 Need{NeedType::Heat,   0.8f, DRAIN_HEAT,   0.3f, REFILL_HEAT}
-            }};
+            } };
             // Personality variation: ±20% drain rates
             for (auto& need : npcNeeds.list) need.drainRate *= trait_dist(m_rng);
             registry.emplace<Needs>(npc, npcNeeds);
@@ -1435,12 +1435,12 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             spos->y + std::sin(angle16) * 60.f);
         registry.emplace<Velocity>(npc16, 0.f, 0.f);
         registry.emplace<MoveSpeed>(npc16, 60.f);
-        registry.emplace<Needs>(npc16, Needs{{
+        registry.emplace<Needs>(npc16, Needs{ {
             Need{NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESH, 0.004f},
             Need{NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESH, 0.006f},
             Need{NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESH, 0.002f},
             Need{NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESH, 0.010f},
-        }});
+        } });
         registry.emplace<AgentState>(npc16);
         registry.emplace<HomeSettlement>(npc16, HomeSettlement{ target });
         DeprivationTimer dt16;

@@ -74,7 +74,10 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
         auto& needs = view.get<Needs>(entity);
         auto& timer = view.get<DeprivationTimer>(entity);
 
-        for (int i = 0; i < 4; ++i) {
+        // Ensure needsAtZero vector is large enough for all needs
+        if (timer.needsAtZero.size() < needs.list.size())
+            timer.needsAtZero.resize(needs.list.size(), 0.f);
+        for (int i = 0; i < (int)needs.list.size(); ++i) {
             if (needs.list[i].value <= 0.001f) {
                 timer.needsAtZero[i] += gameDt;
                 if (timer.needsAtZero[i] >= DEATH_THRESHOLD) {
