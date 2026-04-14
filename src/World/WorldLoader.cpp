@@ -2,10 +2,9 @@
 // Reads worlds/<name>/*.toml and populates a WorldSchema.
 // Validates cross-references and reports clear errors.
 //
-// NOTE: All fprintf(stderr, ...) calls in this file are load-time only
-// diagnostics.  They run before the ECS registry (and its EventLog
-// singleton) exists, so they cannot be routed through EventLog::Push.
-// They are visible on stderr / the terminal log.
+// Non-fatal diagnostics are collected into a std::vector<LoadWarning>
+// (if the caller passes one) AND still printed to stderr so existing
+// terminal-log behaviour is preserved.
 
 #include "WorldLoader.h"
 
@@ -13,8 +12,59 @@
 #include <filesystem>
 #include <sstream>
 #include <cstdio>
+#include <cstdarg>
 
 namespace fs = std::filesystem;
+
+// ---- Structured warning plumbing ----
+// The warnings pointer is passed explicitly to every function that needs it.
+// No mutable file-scope state.
+
+// Push a warning to the collector AND print to stderr (preserving old behaviour).
+// The stored LoadWarning::message contains only the diagnostic text; the
+// "[WorldLoader] WARNING:" prefix is added for stderr output only.
+static void PushWarning(std::vector<LoadWarning>* warnings,
+                        LoadWarningLevel level,
+                        const char* category,
+                        const char* fmt, ...)
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((format(printf, 4, 5)))
+#endif
+    ;
+
+static void PushWarning(std::vector<LoadWarning>* warnings,
+                        LoadWarningLevel level,
+                        const char* category,
+                        const char* fmt, ...) {
+    // First pass: measure the required buffer size.
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int needed = vsnprintf(nullptr, 0, fmt, args);
+    va_end(args);
+
+    // Allocate exactly the right size and format into it.
+    std::string msg;
+    if (needed < 0) {
+        msg = "<format error>";
+    } else if (needed > 0) {
+        msg.resize(static_cast<size_t>(needed), '\0');
+        vsnprintf(msg.data(), static_cast<size_t>(needed) + 1, fmt, args_copy);
+    }
+    va_end(args_copy);
+
+    // Always print to stderr with prefix for context
+    const char* prefix = (level == LoadWarningLevel::Warning)
+                             ? "[WorldLoader] WARNING: "
+                             : "[WorldLoader] ";
+    fprintf(stderr, "%s%s", prefix, msg.c_str());
+
+    // Collect into the vector if the caller asked for it (no prefix in stored message)
+    if (warnings) {
+        warnings->push_back({level, category ? category : "", std::move(msg)});
+    }
+}
 
 // ---- Helpers ----
 
@@ -90,7 +140,8 @@ static bool LoadWorld(const std::string& path, WorldSchema& schema, std::string&
     return true;
 }
 
-static bool LoadNeeds(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadNeeds(const std::string& path, WorldSchema& schema, std::string& err,
+                      std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -112,7 +163,8 @@ static bool LoadNeeds(const std::string& path, WorldSchema& schema, std::string&
         def.startValue        = OptFloat(*item, "start_value", 1.0f);
         def.satisfyBehavior   = OptStr(*item, "satisfy_behavior", "consume");
         if (def.satisfyBehavior != "consume" && def.satisfyBehavior != "sleep" && def.satisfyBehavior != "warmth") {
-            fprintf(stderr, "[WorldLoader] WARNING: %s: need '%s' has unknown satisfy_behavior '%s' "
+            PushWarning(warnings, LoadWarningLevel::Warning, "needs",
+                    "%s: need '%s' has unknown satisfy_behavior '%s' "
                     "(expected 'consume', 'sleep', or 'warmth')\n",
                     path.c_str(), def.name.c_str(), def.satisfyBehavior.c_str());
         }
@@ -202,7 +254,8 @@ static bool LoadProfessions(const std::string& path, WorldSchema& schema, std::s
     return true;
 }
 
-static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::string& err,
+                        std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -223,7 +276,8 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         // --- Validate season threshold values ---
         auto rangeCheck = [&](float val, const char* name) {
             if (val < 0.0f || val > 2.0f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s: '%s' = %.3f is out of range [0.0, 2.0]\n",
+                PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                        "%s: '%s' = %.3f is out of range [0.0, 2.0]\n",
                         path.c_str(), name, val);
         };
         rangeCheck(st.harshCold,     "harsh_cold");
@@ -235,26 +289,31 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
 
         // Pairwise ordering: mildCold < coldSeason < moderateCold < harshCold
         if (!(st.mildCold < st.coldSeason))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: mild_cold (%.3f) should be less than cold_season (%.3f)\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                    "%s: mild_cold (%.3f) should be less than cold_season (%.3f)\n",
                     path.c_str(), st.mildCold, st.coldSeason);
         if (!(st.coldSeason < st.moderateCold))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: cold_season (%.3f) should be less than moderate_cold (%.3f)\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                    "%s: cold_season (%.3f) should be less than moderate_cold (%.3f)\n",
                     path.c_str(), st.coldSeason, st.moderateCold);
         if (!(st.moderateCold < st.harshCold))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: moderate_cold (%.3f) should be less than harsh_cold (%.3f)\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                    "%s: moderate_cold (%.3f) should be less than harsh_cold (%.3f)\n",
                     path.c_str(), st.moderateCold, st.harshCold);
 
         // Top-level ordering invariant: mildCold < moderateCold < harshCold.
         // Inverted ordering causes nonsensical sky tints and schedule behavior.
         if (!(st.mildCold < st.moderateCold))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: cold threshold ordering violated: "
+            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                    "%s: cold threshold ordering violated: "
                     "mild_cold (%.3f) must be less than moderate_cold (%.3f)\n",
                     path.c_str(), st.mildCold, st.moderateCold);
 
         // Production threshold ordering: lowProduction < harvestSeason.
         // Inverted ordering causes nonsensical schedule behavior.
         if (!(st.lowProduction < st.harvestSeason))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: production threshold ordering violated: "
+            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                    "%s: production threshold ordering violated: "
                     "low_production (%.3f) must be less than harvest_season (%.3f)\n",
                     path.c_str(), st.lowProduction, st.harvestSeason);
     }
@@ -290,7 +349,8 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
                         if (schema.resources[r].name == key) { resId = (int)r; break; }
                     }
                     if (resId < 0) {
-                        fprintf(stderr, "[WorldLoader] WARNING: %s: price_floors references unknown resource '%s'\n",
+                        PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                                "%s: price_floors references unknown resource '%s'\n",
                                 ctx.c_str(), std::string(key).c_str());
                         continue;
                     }
@@ -305,7 +365,8 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
     return true;
 }
 
-static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string& err,
+                       std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -336,7 +397,8 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         else if (effectType == "morale_boost")        def.effectEnum = EventEffectType::MoraleBoost;
         else if (effectType == "none")                def.effectEnum = EventEffectType::None;
         else {
-            fprintf(stderr, "[WorldLoader] WARNING: %s: event '%s' has unknown effect_type '%s', defaulting to None\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                    "%s: event '%s' has unknown effect_type '%s', defaulting to None\n",
                     path.c_str(), def.name.c_str(), effectType.c_str());
             def.effectEnum = EventEffectType::None;
         }
@@ -401,7 +463,8 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
     return true;
 }
 
-static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string& err,
+                      std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -435,7 +498,8 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         else if (checkType == "has_profession") def.checkTypeEnum = GoalCheckType::HasProfession;
         else if (checkType == "none")           def.checkTypeEnum = GoalCheckType::None;
         else {
-            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown check_type '%s', defaulting to None\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s: goal '%s' has unknown check_type '%s', defaulting to None\n",
                     path.c_str(), def.name.c_str(), checkType.c_str());
             def.checkTypeEnum = GoalCheckType::None;
         }
@@ -444,7 +508,8 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         else if (targetMode == "relative_balance")  def.targetModeEnum = GoalTargetMode::RelativeBalance;
         else if (targetMode == "relative_age")      def.targetModeEnum = GoalTargetMode::RelativeAge;
         else {
-            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown target_mode '%s', defaulting to Fixed\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s: goal '%s' has unknown target_mode '%s', defaulting to Fixed\n",
                     path.c_str(), def.name.c_str(), targetMode.c_str());
             def.targetModeEnum = GoalTargetMode::Fixed;
         }
@@ -454,7 +519,8 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         else if (behaviourMod == "hoard")      def.behaviourModEnum = GoalBehaviourMod::Hoard;
         else if (behaviourMod == "ambitious")  def.behaviourModEnum = GoalBehaviourMod::Ambitious;
         else {
-            fprintf(stderr, "[WorldLoader] WARNING: %s: goal '%s' has unknown behaviour_mod '%s', defaulting to None\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s: goal '%s' has unknown behaviour_mod '%s', defaulting to None\n",
                     path.c_str(), def.name.c_str(), behaviourMod.c_str());
             def.behaviourModEnum = GoalBehaviourMod::None;
         }
@@ -747,7 +813,10 @@ static bool ResolveCrossRefs(const std::string& worldDir,
 
 bool WorldLoader::Load(const std::string& worldDir,
                        WorldSchema& schema,
-                       std::string& errorMsg) {
+                       std::string& errorMsg,
+                       std::vector<LoadWarning>* warnings) {
+    if (warnings) warnings->clear();
+
     schema = WorldSchema{};  // reset
 
     if (!fs::is_directory(worldDir)) {
@@ -770,7 +839,7 @@ bool WorldLoader::Load(const std::string& worldDir,
     }
 
     if (fs::exists(dir + "/needs.toml")) {
-        if (!LoadNeeds(dir + "/needs.toml", schema, errorMsg)) return false;
+        if (!LoadNeeds(dir + "/needs.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/skills.toml")) {
@@ -782,15 +851,15 @@ bool WorldLoader::Load(const std::string& worldDir,
     }
 
     if (fs::exists(dir + "/seasons.toml")) {
-        if (!LoadSeasons(dir + "/seasons.toml", schema, errorMsg)) return false;
+        if (!LoadSeasons(dir + "/seasons.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/events.toml")) {
-        if (!LoadEvents(dir + "/events.toml", schema, errorMsg)) return false;
+        if (!LoadEvents(dir + "/events.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/goals.toml")) {
-        if (!LoadGoals(dir + "/goals.toml", schema, errorMsg)) return false;
+        if (!LoadGoals(dir + "/goals.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/facilities.toml")) {
@@ -820,7 +889,8 @@ bool WorldLoader::Load(const std::string& worldDir,
         for (const auto& ev : schema.events)
             totalChance += ev.chance;
         if (totalChance <= 0.f) {
-            fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: total event chance is zero "
+            PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                    "%s/events.toml: total event chance is zero "
                     "(sum of all 'chance' fields = 0); weighted selection will be undefined\n",
                     worldDir.c_str());
         }
@@ -831,69 +901,82 @@ bool WorldLoader::Load(const std::string& worldDir,
         switch (ev.effectEnum) {
         case EventEffectType::ProductionModifier:
             if (ev.durationHours <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': production_modifier effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': production_modifier effect has "
                         "duration_hours <= 0 (will be treated as instant, no modifier applied)\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::StockpileDestroy:
             if (ev.targetResource.empty() && ev.destroyResource.empty() && ev.destroyResourceNames.empty())
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_destroy effect has no "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': stockpile_destroy effect has no "
                         "target_resource, destroy_resource, or destroy_resources specified\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::StockpileAdd:
             if (ev.addResource.empty())
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_add effect has no "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': stockpile_add effect has no "
                         "add_resource specified\n", worldDir.c_str(), ev.name.c_str());
             if (ev.addAmount <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': stockpile_add effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': stockpile_add effect has "
                         "add_amount <= 0\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::TreasuryBoost:
             if (ev.treasuryChange == 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': treasury_boost effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': treasury_boost effect has "
                         "treasury_change = 0 (no gold will be added)\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::Convoy:
             if (ev.convoyAmount <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': convoy effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': convoy effect has "
                         "convoy_amount <= 0\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::PriceSpike:
             if (ev.priceSpikeMultiplier <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': price_spike effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': price_spike effect has "
                         "price_spike_multiplier <= 0\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::Fire:
             if (ev.destroyResourceNames.empty() && ev.destroyResource.empty())
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': fire effect has no "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': fire effect has no "
                         "destroy_resources or destroy_resource specified\n", worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::SpawnNpcs:
             if (ev.effectValue < 1.f && !ev.spawnSkilled)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': SpawnNpcs event has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': SpawnNpcs event has "
                         "effectValue < 1 (truncates to 0), which causes undefined behavior in spawn count distribution\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::RoadBlock:
             if (ev.roadBlockDuration <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': road_block effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': road_block effect has "
                         "road_block_duration <= 0 (will fall back to hardcoded default)\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::Earthquake:
             if (ev.roadBlockDuration <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': earthquake effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': earthquake effect has "
                         "road_block_duration <= 0 (will fall back to hardcoded default)\n",
                         worldDir.c_str(), ev.name.c_str());
             if (ev.facilityDestroyChance <= 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': earthquake effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': earthquake effect has "
                         "facility_destroy_chance <= 0 (will fall back to hardcoded default)\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
         case EventEffectType::MoraleBoost:
             if (ev.moraleImpact == 0.f && ev.treasuryChange == 0.f)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': morale_boost effect has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                        "%s/events.toml: event '%s': morale_boost effect has "
                         "morale_impact = 0 and treasury_change = 0 (event will have no effect)\n",
                         worldDir.c_str(), ev.name.c_str());
             break;
@@ -903,7 +986,8 @@ bool WorldLoader::Load(const std::string& worldDir,
 
         // Warn if chance is negative (always invalid)
         if (ev.chance < 0.f)
-            fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': has negative chance value %f\n",
+            PushWarning(warnings, LoadWarningLevel::Warning, "events",
+                    "%s/events.toml: event '%s': has negative chance value %f\n",
                     worldDir.c_str(), ev.name.c_str(), ev.chance);
     }
 
@@ -912,19 +996,22 @@ bool WorldLoader::Load(const std::string& worldDir,
         switch (goal.checkTypeEnum) {
         case GoalCheckType::BalanceGte:
             if (goal.targetValue <= 0.f && goal.targetModeEnum == GoalTargetMode::Fixed)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': balance_gte check has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                        "%s/goals.toml: goal '%s': balance_gte check has "
                         "target_value <= 0 with fixed mode (goal is trivially complete)\n",
                         worldDir.c_str(), goal.name.c_str());
             break;
         case GoalCheckType::AgeGte:
             if (goal.targetValue <= 0.f && goal.targetModeEnum == GoalTargetMode::Fixed)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': age_gte check has "
+                PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                        "%s/goals.toml: goal '%s': age_gte check has "
                         "target_value <= 0 with fixed mode (goal is trivially complete)\n",
                         worldDir.c_str(), goal.name.c_str());
             break;
         case GoalCheckType::HasProfession:
             if (goal.targetProfessionId == INVALID_ID)
-                fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': has_profession check has no "
+                PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                        "%s/goals.toml: goal '%s': has_profession check has no "
                         "target_profession resolved (will default to hauler if available)\n",
                         worldDir.c_str(), goal.name.c_str());
             break;
@@ -934,7 +1021,8 @@ bool WorldLoader::Load(const std::string& worldDir,
 
         // Warn if weight is zero or negative (will never be selected)
         if (goal.weight <= 0.f)
-            fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: goal '%s': has weight <= 0 "
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s/goals.toml: goal '%s': has weight <= 0 "
                     "(goal will never be assigned to NPCs)\n", worldDir.c_str(), goal.name.c_str());
     }
 
@@ -944,7 +1032,8 @@ bool WorldLoader::Load(const std::string& worldDir,
         for (const auto& g : schema.goals)
             totalGoalWeight += g.weight;
         if (totalGoalWeight <= 0.f) {
-            fprintf(stderr, "[WorldLoader] WARNING: %s/goals.toml: total goal weight is zero "
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s/goals.toml: total goal weight is zero "
                     "(sum of all 'weight' fields = 0); goal assignment will not work\n",
                     worldDir.c_str());
         }
@@ -964,7 +1053,8 @@ bool WorldLoader::Load(const std::string& worldDir,
         return false;
     }
 
-    fprintf(stderr, "[WorldLoader] Loaded '%s': %zu needs, %zu resources, "
+    PushWarning(warnings, LoadWarningLevel::Info, "summary",
+            "Loaded '%s': %zu needs, %zu resources, "
             "%zu skills, %zu professions, %zu seasons, %zu events, %zu goals, "
             "%zu facilities, %zu agent templates\n",
             schema.settings.worldName.c_str(),
@@ -973,6 +1063,18 @@ bool WorldLoader::Load(const std::string& worldDir,
             schema.seasons.size(), schema.events.size(),
             schema.goals.size(), schema.facilities.size(),
             schema.agentTemplates.size());
+
+    // ---- Summary dump ----
+    // Print a summary block to stderr so load diagnostics are easy to spot
+    // in a scrolling terminal log.
+    if (warnings && !warnings->empty()) {
+        int warnCount = 0;
+        for (const auto& w : *warnings)
+            if (w.level == LoadWarningLevel::Warning) ++warnCount;
+        if (warnCount > 0) {
+            fprintf(stderr, "[WorldLoader] === Load complete: %d warning(s) ===\n", warnCount);
+        }
+    }
 
     return true;
 }
