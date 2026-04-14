@@ -2384,17 +2384,32 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             if (cdx * cdx + cdy * cdy > COMFORT_RADIUS * COMFORT_RADIUS) return;
                             auto it = myRel->affinity.find(other);
                             if (it == myRel->affinity.end() || it->second < 0.3f) return;
-                            // Comfort: reduce grief by 0.5 game-hours
-                            oTimer.griefTimer = std::max(0.f, oTimer.griefTimer - 0.5f);
+                            // Grief support network: both experienced grief → double comfort
+                            bool empathicComfort = (timer.lastGriefDay >= 0.f && oTimer.lastGriefDay >= 0.f);
+                            float comfortAmount = empathicComfort ? 1.0f : 0.5f;
+                            oTimer.griefTimer = std::max(0.f, oTimer.griefTimer - comfortAmount);
                             timer.comfortCooldown = 180.f; // 180 real-seconds
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
                                 const auto* myName = registry.try_get<Name>(entity);
-                                std::string msg = (myName ? myName->value : "An NPC") +
-                                    " comforts " + oName.value + ".";
-                                lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                if (empathicComfort) {
+                                    static std::mt19937 s_empathyRng{ std::random_device{}() };
+                                    if (s_empathyRng() % 6 == 0) {
+                                        std::string where = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                where = s->name;
+                                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                            (myName ? myName->value : std::string("An NPC")) +
+                                            " understands " + oName.value + "'s pain at " + where + ".");
+                                    }
+                                } else {
+                                    std::string msg = (myName ? myName->value : "An NPC") +
+                                        " comforts " + oName.value + ".";
+                                    lv.get<EventLog>(*lv.begin()).Push(
+                                        tm.day, (int)tm.hourOfDay, msg);
+                                }
                             }
                             comforted = true;
                         });
