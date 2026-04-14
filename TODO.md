@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
-
 ## Done
+
+- [x] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
+
 
 - [x] **Grief anniversary remembrance** — In `AgentDecisionSystem.cpp`'s grief block, track each NPC's `lastGriefDay` from `DeprivationTimer`. When `tm.day - lastGriefDay` equals exactly 30 (one month anniversary) and the NPC has `Relations::affinity >= 0.4` toward any NPC at the same settlement, set `griefTimer = 1.f` (brief 1-hour renewed grief). Log "[NPC] reflects on those lost at [Settlement]" at 1-in-4 frequency. Creates a recurring emotional beat that reinforces social bonds through shared memory.
 
@@ -134,6 +135,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Grief anniversary vigil gathering** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, extend the check to also gather NPCs in anniversary grief (triggered by the grief anniversary system). When 2+ NPCs at the same settlement have `griefTimer > 0` from anniversary triggers (both have `lastGriefDay % 30 < 2`), boost mutual affinity by +0.03 instead of the normal vigil +0.02. Log "[Settlement] holds a remembrance vigil" at 1-in-3 frequency. Creates a communal anniversary event.
 
 - [ ] **Grief fading over time** — In `AgentDecisionSystem.cpp`'s grief anniversary block, reduce the anniversary grief duration based on how many months have passed. When `daysSince / 30 >= 3`, the anniversary grief lasts only 0.5 hours instead of 1. When `daysSince / 30 >= 6`, the anniversary stops triggering entirely (grief has healed). Log "[NPC] has found peace at [Settlement]" once when the final anniversary passes. Creates a natural arc of emotional recovery.
+
+- [ ] **Empathic comforter affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after a successful empathic comfort (where both have `lastGriefDay >= 0`), boost mutual affinity by +0.03 between comforter and griever (stronger bond than normal comfort). No separate log needed — the empathic comfort log already fires. Uses existing `Relations::affinity`. Creates a social reward for shared grief experience.
+
+- [ ] **Comfort chain reaction** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after a successful comfort, if the griever's `griefTimer` reaches 0 (fully comforted), the now-recovered griever gains `comfortCooldown = 0` (immediate readiness) and scans for another grieving NPC within 25 units to comfort in turn. Log "[Griever] pays it forward, comforting [Other] at [Settlement]" at 1-in-4 frequency. Creates a cascading comfort dynamic.
 
 ## Recently Done
 
