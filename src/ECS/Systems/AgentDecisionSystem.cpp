@@ -1495,30 +1495,28 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 }
 
                 // Master homecoming: log when a master-level NPC settles at a new settlement
-                if (const auto* dt = registry.try_get<DeprivationTimer>(entity)) {
-                    if (const auto* sbMs = registry.try_get<SocialBehavior>(entity); sbMs && sbMs->masterSettled) {
-                        const auto* sk = registry.try_get<Skills>(entity);
-                        if (sk) {
-                            const char* masterSkill = nullptr;
-                            for (int si = 0; si < sk->Size(); ++si) {
-                                if (sk->levels[si] >= 0.9f && si < (int)schema.skills.size()) {
-                                    masterSkill = schema.skills[si].displayName.c_str();
-                                    break;
-                                }
+                if (socialBeh.masterSettled) {
+                    const auto* sk = registry.try_get<Skills>(entity);
+                    if (sk) {
+                        const char* masterSkill = nullptr;
+                        for (int si = 0; si < sk->Size(); ++si) {
+                            if (sk->levels[si] >= 0.9f && si < (int)schema.skills.size()) {
+                                masterSkill = schema.skills[si].displayName.c_str();
+                                break;
                             }
-                            if (masterSkill) {
-                                auto lv2 = registry.view<EventLog>();
-                                if (!lv2.empty()) {
-                                    std::string who = "A master";
-                                    if (const auto* n = registry.try_get<Name>(entity))
-                                        who = n->value;
-                                    std::string dest = "a settlement";
-                                    if (const auto* s = registry.try_get<Settlement>(home.settlement))
-                                        dest = s->name;
-                                    lv2.get<EventLog>(*lv2.begin()).Push(
-                                        tm.day, (int)tm.hourOfDay,
-                                        who + ", a master " + masterSkill + ", settles at " + dest + ".");
-                                }
+                        }
+                        if (masterSkill) {
+                            auto lv2 = registry.view<EventLog>();
+                            if (!lv2.empty()) {
+                                std::string who = "A master";
+                                if (const auto* n = registry.try_get<Name>(entity))
+                                    who = n->value;
+                                std::string dest = "a settlement";
+                                if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                    dest = s->name;
+                                lv2.get<EventLog>(*lv2.begin()).Push(
+                                    tm.day, (int)tm.hourOfDay,
+                                    who + ", a master " + masterSkill + ", settles at " + dest + ".");
                             }
                         }
                     }
@@ -2377,10 +2375,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 && home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float GOSSIP_ANIM_RADIUS = 30.f;
                 bool found = false;
-                registry.view<AgentState, Position, HomeSettlement, DeprivationTimer>(
+                registry.view<AgentState, Position, HomeSettlement>(
                     entt::exclude<Hauler, PlayerTag, BanditTag>)
                     .each([&](auto other, const AgentState& oState, const Position& oPos,
-                              const HomeSettlement& oHome, DeprivationTimer& oTimer) {
+                              const HomeSettlement& oHome) {
                     if (found) return;
                     if (other == entity) return;
                     if (oHome.settlement != home.settlement) return;
@@ -2403,11 +2401,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 home.settlement != entt::null && registry.valid(home.settlement)) {
                 static constexpr float GREET_RADIUS = 40.f;
                 bool greeted = false;
-                registry.view<AgentState, Position, HomeSettlement, DeprivationTimer, Name>(
+                registry.view<AgentState, Position, HomeSettlement, Name>(
                     entt::exclude<Hauler, PlayerTag, BanditTag>)
                     .each([&](auto other, const AgentState& oState, const Position& oPos,
-                              const HomeSettlement& oHome, DeprivationTimer& oTimer,
-                              const Name& oName) {
+                              const HomeSettlement& oHome, const Name& oName) {
                     if (greeted) return;
                     if (other == entity) return;
                     if (oHome.settlement != home.settlement) return;
@@ -2777,16 +2774,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     static constexpr float LEARN_MAX = 0.3f;
                     static constexpr float SKILL_GAIN = 0.005f; // per game-hour
                     bool taught = false;
-                    registry.view<AgentState, Position, HomeSettlement, DeprivationTimer, Skills, Name>(
+                    registry.view<AgentState, Position, HomeSettlement, Skills, Name>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>)
                         .each([&](auto other, const AgentState& oState, const Position& oPos,
-                                  const HomeSettlement& oHome, DeprivationTimer& oTimer,
-                                  Skills& oSkills, const Name& oName) {
+                                  const HomeSettlement& oHome, Skills& oSkills, const Name& oName) {
                         if (taught) return;
                         if (other == entity) return;
                         if (oState.behavior != AgentBehavior::Idle) return;
                         auto* oSocial = registry.try_get<SocialBehavior>(other);
-                        if (oSocial && oSocial->teachCooldown > 0.f) return;
+                        if (!oSocial || oSocial->teachCooldown > 0.f) return;
                         float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
                         // Find a skill where teacher is ≥0.6 and learner is <0.3
@@ -2978,16 +2974,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     static std::mt19937 s_chatRng{ std::random_device{}() };
 
                     if (static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4)
-                    registry.view<AgentState, Position, HomeSettlement, DeprivationTimer>(
+                    registry.view<AgentState, Position, HomeSettlement>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>)
                         .each([&](auto other, AgentState& oState, const Position& oPos,
-                                  const HomeSettlement& oHome, DeprivationTimer& oTimer) {
+                                  const HomeSettlement& oHome) {
                         if (other == entity) return;
                         if (oHome.settlement != home.settlement) return;
                         if (oState.behavior != AgentBehavior::Idle) return;
                         auto* oSocial = registry.try_get<SocialBehavior>(other);
                         auto* oGrief  = registry.try_get<GriefState>(other);
-                        if (oSocial && oSocial->chatTimer > 0.f) return;  // already chatting
+                        if (!oSocial || oSocial->chatTimer > 0.f) return;  // already chatting or missing component
                         float cdx = oPos.x - pos.x, cdy = oPos.y - pos.y;
                         if (cdx*cdx + cdy*cdy > CHAT_RADIUS * CHAT_RADIUS) return;
                         // Found a chat partner — stop both for a random duration
@@ -3115,7 +3111,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             }
                         }
                         // Bankruptcy survivor inspiration: survivor inspires non-survivor
-                        if (socialBeh.bankruptSurvivor != oSocial->bankruptSurvivor && s_chatRng() % 10 == 0) {
+                        if (oSocial && socialBeh.bankruptSurvivor != oSocial->bankruptSurvivor && s_chatRng() % 10 == 0) {
                             entt::entity survivor = socialBeh.bankruptSurvivor ? entity : other;
                             entt::entity listener2 = socialBeh.bankruptSurvivor ? other : entity;
                             if (auto* lRel2 = registry.try_get<Relations>(listener2))

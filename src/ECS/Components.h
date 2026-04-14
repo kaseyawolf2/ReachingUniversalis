@@ -171,7 +171,8 @@ struct DeprivationTimer {
 // ---- Optional social-mechanic components (factored out of DeprivationTimer) ----
 
 // Social interaction cooldowns and one-shot flags.
-// Attached to NPCs at spawn; checked via try_get in systems.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
 struct SocialBehavior {
     float        gossipCooldown        = 0.f;   // game-hours until NPC can gossip prices again (0 = ready)
     float        gossipNudgeTimer      = 0.f;   // game-seconds remaining for gossip drift animation (0 = eligible)
@@ -196,7 +197,8 @@ struct SocialBehavior {
 };
 
 // Bandit-specific timers and state.
-// Attached to NPCs that may become or are bandits; checked via try_get.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
 struct BanditState {
     float        banditPovertyTimer    = 0.f;   // game-hours as homeless exile with balance < 2g → bandit at 48h
     float        intimidationCooldown  = 0.f;   // game-seconds until next bandit intimidation log (0 = ready)
@@ -205,20 +207,23 @@ struct BanditState {
     std::string  gangName;                      // bandit gang name (set when lurking at a road with other bandits)
 };
 
-// Grief timers — attached to NPCs that experience family/friend death.
+// Grief timers — mandatory component emplaced on all NPCs at spawn; use get<>
+// in the main NPC loop, try_get<> only when accessing other entities.
 struct GriefState {
     float griefTimer    = 0.f;   // game-hours remaining of grief (skip social, drain morale)
     float lastGriefDay  = -1.f;  // game-day when grief last started (-1 = never)
 };
 
-// Theft tracking — attached to NPCs that steal from stockpiles.
+// Theft tracking — mandatory component emplaced on all NPCs at spawn; use get<>
+// in the main NPC loop, try_get<> only when accessing other entities.
 struct TheftRecord {
     float stealCooldown = 0.f;   // game-hours until NPC can steal again (0 = can steal)
     int   theftCount    = 0;     // lifetime theft count; >= 3 triggers exile
 };
 
 // Personal random event timers (illness, harvest bonus, strike).
-// Attached to NPCs at spawn.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
 struct PersonalEventState {
     float personalEventTimer = 0.f;   // game-hours until next personal event (randomised per NPC)
     float illnessTimer       = 0.f;   // game-hours remaining for minor illness (2× drain on one need)
@@ -228,6 +233,8 @@ struct PersonalEventState {
 };
 
 // Charity giving/receiving state.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
 struct CharityState {
     float        charityTimer    = 0.f;          // game-hours until NPC can help a starving neighbour again (0 = ready)
     float        helpedTimer     = 0.f;          // game-hours since receiving charity; > 0 → "recently helped"
