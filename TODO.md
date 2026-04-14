@@ -143,7 +143,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **SpawnNpcs effectValue runtime clamp** — `RandomEventSystem.cpp` line ~1297 casts `effectValue` to `int` for `maxArrivals` without clamping, so values < 1 produce UB in `uniform_int_distribution`. Add `maxArrivals = std::max(1, (int)ev.effectValue)` as a runtime safety net alongside the load-time validation.
 
-- [ ] **WorldLoader stderr to structured logging** — All 26+ `fprintf(stderr, ...)` calls in `WorldLoader.cpp` output unstructured text. Define a `LoadWarning` struct or use a vector to collect warnings during loading, then dump them after load completes. Enables future UI display of load diagnostics.
+- [x] **WorldLoader stderr to structured logging** — All 26+ `fprintf(stderr, ...)` calls in `WorldLoader.cpp` output unstructured text. Define a `LoadWarning` struct or use a vector to collect warnings during loading, then dump them after load completes. Enables future UI display of load diagnostics.
 
 - [ ] **ConsumptionSystem remove redundant bool** — `ConsumptionSystem::m_needsCached` bool is redundant since `m_hungerNeedId` is initialized to `-1` (INVALID_ID). Remove the bool and use `m_hungerNeedId < 0` as the cache-miss sentinel.
 
@@ -238,6 +238,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **SpawnNpcs count distribution comment fix** — `RandomEventSystem.cpp` line ~1302 comment says "Migration wave: spawn 3-5 NPCs" but the actual count is driven by `ev.effectValue` from schema. Update comment to reflect the data-driven behavior, e.g., "Migration wave: spawn (effectValue-2) to effectValue NPCs".
 
 - [ ] **RandomEventSystem effectValue audit** — After `SpawnNpcs` was clamped with `std::max(1, ...)`, audit all other `ev.effectValue` usages in `RandomEventSystem.cpp` (production_modifier, morale_boost, etc.) for similar unclamped casts or potential division-by-zero. Add defensive clamps where effectValue reaches arithmetic operators.
+
+- [ ] **WorldLoader LoadWarning thread-through for all loaders** — `LoadSkills`, `LoadProfessions`, `LoadFacilities`, and `LoadAgents` in `WorldLoader.cpp` do not accept a `std::vector<LoadWarning>*` parameter. Thread the warnings pointer through these four functions for consistency, so any future diagnostics added to them automatically collect into the structured warnings vector.
+
+- [ ] **WorldLoader LoadWarning UI display** — `main.cpp` collects `loadWarnings` but only retains them for future use. Wire the warnings vector into `GameState` or `RenderSnapshot` so the HUD can display load-time diagnostics (e.g., a "Load Warnings" panel showing misconfigured TOML entries) during gameplay.
 
 ## Phase 2 — UI Decoupling
 
