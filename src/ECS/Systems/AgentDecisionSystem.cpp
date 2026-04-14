@@ -21,6 +21,10 @@ static constexpr float FRIEND_THRESHOLD = 0.5f;
 // ---- File-scope caches (populated once per tick in Update, used by helpers) ----
 static std::vector<std::pair<float,float>> s_banditPositions;
 
+// Harmony per settlement, refreshed once per game-hour in FindMigrationTarget.
+struct HarmonyCache { int hour = -1; int day = -1; std::unordered_map<entt::entity, float> values; };
+static HarmonyCache s_harmonyCache;
+
 // ---- Static helpers ----
 
 static AgentBehavior BehaviorForNeed(NeedType type) {
@@ -212,6 +216,37 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
     // Loneliness push: isolated NPCs seek communities
     float lonelinessPush = isLonely ? 0.15f : 0.f;
 
+    // Pre-compute harmony per settlement (cached once per game-hour).
+    // Harmony = (mutual friendship pairs * 2) / (pop * (pop - 1)), same formula as WriteSnapshot.
+    if (s_harmonyCache.hour != cacheHour || s_harmonyCache.day != cacheDay) {
+        s_harmonyCache.values.clear();
+        s_harmonyCache.hour = cacheHour;
+        s_harmonyCache.day  = cacheDay;
+        // Group NPCs by home settlement
+        std::unordered_map<entt::entity, std::vector<entt::entity>> settlResidents;
+        registry.view<HomeSettlement, Relations>(entt::exclude<PlayerTag, BanditTag>).each(
+            [&](auto re, const HomeSettlement& rh, const Relations&) {
+                settlResidents[rh.settlement].push_back(re);
+            });
+        for (const auto& [sett, residents] : settlResidents) {
+            int friendPairs = 0;
+            for (size_t i = 0; i < residents.size(); ++i) {
+                const auto& relA = registry.get<Relations>(residents[i]);
+                for (size_t j = i + 1; j < residents.size(); ++j) {
+                    auto itA = relA.affinity.find(residents[j]);
+                    if (itA == relA.affinity.end() || itA->second < FRIEND_THRESHOLD) continue;
+                    const auto& relB = registry.get<Relations>(residents[j]);
+                    auto itB = relB.affinity.find(residents[i]);
+                    if (itB != relB.affinity.end() && itB->second >= FRIEND_THRESHOLD)
+                        ++friendPairs;
+                }
+            }
+            int pop = (int)residents.size();
+            float harmony = (pop >= 2) ? (friendPairs * 2.0f) / std::max(1, pop * (pop - 1)) : 0.f;
+            s_harmonyCache.values[sett] = harmony;
+        }
+    }
+
     entt::entity best      = entt::null;
     float        bestScore = -1.f;
 
@@ -331,6 +366,14 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
         // Loneliness push: isolated NPCs seek communities
         total += lonelinessPush;
+
+        // Harmony bonus: NPCs prefer socially cohesive destinations
+        {
+            auto hIt = s_harmonyCache.values.find(dest);
+            if (hIt != s_harmonyCache.values.end() && hIt->second > 0.f) {
+                total += 0.1f * hIt->second;
+            }
+        }
 
         if (total > bestScore) { bestScore = total; best = dest; }
     });
@@ -1829,6 +1872,19 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
                             who + " migrating " + from + " → " + to);
+
+                        // Harmony-driven migration log (1-in-12)
+                        {
+                            auto hIt = s_harmonyCache.values.find(dest);
+                            if (hIt != s_harmonyCache.values.end() && hIt->second > 0.2f) {
+                                static std::mt19937 s_harmMigRng{ std::random_device{}() };
+                                if (s_harmMigRng() % 12 == 0) {
+                                    lv.get<EventLog>(*lv.begin()).Push(
+                                        tm2.day, (int)tm2.hourOfDay,
+                                        who + " is drawn to " + to + "'s friendly community");
+                                }
+                            }
+                        }
                     }
                 }
 
