@@ -69,9 +69,9 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Flat array resourceToSkill** — `WorldSchema::resourceToSkill` is `unordered_map<int,int>` but `ResourceID` is a dense integer. Replace with `std::vector<SkillID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead on the hot path in `Skills::ForResource()` and `Skills::SkillIdForResource()`.
 
-- [x] **Use `inline constexpr` in SeasonThresholds.h** — `SeasonThresholds.h` uses `static constexpr` which creates separate copies per translation unit. Switch to `inline constexpr` (C++17) for single-definition constants across all TUs that include the header.
+- [x] **Use `inline constexpr` for season thresholds** — Season threshold constants used `static constexpr` which creates separate copies per translation unit. Switched to `inline constexpr` (C++17) for single-definition constants. (Header later deleted when thresholds moved to TOML.)
 
-- [x] **Season threshold config in TOML** — Move the named constants in `SeasonThresholds.h` (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema` stores them; systems read from schema instead of compile-time constants. Enables modders to tune season breakpoints per world.
+- [x] **Season threshold config in TOML** — Moved named season threshold constants (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema::SeasonThresholds` stores them; systems read from schema instead of compile-time constants. The standalone header was deleted.
 
 - [x] **BuildMaps/ResolveCrossRefs ordering guard** — `WorldSchema::BuildResourceToSkillMap()` must be called after `ResolveCrossRefs()` or the map is empty. Add an `assert(crossRefsResolved)` flag to `WorldSchema` set by `ResolveCrossRefs()` and checked in `BuildResourceToSkillMap()` to catch misordering at dev time.
 
@@ -105,7 +105,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **DynBitset promotion-path test** — Add a test to `tests/DynBitsetTest.cpp` that calls `set(200)` on a default-constructed (empty inline) `DynBitset`, exercising the `promoteIfNeeded` path from truly empty inline state to heap allocation. Verify `test(200)` returns true and `test(0)` returns false.
 
-- [ ] **Remove SeasonThresholds.h references from TODO.md** — Two completed TODO items (lines ~72, ~74) still reference `SeasonThresholds.h` as if it exists. The header was deleted when season thresholds moved to TOML. Clean up stale references.
+- [x] **Remove SeasonThresholds.h references from TODO.md** — Cleaned up stale `SeasonThresholds.h` references in two completed TODO items. The header was deleted when season thresholds moved to TOML.
 
 - [ ] **Assert-to-runtime check in BuildResourceToSkillMap** — `BuildResourceToSkillMap()` uses `assert(crossRefsResolved)` which compiles to nothing in release builds. Replace with a runtime check (`if (!crossRefsResolved) { fprintf(stderr, ...); return; }`) since this is a load-time path, not a hot path, and should catch misordering even in release.
 
