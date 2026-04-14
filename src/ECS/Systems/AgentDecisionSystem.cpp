@@ -2394,14 +2394,35 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             if (it == myRel->affinity.end() || it->second < 0.3f) return;
                             // Grief support network: both experienced grief → double comfort
                             bool empathicComfort = (timer.lastGriefDay >= 0.f && oTimer.lastGriefDay >= 0.f);
-                            float comfortAmount = empathicComfort ? 1.0f : 0.5f;
+                            // Work buddy grief support: work best friend → double comfort + affinity boost
+                            bool isWorkBuddy = (myRel->workBestFriend == other);
+                            float comfortAmount = (empathicComfort || isWorkBuddy) ? 1.0f : 0.5f;
                             oTimer.griefTimer = std::max(0.f, oTimer.griefTimer - comfortAmount);
                             timer.comfortCooldown = 180.f; // 180 real-seconds
+                            // Work buddy mutual affinity boost
+                            if (isWorkBuddy) {
+                                auto* myRelMut = registry.try_get<Relations>(entity);
+                                if (myRelMut)
+                                    myRelMut->affinity[other] = std::min(1.f, myRelMut->affinity[other] + 0.03f);
+                                if (auto* oRel = registry.try_get<Relations>(other))
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.03f);
+                            }
                             // Log
                             auto lv = registry.view<EventLog>();
                             if (lv.begin() != lv.end()) {
                                 const auto* myName = registry.try_get<Name>(entity);
-                                if (empathicComfort) {
+                                if (isWorkBuddy) {
+                                    static std::mt19937 s_buddyGriefRng{ std::random_device{}() };
+                                    if (s_buddyGriefRng() % 5 == 0) {
+                                        std::string where = "settlement";
+                                        if (home.settlement != entt::null && registry.valid(home.settlement))
+                                            if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                                where = s->name;
+                                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                            (myName ? myName->value : std::string("An NPC")) +
+                                            " stays by work buddy " + oName.value + "'s side at " + where + ".");
+                                    }
+                                } else if (empathicComfort) {
                                     static std::mt19937 s_empathyRng{ std::random_device{}() };
                                     if (s_empathyRng() % 6 == 0) {
                                         std::string where = "settlement";
