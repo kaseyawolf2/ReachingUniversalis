@@ -14,5 +14,4 @@ private:
 
     int  m_hungerNeedId  = -1;
     int  m_thirstNeedId  = -1;
-    bool m_needsCached   = false;
 };
