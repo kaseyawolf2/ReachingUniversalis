@@ -36,6 +36,7 @@ private:
     InputSnapshot  m_input;
     RenderSnapshot m_snapshot;
     SimThread      m_simThread;
+    const WorldSchema& m_schema;
 
     // Camera lives on the main thread — it responds to input immediately
     // without waiting for the sim thread.
@@ -48,8 +49,6 @@ private:
     float m_panSpeed     = 400.f;
     float m_zoomMin      = 0.25f;
     float m_zoomMax      = 3.0f;
-
-    const WorldSchema& m_schema;
 
     RenderSystem m_renderSystem;
     HUD          m_hud;
