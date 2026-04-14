@@ -74,7 +74,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     bool  playerInPlagueZone;
     int   playerReputation;
     std::string playerRank;
-    std::map<ResourceType, int> playerInventory;
+    std::map<int, int> playerInventory;
     int         playerInventoryCapacity = 15;
     std::string tradeHint;
     AgentBehavior behavior;
@@ -210,11 +210,11 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
             int ci = 0;
             for (const auto& [type, qty] : playerInventory) {
                 if (qty <= 0) continue;
-                const char* rname = (type == ResourceType::Food)  ? "Food"  :
-                                    (type == ResourceType::Water) ? "Water" :
-                                    (type == ResourceType::Wood)  ? "Wood"  : "?";
-                Color rcol = (type == ResourceType::Food)  ? GREEN  :
-                             (type == ResourceType::Water) ? SKYBLUE : BROWN;
+                const char* rname = (type == RES_FOOD)  ? "Food"  :
+                                    (type == RES_WATER) ? "Water" :
+                                    (type == RES_WOOD)  ? "Wood"  : "?";
+                Color rcol = (type == RES_FOOD)  ? GREEN  :
+                             (type == RES_WATER) ? SKYBLUE : BROWN;
                 char cbuf[32];
                 std::snprintf(cbuf, sizeof(cbuf), "%s x%d", rname, qty);
                 DrawText(cbuf, BAR_X + 10, invY + ci * 16, 12, rcol);
@@ -690,9 +690,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         int off = 0;
         off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "Cargo: ");
         for (const auto& [type, qty] : best->cargo) {
-            const char* rn = (type == ResourceType::Food)  ? "Food"  :
-                             (type == ResourceType::Water) ? "Water" :
-                             (type == ResourceType::Wood)  ? "Wood"  : "?";
+            const char* rn = (type == RES_FOOD)  ? "Food"  :
+                             (type == RES_WATER) ? "Water" :
+                             (type == RES_WOOD)  ? "Wood"  : "?";
             off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "%s×%d ", rn, qty);
         }
         if (!best->destSettlName.empty()) {
@@ -1191,11 +1191,11 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
         curSeason = snap.season;
     }
 
-    const char* typeName = (best->output == ResourceType::Food)  ? "Farm"        :
-                           (best->output == ResourceType::Water) ? "Well"        :
-                           (best->output == ResourceType::Wood)  ? "Lumber Mill" : "Facility";
-    const char* resUnit  = (best->output == ResourceType::Food)  ? "food"  :
-                           (best->output == ResourceType::Water) ? "water" : "wood";
+    const char* typeName = (best->output == RES_FOOD)  ? "Farm"        :
+                           (best->output == RES_WATER) ? "Well"        :
+                           (best->output == RES_WOOD)  ? "Lumber Mill" : "Facility";
+    const char* resUnit  = (best->output == RES_FOOD)  ? "food"  :
+                           (best->output == RES_WATER) ? "water" : "wood";
 
     static constexpr int BASE_WORKERS = 5;
     float scale      = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
@@ -1233,8 +1233,8 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     if (ty < 0) ty = (int)screen.y + 14;
 
     DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.75f));
-    Color typeCol = (best->output == ResourceType::Food)  ? GREEN  :
-                   (best->output == ResourceType::Water) ? SKYBLUE : BROWN;
+    Color typeCol = (best->output == RES_FOOD)  ? GREEN  :
+                   (best->output == RES_WATER) ? SKYBLUE : BROWN;
     DrawText(line1, tx, ty,      12, typeCol);
     DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
     Color seasonCol = (seasonMult >= 1.0f) ? GREEN : (seasonMult >= 0.5f) ? YELLOW : RED;

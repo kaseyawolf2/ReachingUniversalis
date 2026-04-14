@@ -366,9 +366,9 @@ void GameState::Draw() {
         Color col;
         const char* label;
         switch (f.output) {
-            case ResourceType::Food:    col = GREEN;  label = "F"; break;
-            case ResourceType::Water:   col = SKYBLUE; label = "W"; break;
-            case ResourceType::Wood:    col = BROWN;  label = "L"; break;
+            case RES_FOOD:    col = GREEN;  label = "F"; break;
+            case RES_WATER:   col = SKYBLUE; label = "W"; break;
+            case RES_WOOD:    col = BROWN;  label = "L"; break;
             default: continue;  // Shelter — no visual marker
         }
         DrawRectangle((int)f.x - 10, (int)f.y - 10, 20, 20, Fade(col, 0.8f));

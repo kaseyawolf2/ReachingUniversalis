@@ -50,8 +50,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         auto* stockpile = registry.try_get<Stockpile>(home.settlement);
         if (!stockpile) continue;
 
-        auto& foodStock  = stockpile->quantities[ResourceType::Food];
-        auto& waterStock = stockpile->quantities[ResourceType::Water];
+        auto& foodStock  = stockpile->quantities[RES_FOOD];
+        auto& waterStock = stockpile->quantities[RES_WATER];
 
         // ---- Wages: pay working NPCs from settlement treasury ----
         // settl and money are used again below for market purchases, so declared here.
@@ -265,22 +265,22 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 float pricePaid = 0.f;
                 // Buy 1 unit of food if empty
                 if (!hadFood) {
-                    float price = mkt->GetPrice(ResourceType::Food);
+                    float price = mkt->GetPrice(RES_FOOD);
                     if (money->balance >= price) {
                         money->balance -= price;
                         settl->treasury += price;
-                        stockpile->quantities[ResourceType::Food] += 1.f;
+                        stockpile->quantities[RES_FOOD] += 1.f;
                         timer.purchaseTimer = 0.f;
                         bought = true; whatBought = "food"; pricePaid = price;
                     }
                 }
                 // Buy 1 unit of water if empty (separate check)
                 if (!hadWater && timer.purchaseTimer >= effectivePurchaseInterval) {
-                    float price = mkt->GetPrice(ResourceType::Water);
+                    float price = mkt->GetPrice(RES_WATER);
                     if (money->balance >= price) {
                         money->balance -= price;
                         settl->treasury += price;
-                        stockpile->quantities[ResourceType::Water] += 1.f;
+                        stockpile->quantities[RES_WATER] += 1.f;
                         timer.purchaseTimer = 0.f;
                         bought = true; whatBought = "water"; pricePaid = price;
                     }
@@ -432,7 +432,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
         // If no wood (or summer — no demand), NeedDrainSystem naturally drains Heat.
         bool hadWood = false;
         if (heatDrainMult > 0.f) {
-            auto& woodStock = stockpile->quantities[ResourceType::Wood];
+            auto& woodStock = stockpile->quantities[RES_WOOD];
             hadWood = (woodStock > STOCK_LOW);
             if (hadWood) {
                 float draw = WOOD_HEAT_RATE * heatDrainMult * gameHoursDt;
@@ -496,12 +496,12 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
 
     registry.view<Settlement, Stockpile, StockpileAlert>().each(
         [&](const Settlement& s, const Stockpile& sp, StockpileAlert& alert) {
-        auto qty = [&](ResourceType t) -> float {
+        auto qty = [&](int t) -> float {
             auto it = sp.quantities.find(t);
             return it != sp.quantities.end() ? it->second : 0.f;
         };
-        float food  = qty(ResourceType::Food);
-        float water = qty(ResourceType::Water);
+        float food  = qty(RES_FOOD);
+        float water = qty(RES_WATER);
 
         auto checkAlert = [&](float val, bool& emptyFlag, bool& lowFlag,
                                const std::string& res) {
@@ -521,7 +521,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             }
         };
 
-        float wood  = qty(ResourceType::Wood);
+        float wood  = qty(RES_WOOD);
         checkAlert(food,  alert.foodEmpty,  alert.foodLow,  "Food");
         checkAlert(water, alert.waterEmpty, alert.waterLow, "Water");
         checkAlert(wood,  alert.woodEmpty,  alert.woodLow,  "Wood");

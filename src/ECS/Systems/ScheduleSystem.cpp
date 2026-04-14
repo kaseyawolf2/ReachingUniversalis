@@ -86,7 +86,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
     }
 
     // Pre-cache facility positions per settlement (rebuilt each hour)
-    struct FacInfo { entt::entity entity; Position pos; ResourceType output; float baseRate; };
+    struct FacInfo { entt::entity entity; Position pos; int output; float baseRate; };
     static std::unordered_map<entt::entity, std::vector<FacInfo>> s_facBySettlement;
     if (hourChanged) {
         s_facBySettlement.clear();
@@ -120,7 +120,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             const auto* ageC = registry.try_get<Age>(entity);
             if (ageC && ageC->days >= 15.f) {
                 // Find home settlement's primary production type
-                ResourceType primary = ResourceType::Food;
+                int primary = RES_FOOD;
                 float bestRate = 0.f;
                 if (home.settlement != entt::null && registry.valid(home.settlement)) {
                     registry.view<ProductionFacility>().each(
@@ -309,14 +309,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             home.settlement != entt::null && registry.valid(home.settlement)) {
 
             // Determine aptitude: resource type of the NPC's highest skill.
-            ResourceType aptitude    = ResourceType::Food;
+            int aptitude    = RES_FOOD;
             bool         hasAptitude = false;
             if (const auto* skills = registry.try_get<Skills>(entity)) {
                 float mx = std::max({skills->farming, skills->water_drawing, skills->woodcutting});
                 if (mx > 0.25f) {
                     hasAptitude = true;
-                    if      (skills->water_drawing == mx) aptitude = ResourceType::Water;
-                    else if (skills->woodcutting   == mx) aptitude = ResourceType::Wood;
+                    if      (skills->water_drawing == mx) aptitude = RES_WATER;
+                    else if (skills->woodcutting   == mx) aptitude = RES_WOOD;
                     // else stays Food/farming
                 }
             }
@@ -325,8 +325,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
             float        chosenDist = std::numeric_limits<float>::max();
             entt::entity nearestFac = entt::null;
             float        nearestDist = std::numeric_limits<float>::max();
-            ResourceType chosenType  = ResourceType::Food;
-            ResourceType nearestType = ResourceType::Food;
+            int chosenType  = RES_FOOD;
+            int nearestType = RES_FOOD;
 
             auto facIt = s_facBySettlement.find(home.settlement);
             if (facIt != s_facBySettlement.end()) {
@@ -342,7 +342,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
 
             // Use aptitude-matched facility if found; fall back to nearest
             entt::entity workFac  = (chosenFac != entt::null) ? chosenFac  : nearestFac;
-            ResourceType facType  = (chosenFac != entt::null) ? chosenType : nearestType;
+            int facType  = (chosenFac != entt::null) ? chosenType : nearestType;
             float        workDist = (chosenFac != entt::null) ? chosenDist : nearestDist;
 
             if (workFac != entt::null) {
@@ -859,8 +859,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                         if (const auto* n = registry.try_get<Name>(entity))
                                             who = n->value;
                                         const char* skName =
-                                            (facType == ResourceType::Food)  ? "Farming" :
-                                            (facType == ResourceType::Water) ? "Water"   : "Woodcutting";
+                                            (facType == RES_FOOD)  ? "Farming" :
+                                            (facType == RES_WATER) ? "Water"   : "Woodcutting";
                                         char buf[128];
                                         std::snprintf(buf, sizeof(buf),
                                             "%s reached %s %s.", who.c_str(), title, skName);

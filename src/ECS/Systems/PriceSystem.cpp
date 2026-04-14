@@ -15,8 +15,8 @@ static constexpr float PRICE_MAX        =  25.f;   // raised slightly — season
 
 // Seasonal demand pressure: some resources are more valuable in certain seasons.
 // Returns a target floor price below which the price won't fall via decay.
-static float SeasonPriceFloor(ResourceType res, Season season) {
-    if (res == ResourceType::Wood) {
+static float SeasonPriceFloor(int res, Season season) {
+    if (res == RES_WOOD) {
         // Wood is essential in cold seasons; price floor rises with demand
         switch (season) {
             case Season::Spring: return 1.0f;
@@ -25,7 +25,7 @@ static float SeasonPriceFloor(ResourceType res, Season season) {
             case Season::Winter: return 5.0f;
         }
     }
-    if (res == ResourceType::Food) {
+    if (res == RES_FOOD) {
         // Food is harder to produce in winter; minimum viable price
         switch (season) {
             case Season::Winter: return 2.0f;
@@ -80,8 +80,8 @@ void PriceSystem::Update(entt::registry& registry, float realDt) {
                     auto key = std::make_pair(e, static_cast<int>(res));
                     float& cd = s_priceSpikeCooldown[key];
                     if (cd <= 0.f && log) {
-                        const char* resName = (res == ResourceType::Food) ? "food"
-                                            : (res == ResourceType::Water) ? "water" : "wood";
+                        const char* resName = (res == RES_FOOD) ? "food"
+                                            : (res == RES_WATER) ? "water" : "wood";
                         float pct = (price - oldPrice) / oldPrice * 100.f;
                         char buf[128];
                         std::snprintf(buf, sizeof(buf),

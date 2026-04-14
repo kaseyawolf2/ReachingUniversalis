@@ -10,7 +10,14 @@
 // ---- Domain enums ----
 
 enum class NeedType     { Hunger = 0, Thirst = 1, Energy = 2, Heat = 3 };
-enum class ResourceType { Food, Water, Shelter, Wood };
+enum class ResourceType { Food, Water, Shelter, Wood };  // DEPRECATED — use ResourceID (int) for new code
+
+// Medieval resource IDs (matches worlds/medieval/resources.toml order)
+// TODO: These will come from WorldSchema once systems are data-driven
+static constexpr int RES_FOOD    = 0;
+static constexpr int RES_WATER   = 1;
+static constexpr int RES_SHELTER = 2;
+static constexpr int RES_WOOD    = 3;
 
 // ---- Need data ----
 
@@ -53,14 +60,12 @@ struct Profession {
     int careerChanges       = 0;
 };
 
-// Helper: map ResourceType → ProfessionType for production-facility matching.
-inline ProfessionType ProfessionForResource(ResourceType rt) {
-    switch (rt) {
-        case ResourceType::Food:  return ProfessionType::Farmer;
-        case ResourceType::Water: return ProfessionType::WaterCarrier;
-        case ResourceType::Wood:  return ProfessionType::Lumberjack;
-        default:                  return ProfessionType::Idle;
-    }
+// Helper: map resource ID → ProfessionType for production-facility matching.
+inline ProfessionType ProfessionForResource(int rt) {
+    if (rt == RES_FOOD)  return ProfessionType::Farmer;
+    if (rt == RES_WATER) return ProfessionType::WaterCarrier;
+    if (rt == RES_WOOD)  return ProfessionType::Lumberjack;
+    return ProfessionType::Idle;
 }
 
 // Helper: ProfessionType → display string
@@ -77,7 +82,7 @@ inline const char* ProfessionLabel(ProfessionType p) {
 // ---- World components ----
 
 struct ResourceNode {
-    ResourceType type;
+    int type;
     float interactionRadius;
 };
 
@@ -110,14 +115,14 @@ struct Settlement {
 };
 
 struct Stockpile {
-    std::map<ResourceType, float> quantities;
+    std::map<int, float> quantities;
 };
 
 struct ProductionFacility {
-    ResourceType  output;
+    int           output;
     float         baseRate;                              // units per game-hour at 1 worker
     entt::entity  settlement = entt::null;
-    std::map<ResourceType, float> inputsPerOutput;       // input consumed per 1 unit output (empty = none)
+    std::map<int, float> inputsPerOutput;                // input consumed per 1 unit output (empty = none)
 };
 
 struct Road {
@@ -189,7 +194,7 @@ struct Reputation {
 // ---- Inventory / Transport ----
 
 struct Inventory {
-    std::map<ResourceType, int> contents;
+    std::map<int, int> contents;
     int maxCapacity = 5;
 
     int TotalItems() const {
@@ -231,9 +236,9 @@ struct Money {
 };
 
 struct Market {
-    std::map<ResourceType, float> price;   // mid-market price per unit
+    std::map<int, float> price;   // mid-market price per unit
 
-    float GetPrice(ResourceType t) const {
+    float GetPrice(int t) const {
         auto it = price.find(t);
         return (it != price.end()) ? it->second : 1.f;
     }
@@ -446,24 +451,20 @@ struct Skills {
     float woodcutting   = 0.5f;  // wood production efficiency
 
     // Returns the relevant skill for a given resource output type.
-    float ForResource(ResourceType rt) const {
-        switch (rt) {
-            case ResourceType::Food:  return farming;
-            case ResourceType::Water: return water_drawing;
-            case ResourceType::Wood:  return woodcutting;
-            default:                  return 0.5f;
-        }
+    float ForResource(int rt) const {
+        if (rt == RES_FOOD)  return farming;
+        if (rt == RES_WATER) return water_drawing;
+        if (rt == RES_WOOD)  return woodcutting;
+        return 0.5f;
     }
 
     // Advances the relevant skill by delta (capped at 1).
-    void Advance(ResourceType rt, float delta) {
+    void Advance(int rt, float delta) {
         float* target = nullptr;
-        switch (rt) {
-            case ResourceType::Food:  target = &farming;       break;
-            case ResourceType::Water: target = &water_drawing; break;
-            case ResourceType::Wood:  target = &woodcutting;   break;
-            default: return;
-        }
+        if      (rt == RES_FOOD)  target = &farming;
+        else if (rt == RES_WATER) target = &water_drawing;
+        else if (rt == RES_WOOD)  target = &woodcutting;
+        else return;
         *target = std::min(1.f, *target + delta);
     }
 
