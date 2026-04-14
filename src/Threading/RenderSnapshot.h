@@ -175,7 +175,6 @@ struct RenderSnapshot {
         int          friendshipPairs = 0; // count of mutual friendship pairs (affinity ≥ 0.5)
         int          masterCount = 0;    // NPCs with any skill >= 0.9
         std::vector<float> avgSkills;   // average skill per SkillID (0-1)
-        std::vector<std::string> skillNames; // display names, parallel to avgSkills
         bool         diverse    = false; // all 3 profession types present
         bool         afterglow  = false; // post-festival morale afterglow active
         bool         vigil     = false; // 3+ NPCs grieving at this settlement
@@ -280,7 +279,6 @@ struct RenderSnapshot {
         // Skill summary: masterCount and journeymanCount indexed by SkillID
         std::vector<int>              masterCount;      // per-skill master count (skill >= 0.9)
         std::vector<int>              journeymanCount;  // per-skill journeyman count (skill >= 0.7)
-        std::vector<std::string>      skillNames;       // display names, parallel to masterCount
         // Hauler routes — up to 3 haulers homed at this settlement
         struct HaulerInfo {
             std::string name;

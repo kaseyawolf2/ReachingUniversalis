@@ -1269,10 +1269,12 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
 
     std::vector<RenderSnapshot::SettlementEntry>  settls;
     std::vector<RenderSnapshot::SettlementStatus> ws;
+    std::vector<std::string> sharedSkillNames;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         settls = snap.settlements;
         ws     = snap.worldStatus;
+        sharedSkillNames = snap.skillNames;
     }
 
     // Find settlement the mouse is inside (by world-space radius)
@@ -1354,8 +1356,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         std::string skillStr = "Skills:";
         for (int i = 0; i < (int)best->avgSkills.size(); ++i) {
             if (best->avgSkills[i] <= 0.f) continue;
-            std::string label = (i < (int)best->skillNames.size() && !best->skillNames[i].empty())
-                ? best->skillNames[i].substr(0, 4) : "?";
+            std::string label = (i < (int)sharedSkillNames.size() && !sharedSkillNames[i].empty())
+                ? sharedSkillNames[i].substr(0, 4) : "?";
             char tmp[32];
             std::snprintf(tmp, sizeof(tmp), " %s %d%%", label.c_str(), (int)(best->avgSkills[i] * 100));
             skillStr += tmp;

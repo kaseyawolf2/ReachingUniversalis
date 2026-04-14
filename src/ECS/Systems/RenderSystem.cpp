@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <cstring>
 
-void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel) const {
+void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel,
+                                      const std::vector<std::string>& skillNames) const {
     // Positioned below the player HUD panel, above the event log
     static const int PX = 10, PY = 200;
     static const int PW = 280, LINE_H = 17;
@@ -463,8 +464,8 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
             if (total > bestTotal) { bestTotal = total; bestIdx = i; }
         }
         if (bestIdx >= 0) {
-            std::string skName = (bestIdx < (int)panel.skillNames.size() && !panel.skillNames[bestIdx].empty())
-                ? panel.skillNames[bestIdx] : "Unknown";
+            std::string skName = (bestIdx < (int)skillNames.size() && !skillNames[bestIdx].empty())
+                ? skillNames[bestIdx] : "Unknown";
             char skBuf[80];
             std::snprintf(skBuf, sizeof(skBuf), "Top skill: %s (%d master%s, %d journeyman%s)",
                 skName.c_str(),

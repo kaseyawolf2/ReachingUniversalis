@@ -10,5 +10,6 @@
 
 class RenderSystem {
 public:
-    void DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel) const;
+    void DrawStockpilePanel(const RenderSnapshot::StockpilePanel& panel,
+                            const std::vector<std::string>& skillNames) const;
 };
