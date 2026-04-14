@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
-
 ## Done
+
+- [x] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
 
 - [x] **Seasonal work shanty** — In `ScheduleSystem.cpp`'s work song block, check `TimeManager::season`. During harvest season (`Season::Autumn`), increase the work song chance from 1-in-30 to 1-in-15 (more singing during busy harvest). During winter (`Season::Winter`), boost the affinity gain from +0.01 to +0.02 (huddling together). Log variant: "[Name] leads a harvest shanty" (autumn) or "[Name] leads a fireside song" (winter). Uses existing `TimeManager` season field.
 
@@ -4480,3 +4480,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Seasonal production enthusiasm** — In `ProductionSystem.cpp`'s worker contribution block, check `TimeManager::season`. During `Season::Autumn` (harvest), if the facility type is `ResourceType::Food`, apply a +10% `workerContrib` bonus. During `Season::Spring`, apply +5% to all facility types (renewed energy). Log "[Name] works with seasonal vigour at [Settlement]" at 1-in-15 frequency via a `static std::mt19937 s_seasonProdRng`. Uses existing `TimeManager` and `Facility::type` checks.
 
 - [ ] **Winter huddle need drain reduction** — In `NeedDrainSystem.cpp`, when `Season::Winter` and 3+ NPCs share the same `HomeSettlement`, reduce the `heatDrainMult` by 10% for each NPC at that settlement (pre-compute settlement population counts before the drain loop). Log "[Settlement] residents huddle together for warmth" once per day per qualifying settlement at 1-in-8 frequency via `static std::mt19937 s_huddleRng`. Uses existing `SeasonHeatDrainMult` and `HomeSettlement` component.
+
+- [ ] **Hauler rivalry escalation** — In `TransportSystem.cpp`'s GoingToDeposit arrival block, when two haulers from the same home settlement arrive at the same destination within the same game-hour and their `Relations::affinity < 0.1` (deep rivalry), 1-in-6 chance that the losing hauler (lower `tripProfit`) suffers -0.01 `Settlement::morale` on their home settlement. Log "[Loser] seethes at [Winner]'s success at [Destination]" at full frequency. Uses existing `Relations::affinity` and `Hauler::tripProfit`. Creates escalating social consequences for unresolved rivalries.
+
+- [ ] **Hauler gift on return home** — In `TransportSystem.cpp`'s GoingHome arrival block (where `hauler.state` transitions from GoingHome back to Idle), when the hauler's `Money::balance > 50g` and has `Relations::affinity >= 0.6` toward any NPC at home settlement, 1-in-12 chance to gift 5g (balance-to-balance, Gold Flow Rule). Boost mutual affinity +0.02. Log "[Hauler] brings a gift home to [Friend] at [Settlement]" at full frequency. Creates a wealth-sharing mechanic tied to successful trade runs.
