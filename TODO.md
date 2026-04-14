@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Jealousy-driven skill motivation** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy scan, check if an NPC's `Relations::affinity` toward any same-profession NPC at the settlement is < 0.1 (jealousy threshold) AND that target's matching skill is >= 0.8. If so, apply `growth += 0.0003f` as competitive motivation. Log "[NPC] trains harder to surpass [Rival] at [Settlement]" at 1-in-12 frequency via `s_teachRng`. Creates a feedback loop: jealousy → motivation → eventual pride announcement → more jealousy.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Jealousy-driven skill motivation** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy scan, check if an NPC's `Relations::affinity` toward any same-profession NPC at the settlement is < 0.1 (jealousy threshold) AND that target's matching skill is >= 0.8. If so, apply `growth += 0.0003f` as competitive motivation. Log "[NPC] trains harder to surpass [Rival] at [Settlement]" at 1-in-12 frequency via `s_teachRng`. Creates a feedback loop: jealousy → motivation → eventual pride announcement → more jealousy.
 
 - [x] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
 
@@ -2023,4 +2023,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Mourning procession participant count in settlement tooltip** — In `SimThread::WriteSnapshot`'s `SettlAgg` struct, the `mourningCount` field is already computed. Add `int mourningCount = 0` to `SettlementEntry` in `RenderSnapshot.h` and pass it through. In `HUD.cpp`'s settlement tooltip, when `mourning == true`, change badge text from "[Mourning]" to "[Mourning: N]" showing participant count. Makes the scale of the procession visible.
 
 - [ ] **Procession affinity scaling by size** — In `AgentDecisionSystem.cpp`'s mourning procession block, scale the mutual affinity boost by participant count: `0.02f + 0.005f * (participants.size() - 3)` (capped at +0.05). Larger processions create stronger bonds. Log variant when 6+ participants: "[Settlement] holds a grand procession" at full frequency. Uses existing `participants` vector size.
+
+- [ ] **Jealousy fades with own mastery** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy motivation check, when the motivated NPC's own skill crosses 0.8 (becoming an expert themselves), boost affinity toward the rival by +0.05 and log "[NPC] finds respect for [Rival] as a fellow expert at [Settlement]" at full frequency. Uses existing `Relations::affinity`. Creates a jealousy resolution arc through achievement.
+
+- [ ] **Jealousy tooltip indicator** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool hasRival = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Relations::affinity` contains any entry < 0.1 toward a same-profession NPC at the same settlement with matching skill >= 0.8. In `HUD.cpp`'s NPC tooltip, display "[Competitive]" in orange-red after the expert badge. Makes the jealousy dynamic visible to the player.
 
