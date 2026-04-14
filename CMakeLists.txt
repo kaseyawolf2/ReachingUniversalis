@@ -71,3 +71,14 @@ target_link_libraries(ReachingUniversalis PRIVATE Threads::Threads)
 if(WIN32)
     target_link_libraries(ReachingUniversalis PRIVATE winmm gdi32 opengl32)
 endif()
+
+# ---- Test targets ----
+
+add_executable(SeasonValidationTest
+    tests/SeasonValidationTest.cpp
+    src/World/WorldLoader.cpp
+)
+target_include_directories(SeasonValidationTest PRIVATE src)
+target_link_libraries(SeasonValidationTest PRIVATE tomlplusplus::tomlplusplus)
+find_package(Threads REQUIRED)
+target_link_libraries(SeasonValidationTest PRIVATE Threads::Threads)

@@ -1,0 +1,25 @@
+# test_seasons_invalid.toml — Intentionally inverted thresholds for validation testing.
+#
+# The correct ordering is:  mild_cold < cold_season < moderate_cold < harsh_cold
+# This file completely inverts that ordering so every pairwise and top-level
+# ordering check in LoadSeasons() fires a warning.
+#
+# WorldLoader::LoadSeasons() should emit warnings for every violated ordering
+# invariant while still loading successfully (warnings are non-fatal).
+
+# Fully inverted cold thresholds (descending instead of ascending)
+harsh_cold    = 0.05   # should be the HIGHEST, set to lowest
+moderate_cold = 0.1    # should be second-highest, set to second-lowest
+cold_season   = 0.3    # should be second-lowest, set to second-highest
+mild_cold     = 0.8    # should be the LOWEST, set to highest
+
+# Inverted production thresholds (low_production > harvest_season)
+harvest_season = 0.3
+low_production = 1.5
+
+# Minimal season definition (LoadSeasons requires at least one [[seasons]] entry)
+[[seasons]]
+name           = "TestSeason"
+duration_days  = 30
+production_mod = 1.0
+heat_drain_mod = 0.0
