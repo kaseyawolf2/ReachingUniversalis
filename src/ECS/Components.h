@@ -189,7 +189,23 @@ struct DeprivationTimer {
 // Mandatory component emplaced on all NPCs at spawn; use get<> in the main
 // NPC loop, try_get<> only when accessing other entities.
 struct SocialBehavior {
-    // Timers governing how often social interactions can occur.
+    /// Behaviour-gating cooldowns — these timers prevent social interactions
+    /// from firing every tick; they are NOT persistent mood state (see MoodState
+    /// for that).  Each timer counts down toward zero; the interaction is
+    /// eligible once the timer reaches 0.
+    ///
+    /// Units per field (at 1x speed, 1 real-second = 1 game-minute):
+    ///   gossipCooldown        — game-hours until price-gossip is allowed again
+    ///   gossipNudgeTimer      — game-seconds of gossip drift animation remaining
+    ///   chatTimer             — game-seconds of evening chat pause remaining
+    ///   greetCooldown         — real-seconds until neighbour greeting is allowed
+    ///   thankCooldown         — real-seconds until player-thank is allowed
+    ///   teachCooldown         — real-seconds until teach/learn exchange is allowed
+    ///   moodContagionCooldown — game-seconds until mood-boost reception is allowed
+    ///   comfortCooldown       — real-seconds until comforting a grieving NPC is allowed
+    ///   begTimer              — game-hours until begging from a friend is allowed
+    ///   skillCelebrateTimer   — game-hours of skill-milestone celebration remaining
+    ///   reconcileGlow         — game-hours of post-reconciliation +5% productivity boost remaining
     struct InteractionCooldowns {
         float gossipCooldown        = 0.f;   // game-hours until NPC can gossip prices again (0 = ready)
         float gossipNudgeTimer      = 0.f;   // game-seconds remaining for gossip drift animation (0 = eligible)
