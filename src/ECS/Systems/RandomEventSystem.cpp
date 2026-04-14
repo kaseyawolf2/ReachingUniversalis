@@ -55,7 +55,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     EventLog* log = (logView.begin() == logView.end()) ? nullptr
                   : &logView.get<EventLog>(*logView.begin());
 
-    // Tick down active settlement modifiers (drought/spreading event recovery)
+    // Tick down active settlement modifiers (event recovery)
     // Also update morale drift and unrest threshold crossing.
     registry.view<Settlement>().each([&](auto e, Settlement& s) {
         if (s.modifierDuration > 0.f) {
@@ -72,7 +72,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 // Post-festival afterglow: morale drift halved for 12 game-hours
                 if (wasFestival)
                     s.afterglowHours = 12.f;
-                // Post-crisis community gathering: surviving drought/spreading events strengthens bonds
+                // Post-crisis community gathering: surviving negative events strengthens bonds
                 bool wasDrought = (s.modifierName == "Drought");
                 if (wasDrought || wasSpreading) {
                     std::vector<entt::entity> survivors;
@@ -1330,7 +1330,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.view<Settlement, Stockpile>().each(
                 [&](auto e, Settlement& rs, Stockpile& rsp) {
                     rsp.quantities[addResId] += amount;
-                    // Break drought at target
+                    // Break active negative modifier at target
                     if (ev.breaksDrought && e == target && rs.modifierDuration > 0.f &&
                         rs.modifierName.find("Drought") != std::string::npos) {
                         rs.modifierDuration   = 0.f;
