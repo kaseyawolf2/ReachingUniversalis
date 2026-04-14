@@ -2625,6 +2625,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                     nA + " and " + nB + " bond over the festival at " + where + ".");
                             }
                         }
+                        // Bankruptcy survivor inspiration: survivor inspires non-survivor
+                        if (timer.bankruptSurvivor != oTimer.bankruptSurvivor && s_chatRng() % 10 == 0) {
+                            entt::entity survivor = timer.bankruptSurvivor ? entity : other;
+                            entt::entity listener2 = timer.bankruptSurvivor ? other : entity;
+                            if (auto* lRel2 = registry.try_get<Relations>(listener2))
+                                lRel2->affinity[survivor] = std::min(1.f, lRel2->affinity[survivor] + 0.02f);
+                            auto blv = registry.view<EventLog>();
+                            if (!blv.empty()) {
+                                std::string sName = "An NPC", lName = "another NPC";
+                                if (const auto* ns = registry.try_get<Name>(survivor)) sName = ns->value;
+                                if (const auto* nl = registry.try_get<Name>(listener2)) lName = nl->value;
+                                std::string where = "settlement";
+                                if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                    where = stt->name;
+                                blv.get<EventLog>(*blv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    sName + " inspires " + lName + " with their comeback story at " + where + ".");
+                            }
+                        }
                         // Log ~10% of chats for social flavour
                         static std::uniform_real_distribution<float> s_chatLogDist(0.f, 1.f);
                         if (s_chatLogDist(s_chatRng) < 0.1f) {
