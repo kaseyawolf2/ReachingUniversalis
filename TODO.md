@@ -151,7 +151,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
 
-- [ ] **SocialBehavior InteractionCooldowns doc comment** — `InteractionCooldowns` in `Components.h` now holds `skillCelebrateTimer` and `reconcileGlow` after the sub-struct relocation, but has no doc comment explaining that these are behavior-gating cooldowns (not mood state). Add a brief `///` comment above the struct listing each timer's purpose and units (game-seconds).
+- [x] **SocialBehavior InteractionCooldowns doc comment** — `InteractionCooldowns` in `Components.h` now holds `skillCelebrateTimer` and `reconcileGlow` after the sub-struct relocation, but has no doc comment explaining that these are behavior-gating cooldowns (not mood state). Add a brief `///` comment above the struct listing each timer's purpose and units (game-seconds).
 
 - [ ] **SocialBehavior MoodState dead field audit** — After relocating `skillCelebrateTimer` and `reconcileGlow` out of `MoodState`, audit whether any remaining `MoodState` fields are also functionally cooldowns. Candidates: `griefLevel` decays over time and gates visit behavior. Document each field's category (persistent state vs. decaying timer) with inline comments.
 
@@ -254,6 +254,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **SkillForProfession bounds-check assert** — `WorldSchema::SkillForProfession()` has the same bounds-check-and-fallback pattern as `ProfessionForResource()` but lacks the debug assert added in PR #72. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for consistency.
 
 - [ ] **SkillIdForResource bounds-check assert** — `WorldSchema::SkillIdForResource()` indexes `resourceToSkill` vector without a debug assert. Add `assert(res >= 0 && res < (int)resourceToSkill.size())` consistent with `ProfessionForResource()`.
+
+- [ ] **InteractionCooldowns greetCooldown comment fix** — `AgentDecisionSystem.cpp` line ~2432 has a pre-existing wrong comment "120 game-seconds cooldown = 2 real-seconds" for `greetCooldown`. The cooldown value is `2.f` decremented by `dt`. Fix the inline comment to accurately describe the 2-second cooldown.
+
+- [ ] **InteractionCooldowns GameDt passthrough note** — The `InteractionCooldowns` doc comment distinguishes "game-seconds" vs "real-seconds" but `GameDt()` is currently a passthrough (returns `realDt` unchanged). Add a one-line note to the doc block: "Note: GameDt currently returns realDt unchanged, so game-seconds == real-seconds at 1x speed."
 
 ## Phase 2 — UI Decoupling
 
