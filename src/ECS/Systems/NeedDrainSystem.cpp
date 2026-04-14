@@ -58,7 +58,7 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
         float celebrateMult  = celebrating ? 0.5f : 1.f;
 
         // Check for minor illness on this entity (doubles drain on the affected need).
-        const DeprivationTimer* depTimer = registry.try_get<DeprivationTimer>(entity);
+        const PersonalEventState* pesTimer = registry.try_get<PersonalEventState>(entity);
 
         for (int i = 0; i < (int)needs.list.size(); ++i) {
             auto& need = needs.list[i];
@@ -68,8 +68,8 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
             } else {
                 float mult = (need.type == NeedType::Energy) ? energyDrainMult :
                              (need.type == NeedType::Heat)   ? heatDrainMult   : 1.f;
-                float illnessMult = (depTimer && depTimer->illnessTimer > 0.f
-                                    && depTimer->illnessNeedIdx == i) ? 2.f : 1.f;
+                float illnessMult = (pesTimer && pesTimer->illnessTimer > 0.f
+                                    && pesTimer->illnessNeedIdx == i) ? 2.f : 1.f;
                 need.value -= need.drainRate * mult * plagueMult * celebrateMult
                               * illnessMult * gameDt;
                 if (need.value < 0.0f) need.value = 0.0f;

@@ -222,6 +222,12 @@ void SimThread::RespawnPlayer() {
     m_registry.emplace<AgentState>(player);
     m_registry.emplace<HomeSettlement>(player, HomeSettlement{ bestSettl });
     m_registry.emplace<DeprivationTimer>(player);
+    m_registry.emplace<SocialBehavior>(player);
+    m_registry.emplace<GriefState>(player);
+    m_registry.emplace<TheftRecord>(player);
+    m_registry.emplace<CharityState>(player);
+    m_registry.emplace<BanditState>(player);
+    m_registry.emplace<PersonalEventState>(player);
     m_registry.emplace<Inventory>(player, Inventory{ {}, 15 });   // 15-unit carry capacity
     m_registry.emplace<Money>(player, Money{ 10.f });   // small purse on respawn
     m_registry.emplace<Renderable>(player, YELLOW, 10.f);
@@ -686,14 +692,14 @@ void SimThread::ProcessInput() {
                     // Scatter gang members: other bandits with same gangName flee
                     {
                         std::string confrontedGang;
-                        if (const auto* cdt = m_registry.try_get<DeprivationTimer>(nearBandit))
-                            confrontedGang = cdt->gangName;
+                        if (const auto* cbs = m_registry.try_get<BanditState>(nearBandit))
+                            confrontedGang = cbs->gangName;
                         if (!confrontedGang.empty()) {
                             m_registry.view<BanditTag, Position, Velocity, MoveSpeed,
-                                            DeprivationTimer>().each(
+                                            BanditState>().each(
                                 [&](auto ge, Position& gp, Velocity& gv,
-                                    const MoveSpeed& gs, DeprivationTimer& gdt) {
-                                    if (gdt.gangName != confrontedGang) return;
+                                    const MoveSpeed& gs, BanditState& gbs) {
+                                    if (gbs.gangName != confrontedGang) return;
                                     // Set flee velocity away from player
                                     float fdx = gp.x - ppos3.x;
                                     float fdy = gp.y - ppos3.y;
@@ -701,13 +707,13 @@ void SimThread::ProcessInput() {
                                     if (len < 1.f) { fdx = 1.f; fdy = 0.f; len = 1.f; }
                                     gv.vx = (fdx / len) * gs.value * 1.5f;
                                     gv.vy = (fdy / len) * gs.value * 1.5f;
-                                    gdt.fleeTimer = 3.f;
+                                    gbs.fleeTimer = 3.f;
                                 });
                             // Check if gang is now empty (no remaining bandits with this name)
                             bool gangSurvives = false;
-                            m_registry.view<BanditTag, DeprivationTimer>().each(
-                                [&](const DeprivationTimer& gdt) {
-                                    if (gdt.gangName == confrontedGang)
+                            m_registry.view<BanditTag, BanditState>().each(
+                                [&](const BanditState& gbs) {
+                                    if (gbs.gangName == confrontedGang)
                                         gangSurvives = true;
                                 });
                             if (!gangSurvives && plog) {
@@ -730,8 +736,8 @@ void SimThread::ProcessInput() {
                                 if (wdx*wdx + wdy*wdy > WITNESS_RANGE * WITNESS_RANGE) return;
                                 wrep.score += 0.1f;
                                 // Witness remembers the player — enables gratitude greeting later
-                                auto& wTimer = m_registry.get_or_emplace<DeprivationTimer>(we);
-                                wTimer.lastHelper = pe3;
+                                auto* wSocial = m_registry.try_get<SocialBehavior>(we);
+                                if (wSocial) wSocial->lastHelper = pe3;
                                 ++witnessCount;
                             });
                         if (plog && witnessCount > 0) {
@@ -1127,6 +1133,12 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<HomeSettlement>(npc, HomeSettlement{newSettl});
                         DeprivationTimer dtt; dtt.migrateThreshold = 5.f * 60.f;
                         m_registry.emplace<DeprivationTimer>(npc, dtt);
+                        m_registry.emplace<SocialBehavior>(npc);
+                        m_registry.emplace<GriefState>(npc);
+                        m_registry.emplace<TheftRecord>(npc);
+                        m_registry.emplace<CharityState>(npc);
+                        m_registry.emplace<BanditState>(npc);
+                        m_registry.emplace<PersonalEventState>(npc);
                         m_registry.emplace<Schedule>(npc);
                         m_registry.emplace<Renderable>(npc, WHITE, 6.f);
                         m_registry.emplace<Money>(npc, Money{10.f});
@@ -1158,6 +1170,12 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<HomeSettlement>(h, HomeSettlement{newSettl});
                         DeprivationTimer hdtt; hdtt.migrateThreshold = 5.f * 60.f;
                         m_registry.emplace<DeprivationTimer>(h, hdtt);
+                        m_registry.emplace<SocialBehavior>(h);
+                        m_registry.emplace<GriefState>(h);
+                        m_registry.emplace<TheftRecord>(h);
+                        m_registry.emplace<CharityState>(h);
+                        m_registry.emplace<BanditState>(h);
+                        m_registry.emplace<PersonalEventState>(h);
                         m_registry.emplace<Inventory>(h, Inventory{{}, 15});
                         m_registry.emplace<Hauler>(h, Hauler{});
                         m_registry.emplace<Reputation>(h);
@@ -1470,9 +1488,11 @@ void SimThread::WriteSnapshot() {
                         if (sc->fatigued && as2->behavior == AgentBehavior::Working)
                             ++ag.fatiguedWorkers;
                 }
-                if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
-                    if (dt->charityTimer > 0.f) ++ag.recentGivers;
-                    if (dt->griefTimer > 0.f) ++ag.griefCount;
+                if (const auto* cs = m_registry.try_get<CharityState>(e)) {
+                    if (cs->charityTimer > 0.f) ++ag.recentGivers;
+                }
+                if (const auto* gs = m_registry.try_get<GriefState>(e)) {
+                    if (gs->griefTimer > 0.f) ++ag.griefCount;
                 }
                 if (const auto* age2 = m_registry.try_get<Age>(e)) {
                     if (age2->days > 60.f) {
@@ -1491,8 +1511,8 @@ void SimThread::WriteSnapshot() {
                 // Mourning procession: check both wisdomGriefDays and skillCelebrateTimer
                 {
                     const auto* skM = m_registry.try_get<Skills>(e);
-                    const auto* dtM = m_registry.try_get<DeprivationTimer>(e);
-                    if (skM && dtM && skM->wisdomGriefDays > 0.f && dtM->skillCelebrateTimer > 0.f)
+                    const auto* sbM = m_registry.try_get<SocialBehavior>(e);
+                    if (skM && sbM && skM->wisdomGriefDays > 0.f && sbM->skillCelebrateTimer > 0.f)
                         ++ag.mourningCount;
                 }
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
@@ -1742,9 +1762,9 @@ void SimThread::WriteSnapshot() {
         bool isExiled = false;
         {
             const auto* hs = m_registry.try_get<HomeSettlement>(e);
-            const auto* dt2 = m_registry.try_get<DeprivationTimer>(e);
-            if (hs && dt2 && (hs->settlement == entt::null || !m_registry.valid(hs->settlement))
-                && dt2->theftCount >= 3)
+            const auto* tr = m_registry.try_get<TheftRecord>(e);
+            if (hs && tr && (hs->settlement == entt::null || !m_registry.valid(hs->settlement))
+                && tr->theftCount >= 3)
                 isExiled = true;
         }
 
@@ -1788,24 +1808,34 @@ void SimThread::WriteSnapshot() {
         bool chatting        = false;
         float satisfaction   = 0.5f;
         bool reconciling     = false;
+        if (const auto* cs = m_registry.try_get<CharityState>(e)) {
+            recentlyHelped   = (cs->helpedTimer > 0.f);
+            isGrateful       = (cs->gratitudeTimer > 0.f);
+            recentWarmthGlow = (htp > 0.9f && cs->charityTimer > 0.f);
+            charityReady     = (cs->charityTimer <= 0.f);
+            charityTimerLeft = cs->charityTimer;
+        }
+        if (const auto* tr = m_registry.try_get<TheftRecord>(e)) {
+            recentlyStole = (tr->stealCooldown > 46.f);
+        }
+        if (const auto* pes = m_registry.try_get<PersonalEventState>(e)) {
+            onStrike        = (pes->strikeDuration > 0.f);
+            strikeHoursLeft = pes->strikeDuration;
+            ill             = (pes->illnessTimer > 0.f);
+            illNeedIdx      = pes->illnessNeedIdx;
+            harvestBonus    = (pes->harvestBonusTimer > 0.f);
+        }
+        if (const auto* sb = m_registry.try_get<SocialBehavior>(e)) {
+            recentlyTaught = (sb->teachCooldown > 0.f);
+            chatting       = (sb->chatTimer > 0.f);
+            reconciling    = (sb->reconcileGlow > 0.f);
+        }
+        if (const auto* gs = m_registry.try_get<GriefState>(e)) {
+            isGrievingSnap = (gs->griefTimer > 0.f);
+            griefHoursLeft = gs->griefTimer;
+        }
         if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
-            recentlyHelped   = (dt->helpedTimer > 0.f);
-            recentlyStole    = (dt->stealCooldown > 46.f);
-            isGrateful       = (dt->gratitudeTimer > 0.f);
-            recentWarmthGlow = (htp > 0.9f && dt->charityTimer > 0.f);
-            charityReady     = (dt->charityTimer <= 0.f);
-            charityTimerLeft = dt->charityTimer;
-            onStrike         = (dt->strikeDuration > 0.f);
-            strikeHoursLeft  = dt->strikeDuration;
-            ill              = (dt->illnessTimer > 0.f);
-            illNeedIdx       = dt->illnessNeedIdx;
-            harvestBonus     = (dt->harvestBonusTimer > 0.f);
-            recentlyTaught   = (dt->teachCooldown > 0.f);
-            isGrievingSnap   = (dt->griefTimer > 0.f);
-            griefHoursLeft   = dt->griefTimer;
-            chatting         = (dt->chatTimer > 0.f);
-            satisfaction     = dt->lastSatisfaction;
-            reconciling      = (dt->reconcileGlow > 0.f);
+            satisfaction = dt->lastSatisfaction;
         }
 
         // Best friend: highest affinity from Relations map
@@ -1830,9 +1860,9 @@ void SimThread::WriteSnapshot() {
         float fleeTimer = 0.f;
         float fleeVx = 0.f, fleeVy = 0.f;
         if (isBandit) {
-            if (const auto* dt2 = m_registry.try_get<DeprivationTimer>(e)) {
-                gangName = dt2->gangName;
-                fleeTimer = dt2->fleeTimer;
+            if (const auto* bs = m_registry.try_get<BanditState>(e)) {
+                gangName = bs->gangName;
+                fleeTimer = bs->fleeTimer;
             }
             if (fleeTimer > 0.f) {
                 if (const auto* v = m_registry.try_get<Velocity>(e)) {

@@ -264,11 +264,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
 
         // ---- Drain work-stoppage strike timer ----
         bool onStrike = false;
-        if (auto* dt = registry.try_get<DeprivationTimer>(entity)) {
-            if (dt->strikeDuration > 0.f) {
+        if (auto* pes = registry.try_get<PersonalEventState>(entity)) {
+            if (pes->strikeDuration > 0.f) {
                 float gameHoursDt = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-                dt->strikeDuration = std::max(0.f, dt->strikeDuration - gameHoursDt);
-                if (dt->strikeDuration > 0.f) {
+                pes->strikeDuration = std::max(0.f, pes->strikeDuration - gameHoursDt);
+                if (pes->strikeDuration > 0.f) {
                     onStrike = true;
                 } else {
                     // Strike just ended — nudge home settlement morale up
@@ -687,10 +687,10 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     }
                                 }
                                 // Set reconcileGlow on both NPCs
-                                if (auto* tmrA = registry.try_get<DeprivationTimer>(entity))
-                                    tmrA->reconcileGlow = glowDuration;
-                                if (auto* tmrB = registry.try_get<DeprivationTimer>(other))
-                                    tmrB->reconcileGlow = glowDuration;
+                                if (auto* sbA = registry.try_get<SocialBehavior>(entity))
+                                    sbA->reconcileGlow = glowDuration;
+                                if (auto* sbB = registry.try_get<SocialBehavior>(other))
+                                    sbB->reconcileGlow = glowDuration;
                                 // 3rd+ reconciliation: escalating friendship log
                                 if (reconTimes >= 3) {
                                     auto ufLogV = registry.view<EventLog>();
@@ -841,8 +841,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (auto* as = registry.try_get<AgentState>(entity)) {
                                             as->behavior = AgentBehavior::Celebrating;
                                         }
-                                        auto& tmr = registry.get_or_emplace<DeprivationTimer>(entity);
-                                        tmr.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
+                                        auto& sbCeleb = registry.get<SocialBehavior>(entity);
+                                        sbCeleb.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
                                     }
                                     // Master milestone boosts home settlement morale
                                     if (idx == 1) {

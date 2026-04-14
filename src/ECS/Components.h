@@ -157,50 +157,89 @@ struct HomeSettlement {
 
 // Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
 // Used by DeathSystem and AgentDecisionSystem for migration triggering.
+// Core fields only — medieval-specific social mechanics live in optional
+// components: SocialBehavior, BanditState, GriefState, TheftRecord,
+// PersonalEventState, CharityState.
 struct DeprivationTimer {
-    std::vector<float> needsAtZero        = { 0.f, 0.f, 0.f, 0.f };
-    float                stockpileEmpty  = 0.f;    // seconds with no food, water, OR heat
-    float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
-    float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase
-    float                stealCooldown   = 0.f;    // game-hours until NPC can steal again (0 = can steal)
-    int                  theftCount      = 0;      // lifetime theft count; >= 3 triggers exile
-    float                gossipCooldown  = 0.f;    // game-hours until NPC can gossip prices again (0 = ready)
-    float                charityTimer    = 0.f;    // game-hours until NPC can help a starving neighbour again (0 = ready)
-    float                helpedTimer     = 0.f;    // game-hours since receiving charity; > 0 → "recently helped"
-    entt::entity         gratitudeTarget = entt::null;  // entity to move toward while grateful
-    float                gratitudeTimer  = 0.f;          // real-seconds remaining; > 0 → doing gratitude walk
-    float                banditPovertyTimer = 0.f;       // game-hours as homeless exile with balance < 2g → bandit at 48h
-    float                strikeDuration     = 0.f;       // game-hours remaining on work stoppage (0 = can work normally)
-    float                chatTimer          = 0.f;       // game-seconds remaining in evening chat stop (0 = free to move)
-    float                personalEventTimer = 0.f;       // game-hours until next personal event (randomised per NPC)
-    float                illnessTimer       = 0.f;       // game-hours remaining for minor illness (2× drain on one need)
-    int                  illnessNeedIdx     = 0;         // which need index (0=Hunger,1=Thirst,2=Energy) is ill
-    float                harvestBonusTimer  = 0.f;       // game-hours remaining for good-harvest bonus (1.5× worker contribution)
-    float                gossipNudgeTimer   = 0.f;       // game-seconds remaining for gossip drift animation (0 = eligible)
-    float                fleeTimer          = 0.f;       // real-seconds remaining for post-theft flee (sprint away from settlement)
-    float                greetCooldown      = 0.f;       // real-seconds until NPC can greet a neighbour again (0 = ready)
-    std::string          gangName;                       // bandit gang name (set when lurking at a road with other bandits)
-    std::string          lastMealSource;                 // settlement name where NPC last ate; cleared after gratitude log
-    float                panicTimer = 0.f;               // real-seconds remaining of panic flight (skip decisions while > 0)
-    float                visitTimer = 0.f;               // game-minutes remaining on family visit (0 = not visiting)
-    entt::entity         visitTarget = entt::null;       // settlement entity being visited
-    entt::entity         lastHelper = entt::null;        // entity who last gave charity; for gratitude greeting
-    float                intimidationCooldown = 0.f;    // game-seconds until next bandit intimidation log (0 = ready)
-    float                skillCelebrateTimer  = 0.f;    // game-hours remaining for skill milestone celebration
-    float                thankCooldown        = 0.f;    // real-seconds until NPC can thank player again (0 = ready)
-    float                teachCooldown        = 0.f;    // real-seconds until NPC can teach/learn again (0 = ready)
-    float                griefTimer           = 0.f;    // game-hours remaining of grief (skip social, drain morale)
-    float                moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
-    float                comfortCooldown      = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
-    bool                 wisdomFired          = false; // true once elder wisdom transfer has fired (one-time event)
-    float                lastSatisfaction     = 0.5f;  // rolling average of all 4 needs (0-1); updated in ConsumptionSystem
-    bool                 wealthCelebrated     = false; // true once NPC's balance crosses 500g (one-time event)
-    float                begTimer             = 0.f;  // game-hours until NPC can beg from a friend again (0 = ready)
-    float                homesickTimer        = 0.f;  // game-hours since migration arrival; triggers return when > 72h and low satisfaction
-    bool                 masterSettled        = false; // true once any skill reaches 0.9; permanently boosts migrateThreshold
-    bool                 bankruptSurvivor    = false; // true after hauler bankruptcy; grants extra skill growth
-    float                lastGriefDay        = -1.f; // game-day when grief last started (-1 = never)
-    float                reconcileGlow       = 0.f;  // game-hours remaining of post-reconciliation productivity boost (+5%)
+    std::vector<float> needsAtZero      = { 0.f, 0.f, 0.f, 0.f };
+    float              stockpileEmpty   = 0.f;          // seconds with no food, water, OR heat
+    float              migrateThreshold = 2.f * 60.f;   // game-min before migrating; randomised at spawn
+    float              purchaseTimer    = 0.f;           // game-hours since last emergency market purchase
+    float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
+};
+
+// ---- Mandatory social-mechanic components (factored out of DeprivationTimer) ----
+
+// Social interaction cooldowns and one-shot flags.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
+struct SocialBehavior {
+    float        gossipCooldown        = 0.f;   // game-hours until NPC can gossip prices again (0 = ready)
+    float        gossipNudgeTimer      = 0.f;   // game-seconds remaining for gossip drift animation (0 = eligible)
+    float        chatTimer             = 0.f;   // game-seconds remaining in evening chat stop (0 = free to move)
+    float        greetCooldown         = 0.f;   // real-seconds until NPC can greet a neighbour again (0 = ready)
+    float        thankCooldown         = 0.f;   // real-seconds until NPC can thank player again (0 = ready)
+    float        teachCooldown         = 0.f;   // real-seconds until NPC can teach/learn again (0 = ready)
+    float        moodContagionCooldown = 0.f;   // game-seconds until NPC can receive mood boost again (0 = ready)
+    float        comfortCooldown       = 0.f;   // real-seconds until NPC can comfort a grieving neighbour again (0 = ready)
+    float        skillCelebrateTimer   = 0.f;   // game-hours remaining for skill milestone celebration
+    float        reconcileGlow         = 0.f;   // game-hours remaining of post-reconciliation productivity boost (+5%)
+    float        begTimer              = 0.f;   // game-hours until NPC can beg from a friend again (0 = ready)
+    float        homesickTimer         = 0.f;   // game-hours since migration arrival; triggers return when > 72h and low satisfaction
+    float        visitTimer            = 0.f;   // game-minutes remaining on family visit (0 = not visiting)
+    entt::entity visitTarget           = entt::null; // settlement entity being visited
+    entt::entity lastHelper            = entt::null; // entity who last gave charity; for gratitude greeting
+    std::string  lastMealSource;                // settlement name where NPC last ate; cleared after gratitude log
+    bool         wisdomFired           = false;  // true once elder wisdom transfer has fired (one-time event)
+    bool         wealthCelebrated      = false;  // true once NPC's balance crosses 500g (one-time event)
+    bool         masterSettled         = false;  // true once any skill reaches 0.9; permanently boosts migrateThreshold
+    bool         bankruptSurvivor      = false;  // true after hauler bankruptcy; grants extra skill growth
+};
+
+// Bandit-specific timers and state.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
+struct BanditState {
+    float        banditPovertyTimer    = 0.f;   // game-hours as homeless exile with balance < 2g → bandit at 48h
+    float        intimidationCooldown  = 0.f;   // game-seconds until next bandit intimidation log (0 = ready)
+    float        fleeTimer             = 0.f;   // real-seconds remaining for post-theft flee (sprint away from settlement)
+    float        panicTimer            = 0.f;   // real-seconds remaining of panic flight (skip decisions while > 0)
+    std::string  gangName;                      // bandit gang name (set when lurking at a road with other bandits)
+};
+
+// Grief timers — mandatory component emplaced on all NPCs at spawn; use get<>
+// in the main NPC loop, try_get<> only when accessing other entities.
+struct GriefState {
+    float griefTimer    = 0.f;   // game-hours remaining of grief (skip social, drain morale)
+    float lastGriefDay  = -1.f;  // game-day when grief last started (-1 = never)
+};
+
+// Theft tracking — mandatory component emplaced on all NPCs at spawn; use get<>
+// in the main NPC loop, try_get<> only when accessing other entities.
+struct TheftRecord {
+    float stealCooldown = 0.f;   // game-hours until NPC can steal again (0 = can steal)
+    int   theftCount    = 0;     // lifetime theft count; >= 3 triggers exile
+};
+
+// Personal random event timers (illness, harvest bonus, strike).
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
+struct PersonalEventState {
+    float personalEventTimer = 0.f;   // game-hours until next personal event (randomised per NPC)
+    float illnessTimer       = 0.f;   // game-hours remaining for minor illness (2× drain on one need)
+    int   illnessNeedIdx     = 0;     // which need index (0=Hunger,1=Thirst,2=Energy) is ill
+    float harvestBonusTimer  = 0.f;   // game-hours remaining for good-harvest bonus (1.5× worker contribution)
+    float strikeDuration     = 0.f;   // game-hours remaining on work stoppage (0 = can work normally)
+};
+
+// Charity giving/receiving state.
+// Mandatory component emplaced on all NPCs at spawn; use get<> in the main
+// NPC loop, try_get<> only when accessing other entities.
+struct CharityState {
+    float        charityTimer    = 0.f;          // game-hours until NPC can help a starving neighbour again (0 = ready)
+    float        helpedTimer     = 0.f;          // game-hours since receiving charity; > 0 → "recently helped"
+    entt::entity gratitudeTarget = entt::null;   // entity to move toward while grateful
+    float        gratitudeTimer  = 0.f;          // real-seconds remaining; > 0 → doing gratitude walk
 };
 
 // Social standing; accrued by charity & trade deliveries, lost by theft.
