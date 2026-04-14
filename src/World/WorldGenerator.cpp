@@ -1,8 +1,11 @@
 #include "WorldGenerator.h"
+#include "WorldSchema.h"
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <array>
+#include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <random>
 
 static constexpr float MAP_W = 2400.0f;
@@ -60,7 +63,7 @@ static Needs MakeNeeds() {
 static void SpawnNPCs(entt::registry& registry,
                       entt::entity settlement,
                       float cx, float cy, int count,
-                      ProfessionType profession = ProfessionType::Idle) {
+                      int profession = -1) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI;
         float ring  = 40.f + (i % 3) * 22.f;
@@ -166,7 +169,21 @@ static void SpawnHaulers(entt::registry& registry,
     }
 }
 
-void WorldGenerator::Populate(entt::registry& registry) {
+void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schema) {
+
+    // Look up profession IDs from schema
+    const int PROF_FARMER  = schema.FindProfession("Farmer");
+    const int PROF_WATER   = schema.FindProfession("WaterCarrier");
+    const int PROF_LUMBER  = schema.FindProfession("Lumberjack");
+    if (PROF_FARMER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'Farmer' profession not found in schema!\n");
+    if (PROF_WATER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'WaterCarrier' profession not found in schema!\n");
+    if (PROF_LUMBER == INVALID_ID)
+        std::fprintf(stderr, "WorldGenerator: 'Lumberjack' profession not found in schema!\n");
+    assert(PROF_FARMER != INVALID_ID && "Farmer profession missing from schema config");
+    assert(PROF_WATER  != INVALID_ID && "WaterCarrier profession missing from schema config");
+    assert(PROF_LUMBER != INVALID_ID && "Lumberjack profession missing from schema config");
 
     // ---- Game clock ----
     registry.emplace<TimeManager>(registry.create());
@@ -286,9 +303,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     }
 
     // ---- Population ----
-    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, ProfessionType::Farmer);
-    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, ProfessionType::WaterCarrier);
-    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, ProfessionType::Lumberjack);
+    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, PROF_FARMER);
+    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, PROF_WATER);
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, PROF_LUMBER);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);

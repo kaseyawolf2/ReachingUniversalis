@@ -362,11 +362,11 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
 
                     // ---- Update Profession to match current facility type ----
                     if (hourChanged) {
-                        ProfessionType newProf = ProfessionForResource(facType);
+                        int newProf = schema.ProfessionForResource(facType);
                         if (auto* prof = registry.try_get<Profession>(entity)) {
-                            if (prof->type != newProf && newProf != ProfessionType::Idle) {
+                            if (prof->type != newProf && schema.ProfessionProduces(newProf)) {
                                 static std::mt19937 s_profRng{ std::random_device{}() };
-                                if (prof->type != ProfessionType::Idle && prof->type != ProfessionType::Hauler
+                                if (schema.ProfessionProduces(prof->type)
                                     && s_profRng() % 2 == 0) {
                                     auto logV = registry.view<EventLog>();
                                     if (!logV.empty()) {
@@ -380,14 +380,14 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         auto& tmRef = registry.view<TimeManager>().get<TimeManager>(
                                             *registry.view<TimeManager>().begin());
                                         std::string msg = who + " switched from " +
-                                            ProfessionLabel(prof->type) + " to " +
-                                            ProfessionLabel(newProf) + " at " + settlName + ".";
+                                            schema.ProfessionLabel(prof->type) + " to " +
+                                            schema.ProfessionLabel(newProf) + " at " + settlName + ".";
                                         logV.get<EventLog>(*logV.begin()).Push(
                                             tmRef.day, (int)tmRef.hourOfDay, msg);
                                     }
                                 }
                                 // Career changer adaptation: second+ career change
-                                if (prof->prevType != ProfessionType::Idle &&
+                                if (schema.ProfessionProduces(prof->prevType) &&
                                     prof->prevType != prof->type &&
                                     s_profRng() % 3 == 0) {
                                     auto logV2 = registry.view<EventLog>();
@@ -402,8 +402,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         auto& tmRef2 = registry.view<TimeManager>().get<TimeManager>(
                                             *registry.view<TimeManager>().begin());
                                         std::string msg2 = who2 + " is finding their calling as a " +
-                                            ProfessionLabel(newProf) + " after trying " +
-                                            ProfessionLabel(prof->type) + " at " + settlName2 + ".";
+                                            schema.ProfessionLabel(newProf) + " after trying " +
+                                            schema.ProfessionLabel(prof->type) + " at " + settlName2 + ".";
                                         logV2.get<EventLog>(*logV2.begin()).Push(
                                             tmRef2.day, (int)tmRef2.hourOfDay, msg2);
                                     }
@@ -411,24 +411,16 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 // Skill transfer: experienced workers carry knowledge to new careers
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
                                     // Check old profession's skill level
-                                    float oldSkill = 0.f;
-                                    switch (prof->type) {
-                                        case ProfessionType::Farmer:      oldSkill = sk->farming; break;
-                                        case ProfessionType::WaterCarrier: oldSkill = sk->water_drawing; break;
-                                        case ProfessionType::Lumberjack:   oldSkill = sk->woodcutting; break;
-                                        default: break;
-                                    }
+                                    int oldRes = (prof->type >= 0 && prof->type < (int)schema.professions.size())
+                                                 ? schema.professions[prof->type].producesResource : -1;
+                                    float oldSkill = sk->ForResource(oldRes);
                                     if (oldSkill >= 0.5f) {
                                         // Grant +0.05 to the new profession's skill (capped at 0.5)
-                                        switch (newProf) {
-                                            case ProfessionType::Farmer:
-                                                sk->farming = std::min(0.5f, sk->farming + 0.05f); break;
-                                            case ProfessionType::WaterCarrier:
-                                                sk->water_drawing = std::min(0.5f, sk->water_drawing + 0.05f); break;
-                                            case ProfessionType::Lumberjack:
-                                                sk->woodcutting = std::min(0.5f, sk->woodcutting + 0.05f); break;
-                                            default: break;
-                                        }
+                                        int newRes = (newProf >= 0 && newProf < (int)schema.professions.size())
+                                                     ? schema.professions[newProf].producesResource : -1;
+                                        float cur = sk->ForResource(newRes);
+                                        if (cur < 0.5f)
+                                            sk->Advance(newRes, std::min(0.05f, 0.5f - cur));
                                     }
                                 }
                                 prof->prevType = prof->type;
@@ -495,13 +487,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         auto* myRel2 = registry.try_get<Relations>(entity);
                         if (mySkills && myProf && myRel2) {
                             // Determine this NPC's profession skill level
-                            float myProfSkill = 0.f;
-                            switch (myProf->type) {
-                                case ProfessionType::Farmer:      myProfSkill = mySkills->farming; break;
-                                case ProfessionType::WaterCarrier: myProfSkill = mySkills->water_drawing; break;
-                                case ProfessionType::Lumberjack:   myProfSkill = mySkills->woodcutting; break;
-                                default: break;
-                            }
+                            int myProfRes = (myProf->type >= 0 && myProf->type < (int)schema.professions.size())
+                                            ? schema.professions[myProf->type].producesResource : -1;
+                            float myProfSkill = mySkills->ForResource(myProfRes);
                             if (myProfSkill >= 0.7f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
                                     entt::exclude<Hauler, PlayerTag, ChildTag>).each(
@@ -514,13 +502,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
                                     // Check other NPC's matching profession skill
-                                    float otherSkill = 0.f;
-                                    switch (oPr.type) {
-                                        case ProfessionType::Farmer:      otherSkill = oSk.farming; break;
-                                        case ProfessionType::WaterCarrier: otherSkill = oSk.water_drawing; break;
-                                        case ProfessionType::Lumberjack:   otherSkill = oSk.woodcutting; break;
-                                        default: break;
-                                    }
+                                    int oProfRes = (oPr.type >= 0 && oPr.type < (int)schema.professions.size())
+                                                   ? schema.professions[oPr.type].producesResource : -1;
+                                    float otherSkill = oSk.ForResource(oProfRes);
                                     if (otherSkill < 0.7f) return;
                                     // 1-in-20 chance per hour
                                     if (s_rng() % 20 != 0) return;
@@ -556,15 +540,10 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         const auto* myProfT   = registry.try_get<Profession>(entity);
                         auto* myRelT = registry.try_get<Relations>(entity);
                         if (mySkillsT && myProfT && myRelT
-                            && myProfT->type != ProfessionType::Idle
-                            && myProfT->type != ProfessionType::Hauler) {
-                            float mySkillT = 0.f;
-                            switch (myProfT->type) {
-                                case ProfessionType::Farmer:      mySkillT = mySkillsT->farming; break;
-                                case ProfessionType::WaterCarrier: mySkillT = mySkillsT->water_drawing; break;
-                                case ProfessionType::Lumberjack:   mySkillT = mySkillsT->woodcutting; break;
-                                default: break;
-                            }
+                            && schema.ProfessionProduces(myProfT->type)) {
+                            int myProfResT = (myProfT->type >= 0 && myProfT->type < (int)schema.professions.size())
+                                             ? schema.professions[myProfT->type].producesResource : -1;
+                            float mySkillT = mySkillsT->ForResource(myProfResT);
                             if (mySkillT >= 0.5f) {
                                 registry.view<AgentState, Position, HomeSettlement, Skills, Profession>(
                                     entt::exclude<Hauler, PlayerTag, ChildTag>).each(
@@ -574,16 +553,12 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     if (oState.behavior != AgentBehavior::Working) return;
                                     if (oHome.settlement != home.settlement) return;
                                     if (oPr.type == myProfT->type) return;  // same profession — handled by rivalry
-                                    if (oPr.type == ProfessionType::Idle || oPr.type == ProfessionType::Hauler) return;
+                                    if (!schema.ProfessionProduces(oPr.type)) return;
                                     float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                     if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
-                                    float otherSkillT = 0.f;
-                                    switch (oPr.type) {
-                                        case ProfessionType::Farmer:      otherSkillT = oSk.farming; break;
-                                        case ProfessionType::WaterCarrier: otherSkillT = oSk.water_drawing; break;
-                                        case ProfessionType::Lumberjack:   otherSkillT = oSk.woodcutting; break;
-                                        default: break;
-                                    }
+                                    int oProfResT = (oPr.type >= 0 && oPr.type < (int)schema.professions.size())
+                                                    ? schema.professions[oPr.type].producesResource : -1;
+                                    float otherSkillT = oSk.ForResource(oProfResT);
                                     if (otherSkillT < 0.5f) return;
                                     // 1-in-25 chance per hour
                                     if (s_rng() % 25 != 0) return;
@@ -631,10 +606,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         std::string n1 = "NPC", n2 = "NPC";
                                         if (const auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
                                         if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
-                                        const char* profStr =
-                                            (oPr.type == ProfessionType::Farmer)      ? "farming" :
-                                            (oPr.type == ProfessionType::WaterCarrier) ? "water-carrying" :
-                                            "woodcutting";
+                                        const char* profStr = schema.ProfessionLabel(oPr.type);
                                         logVT.get<EventLog>(*logVT.begin()).Push(tm.day, hour,
                                             n1 + " teases " + n2 + " about their " + profStr + ".");
                                     }
@@ -659,8 +631,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         const auto* myProfR = registry.try_get<Profession>(entity);
                         auto* myRelR = registry.try_get<Relations>(entity);
                         if (myProfR && myRelR
-                            && myProfR->type != ProfessionType::Idle
-                            && myProfR->type != ProfessionType::Hauler) {
+                            && schema.ProfessionProduces(myProfR->type)) {
                             registry.view<AgentState, Position, HomeSettlement, Profession>(
                                 entt::exclude<Hauler, PlayerTag, ChildTag>).each(
                                 [&](auto other, const AgentState& oState, const Position& oPos,
@@ -669,7 +640,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 if (oState.behavior != AgentBehavior::Working) return;
                                 if (oHome.settlement != home.settlement) return;
                                 if (oPr.type == myProfR->type) return; // same profession — not applicable
-                                if (oPr.type == ProfessionType::Idle || oPr.type == ProfessionType::Hauler) return;
+                                if (!schema.ProfessionProduces(oPr.type)) return;
                                 float odx = oPos.x - fpos.x, ody = oPos.y - fpos.y;
                                 if (odx*odx + ody*ody > WORK_ARRIVE * WORK_ARRIVE) return;
                                 // Check if both have strained relations
@@ -750,8 +721,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                     // ---- NPC work song: 3+ same-profession coworkers at same facility ----
                     if (hourChanged) {
                         const auto* mySongProf = registry.try_get<Profession>(entity);
-                        if (mySongProf && mySongProf->type != ProfessionType::Idle
-                            && mySongProf->type != ProfessionType::Hauler) {
+                        if (mySongProf && schema.ProfessionProduces(mySongProf->type)) {
                             // Gather same-profession coworkers within WORK_ARRIVE of this facility
                             std::vector<entt::entity> coworkers;
                             coworkers.push_back(entity);
@@ -828,7 +798,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         // +10% skill gain when the NPC's profession matches the facility type
                         float gainMult = 1.0f;
                         if (const auto* prof = registry.try_get<Profession>(entity))
-                            if (prof->type == ProfessionForResource(facType))
+                            if (prof->type == schema.ProfessionForResource(facType))
                                 gainMult = 1.1f;
                         // +20% skill gain when an elder (age > 60) is working at the same facility
                         auto mentorIt = elderFacilities.find(workFac);

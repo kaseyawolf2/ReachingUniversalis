@@ -520,23 +520,26 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             static constexpr float HARVEST_FEST_AFFINITY = 0.02f;
             static constexpr float HARVEST_FEST_DURATION = 4.f;  // game-hours
 
+            // Pre-compute full profession bitmask (constant per schema)
+            uint32_t fullProfMask2 = 0;
+            for (auto& pd : schema.professions)
+                if (pd.producesResource != INVALID_ID) fullProfMask2 |= (uint32_t(1) << pd.id);
+
             registry.view<Settlement>().each([&](auto e, Settlement& s) {
                 if (s.modifierDuration > 0.f) return;  // already has an event
 
                 // Compute profession diversity bitmask for this settlement
-                int profMask = 0;
+                uint32_t profMask = 0;
                 registry.view<Profession, HomeSettlement>(
                     entt::exclude<Hauler, PlayerTag, BanditTag, ChildTag>).each(
                     [&](const Profession& prof, const HomeSettlement& hs) {
                         if (hs.settlement != e) return;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      profMask |= 1; break;
-                            case ProfessionType::WaterCarrier: profMask |= 2; break;
-                            case ProfessionType::Lumberjack:   profMask |= 4; break;
-                            default: break;
-                        }
+                        if (prof.type >= 0 && prof.type < (int)schema.professions.size()
+                            && schema.professions[prof.type].producesResource != INVALID_ID)
+                            profMask |= (uint32_t(1) << prof.type);
                     });
-                if ((profMask & 7) != 7) return;  // not all 3 professions present
+                // Check all producing professions are present
+                if (fullProfMask2 == 0 || (profMask & fullProfMask2) != fullProfMask2) return;
 
                 // 1-in-200 chance per game-day
                 if (m_rng() % 200 != 0) return;
