@@ -1647,12 +1647,14 @@ void SimThread::WriteSnapshot() {
         float homeX = 0.f, homeY = 0.f;
         bool  hasHome = false;
         float homeMorale = -1.f;
+        bool crisisSurvivor = false;
         if (!isPlayer) {
             if (const auto* hs = m_registry.try_get<HomeSettlement>(e)) {
                 if (hs->settlement != entt::null && m_registry.valid(hs->settlement)) {
                     if (const auto* sts = m_registry.try_get<Settlement>(hs->settlement)) {
                         homeSettlName = sts->name;
                         homeMorale    = sts->morale;
+                        crisisSurvivor = (sts->modifierName == "Drought" || sts->modifierName == "Plague");
                     }
                     if (const auto* hp = m_registry.try_get<Position>(hs->settlement)) {
                         homeX = hp->x; homeY = hp->y; hasHome = true;
@@ -1905,7 +1907,7 @@ void SimThread::WriteSnapshot() {
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
-                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir, isExpert });
+                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir, isExpert, crisisSurvivor });
     });
 
     // ---- Settlements ----
