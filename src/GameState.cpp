@@ -522,8 +522,10 @@ void GameState::Draw() {
     }
 
     // Stockpile panel (screen-space)
-    if (panel.open && sharedSkillNames)
-        m_renderSystem.DrawStockpilePanel(panel, *sharedSkillNames);
+    static const std::vector<std::string> emptyNames;
+    const auto& skillNames = sharedSkillNames ? *sharedSkillNames : emptyNames;
+    if (panel.open)
+        m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
     // HUD
     m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);

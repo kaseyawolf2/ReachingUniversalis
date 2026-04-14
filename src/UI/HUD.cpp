@@ -1283,8 +1283,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         ws     = snap.worldStatus;
         sharedSkillNamesPtr = snap.skillNames;
     }
-    static const std::vector<std::string> emptySkillNames;
-    const auto& sharedSkillNames = sharedSkillNamesPtr ? *sharedSkillNamesPtr : emptySkillNames;
+    const auto& sharedSkillNames = sharedSkillNamesPtr ? *sharedSkillNamesPtr : emptyNames;
 
     // Find settlement the mouse is inside (by world-space radius)
     const RenderSnapshot::SettlementEntry* best = nullptr;
