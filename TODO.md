@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
-
 ## Done
+
+- [x] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
+
 
 - [x] **Mourning procession movement** — In `AgentDecisionSystem.cpp`'s grief block, when 3+ NPCs at the same settlement have `wisdomGriefDays > 0` simultaneously, set their `AgentState::behavior = Celebrating` (repurposed as gathering) for 1 game-hour and move them toward the settlement center. Log "[Settlement] gathers to honour [Elder]'s memory" once per elder death via `static std::set<entt::entity> s_honouredElders`. Boosts mutual affinity +0.02 among participants. Creates a visible group mourning event.
 
@@ -104,6 +105,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Lonely NPC seeks friendship proactively** — In `AgentDecisionSystem.cpp`'s idle chat block, after the lonely migrant check, when an NPC is flagged lonely (no local friends >= 0.3), increase their idle chat `affinityGain` from 0.02 to 0.04 for the next chat (eager to bond). Log "[NPC] eagerly befriends [Other] at [Settlement]" at 1-in-8 frequency. Creates a self-correcting mechanism: lonely NPCs form bonds faster, eventually escaping loneliness.
 
 - [ ] **Loneliness visible on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isLonely = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (same check as lonely migrant). In `HUD.cpp`'s NPC tooltip, display "[Lonely]" in gray-blue after existing badges. Makes the social isolation state visible to the player.
+
+- [ ] **Tribute tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool inTribute = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Skills::tributeDays > 0` (NPC is in accelerated growth honouring a fallen mentor). In `HUD.cpp`'s NPC tooltip, display "[Tribute]" in soft gold after existing badges. Makes the post-mentor-death learning spurt visible to the player.
+
+- [ ] **Apprentice seeks new mentor after tribute** — In `AgentDecisionSystem.cpp`'s elder wisdom block, when `sk.tributeDays` ticks from 1 to 0 (tribute ending), if the NPC still has no `elderMentor` (i.e. the old one died and no replacement found yet), scan elders of the same profession at the settlement. If a replacement elder exists with affinity >= 0.3 (lower than normal 0.6 threshold), adopt them as `elderMentor`. Log "[NPC] finds guidance anew with [Elder] at [Settlement]" at full frequency. Creates a narrative arc: loss → tribute → recovery.
 
 ## Recently Done
 
