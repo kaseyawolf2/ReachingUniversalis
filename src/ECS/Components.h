@@ -1,29 +1,58 @@
 #pragma once
 #include "raylib.h"
-#include <array>
+#include <algorithm>
 #include <cmath>
 #include <deque>
 #include <map>
 #include <string>
+#include <vector>
 #include <entt/entt.hpp>
 
 // ---- Domain enums ----
 
+// DEPRECATED: NeedType is retained for backward compatibility during the
+// transition to data-driven needs (WorldSchema).  Prefer int needId instead.
 enum class NeedType     { Hunger = 0, Thirst = 1, Energy = 2, Heat = 3 };
 enum class ResourceType { Food, Water, Shelter, Wood };
 
 // ---- Need data ----
 
 struct Need {
-    NeedType type;
+    NeedType type;            // DEPRECATED — use needId instead
+    int needId = -1;          // generic need identifier (index into WorldSchema::needs)
     float value;              // 0.0 (depleted) to 1.0 (full)
     float drainRate;          // units drained per real second
     float criticalThreshold;  // below this = urgent
     float refillRate;         // units refilled per real second while satisfying
+
+    // Convenience constructor: NeedType-based (backward compat)
+    Need(NeedType t, float v, float dr, float crit, float rr)
+        : type(t), needId(static_cast<int>(t)), value(v), drainRate(dr),
+          criticalThreshold(crit), refillRate(rr) {}
+
+    // Convenience constructor: needId-based (generic)
+    Need(int id, float v, float dr, float crit, float rr)
+        : type(static_cast<NeedType>(id)), needId(id), value(v), drainRate(dr),
+          criticalThreshold(crit), refillRate(rr) {}
+
+    Need() : type(NeedType::Hunger), needId(0), value(1.f), drainRate(0.f),
+             criticalThreshold(0.3f), refillRate(0.f) {}
 };
 
 struct Needs {
-    std::array<Need, 4> list;
+    std::vector<Need> list;
+
+    // Find a need by its integer ID; returns nullptr if not found.
+    Need* ByID(int needId) {
+        auto it = std::find_if(list.begin(), list.end(),
+                               [needId](const Need& n) { return n.needId == needId; });
+        return (it != list.end()) ? &*it : nullptr;
+    }
+    const Need* ByID(int needId) const {
+        auto it = std::find_if(list.begin(), list.end(),
+                               [needId](const Need& n) { return n.needId == needId; });
+        return (it != list.end()) ? &*it : nullptr;
+    }
 };
 
 // ---- Spatial / movement ----
@@ -136,7 +165,7 @@ struct HomeSettlement {
 // Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
 // Used by DeathSystem and AgentDecisionSystem for migration triggering.
 struct DeprivationTimer {
-    std::array<float, 4> needsAtZero     = { 0.f, 0.f, 0.f, 0.f };
+    std::vector<float> needsAtZero        = { 0.f, 0.f, 0.f, 0.f };
     float                stockpileEmpty  = 0.f;    // seconds with no food, water, OR heat
     float                migrateThreshold = 2.f * 60.f; // game-min before migrating; randomised at spawn
     float                purchaseTimer   = 0.f;    // game-hours since last emergency market purchase

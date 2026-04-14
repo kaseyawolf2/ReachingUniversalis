@@ -1677,7 +1677,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             }
 
             int idx = NeedIndexForResource(fac.output);
-            if (idx >= 0) {
+            if (idx >= 0 && idx < (int)needs.list.size()) {
                 needs.list[idx].value += needs.list[idx].refillRate * dt;
                 if (needs.list[idx].value >= 1.f) {
                     needs.list[idx].value = 1.f;
@@ -2502,7 +2502,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                                     msg = (myName ? myName->value : "NPC") +
                                           " greets " + oName.value;
                                     // Complain about low need
-                                    for (int ni = 0; ni < 4; ++ni) {
+                                    for (int ni = 0; ni < (int)needs.list.size(); ++ni) {
                                         if (needs.list[ni].value < 0.3f) {
                                             const char* nn = (ni == 0) ? "hunger" :
                                                              (ni == 1) ? "thirst" :
@@ -2752,8 +2752,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             if (playerEntity != entt::null && timer.thankCooldown <= 0.f
                 && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
                 float avgN = 0.f;
-                for (int i = 0; i < 4; ++i) avgN += needs.list[i].value;
-                avgN *= 0.25f;
+                for (int i = 0; i < (int)needs.list.size(); ++i) avgN += needs.list[i].value;
+                avgN = needs.list.empty() ? 0.f : avgN / (float)needs.list.size();
                 if (avgN > 0.8f) {
                     static constexpr float WAVE_RADIUS = 50.f;
                     float wdx = playerPos.x - pos.x, wdy = playerPos.y - pos.y;
@@ -2866,8 +2866,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                 timer.moodContagionCooldown = std::max(0.f, timer.moodContagionCooldown - realDt);
             {
                 float avgNeeds = 0.f;
-                for (int i = 0; i < 4; ++i) avgNeeds += needs.list[i].value;
-                avgNeeds *= 0.25f;
+                for (int i = 0; i < (int)needs.list.size(); ++i) avgNeeds += needs.list[i].value;
+                avgNeeds = needs.list.empty() ? 0.f : avgNeeds / (float)needs.list.size();
                 // Only struggling NPCs (avg < 0.4) can receive mood contagion
                 if (avgNeeds < 0.4f && timer.moodContagionCooldown <= 0.f
                     && static_cast<uint32_t>(entity) % 4 == static_cast<uint32_t>(s_frameCounter) % 4) {
@@ -3669,7 +3669,8 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
             tmr.charityTimer = std::max(0.f, tmr.charityTimer - gameHoursDt);
             tmr.helpedTimer  = std::max(0.f, tmr.helpedTimer  - gameHoursDt);
             if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
-            float hunger = n.list[(int)NeedType::Hunger].value;
+            float hunger = ((int)NeedType::Hunger < (int)n.list.size())
+                         ? n.list[(int)NeedType::Hunger].value : 1.f;
             charityAgents.push_back({
                 e, p.x, p.y, hunger, m.balance, hs.settlement,
                 /*canHelp=*/  (hunger >= HUNGER_HELPER && m.balance >= MONEY_HELPER_MIN
@@ -3798,6 +3799,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
 
             // Warmth "warm glow" buff: giving charity raises the helper's Heat need slightly.
             if (auto* helperNeeds = registry.try_get<Needs>(helper.entity)) {
+                if ((int)NeedType::Heat >= (int)helperNeeds->list.size()) continue;
                 auto& heat = helperNeeds->list[(int)NeedType::Heat].value;
                 heat = std::min(1.f, heat + 0.15f);
             }

@@ -75,7 +75,8 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
 
         // Worker fatigue: energy below 0.2 while working triggers production penalty
         if (auto* sched = registry.try_get<Schedule>(entity)) {
-            float energy = needs.list[(int)NeedType::Energy].value;
+            float energy = ((int)NeedType::Energy < (int)needs.list.size())
+                         ? needs.list[(int)NeedType::Energy].value : 1.f;
             if (const auto* state = registry.try_get<AgentState>(entity)) {
                 if (state->behavior == AgentBehavior::Working && energy < 0.2f)
                     sched->fatigued = true;

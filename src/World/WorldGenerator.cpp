@@ -49,12 +49,12 @@ static constexpr float REFILL_HEAT   = 0.010f;    // warm up quickly when fuel a
 static constexpr float CRIT_THRESHOLD = 0.3f;
 
 static Needs MakeNeeds() {
-    return Needs{{
+    return Needs{ {
         Need{ NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESHOLD, REFILL_HUNGER },
         Need{ NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESHOLD, REFILL_THIRST },
         Need{ NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESHOLD, REFILL_ENERGY },
         Need{ NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESHOLD, REFILL_HEAT   }
-    }};
+    } };
 }
 
 static void SpawnNPCs(entt::registry& registry,
