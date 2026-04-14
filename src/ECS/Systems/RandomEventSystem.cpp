@@ -62,18 +62,18 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             if (s.modifierDuration <= 0.f) {
                 s.modifierDuration   = 0.f;
                 s.productionModifier = 1.f;
-                bool wasPlague = m_plagueSpreadTimer.count(e) > 0;
+                bool wasSpreading = m_plagueSpreadTimer.count(e) > 0;
                 bool wasFestival = (s.modifierName == "Festival" || s.modifierName == "Harvest Festival");
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
                         s.modifierName + " ends at " + s.name +
-                        (wasPlague ? " — plague contained" : " — production restored"));
+                        (wasSpreading ? " — " + s.modifierName + " contained" : " — production restored"));
                 // Post-festival afterglow: morale drift halved for 12 game-hours
                 if (wasFestival)
                     s.afterglowHours = 12.f;
-                // Post-crisis community gathering: surviving drought/plague strengthens bonds
+                // Post-crisis community gathering: surviving drought/spreading events strengthens bonds
                 bool wasDrought = (s.modifierName == "Drought");
-                if (wasDrought || wasPlague) {
+                if (wasDrought || wasSpreading) {
                     std::vector<entt::entity> survivors;
                     registry.view<HomeSettlement, Relations>(
                         entt::exclude<Hauler, PlayerTag, BanditTag>).each(
@@ -95,13 +95,13 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         }
                     }
                     if (log) {
-                        std::string crisis = wasDrought ? "drought" : "plague";
+                        std::string crisis = wasDrought ? "drought" : s.modifierName;
                         log->Push(tm.day, (int)tm.hourOfDay,
                             s.name + " celebrates surviving the " + crisis);
                     }
                 }
                 s.modifierName.clear();
-                if (wasPlague) m_plagueSpreadTimer.erase(e);
+                if (wasSpreading) m_plagueSpreadTimer.erase(e);
             }
         }
 
