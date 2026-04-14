@@ -241,6 +241,45 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.chance        = OptFloat(*item, "chance", 0.01f);
         def.minPopulation = OptInt(*item, "min_population", 0);
         def.logMessage    = OptStr(*item, "log_message", "");
+
+        // Extended fields
+        def.moraleImpact          = OptFloat(*item, "morale_impact", 0.0f);
+        def.killFraction          = OptFloat(*item, "kill_fraction", 0.0f);
+        def.targetResource        = OptStr(*item, "target_resource", "");
+        def.addResource           = OptStr(*item, "add_resource", "");
+        def.addAmount             = OptFloat(*item, "add_amount", 0.0f);
+        def.treasuryChange        = OptFloat(*item, "treasury_change", 0.0f);
+        def.blockRoadsConnected   = OptBool(*item, "block_roads_connected", false);
+        def.blockAllRoads         = OptBool(*item, "block_all_roads", false);
+        def.roadBlockDuration     = OptFloat(*item, "road_block_duration", 0.0f);
+        def.roadDamage            = OptFloat(*item, "road_damage", 0.0f);
+        def.spreads               = OptBool(*item, "spreads", false);
+        def.spreadInterval        = OptFloat(*item, "spread_interval", 0.0f);
+        def.spreadChance          = OptFloat(*item, "spread_chance", 0.0f);
+        def.spreadKillFraction    = OptFloat(*item, "spread_kill_fraction", 0.0f);
+        def.facilityDestroyChance = OptFloat(*item, "facility_destroy_chance", 0.0f);
+        def.seasonConstraint      = OptStr(*item, "season_constraint", "");
+        def.seasonMinHeatDrain    = OptFloat(*item, "season_min_heat_drain", -1.0f);
+        def.seasonMaxHeatDrain    = OptFloat(*item, "season_max_heat_drain", 999.0f);
+        def.seasonMinTemp         = OptFloat(*item, "season_min_temp", -999.0f);
+        def.seasonMinProdMod      = OptFloat(*item, "season_min_prod_mod", -1.0f);
+        def.rumourType            = OptStr(*item, "rumour_type", "");
+        def.rumourSeeds           = OptInt(*item, "rumour_seeds", 0);
+        def.triggersSolidarity    = OptBool(*item, "triggers_solidarity", false);
+        def.solidarityBoost       = OptFloat(*item, "solidarity_boost", 0.0f);
+        def.triggersCelebration   = OptBool(*item, "triggers_celebration", false);
+        def.priceSpikeMultiplier  = OptFloat(*item, "price_spike_multiplier", 0.0f);
+        def.spawnSkilled          = OptBool(*item, "spawn_skilled", false);
+        def.affectsAllSettlements = OptBool(*item, "affects_all_settlements", false);
+        def.breaksDrought         = OptBool(*item, "breaks_drought", false);
+        def.isConvoy              = OptBool(*item, "is_convoy", false);
+        def.convoyAmount          = OptFloat(*item, "convoy_amount", 0.0f);
+        def.convoyMinPrice        = OptFloat(*item, "convoy_min_price", 0.0f);
+
+        // targetResourceId and addResourceId resolved in cross-ref pass
+        def.targetResourceId = INVALID_ID;
+        def.addResourceId    = INVALID_ID;
+
         schema.events.push_back(std::move(def));
     }
     return true;
@@ -523,6 +562,28 @@ static bool ResolveCrossRefs(const std::string& worldDir,
                     }
                 }
             }
+        }
+    }
+
+    // Resolve events.target_resource and events.add_resource
+    for (auto& ev : schema.events) {
+        if (!ev.targetResource.empty()) {
+            auto id = schema.FindResource(ev.targetResource);
+            if (id == INVALID_ID) {
+                err = worldDir + "/events.toml: event '" + ev.name
+                    + "' references unknown target_resource '" + ev.targetResource + "'";
+                return false;
+            }
+            ev.targetResourceId = id;
+        }
+        if (!ev.addResource.empty()) {
+            auto id = schema.FindResource(ev.addResource);
+            if (id == INVALID_ID) {
+                err = worldDir + "/events.toml: event '" + ev.name
+                    + "' references unknown add_resource '" + ev.addResource + "'";
+                return false;
+            }
+            ev.addResourceId = id;
         }
     }
 

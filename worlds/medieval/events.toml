@@ -1,72 +1,240 @@
 # Medieval World — Random Event Definitions
 # These define the stochastic events that RandomEventSystem can trigger.
+# Each event specifies its effect type, value, duration, and additional behaviors.
+
+# ---- Core events (always eligible) ----
 
 [[events]]
-name           = "Drought"
-display_name   = "Drought"
-effect_type    = "production_modifier"
-effect_value   = 0.3          # production multiplier while active
-duration_hours = 48.0
-chance         = 0.01         # per settlement per hour
-min_population = 5
-log_message    = "DROUGHT strikes {settlement} — crops wither"
+name               = "Drought"
+display_name       = "Drought"
+effect_type        = "production_modifier"
+effect_value       = 0.2
+duration_hours     = 8.0
+chance             = 0.01
+min_population     = 0
+morale_impact      = -0.10
+rumour_type        = "DroughtNearby"
+rumour_seeds       = 2
+triggers_solidarity = true
+solidarity_boost   = 0.03
+log_message        = "DROUGHT strikes {settlement} ({duration}h) {pop_tag}"
 
 [[events]]
-name           = "Blight"
-display_name   = "Blight"
-effect_type    = "stockpile_destroy"
-effect_value   = 0.5          # fraction of food destroyed
-duration_hours = 0.0          # instant
-chance         = 0.008
-min_population = 3
-log_message    = "BLIGHT hits {settlement} — {amount} food destroyed"
+name               = "Blight"
+display_name       = "Blight"
+effect_type        = "stockpile_destroy"
+effect_value       = 0.35
+duration_hours     = 0.0
+chance             = 0.008
+min_population     = 0
+target_resource    = "Food"
+morale_impact      = -0.12
+triggers_solidarity = true
+solidarity_boost   = 0.02
+log_message        = "BLIGHT hits {settlement} {pop_tag} — {amount} food destroyed"
 
 [[events]]
-name           = "Plague"
-display_name   = "Plague"
-effect_type    = "production_modifier"
-effect_value   = 0.45
-duration_hours = 72.0
-chance         = 0.005
-min_population = 8
-log_message    = "PLAGUE ravages {settlement}"
+name               = "Bandits"
+display_name       = "Bandits"
+effect_type        = "road_block"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+road_block_duration = 3.0
+log_message        = "BANDITS blocking road ({road_block_duration}h)"
 
 [[events]]
-name           = "Festival"
-display_name   = "Festival"
-effect_type    = "morale_boost"
-effect_value   = 0.1          # morale increase
-duration_hours = 0.0          # instant
-chance         = 0.02
-min_population = 5
-log_message    = "{settlement} holds a grand festival!"
+name               = "Plague"
+display_name       = "Plague"
+effect_type        = "production_modifier"
+effect_value       = 0.45
+duration_hours     = 72.0
+chance             = 0.005
+min_population     = 0
+morale_impact      = -0.20
+kill_fraction      = 0.15
+spreads            = true
+spread_interval    = 20.0
+spread_chance      = 0.60
+spread_kill_fraction = 0.10
+rumour_type        = "PlagueNearby"
+rumour_seeds       = 2
+triggers_solidarity = true
+solidarity_boost   = 0.03
+log_message        = "PLAGUE erupts at {settlement} {pop_tag} — {killed} died, disease spreading via roads!"
 
 [[events]]
-name           = "MigrationWave"
-display_name   = "Migration Wave"
-effect_type    = "spawn_npcs"
-effect_value   = 3.0          # number of NPCs to spawn
-duration_hours = 0.0
-chance         = 0.01
-min_population = 3
-log_message    = "A group of migrants arrives at {settlement}"
+name               = "TradeBoom"
+display_name       = "Trade Boom"
+effect_type        = "treasury_boost"
+effect_value       = 150.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+treasury_change    = 150.0
+log_message        = "TRADE BOOM at {settlement} {pop_tag} — treasury +{treasury_change}g"
 
 [[events]]
-name           = "GoodHarvest"
-display_name   = "Good Harvest"
-effect_type    = "production_boost"
-effect_value   = 1.5          # production multiplier for one NPC
-duration_hours = 24.0
-chance         = 0.015
-min_population = 3
-log_message    = "{npc} has an excellent harvest at {settlement}"
+name               = "MigrationWave"
+display_name       = "Migration Wave"
+effect_type        = "spawn_npcs"
+effect_value       = 5.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+log_message        = "MIGRATION WAVE: {count} arrived at {settlement} {pop_tag}"
+
+# ---- Seasonal events ----
 
 [[events]]
-name           = "Fire"
-display_name   = "Fire"
-effect_type    = "stockpile_destroy"
-effect_value   = 0.3          # fraction of wood destroyed
-duration_hours = 0.0
-chance         = 0.006
-min_population = 3
-log_message    = "Fire breaks out at {settlement} — wood stores burn"
+name               = "Blizzard"
+display_name       = "Blizzard"
+effect_type        = "road_block"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+block_all_roads    = true
+road_block_duration = 4.0
+season_min_heat_drain = 0.8
+log_message        = "BLIZZARD — all {count} roads blocked ({road_block_duration}h)"
+
+[[events]]
+name               = "SpringFlood"
+display_name       = "Spring Flood"
+effect_type        = "stockpile_destroy"
+effect_value       = 0.40
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+target_resource    = "Food"
+season_min_heat_drain = 0.001
+season_max_heat_drain = 0.299
+season_min_temp    = 0.001
+log_message        = "SPRING FLOOD at {settlement} {pop_tag} — {amount} food washed away"
+
+[[events]]
+name               = "HarvestBounty"
+display_name       = "Harvest Bounty"
+effect_type        = "production_modifier"
+effect_value       = 1.5
+duration_hours     = 12.0
+chance             = 0.01
+min_population     = 0
+season_min_prod_mod = 1.1
+rumour_type        = "GoodHarvest"
+rumour_seeds       = 2
+log_message        = "HARVEST BOUNTY at {settlement} {pop_tag} (+50% production, {duration}h)"
+
+[[events]]
+name               = "OffMapConvoy"
+display_name       = "Off-Map Convoy"
+effect_type        = "convoy"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+is_convoy          = true
+convoy_amount      = 50.0
+convoy_min_price   = 5.0
+log_message        = "OFF-MAP CONVOY at {settlement} {pop_tag} +{convoy_amount} {resource} (paid {cost}g)"
+
+[[events]]
+name               = "Rainstorm"
+display_name       = "Rainstorm"
+effect_type        = "stockpile_add"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+add_resource       = "Water"
+add_amount         = 25.0
+affects_all_settlements = true
+breaks_drought     = true
+log_message        = "RAINSTORM — all settlements +{add_amount} water"
+
+[[events]]
+name               = "Festival"
+display_name       = "Festival"
+effect_type        = "production_modifier"
+effect_value       = 1.35
+duration_hours     = 16.0
+chance             = 0.01
+min_population     = 5
+morale_impact      = 0.15
+treasury_change    = 120.0
+triggers_celebration = true
+log_message        = "FESTIVAL at {settlement} {pop_tag} — {celebrants} celebrating, treasury +{treasury_change}g, production +35% ({duration}h)"
+
+[[events]]
+name               = "Earthquake"
+display_name       = "Earthquake"
+effect_type        = "earthquake"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 3
+block_roads_connected = true
+road_block_duration = 6.0
+road_damage        = 0.30
+facility_destroy_chance = 0.30
+log_message        = "EARTHQUAKE at {settlement} {pop_tag} — {destroyed} facilit{ies} destroyed, all roads blocked ({road_block_duration}h)"
+
+[[events]]
+name               = "Fire"
+display_name       = "Fire"
+effect_type        = "fire"
+effect_value       = 0.45
+duration_hours     = 0.0
+chance             = 0.006
+min_population     = 0
+kill_fraction      = 0.05
+log_message        = "FIRE at {settlement} {pop_tag} — {food_lost} food, {wood_lost} wood destroyed, {killed} died"
+
+[[events]]
+name               = "HeatWave"
+display_name       = "Heat Wave"
+effect_type        = "production_modifier"
+effect_value       = 0.75
+duration_hours     = 10.0
+chance             = 0.01
+min_population     = 0
+season_min_temp    = 25.0
+log_message        = "HEAT WAVE strikes {settlement} {pop_tag} — production -25%, water reserves drained ({duration}h)"
+
+[[events]]
+name               = "LumberWindfall"
+display_name       = "Lumber Windfall"
+effect_type        = "stockpile_add"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+add_resource       = "Wood"
+add_amount         = 65.0
+season_min_heat_drain = 0.001
+season_max_heat_drain = 0.999
+log_message        = "LUMBER WINDFALL at {settlement} {pop_tag} — storm felled trees, +{add_amount} wood"
+
+[[events]]
+name               = "SkilledImmigrant"
+display_name       = "Skilled Immigrant"
+effect_type        = "spawn_npcs"
+effect_value       = 1.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+spawn_skilled      = true
+log_message        = "SKILLED IMMIGRANT: {npc_name} ({specialty}) arrives at {settlement} {pop_tag} — skill {skill_pct}%"
+
+[[events]]
+name               = "MarketCrisis"
+display_name       = "Market Crisis"
+effect_type        = "price_spike"
+effect_value       = 3.0
+duration_hours     = 0.0
+chance             = 0.01
+min_population     = 0
+price_spike_multiplier = 3.0
+log_message        = "MARKET CRISIS at {settlement} {pop_tag} — panic buying, all prices spike {spike}x!"

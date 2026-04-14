@@ -6,12 +6,9 @@
 #include <vector>
 #include <string>
 
-static constexpr float DROUGHT_MODIFIER  = 0.2f;   // production factor during drought
-static constexpr float DROUGHT_DURATION  = 8.f;    // game-hours
-static constexpr float BLIGHT_FRACTION   = 0.35f;  // fraction of food stockpile destroyed
-static constexpr float BANDIT_DURATION   = 3.f;    // game-hours road is blocked
+static constexpr float BANDIT_DURATION   = 3.f;    // fallback road block duration
 static constexpr float EVENT_MEAN_HOURS  = 72.f;   // ~3 game-days between events
-static constexpr float EVENT_JITTER      = 36.f;   // ±jitter in game-hours
+static constexpr float EVENT_JITTER      = 36.f;   // +/-jitter in game-hours
 
 // Check if any rival settlements share the same crisis type; soften rivalry if so.
 static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
@@ -431,19 +428,25 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         }
     });
 
-    // ---- Plague spreading ----
-    // Each infected settlement tries to spread to a connected (non-blocked-road) neighbour
-    // once per PLAGUE_SPREAD_INTERVAL game-hours.
-    static constexpr float PLAGUE_SPREAD_INTERVAL = 20.f;   // game-hours between spread attempts
-    static constexpr float PLAGUE_SPREAD_CHANCE   = 0.60f;  // 60% chance spread succeeds
-    static constexpr float PLAGUE_MODIFIER        = 0.45f;  // production drop during plague
-    static constexpr float PLAGUE_DURATION        = 72.f;   // game-hours plague lasts
+    // ---- Spreading events (data-driven plague-like spreading) ----
+    // Find the spreading event definition from schema (if any).
+    // Each infected settlement tries to spread to a connected neighbour.
+    const EventDef* spreadDef = nullptr;
+    for (const auto& ev : schema.events)
+        if (ev.spreads) { spreadDef = &ev; break; }
+
+    float spreadInterval = spreadDef ? spreadDef->spreadInterval : 20.f;
+    float spreadChanceVal = spreadDef ? spreadDef->spreadChance : 0.60f;
+    float spreadModifier = spreadDef ? spreadDef->effectValue : 0.45f;
+    float spreadDuration = spreadDef ? spreadDef->durationHours : 72.f;
+    float spreadKillFrac = spreadDef ? spreadDef->spreadKillFraction : 0.10f;
+    std::string spreadName = spreadDef ? spreadDef->displayName : "Plague";
 
     for (auto& [plagueSettl, timer] : m_plagueSpreadTimer) {
         if (!registry.valid(plagueSettl)) continue;
         timer -= gameHoursDt;
         if (timer > 0.f) continue;
-        timer = PLAGUE_SPREAD_INTERVAL;
+        timer = spreadInterval;
 
         // Find open-road neighbours of this settlement
         std::vector<entt::entity> neighbors;
@@ -456,7 +459,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
         std::uniform_int_distribution<int>    pickN(0, (int)neighbors.size() - 1);
         std::uniform_real_distribution<float> chance(0.f, 1.f);
-        if (chance(m_rng) > PLAGUE_SPREAD_CHANCE) continue;
+        if (chance(m_rng) > spreadChanceVal) continue;
 
         entt::entity target2 = neighbors[pickN(m_rng)];
         if (!registry.valid(target2)) continue;
@@ -465,12 +468,12 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         auto* ts = registry.try_get<Settlement>(target2);
         if (!ts || ts->modifierDuration > 0.f) continue;  // already has another event
 
-        ts->productionModifier = PLAGUE_MODIFIER;
-        ts->modifierDuration   = PLAGUE_DURATION;
-        ts->modifierName       = "Plague";
-        m_plagueSpreadTimer[target2] = PLAGUE_SPREAD_INTERVAL;
+        ts->productionModifier = spreadModifier;
+        ts->modifierDuration   = spreadDuration;
+        ts->modifierName       = spreadName;
+        m_plagueSpreadTimer[target2] = spreadInterval;
 
-        int killed = KillFraction(registry, target2, 0.10f);
+        int killed = KillFraction(registry, target2, spreadKillFrac);
 
         // Count destination population for log context
         int destPop = 0;
@@ -491,7 +494,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         if (log) {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "PLAGUE spreads from %s to %s [pop %d%s] — %d died",
+                "%s spreads from %s to %s [pop %d%s] -- %d died",
+                spreadName.c_str(),
                 src ? src->name.c_str() : "?", ts->name.c_str(),
                 destPop, destTrend, killed);
             log->Push(tm.day, (int)tm.hourOfDay, buf);
@@ -854,6 +858,148 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         });
 }
 
+// Helper: map rumour type string from schema to RumourType enum.
+static RumourType ParseRumourType(const std::string& s) {
+    if (s == "PlagueNearby")  return RumourType::PlagueNearby;
+    if (s == "DroughtNearby") return RumourType::DroughtNearby;
+    if (s == "BanditRoads")   return RumourType::BanditRoads;
+    if (s == "GoodHarvest")   return RumourType::GoodHarvest;
+    return RumourType::DroughtNearby;  // fallback
+}
+
+// Helper: seed rumours at a settlement.
+static void SeedRumours(entt::registry& registry, entt::entity target,
+                        const std::string& rumourTypeStr, int seedCount,
+                        std::mt19937& rng) {
+    if (rumourTypeStr.empty() || seedCount <= 0) return;
+    RumourType rt = ParseRumourType(rumourTypeStr);
+    std::vector<entt::entity> residents;
+    registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
+        [&](auto e, const HomeSettlement& hs) {
+            if (hs.settlement == target && !registry.any_of<Rumour>(e))
+                residents.push_back(e);
+        });
+    std::shuffle(residents.begin(), residents.end(), rng);
+    int count = std::min((int)residents.size(), seedCount);
+    for (int k = 0; k < count; ++k)
+        registry.emplace<Rumour>(residents[k], Rumour{rt, target, 3});
+}
+
+// Helper: apply solidarity affinity boost among residents with existing bonds.
+static void ApplySolidarity(entt::registry& registry, entt::entity target,
+                            float boost) {
+    if (boost <= 0.f) return;
+    std::vector<entt::entity> residents;
+    registry.view<HomeSettlement, Relations>(
+        entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+        [&](auto e, const HomeSettlement& hs, const Relations&) {
+            if (hs.settlement == target) residents.push_back(e);
+        });
+    for (size_t i = 0; i < residents.size(); ++i) {
+        auto* relA = registry.try_get<Relations>(residents[i]);
+        if (!relA) continue;
+        for (size_t j = i + 1; j < residents.size(); ++j) {
+            auto itA = relA->affinity.find(residents[j]);
+            if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
+            auto* relB = registry.try_get<Relations>(residents[j]);
+            if (!relB) continue;
+            auto itB = relB->affinity.find(residents[i]);
+            if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
+            itA->second = std::min(1.f, itA->second + boost);
+            itB->second = std::min(1.f, itB->second + boost);
+        }
+    }
+}
+
+// Helper: build population tag string with trend indicator.
+static std::string BuildPopTag(int popCount,
+                               const std::map<entt::entity, int>& prevPop,
+                               entt::entity target) {
+    std::string popTag = "[pop " + std::to_string(popCount);
+    auto prev = prevPop.find(target);
+    if (prev != prevPop.end()) {
+        int delta = popCount - prev->second;
+        if (delta >= 2)       popTag += " \xe2\x86\x91";   // up arrow
+        else if (delta <= -2) popTag += " \xe2\x86\x93";   // down arrow
+    }
+    popTag += "]";
+    return popTag;
+}
+
+// Helper: spawn an NPC at a settlement (used by migration and skilled immigrant events).
+static entt::entity SpawnNPC(entt::registry& registry, entt::entity target,
+                             const Position& tpos, const WorldSchema& schema,
+                             std::mt19937& rng, float startGold,
+                             float startNeedValue, bool skilled, int aptitudeSkillId) {
+    static const char* FIRSTS[] = {
+        "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
+        "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric",
+        "Vance","Wren","Xander","Yoric","Zane","Aela","Bryn","Clara","Dena","Elara"
+    };
+    static const char* LASTS[] = {
+        "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
+        "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh","Wood",
+        "Vale","Cross","Bridge"
+    };
+
+    static constexpr float DRAIN_HUNGER = 0.00083f, DRAIN_THIRST = 0.00125f;
+    static constexpr float DRAIN_ENERGY = 0.00050f, DRAIN_HEAT   = 0.00200f;
+    static constexpr float CRIT_THRESH  = 0.3f;
+    static constexpr float REFILL_H = 0.004f, REFILL_T = 0.006f;
+    static constexpr float REFILL_E = 0.002f, REFILL_HEAT = 0.010f;
+
+    float angle = std::uniform_real_distribution<float>(0.f, 6.28f)(rng);
+    auto npc = registry.create();
+    registry.emplace<Position>(npc, tpos.x + std::cos(angle) * 60.f,
+                                    tpos.y + std::sin(angle) * 60.f);
+    registry.emplace<Velocity>(npc, 0.f, 0.f);
+    registry.emplace<MoveSpeed>(npc, 60.f);
+    Needs npcNeeds{ {
+        Need{NeedType::Hunger, startNeedValue, DRAIN_HUNGER, CRIT_THRESH, REFILL_H},
+        Need{NeedType::Thirst, startNeedValue, DRAIN_THIRST, CRIT_THRESH, REFILL_T},
+        Need{NeedType::Energy, std::min(1.f, startNeedValue + 0.2f), DRAIN_ENERGY, CRIT_THRESH, REFILL_E},
+        Need{NeedType::Heat,   std::min(1.f, startNeedValue + 0.2f), DRAIN_HEAT,   CRIT_THRESH, REFILL_HEAT},
+    } };
+    // Personality variation: +/-20% drain rates
+    std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);
+    for (auto& need : npcNeeds.list) need.drainRate *= trait_dist(rng);
+    registry.emplace<Needs>(npc, npcNeeds);
+    registry.emplace<AgentState>(npc);
+    registry.emplace<HomeSettlement>(npc, HomeSettlement{target});
+    DeprivationTimer dt;
+    dt.migrateThreshold = std::uniform_real_distribution<float>(
+        skilled ? 2.f : 1.f, skilled ? 5.f : 10.f)(rng) * 60.f;
+    registry.emplace<DeprivationTimer>(npc, dt);
+    registry.emplace<Schedule>(npc);
+    registry.emplace<Renderable>(npc, WHITE, 6.f);
+    registry.emplace<Money>(npc, Money{startGold});
+    Age age;
+    age.days = std::uniform_real_distribution<float>(skilled ? 20.f : 5.f,
+                                                      skilled ? 35.f : 25.f)(rng);
+    age.maxDays = std::uniform_real_distribution<float>(60.f, 100.f)(rng);
+    registry.emplace<Age>(npc, age);
+
+    std::uniform_int_distribution<int> fd(0, 29), ld(0, 19);
+    std::string nm = std::string(FIRSTS[fd(rng)]) + " " + LASTS[ld(rng)];
+    registry.emplace<Name>(npc, Name{nm});
+
+    if (skilled) {
+        float highSkill = 0.75f + std::uniform_real_distribution<float>(0.f, 0.20f)(rng);
+        Skills sk = Skills::Make(schema, 0.35f);
+        if (aptitudeSkillId >= 0 && aptitudeSkillId < (int)sk.levels.size())
+            sk.levels[aptitudeSkillId] = highSkill;
+        registry.emplace<Skills>(npc, std::move(sk));
+    } else {
+        std::uniform_real_distribution<float> skill_dist(0.30f, 0.70f);
+        Skills sk = Skills::Make(schema);
+        for (int si = 0; si < (int)schema.skills.size(); ++si)
+            sk.levels[si] = std::clamp(schema.skills[si].startValue + (skill_dist(rng) - 0.5f), 0.f, 1.f);
+        registry.emplace<Skills>(npc, std::move(sk));
+    }
+
+    return npc;
+}
+
 void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour, const WorldSchema& schema) {
     auto lv = registry.view<EventLog>();
     EventLog* log = (lv.begin() == lv.end())
@@ -876,468 +1022,389 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settlements.push_back(e);
     });
     if (settlements.empty()) return;
+    if (schema.events.empty()) return;
 
     std::uniform_int_distribution<int> pickSettl(0, (int)settlements.size() - 1);
-    std::uniform_int_distribution<int> pickType(0, 17); // 0-5=always 6=winter 7=spring 8=autumn 9=off-map 10=rainstorm 11=festival 12=earthquake 13=fire 14=heatwave 15=lumberwindfall 16=skilled_immigrant 17=market_crisis
-
     entt::entity target = settlements[pickSettl(m_rng)];
     auto* settl = registry.try_get<Settlement>(target);
     if (!settl) return;
 
-    // Count population at target once; appended as [pop N] in all settlement-specific log lines.
+    // Count population at target once
     int popCount = 0;
     registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
         [&](const HomeSettlement& hs) { if (hs.settlement == target) ++popCount; });
 
-    // Build a pop tag string with optional trend indicator
-    // Trend is (↑) when pop grew by ≥2, (↓) when pop fell by ≥2 since last sample
-    std::string popTag = "[pop " + std::to_string(popCount);
-    {
-        auto prev = m_prevPop.find(target);
-        if (prev != m_prevPop.end()) {
-            int delta = popCount - prev->second;
-            if (delta >= 2)       popTag += " \xe2\x86\x91";   // ↑
-            else if (delta <= -2) popTag += " \xe2\x86\x93";   // ↓
-        }
-        popTag += "]";
+    std::string popTag = BuildPopTag(popCount, m_prevPop, target);
+
+    // Build list of eligible events based on season constraints and min population
+    std::vector<int> eligible;
+    for (int i = 0; i < (int)schema.events.size(); ++i) {
+        const auto& ev = schema.events[i];
+        // Check minimum population
+        if (popCount < ev.minPopulation) continue;
+        // Check season constraints
+        if (ev.seasonMinHeatDrain >= 0.f && seasonDef.heatDrainMod < ev.seasonMinHeatDrain) continue;
+        if (ev.seasonMaxHeatDrain < 999.0f && seasonDef.heatDrainMod > ev.seasonMaxHeatDrain) continue;
+        if (ev.seasonMinTemp > -999.0f && seasonDef.baseTemperature < ev.seasonMinTemp) continue;
+        if (ev.seasonMinProdMod >= 0.f && seasonDef.productionMod < ev.seasonMinProdMod) continue;
+        eligible.push_back(i);
     }
+    if (eligible.empty()) return;
 
-    switch (pickType(m_rng)) {
+    // Pick a random eligible event (uniform distribution among eligible events)
+    std::uniform_int_distribution<int> pickEvt(0, (int)eligible.size() - 1);
+    const EventDef& ev = schema.events[eligible[pickEvt(m_rng)]];
 
-    case 0: {   // Drought — cripple production
-        if (settl->modifierDuration > 0.f) break;   // already has an event
-        settl->productionModifier = DROUGHT_MODIFIER;
-        settl->modifierDuration   = DROUGHT_DURATION;
-        settl->modifierName       = "Drought";
-        settl->morale = std::max(0.f, settl->morale - 0.10f);  // drought demoralises
-        if (log) log->Push(day, hour,
-            "DROUGHT strikes " + settl->name + " ("
-            + std::to_string((int)DROUGHT_DURATION) + "h) " + popTag);
-        // Seed rumour into up to 2 NPCs at this settlement
-        {
-            std::vector<entt::entity> residents;
-            registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
-                [&](auto e, const HomeSettlement& hs) {
-                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
-                        residents.push_back(e);
-                });
-            std::shuffle(residents.begin(), residents.end(), m_rng);
-            int seedCount = std::min((int)residents.size(), 2);
-            for (int k = 0; k < seedCount; ++k)
-                registry.emplace<Rumour>(residents[k], Rumour{RumourType::DroughtNearby, target, 3});
+    // ---- Apply event effects based on effectType ----
+
+    const std::string& etype = ev.effectType;
+
+    // --- Production modifier events (Drought, Plague, Harvest Bounty, Heat Wave, Festival) ---
+    if (etype == "production_modifier") {
+        // Duration-based production modifier requires no existing modifier
+        if (ev.durationHours > 0.f) {
+            if (settl->modifierDuration > 0.f) return;  // already has an active event
+            // Plague-specific: check not already infected
+            if (ev.spreads && m_plagueSpreadTimer.count(target)) return;
+
+            settl->productionModifier = ev.effectValue;
+            settl->modifierDuration   = ev.durationHours;
+            settl->modifierName       = ev.displayName;
+
+            // Plague spreading setup
+            if (ev.spreads)
+                m_plagueSpreadTimer[target] = ev.spreadInterval;
         }
-        SoftenRivalryOnSharedCrisis(registry, target, *settl, "Drought", log, day, hour);
-        // Drought solidarity: residents with existing bonds pull together
-        {
-            std::vector<entt::entity> droughtResidents;
-            registry.view<HomeSettlement, Relations>(
-                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
-                [&](auto e, const HomeSettlement& hs, const Relations&) {
-                    if (hs.settlement == target) droughtResidents.push_back(e);
-                });
-            for (size_t i = 0; i < droughtResidents.size(); ++i) {
-                auto* relA = registry.try_get<Relations>(droughtResidents[i]);
-                if (!relA) continue;
-                for (size_t j = i + 1; j < droughtResidents.size(); ++j) {
-                    auto itA = relA->affinity.find(droughtResidents[j]);
-                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
-                    auto* relB = registry.try_get<Relations>(droughtResidents[j]);
-                    if (!relB) continue;
-                    auto itB = relB->affinity.find(droughtResidents[i]);
-                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
-                    // Boost mutual affinity by +0.03 (cap 1.0)
-                    itA->second = std::min(1.f, itA->second + 0.03f);
-                    itB->second = std::min(1.f, itB->second + 0.03f);
+
+        // Kill fraction (Plague)
+        int killed = 0;
+        if (ev.killFraction > 0.f)
+            killed = KillFraction(registry, target, ev.killFraction);
+
+        // Morale impact
+        if (ev.moraleImpact != 0.f)
+            settl->morale = std::clamp(settl->morale + ev.moraleImpact, 0.f, 1.f);
+
+        // Heat wave: destroy water stockpile
+        if (ev.name == "HeatWave") {
+            auto* sp = registry.try_get<Stockpile>(target);
+            if (sp) {
+                auto it = sp->quantities.find(RES_WATER);
+                if (it != sp->quantities.end() && it->second > 5.f) {
+                    std::uniform_real_distribution<float> evap(0.20f, 0.35f);
+                    float lost = it->second * evap(m_rng);
+                    it->second -= lost;
                 }
             }
-            if (log)
-                log->Push(day, hour, settl->name + " residents pull together during the drought.");
-        }
-        break;
-    }
-
-    case 1: {   // Blight — destroy food stockpile
-        auto* sp = registry.try_get<Stockpile>(target);
-        if (!sp) break;
-        auto it = sp->quantities.find(RES_FOOD);
-        if (it == sp->quantities.end() || it->second < 5.f) break;
-        float lost = it->second * BLIGHT_FRACTION;
-        it->second -= lost;
-        settl->morale = std::max(0.f, settl->morale - 0.12f);  // food loss is demoralising
-        if (log) log->Push(day, hour,
-            "BLIGHT hits " + settl->name + " " + popTag + " — "
-            + std::to_string((int)lost) + " food destroyed");
-        // Blight solidarity: residents with existing bonds share what little remains
-        {
-            std::vector<entt::entity> blightResidents;
-            registry.view<HomeSettlement, Relations>(
-                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
-                [&](auto e, const HomeSettlement& hs, const Relations&) {
-                    if (hs.settlement == target) blightResidents.push_back(e);
-                });
-            for (size_t i = 0; i < blightResidents.size(); ++i) {
-                auto* relA = registry.try_get<Relations>(blightResidents[i]);
-                if (!relA) continue;
-                for (size_t j = i + 1; j < blightResidents.size(); ++j) {
-                    auto itA = relA->affinity.find(blightResidents[j]);
-                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
-                    auto* relB = registry.try_get<Relations>(blightResidents[j]);
-                    if (!relB) continue;
-                    auto itB = relB->affinity.find(blightResidents[i]);
-                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
-                    // Boost mutual affinity by +0.02 (cap 1.0) — smaller than drought/plague
-                    itA->second = std::min(1.f, itA->second + 0.02f);
-                    itB->second = std::min(1.f, itB->second + 0.02f);
-                }
-            }
-            if (log)
-                log->Push(day, hour, settl->name + " residents share what little food remains.");
-        }
-        break;
-    }
-
-    case 2: {   // Bandits — block one random open road temporarily
-        std::vector<entt::entity> openRoads;
-        registry.view<Road>().each([&](auto e, const Road& road) {
-            if (!road.blocked && road.banditTimer <= 0.f)
-                openRoads.push_back(e);
-        });
-        if (openRoads.empty()) break;
-        std::uniform_int_distribution<int> pickRoad(0, (int)openRoads.size() - 1);
-        auto& road = registry.get<Road>(openRoads[pickRoad(m_rng)]);
-        road.blocked     = true;
-        road.banditTimer = BANDIT_DURATION;
-        if (log) log->Push(day, hour,
-            "BANDITS blocking road ("
-            + std::to_string((int)BANDIT_DURATION) + "h)");
-        break;
-    }
-
-    case 3: {   // Plague outbreak — production debuff + death + spreading
-        if (settl->modifierDuration > 0.f) break;   // already has an active event
-        if (m_plagueSpreadTimer.count(target)) break; // already infected
-
-        static constexpr float PLAGUE_INIT_MODIFIER = 0.45f;
-        static constexpr float PLAGUE_INIT_DURATION = 72.f;
-        settl->productionModifier = PLAGUE_INIT_MODIFIER;
-        settl->modifierDuration   = PLAGUE_INIT_DURATION;
-        settl->modifierName       = "Plague";
-        settl->morale = std::max(0.f, settl->morale - 0.20f);  // plague is deeply demoralising
-        m_plagueSpreadTimer[target] = 20.f;  // first spread attempt in 20 game-hours
-
-        int killCount = KillFraction(registry, target, 0.15f);
-        if (log) {
-            char buf[120];
-            std::snprintf(buf, sizeof(buf),
-                "PLAGUE erupts at %s %s — %d died, disease spreading via roads!",
-                settl->name.c_str(), popTag.c_str(), killCount);
-            log->Push(day, hour, buf);
-        }
-        // Seed rumour into up to 2 NPCs at this settlement
-        {
-            std::vector<entt::entity> residents;
-            registry.view<HomeSettlement>(entt::exclude<Hauler, PlayerTag>).each(
-                [&](auto e, const HomeSettlement& hs) {
-                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
-                        residents.push_back(e);
-                });
-            std::shuffle(residents.begin(), residents.end(), m_rng);
-            int seedCount = std::min((int)residents.size(), 2);
-            for (int k = 0; k < seedCount; ++k)
-                registry.emplace<Rumour>(residents[k], Rumour{RumourType::PlagueNearby, target, 3});
-        }
-        SoftenRivalryOnSharedCrisis(registry, target, *settl, "Plague", log, day, hour);
-        // Plague solidarity: residents with existing bonds support each other
-        {
-            std::vector<entt::entity> plagueResidents;
-            registry.view<HomeSettlement, Relations>(
-                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
-                [&](auto e, const HomeSettlement& hs, const Relations&) {
-                    if (hs.settlement == target) plagueResidents.push_back(e);
-                });
-            for (size_t i = 0; i < plagueResidents.size(); ++i) {
-                auto* relA = registry.try_get<Relations>(plagueResidents[i]);
-                if (!relA) continue;
-                for (size_t j = i + 1; j < plagueResidents.size(); ++j) {
-                    auto itA = relA->affinity.find(plagueResidents[j]);
-                    if (itA == relA->affinity.end() || itA->second < 0.3f) continue;
-                    auto* relB = registry.try_get<Relations>(plagueResidents[j]);
-                    if (!relB) continue;
-                    auto itB = relB->affinity.find(plagueResidents[i]);
-                    if (itB == relB->affinity.end() || itB->second < 0.3f) continue;
-                    itA->second = std::min(1.f, itA->second + 0.03f);
-                    itB->second = std::min(1.f, itB->second + 0.03f);
-                }
-            }
-            if (log)
-                log->Push(day, hour, settl->name + " residents support each other through the plague.");
-        }
-        break;
-    }
-
-    case 4: {   // Trade boom — inject gold into settlement treasury
-        static constexpr float BOOM_GOLD = 150.f;
-        settl->treasury += BOOM_GOLD;
-        if (log) log->Push(day, hour,
-            "TRADE BOOM at " + settl->name + " " + popTag
-            + " — treasury +" + std::to_string((int)BOOM_GOLD) + "g");
-        break;
-    }
-
-    case 6: {   // Blizzard (Winter only) — blocks ALL roads for 4 game-hours
-        if (seasonDef.heatDrainMod < 0.8f) break;  // Blizzard: only in harshest cold
-        static constexpr float BLIZZARD_DURATION = 4.f;
-        int blockedCount = 0;
-        registry.view<Road>().each([&](Road& road) {
-            if (!road.blocked) {
-                road.blocked     = true;
-                road.banditTimer = BLIZZARD_DURATION;  // auto-clears after duration
-                ++blockedCount;
-            }
-        });
-        if (blockedCount > 0 && log)
-            log->Push(day, hour,
-                "BLIZZARD — all " + std::to_string(blockedCount) + " roads blocked ("
-                + std::to_string((int)BLIZZARD_DURATION) + "h)");
-        break;
-    }
-
-    case 7: {   // Spring flood — destroys 40% of food at a random settlement
-        // Flood: requires thawing conditions — mild cold (some heat drain) and above-freezing temps
-        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 0.3f || seasonDef.baseTemperature <= 0.f) break;
-        auto* sp = registry.try_get<Stockpile>(target);
-        if (!sp) break;
-        auto it = sp->quantities.find(RES_FOOD);
-        if (it == sp->quantities.end() || it->second < 5.f) break;
-        float lost = it->second * 0.40f;
-        it->second -= lost;
-        if (log) log->Push(day, hour,
-            "SPRING FLOOD at " + settl->name + " " + popTag + " — "
-            + std::to_string((int)lost) + " food washed away");
-        break;
-    }
-
-    case 8: {   // Harvest bounty (Autumn only) — production boost for 12 game-hours
-        if (seasonDef.productionMod < 1.1f) break;  // Harvest bounty: only in high-production seasons
-        if (settl->modifierDuration > 0.f) break;   // already has an event
-        static constexpr float BOUNTY_MODIFIER  = 1.5f;
-        static constexpr float BOUNTY_DURATION  = 12.f;
-        settl->productionModifier = BOUNTY_MODIFIER;
-        settl->modifierDuration   = BOUNTY_DURATION;
-        settl->modifierName       = "Harvest Bounty";
-        if (log) log->Push(day, hour,
-            "HARVEST BOUNTY at " + settl->name + " " + popTag
-            + " (+50% production, " + std::to_string((int)BOUNTY_DURATION) + "h)");
-        // Seed GoodHarvest rumour on up to 2 NPCs at this settlement
-        {
-            std::vector<entt::entity> residents;
-            registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
-                [&](auto e, const HomeSettlement& hs) {
-                    if (hs.settlement == target && !registry.any_of<Rumour>(e))
-                        residents.push_back(e);
-                });
-            std::shuffle(residents.begin(), residents.end(), m_rng);
-            int seedCount = std::min((int)residents.size(), 2);
-            for (int k = 0; k < seedCount; ++k)
-                registry.emplace<Rumour>(residents[k], Rumour{RumourType::GoodHarvest, target, 3});
-        }
-        break;
-    }
-
-    case 5: {   // Migration wave — 3-5 NPCs arrive from outside
-        const auto* tpos = registry.try_get<Position>(target);
-        if (!tpos) break;
-        // Check pop cap — don't overfill the settlement
-        int curPop5 = 0;
-        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs) { if (hs.settlement == target) ++curPop5; });
-        int slots = settl->popCap - curPop5;
-        if (slots <= 0) break;   // full — redirect event silently
-        std::uniform_int_distribution<int> count_dist(3, 5);
-        int arrivals = std::min(slots, count_dist(m_rng));
-
-        static const float DRAIN_HUNGER = 0.00083f, DRAIN_THIRST = 0.00125f,
-                           DRAIN_ENERGY = 0.00050f, DRAIN_HEAT = 0.00200f;
-        static const float REFILL_H = 0.004f, REFILL_T = 0.006f, REFILL_E = 0.002f,
-                           REFILL_HEAT = 0.010f;
-        static const char* FIRSTS[] = {
-            "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
-            "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric",
-            "Vance","Wren","Xander","Yoric","Zane","Aela","Bryn","Clara","Dena","Elara"
-        };
-        static const char* LASTS[] = {
-            "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
-            "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh","Wood",
-            "Vale","Cross","Bridge"
-        };
-        std::uniform_int_distribution<int> fd(0, 29), ld(0, 19);
-        std::uniform_real_distribution<float> angle_dist(0.f, 6.28f);
-        std::uniform_real_distribution<float> life_dist(60.f, 100.f);
-        std::uniform_real_distribution<float> age_dist2(5.f, 25.f);
-        std::uniform_real_distribution<float> mt_dist(1.f, 10.f);
-        std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);
-        std::uniform_real_distribution<float> skill_dist(0.30f, 0.70f);
-
-        for (int i = 0; i < arrivals; ++i) {
-            float ang = angle_dist(m_rng);
-            auto npc = registry.create();
-            registry.emplace<Position>(npc, tpos->x + std::cos(ang)*60.f,
-                                            tpos->y + std::sin(ang)*60.f);
-            registry.emplace<Velocity>(npc, 0.f, 0.f);
-            registry.emplace<MoveSpeed>(npc, 60.f);
-            Needs npcNeeds{ {
-                Need{NeedType::Hunger, 0.6f, DRAIN_HUNGER, 0.3f, REFILL_H},
-                Need{NeedType::Thirst, 0.6f, DRAIN_THIRST, 0.3f, REFILL_T},
-                Need{NeedType::Energy, 0.8f, DRAIN_ENERGY, 0.3f, REFILL_E},
-                Need{NeedType::Heat,   0.8f, DRAIN_HEAT,   0.3f, REFILL_HEAT}
-            } };
-            // Personality variation: ±20% drain rates
-            for (auto& need : npcNeeds.list) need.drainRate *= trait_dist(m_rng);
-            registry.emplace<Needs>(npc, npcNeeds);
-            registry.emplace<AgentState>(npc);
-            registry.emplace<HomeSettlement>(npc, HomeSettlement{target});
-            DeprivationTimer dt; dt.migrateThreshold = mt_dist(m_rng) * 60.f;
-            registry.emplace<DeprivationTimer>(npc, dt);
-            registry.emplace<Schedule>(npc);
-            registry.emplace<Renderable>(npc, WHITE, 6.f);
-            registry.emplace<Money>(npc, Money{5.f});
-            Age age; age.days = age_dist2(m_rng); age.maxDays = life_dist(m_rng);
-            registry.emplace<Age>(npc, age);
-            std::string nm = std::string(FIRSTS[fd(m_rng)]) + " " + LASTS[ld(m_rng)];
-            registry.emplace<Name>(npc, Name{nm});
-            {
-                Skills migSk = Skills::Make(schema);
-                for (int si = 0; si < (int)schema.skills.size(); ++si)
-                    migSk.levels[si] = std::clamp(schema.skills[si].startValue + (skill_dist(m_rng) - 0.5f), 0.f, 1.f);
-                registry.emplace<Skills>(npc, std::move(migSk));
-            }
-        }
-        if (log) log->Push(day, hour,
-            "MIGRATION WAVE: " + std::to_string(arrivals) + " arrived at " + settl->name
-            + " [pop " + std::to_string(popCount + arrivals) + ([&]{
-                auto prev = m_prevPop.find(target);
-                if (prev != m_prevPop.end()) {
-                    int d = (popCount + arrivals) - prev->second;
-                    if (d >= 2) return " \xe2\x86\x91]";
-                    if (d <= -2) return " \xe2\x86\x93]";
-                }
-                return "]";
-            }()));
-        break;
-    }
-
-    case 10: {  // Rainstorm — all settlements gain water; drought at target ends early
-        // Rain doesn't discriminate — all settlements collect water.
-        // Bonus: if the target settlement is in drought, the rain breaks it.
-        static constexpr float RAIN_WATER = 25.f;   // water added to every settlement
-        registry.view<Settlement, Stockpile>().each(
-            [&](auto e, Settlement& rs, Stockpile& rsp) {
-            rsp.quantities[RES_WATER] += RAIN_WATER;
-            // Break drought at this settlement
-            if (e == target && rs.modifierDuration > 0.f &&
-                rs.modifierName.find("Drought") != std::string::npos) {
-                rs.modifierDuration   = 0.f;
-                rs.productionModifier = 1.f;
-                rs.modifierName.clear();
-            }
-        });
-        if (log) log->Push(day, hour,
-            "RAINSTORM — all settlements +" + std::to_string((int)RAIN_WATER) + " water");
-        break;
-    }
-
-    case 9: {   // Off-map trade convoy — external market delivers scarce goods
-        // Finds the most expensive resource at the target settlement (indicating
-        // scarcity) and delivers a shipment — simulating trade from off-map regions.
-        // The settlement treasury must pay for the delivery at market price.
-        auto* mkt   = registry.try_get<Market>(target);
-        auto* sp    = registry.try_get<Stockpile>(target);
-        auto* settl2 = registry.try_get<Settlement>(target);
-        if (!mkt || !sp || !settl2) break;
-
-        // Find the most scarce (highest-priced) resource
-        int scarcest    = RES_FOOD;
-        float        highestPrice = 0.f;
-        for (const auto& [res, price] : mkt->price) {
-            if (price > highestPrice) { highestPrice = price; scarcest = res; }
         }
 
-        // Only dispatch a convoy when prices indicate real scarcity
-        static constexpr float CONVOY_MIN_PRICE = 5.f;
-        if (highestPrice < CONVOY_MIN_PRICE) break;
+        // Festival: treasury boost and celebration
+        if (ev.treasuryChange != 0.f)
+            settl->treasury += ev.treasuryChange;
 
-        // Cost = market price × quantity (convoy charges full price, no discount)
-        static constexpr float CONVOY_AMOUNT = 50.f;
-        float cost = highestPrice * CONVOY_AMOUNT;
-
-        // If the settlement can't afford it, the convoy doesn't come
-        if (settl2->treasury < cost) {
-            if (log) log->Push(day, hour,
-                "Convoy turned away from " + settl->name
-                + " — treasury too low (" + std::to_string((int)settl2->treasury) + "g)");
-            break;
-        }
-
-        settl2->treasury -= cost;
-        sp->quantities[scarcest] += CONVOY_AMOUNT;
-
-        const char* resName = (scarcest == RES_FOOD)  ? "food"  :
-                              (scarcest == RES_WATER) ? "water" : "wood";
-        if (log) log->Push(day, hour,
-            "OFF-MAP CONVOY at " + settl->name + " " + popTag + " +"
-            + std::to_string((int)CONVOY_AMOUNT)
-            + " " + resName + " (paid " + std::to_string((int)cost) + "g)");
-        break;
-    }
-
-    case 11: {  // Festival — boosts treasury and gives short production bonus
-        // Represent merchants and travelers visiting the settlement for a festival.
-        // The influx of trade brings gold into the treasury; the festive mood
-        // boosts production output for a short window.
-        static constexpr float FESTIVAL_GOLD     = 120.f;
-        static constexpr float FESTIVAL_MODIFIER = 1.35f;
-        static constexpr float FESTIVAL_DURATION = 16.f;   // game-hours
-
-        if (settl->modifierDuration > 0.f) break;   // already affected by another event
-        {
-            int spop = 0;
-            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-                [&](const HomeSettlement& hs) { if (hs.settlement == target) ++spop; });
-            if (spop < 5) break;   // too small for a notable festival
-        }
-
-        settl->treasury          += FESTIVAL_GOLD;
-        settl->productionModifier = FESTIVAL_MODIFIER;
-        settl->modifierDuration   = FESTIVAL_DURATION;
-        settl->modifierName       = "Festival";
-        settl->morale = std::min(1.f, settl->morale + 0.15f);  // festivals lift spirits
-
-        // Put all NPCs at this settlement into the Celebrating state; count them for the log
         int celebrantCount = 0;
-        registry.view<AgentState, HomeSettlement>(
-            entt::exclude<PlayerTag, Hauler>).each(
-            [&](AgentState& as, const HomeSettlement& hs) {
-                if (hs.settlement == target) {
-                    as.behavior = AgentBehavior::Celebrating;
-                    ++celebrantCount;
+        if (ev.triggersCelebration) {
+            registry.view<AgentState, HomeSettlement>(
+                entt::exclude<PlayerTag, Hauler>).each(
+                [&](AgentState& as, const HomeSettlement& hs) {
+                    if (hs.settlement == target) {
+                        as.behavior = AgentBehavior::Celebrating;
+                        ++celebrantCount;
+                    }
+                });
+        }
+
+        // Rumour seeding
+        SeedRumours(registry, target, ev.rumourType, ev.rumourSeeds, m_rng);
+
+        // Crisis solidarity
+        if (ev.moraleImpact < 0.f)
+            SoftenRivalryOnSharedCrisis(registry, target, *settl, ev.displayName, log, day, hour);
+
+        if (ev.triggersSolidarity)
+            ApplySolidarity(registry, target, ev.solidarityBoost);
+
+        // Log
+        if (log) {
+            char buf[200];
+            if (ev.spreads) {
+                std::snprintf(buf, sizeof(buf), "%s %s -- %d died, disease spreading via roads!",
+                    ev.displayName.c_str(), popTag.c_str(), killed);
+                log->Push(day, hour, settl->name + ": " + buf);
+            } else if (ev.triggersCelebration) {
+                std::snprintf(buf, sizeof(buf),
+                    "%s at %s %s -- %d celebrating, treasury +%.0fg, production x%.2f (%dh)",
+                    ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
+                    celebrantCount, ev.treasuryChange, ev.effectValue, (int)ev.durationHours);
+                log->Push(day, hour, buf);
+            } else {
+                std::snprintf(buf, sizeof(buf), "%s at %s %s (%dh)",
+                    ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
+                    (int)ev.durationHours);
+                log->Push(day, hour, buf);
+            }
+            if (ev.triggersSolidarity && !ev.spreads) {
+                log->Push(day, hour, settl->name + " residents pull together during the "
+                    + ev.displayName + ".");
+            }
+        }
+    }
+    // --- Stockpile destroy events (Blight, Spring Flood) ---
+    else if (etype == "stockpile_destroy") {
+        auto* sp = registry.try_get<Stockpile>(target);
+        if (!sp) return;
+        int resId = (ev.targetResourceId != INVALID_ID) ? ev.targetResourceId : RES_FOOD;
+        auto it = sp->quantities.find(resId);
+        if (it == sp->quantities.end() || it->second < 5.f) return;
+        float lost = it->second * ev.effectValue;
+        it->second -= lost;
+
+        if (ev.moraleImpact != 0.f)
+            settl->morale = std::clamp(settl->morale + ev.moraleImpact, 0.f, 1.f);
+
+        if (ev.triggersSolidarity)
+            ApplySolidarity(registry, target, ev.solidarityBoost);
+
+        if (log) {
+            std::string resName = (ev.targetResourceId != INVALID_ID
+                && ev.targetResourceId < (int)schema.resources.size())
+                ? schema.resources[ev.targetResourceId].displayName : "food";
+            log->Push(day, hour,
+                ev.displayName + " hits " + settl->name + " " + popTag + " -- "
+                + std::to_string((int)lost) + " " + resName + " destroyed");
+            if (ev.triggersSolidarity)
+                log->Push(day, hour, settl->name + " residents share what little remains.");
+        }
+    }
+    // --- Road block events (Bandits, Blizzard) ---
+    else if (etype == "road_block") {
+        float blockDur = ev.roadBlockDuration > 0.f ? ev.roadBlockDuration : BANDIT_DURATION;
+        if (ev.blockAllRoads) {
+            int blockedCount = 0;
+            registry.view<Road>().each([&](Road& road) {
+                if (!road.blocked) {
+                    road.blocked     = true;
+                    road.banditTimer = blockDur;
+                    ++blockedCount;
                 }
             });
+            if (blockedCount > 0 && log)
+                log->Push(day, hour,
+                    ev.displayName + " -- all " + std::to_string(blockedCount)
+                    + " roads blocked (" + std::to_string((int)blockDur) + "h)");
+        } else {
+            // Block one random open road
+            std::vector<entt::entity> openRoads;
+            registry.view<Road>().each([&](auto e, const Road& road) {
+                if (!road.blocked && road.banditTimer <= 0.f)
+                    openRoads.push_back(e);
+            });
+            if (openRoads.empty()) return;
+            std::uniform_int_distribution<int> pickRoad(0, (int)openRoads.size() - 1);
+            auto& road = registry.get<Road>(openRoads[pickRoad(m_rng)]);
+            road.blocked     = true;
+            road.banditTimer = blockDur;
+            if (log) log->Push(day, hour,
+                ev.displayName + " blocking road ("
+                + std::to_string((int)blockDur) + "h)");
+        }
+    }
+    // --- Treasury boost (Trade Boom) ---
+    else if (etype == "treasury_boost") {
+        float gold = ev.treasuryChange > 0.f ? ev.treasuryChange : ev.effectValue;
+        settl->treasury += gold;
+        if (log) log->Push(day, hour,
+            ev.displayName + " at " + settl->name + " " + popTag
+            + " -- treasury +" + std::to_string((int)gold) + "g");
+    }
+    // --- Spawn NPCs (Migration Wave, Skilled Immigrant) ---
+    else if (etype == "spawn_npcs") {
+        const auto* tpos = registry.try_get<Position>(target);
+        if (!tpos) return;
+
+        int curPop = 0;
+        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
+            [&](const HomeSettlement& hs) { if (hs.settlement == target) ++curPop; });
+        int slots = settl->popCap - curPop;
+        if (slots <= 0) return;
+
+        if (ev.spawnSkilled) {
+            // Skilled immigrant: spawn one high-skill NPC
+            int nSkills = (int)schema.skills.size();
+            std::uniform_int_distribution<int> apt(0, std::max(0, nSkills - 1));
+            int aptIdx = apt(m_rng);
+            auto npc = SpawnNPC(registry, target, *tpos, schema, m_rng,
+                                30.f, 1.0f, true, aptIdx);
+
+            float highSkill = 0.f;
+            if (auto* sk = registry.try_get<Skills>(npc))
+                if (aptIdx >= 0 && aptIdx < (int)sk->levels.size())
+                    highSkill = sk->levels[aptIdx];
+            const char* specialty = (aptIdx >= 0 && aptIdx < (int)schema.skills.size())
+                ? schema.skills[aptIdx].displayName.c_str() : "Worker";
+            const auto* nm = registry.try_get<Name>(npc);
+
+            if (log) {
+                char buf[160];
+                std::snprintf(buf, sizeof(buf),
+                    "%s: %s (%s) arrives at %s %s -- skill %.0f%%",
+                    ev.displayName.c_str(),
+                    nm ? nm->value.c_str() : "Unknown",
+                    specialty, settl->name.c_str(),
+                    BuildPopTag(popCount + 1, m_prevPop, target).c_str(),
+                    highSkill * 100.f);
+                log->Push(day, hour, buf);
+            }
+        } else {
+            // Migration wave: spawn 3-5 NPCs
+            int maxArrivals = (int)ev.effectValue;
+            std::uniform_int_distribution<int> count_dist(
+                std::max(1, maxArrivals - 2), maxArrivals);
+            int arrivals = std::min(slots, count_dist(m_rng));
+            for (int i = 0; i < arrivals; ++i)
+                SpawnNPC(registry, target, *tpos, schema, m_rng,
+                         5.f, 0.6f, false, INVALID_ID);
+
+            if (log) log->Push(day, hour,
+                ev.displayName + ": " + std::to_string(arrivals)
+                + " arrived at " + settl->name + " "
+                + BuildPopTag(popCount + arrivals, m_prevPop, target));
+        }
+    }
+    // --- Stockpile add (Rainstorm, Lumber Windfall) ---
+    else if (etype == "stockpile_add") {
+        int addResId = (ev.addResourceId != INVALID_ID) ? ev.addResourceId : RES_WATER;
+        float amount = ev.addAmount;
+        // Lumber windfall: randomise amount slightly
+        if (amount > 0.f && !ev.affectsAllSettlements) {
+            float variation = amount * 0.25f;
+            amount = std::uniform_real_distribution<float>(
+                amount - variation, amount + variation)(m_rng);
+        }
+
+        if (ev.affectsAllSettlements) {
+            registry.view<Settlement, Stockpile>().each(
+                [&](auto e, Settlement& rs, Stockpile& rsp) {
+                    rsp.quantities[addResId] += amount;
+                    // Break drought at target
+                    if (ev.breaksDrought && e == target && rs.modifierDuration > 0.f &&
+                        rs.modifierName.find("Drought") != std::string::npos) {
+                        rs.modifierDuration   = 0.f;
+                        rs.productionModifier = 1.f;
+                        rs.modifierName.clear();
+                    }
+                });
+            if (log) {
+                std::string resName = (ev.addResourceId != INVALID_ID
+                    && ev.addResourceId < (int)schema.resources.size())
+                    ? schema.resources[ev.addResourceId].name : "resource";
+                log->Push(day, hour,
+                    ev.displayName + " -- all settlements +"
+                    + std::to_string((int)amount) + " " + resName);
+            }
+        } else {
+            auto* sp = registry.try_get<Stockpile>(target);
+            if (!sp) return;
+            sp->quantities[addResId] += amount;
+            if (log) {
+                std::string resName = (ev.addResourceId != INVALID_ID
+                    && ev.addResourceId < (int)schema.resources.size())
+                    ? schema.resources[ev.addResourceId].name : "resource";
+                char buf[160];
+                std::snprintf(buf, sizeof(buf),
+                    "%s at %s %s -- +%.0f %s",
+                    ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
+                    amount, resName.c_str());
+                log->Push(day, hour, buf);
+            }
+        }
+    }
+    // --- Convoy (Off-Map Trade) ---
+    else if (etype == "convoy") {
+        auto* mkt  = registry.try_get<Market>(target);
+        auto* sp   = registry.try_get<Stockpile>(target);
+        if (!mkt || !sp) return;
+
+        // Find the most scarce (highest-priced) resource
+        int scarcest = RES_FOOD;
+        float highestPrice = 0.f;
+        for (const auto& [res, price] : mkt->price)
+            if (price > highestPrice) { highestPrice = price; scarcest = res; }
+
+        float minPrice = ev.convoyMinPrice > 0.f ? ev.convoyMinPrice : 5.f;
+        if (highestPrice < minPrice) return;
+
+        float amount = ev.convoyAmount > 0.f ? ev.convoyAmount : 50.f;
+        float cost = highestPrice * amount;
+
+        if (settl->treasury < cost) {
+            if (log) log->Push(day, hour,
+                "Convoy turned away from " + settl->name
+                + " -- treasury too low (" + std::to_string((int)settl->treasury) + "g)");
+            return;
+        }
+
+        settl->treasury -= cost;
+        sp->quantities[scarcest] += amount;
+
+        std::string resName = (scarcest >= 0 && scarcest < (int)schema.resources.size())
+            ? schema.resources[scarcest].name : "goods";
+        if (log) log->Push(day, hour,
+            ev.displayName + " at " + settl->name + " " + popTag + " +"
+            + std::to_string((int)amount) + " " + resName
+            + " (paid " + std::to_string((int)cost) + "g)");
+    }
+    // --- Earthquake ---
+    else if (etype == "earthquake") {
+        // Block connected roads and damage their condition
+        float blockDur = ev.roadBlockDuration > 0.f ? ev.roadBlockDuration : 6.f;
+        int blockedRoads = 0;
+        registry.view<Road>().each([&](Road& road) {
+            bool connected = (road.from == target || road.to == target);
+            if (!connected) return;
+            if (!road.blocked) {
+                road.blocked     = true;
+                road.banditTimer = blockDur;
+                ++blockedRoads;
+            }
+            if (ev.roadDamage > 0.f)
+                road.condition = std::max(0.f, road.condition - ev.roadDamage);
+        });
+
+        // Destroy a fraction of this settlement's facilities
+        float destroyChance = ev.facilityDestroyChance > 0.f ? ev.facilityDestroyChance : 0.30f;
+        std::vector<entt::entity> settlFacs;
+        registry.view<ProductionFacility>().each(
+            [&](auto fe, const ProductionFacility& fac) {
+                if (fac.settlement == target && fac.baseRate > 0.f)
+                    settlFacs.push_back(fe);
+            });
+        std::uniform_real_distribution<float> chance2(0.f, 1.f);
+        int destroyed = 0;
+        for (auto fe : settlFacs) {
+            if (chance2(m_rng) < destroyChance) {
+                registry.destroy(fe);
+                ++destroyed;
+            }
+        }
 
         if (log) {
-            char buf[160];
+            char buf[180];
             std::snprintf(buf, sizeof(buf),
-                "FESTIVAL at %s %s — %d celebrating, treasury +%.0fg, production +35%% (%dh)",
-                settl->name.c_str(), popTag.c_str(), celebrantCount, FESTIVAL_GOLD, (int)FESTIVAL_DURATION);
+                "%s at %s %s -- %d facilit%s destroyed, roads blocked (%dh)",
+                ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
+                destroyed, destroyed == 1 ? "y" : "ies", (int)blockDur);
             log->Push(day, hour, buf);
         }
-        break;
     }
-
-    case 13: {  // Fire — burns stored food and wood, kills a few NPCs
+    // --- Fire ---
+    else if (etype == "fire") {
         auto* sp = registry.try_get<Stockpile>(target);
-        if (!sp) break;
+        if (!sp) return;
 
-        std::uniform_real_distribution<float> burnFrac(0.35f, 0.55f);
+        std::uniform_real_distribution<float> burnFrac(
+            std::max(0.f, ev.effectValue - 0.10f),
+            std::min(1.f, ev.effectValue + 0.10f));
         float fraction = burnFrac(m_rng);
 
         float foodLost = 0.f, woodLost = 0.f;
@@ -1352,236 +1419,52 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             fitWood->second -= woodLost;
         }
 
-        int killed = KillFraction(registry, target, 0.05f);
+        int killed = 0;
+        if (ev.killFraction > 0.f)
+            killed = KillFraction(registry, target, ev.killFraction);
 
         if (log) {
-            char buf[180];
+            char buf[200];
             std::snprintf(buf, sizeof(buf),
-                "FIRE at %s %s — %.0f food, %.0f wood destroyed, %d died",
-                settl->name.c_str(), popTag.c_str(), foodLost, woodLost, killed);
+                "%s at %s %s -- %.0f food, %.0f wood destroyed, %d died",
+                ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
+                foodLost, woodLost, killed);
             log->Push(day, hour, buf);
         }
-        break;
     }
-
-    case 14: {  // Heat wave (Summer only) — production penalty + water shortage stress
-        if (seasonDef.baseTemperature < 25.f) break;  // Heat wave: only in hot seasons
-        if (settl->modifierDuration > 0.f) break;   // already affected
-
-        static constexpr float HEATWAVE_MODIFIER = 0.75f;
-        static constexpr float HEATWAVE_DURATION = 10.f;   // game-hours
-
-        settl->productionModifier = HEATWAVE_MODIFIER;
-        settl->modifierDuration   = HEATWAVE_DURATION;
-        settl->modifierName       = "Heat Wave";
-
-        // Destroy 20-35% of water stockpile (evaporation / dehydration)
-        auto* sp = registry.try_get<Stockpile>(target);
-        if (sp) {
-            auto it = sp->quantities.find(RES_WATER);
-            if (it != sp->quantities.end() && it->second > 5.f) {
-                std::uniform_real_distribution<float> evap(0.20f, 0.35f);
-                float lost = it->second * evap(m_rng);
-                it->second -= lost;
-            }
-        }
-
-        if (log) {
-            char buf[140];
-            std::snprintf(buf, sizeof(buf),
-                "HEAT WAVE strikes %s %s — production -25%%, water reserves drained (%dh)",
-                settl->name.c_str(), popTag.c_str(), (int)HEATWAVE_DURATION);
-            log->Push(day, hour, buf);
-        }
-        break;
-    }
-
-    case 15: {  // Lumber windfall (Spring/Autumn) — storm brings easy wood
-        // Lumber windfall: transitional seasons with wind/storms — some cold but not deep winter
-        if (seasonDef.heatDrainMod <= 0.f || seasonDef.heatDrainMod >= 1.0f) break;
-        auto* sp = registry.try_get<Stockpile>(target);
-        if (!sp) break;
-
-        std::uniform_real_distribution<float> lumberAmt(50.f, 80.f);
-        float windfall = lumberAmt(m_rng);
-        sp->quantities[RES_WOOD] += windfall;
-
-        if (log) {
-            char buf[140];
-            std::snprintf(buf, sizeof(buf),
-                "LUMBER WINDFALL at %s %s — storm felled trees, +%.0f wood",
-                settl->name.c_str(), popTag.c_str(), windfall);
-            log->Push(day, hour, buf);
-        }
-        break;
-    }
-
-    case 16: {  // Skilled Immigrant — a talented NPC arrives at the target settlement
-        // Spawn one NPC with high skill in a random resource type.
-        // This boosts production at under-populated or skill-poor settlements.
-        const auto* spos = registry.try_get<Position>(target);
-        if (!spos) break;
-
-        // Count current pop to check cap
-        int curPop16 = 0;
-        registry.view<HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
-            [&](const HomeSettlement& hs) { if (hs.settlement == target) ++curPop16; });
-        if (curPop16 >= settl->popCap) break;  // no room
-
-        static constexpr float DRAIN_HUNGER = 0.00083f;
-        static constexpr float DRAIN_THIRST = 0.00125f;
-        static constexpr float DRAIN_ENERGY = 0.00050f;
-        static constexpr float DRAIN_HEAT   = 0.00200f;
-        static constexpr float CRIT_THRESH  = 0.3f;
-
-        auto npc16 = registry.create();
-        float angle16 = std::uniform_real_distribution<float>(0.f, 6.28f)(m_rng);
-        registry.emplace<Position>(npc16,
-            spos->x + std::cos(angle16) * 60.f,
-            spos->y + std::sin(angle16) * 60.f);
-        registry.emplace<Velocity>(npc16, 0.f, 0.f);
-        registry.emplace<MoveSpeed>(npc16, 60.f);
-        registry.emplace<Needs>(npc16, Needs{ {
-            Need{NeedType::Hunger, 1.f, DRAIN_HUNGER, CRIT_THRESH, 0.004f},
-            Need{NeedType::Thirst, 1.f, DRAIN_THIRST, CRIT_THRESH, 0.006f},
-            Need{NeedType::Energy, 1.f, DRAIN_ENERGY, CRIT_THRESH, 0.002f},
-            Need{NeedType::Heat,   1.f, DRAIN_HEAT,   CRIT_THRESH, 0.010f},
-        } });
-        registry.emplace<AgentState>(npc16);
-        registry.emplace<HomeSettlement>(npc16, HomeSettlement{ target });
-        DeprivationTimer dt16;
-        dt16.migrateThreshold = std::uniform_real_distribution<float>(2.f, 5.f)(m_rng) * 60.f;
-        registry.emplace<DeprivationTimer>(npc16, dt16);
-        registry.emplace<Schedule>(npc16);
-        registry.emplace<Renderable>(npc16, WHITE, 6.f);
-        Age age16; age16.days = 20.f + std::uniform_real_distribution<float>(0.f, 15.f)(m_rng);
-        age16.maxDays = std::uniform_real_distribution<float>(60.f, 100.f)(m_rng);
-        registry.emplace<Age>(npc16, age16);
-        registry.emplace<Money>(npc16, Money{ 30.f });  // arrives with savings
-
-        // High skill in one randomly chosen area (0.75+); normal in others
-        static const char* FIRST_N[] = {
-            "Aldric","Brom","Cedric","Daven","Edric","Finn","Gareth","Holt","Ivan","Jorin",
-            "Kael","Lewin","Marden","Nolan","Oswin","Pell","Roran","Sven","Torben","Uric"
-        };
-        static const char* LAST_N[] = {
-            "Smith","Miller","Cooper","Fletcher","Mason","Tanner","Ward","Thatcher",
-            "Fisher","Baker","Forger","Webb","Stone","Holt","Reed","Marsh"
-        };
-        std::uniform_int_distribution<int> fn(0,19), ln(0,15);
-        std::string immName = std::string(FIRST_N[fn(m_rng)]) + " " + LAST_N[ln(m_rng)];
-        registry.emplace<Name>(npc16, Name{ immName });
-
-        int nSkills16 = (int)schema.skills.size();
-        std::uniform_int_distribution<int> apt16(0, std::max(0, nSkills16 - 1));
-        int aptIdx16 = apt16(m_rng);
-        float highSkill = 0.75f + std::uniform_real_distribution<float>(0.f, 0.20f)(m_rng);
-        Skills sk16 = Skills::Make(schema, 0.35f);
-        if (aptIdx16 >= 0 && aptIdx16 < nSkills16)
-            sk16.levels[aptIdx16] = highSkill;
-        const char* specialty16 = (aptIdx16 >= 0 && aptIdx16 < (int)schema.skills.size())
-            ? schema.skills[aptIdx16].displayName.c_str() : "Worker";
-        registry.emplace<Skills>(npc16, std::move(sk16));
-
-        if (log) {
-            char buf[140];
-            std::snprintf(buf, sizeof(buf),
-                "SKILLED IMMIGRANT: %s (%s) arrives at %s [pop %d%s] — skill %.0f%%",
-                immName.c_str(), specialty16, settl->name.c_str(), popCount + 1,
-                [&]{
-                    auto prev = m_prevPop.find(target);
-                    if (prev != m_prevPop.end()) {
-                        int d = (popCount + 1) - prev->second;
-                        if (d >= 2) return " \xe2\x86\x91";
-                        if (d <= -2) return " \xe2\x86\x93";
-                    }
-                    return "";
-                }(),
-                highSkill * 100.f);
-            log->Push(day, hour, buf);
-        }
-        break;
-    }
-
-    case 17: {  // Market Crisis — panic drives prices up 3× at one settlement temporarily
-        // Sets a 3× modifier on all market prices at the target settlement.
-        // Implemented by multiplying the current Market prices directly;
-        // PriceSystem will gradually bring them back toward equilibrium.
+    // --- Price spike (Market Crisis) ---
+    else if (etype == "price_spike") {
         auto* mkt = registry.try_get<Market>(target);
-        if (!mkt) break;
+        if (!mkt) return;
 
-        // Only trigger if prices are currently reasonable (not already spiked)
+        // Only trigger if prices are currently reasonable
         bool alreadySpiked = false;
         for (const auto& [rt, p] : mkt->price)
             if (p > 15.f) { alreadySpiked = true; break; }
-        if (alreadySpiked) break;
+        if (alreadySpiked) return;
 
-        float spikeBase = std::uniform_real_distribution<float>(2.5f, 3.5f)(m_rng);
+        float spikeBase = ev.priceSpikeMultiplier > 0.f ? ev.priceSpikeMultiplier : 3.0f;
+        float actualSpike = std::uniform_real_distribution<float>(
+            spikeBase - 0.5f, spikeBase + 0.5f)(m_rng);
         for (auto& [rt, p] : mkt->price)
-            p = std::min(20.f, p * spikeBase);
-
-        if (log) {
-            char buf[140];
-            std::snprintf(buf, sizeof(buf),
-                "MARKET CRISIS at %s %s — panic buying, all prices spike %.1fx!",
-                settl->name.c_str(), popTag.c_str(), spikeBase);
-            log->Push(day, hour, buf);
-        }
-        break;
-    }
-
-    case 12: {  // Earthquake — destroys some facilities, blocks all roads for a time
-        {
-            int spop2 = 0;
-            registry.view<HomeSettlement>(entt::exclude<PlayerTag>).each(
-                [&](const HomeSettlement& hs) { if (hs.settlement == target) ++spop2; });
-            if (spop2 < 3) break;
-        }
-
-        static constexpr float QUAKE_ROAD_BLOCK_DURATION = 6.f;  // game-hours
-        static constexpr float QUAKE_FACILITY_DESTROY_CHANCE = 0.30f;
-        static constexpr float QUAKE_ROAD_DAMAGE = 0.30f;  // condition lost on connected roads
-
-        // Block only roads connected to the epicenter settlement and damage their condition
-        int blockedRoads = 0;
-        registry.view<Road>().each([&](Road& road) {
-            bool connected = (road.from == target || road.to == target);
-            if (!connected) return;
-            if (!road.blocked) {
-                road.blocked     = true;
-                road.banditTimer = QUAKE_ROAD_BLOCK_DURATION;
-                ++blockedRoads;
-            }
-            // Earthquake physically damages the road surface
-            road.condition = std::max(0.f, road.condition - QUAKE_ROAD_DAMAGE);
-        });
-
-        // Destroy a fraction of this settlement's non-shelter facilities
-        std::vector<entt::entity> settlFacs;
-        registry.view<ProductionFacility>().each(
-            [&](auto fe, const ProductionFacility& fac) {
-            if (fac.settlement == target && fac.baseRate > 0.f)
-                settlFacs.push_back(fe);
-        });
-        std::uniform_real_distribution<float> chance2(0.f, 1.f);
-        int destroyed = 0;
-        for (auto fe : settlFacs) {
-            if (chance2(m_rng) < QUAKE_FACILITY_DESTROY_CHANCE) {
-                registry.destroy(fe);
-                ++destroyed;
-            }
-        }
+            p = std::min(20.f, p * actualSpike);
 
         if (log) {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "EARTHQUAKE at %s %s — %d facilit%s destroyed, all roads blocked (%dh)",
-                settl->name.c_str(), popTag.c_str(), destroyed,
-                destroyed == 1 ? "y" : "ies", (int)QUAKE_ROAD_BLOCK_DURATION);
+                "%s at %s %s -- panic buying, all prices spike %.1fx!",
+                ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(), actualSpike);
             log->Push(day, hour, buf);
         }
-        break;
     }
+    // --- Morale boost (standalone, no production modifier) ---
+    else if (etype == "morale_boost") {
+        if (ev.moraleImpact != 0.f)
+            settl->morale = std::clamp(settl->morale + ev.moraleImpact, 0.f, 1.f);
+        if (ev.treasuryChange != 0.f)
+            settl->treasury += ev.treasuryChange;
+        if (log) log->Push(day, hour,
+            ev.displayName + " at " + settl->name + " " + popTag);
     }
 }
 

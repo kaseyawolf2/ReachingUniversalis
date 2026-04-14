@@ -85,6 +85,78 @@ struct EventDef {
     float       chance        = 0.01f;        // probability per check (per settlement per hour)
     int         minPopulation = 0;            // minimum pop to trigger
     std::string logMessage;                   // template with {settlement}, {npc}, etc.
+
+    // --- Extended fields for data-driven event effects ---
+
+    // Morale impact when event fires (negative = demoralising, positive = uplifting)
+    float       moraleImpact  = 0.0f;
+
+    // Kill a fraction of the settlement population (0 = no deaths)
+    float       killFraction  = 0.0f;
+
+    // Stockpile effects: which resource to affect and by how much
+    // "target_resource" names (e.g. "Food", "Water", "Wood"); empty = first/most-expensive
+    std::string targetResource;               // resource name for stockpile effects
+    int         targetResourceId = INVALID_ID; // resolved at load time
+
+    // Additional stockpile additions (e.g. rainstorm adds water)
+    std::string addResource;                  // resource name to add
+    int         addResourceId = INVALID_ID;   // resolved at load time
+    float       addAmount     = 0.0f;         // units to add
+
+    // Treasury effects (gold added to settlement treasury, can be negative)
+    float       treasuryChange = 0.0f;
+
+    // Road effects
+    bool        blockRoadsConnected = false;  // block roads connected to the target settlement
+    bool        blockAllRoads       = false;  // block ALL roads in the world (e.g. blizzard)
+    float       roadBlockDuration   = 0.0f;   // game-hours roads stay blocked
+    float       roadDamage          = 0.0f;   // condition damage to roads (0-1)
+
+    // Spread behavior (plague-like: event can spread along roads to neighbours)
+    bool        spreads           = false;
+    float       spreadInterval    = 0.0f;     // game-hours between spread attempts
+    float       spreadChance      = 0.0f;     // probability per spread attempt (0-1)
+    float       spreadKillFraction = 0.0f;    // kill fraction when spreading
+
+    // Facility destruction chance (earthquake-like)
+    float       facilityDestroyChance = 0.0f;
+
+    // Season constraints: event only fires when season matches
+    std::string seasonConstraint;             // "winter", "spring", "summer", "autumn" or empty
+    float       seasonMinHeatDrain = -1.0f;   // min heatDrainMod for season (-1 = no constraint)
+    float       seasonMaxHeatDrain = 999.0f;  // max heatDrainMod for season
+    float       seasonMinTemp      = -999.0f; // min baseTemperature for season
+    float       seasonMinProdMod   = -1.0f;   // min productionMod for season (-1 = no constraint)
+
+    // Rumour seeding: which rumour type to inject (empty = none)
+    std::string rumourType;                   // "PlagueNearby", "DroughtNearby", "GoodHarvest", etc.
+    int         rumourSeeds    = 0;            // how many NPCs get the rumour
+
+    // Solidarity: whether the crisis triggers affinity boosts among residents
+    bool        triggersSolidarity = false;
+    float       solidarityBoost    = 0.0f;    // affinity boost amount
+
+    // Festival-like: NPCs switch to Celebrating behavior
+    bool        triggersCelebration = false;
+
+    // Price spike multiplier (0 = no price effect)
+    float       priceSpikeMultiplier = 0.0f;
+
+    // NPC spawning (migration wave): effectValue is the count
+    // Skilled immigrant: spawns one high-skill NPC
+    bool        spawnSkilled = false;
+
+    // Applies to all settlements (e.g. rainstorm adds water everywhere)
+    bool        affectsAllSettlements = false;
+
+    // Breaks drought at the target settlement if active
+    bool        breaksDrought = false;
+
+    // Convoy: buy most-expensive resource from off-map
+    bool        isConvoy = false;
+    float       convoyAmount   = 0.0f;
+    float       convoyMinPrice = 0.0f;        // only dispatch when scarcest price >= this
 };
 
 // Resolved enum for GoalDef::checkType (no string comparisons in hot loops)
