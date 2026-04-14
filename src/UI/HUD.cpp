@@ -2081,14 +2081,43 @@ void HUD::DrawRoadTooltip(const RenderSnapshot& snap, const Camera2D& cam) const
 
 void HUD::DrawNeedBar(int x, int y, float value, float critThreshold,
                       const char* label, Color barColor) const {
-    DrawText(label, x, y, 14, LIGHTGRAY);
+    // Label with color hint matching the bar
+    Color labelCol = (value < critThreshold) ? Fade(RED, 0.9f) : LIGHTGRAY;
+    DrawText(label, x, y, 14, labelCol);
+
     int barX = x + 60;
-    DrawRectangle(barX, y, BAR_W, BAR_H, Fade(WHITE, 0.15f));
+    // Background: darker when emptier for depth
+    DrawRectangle(barX, y, BAR_W, BAR_H, Fade(WHITE, 0.10f));
+
     float clamped = std::max(0.f, std::min(1.f, value));
     int   fillW   = (int)(clamped * BAR_W);
-    Color fill    = (value < critThreshold) ? RED : barColor;
-    if (fillW > 0) DrawRectangle(barX, y, fillW, BAR_H, fill);
-    DrawRectangleLines(barX, y, BAR_W, BAR_H, WHITE);
+    bool  isCrit  = (value < critThreshold);
+    Color fill    = isCrit ? RED : barColor;
+
+    // Critical pulse: bar flashes brighter when below threshold
+    if (isCrit) {
+        float pulse = 0.5f + 0.5f * sinf((float)GetTime() * 4.f);
+        fill = Fade(RED, 0.6f + 0.4f * pulse);
+    }
+
+    // Main fill
+    if (fillW > 0) {
+        DrawRectangle(barX, y, fillW, BAR_H, fill);
+        // Subtle highlight on top half for depth
+        DrawRectangle(barX, y, fillW, BAR_H / 2, Fade(WHITE, 0.12f));
+    }
+
+    // Border
+    DrawRectangleLines(barX, y, BAR_W, BAR_H, Fade(WHITE, 0.6f));
+
+    // Percentage text inside the bar
+    char pctBuf[8];
+    std::snprintf(pctBuf, sizeof(pctBuf), "%.0f%%", clamped * 100.f);
+    int textW = MeasureText(pctBuf, 10);
+    int textX = barX + (BAR_W - textW) / 2;
+    // Draw with shadow for readability
+    DrawText(pctBuf, textX + 1, y + 3, 10, Fade(BLACK, 0.6f));
+    DrawText(pctBuf, textX, y + 2, 10, WHITE);
 }
 
 // ---- Notification overlay -----------------------------------------------
