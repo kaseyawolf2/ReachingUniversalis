@@ -400,7 +400,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         return -1;
     };
     // Bitmask helper: one bit per producing profession. Requires < 32 professions.
-    assert(schema.professions.size() < 32 && "professions.size() must be < 32 for bitmask flags");
+    // (assert is now in WorldSchema::BuildMaps, checked once at load time)
     auto profFlag = [&](int profId) -> uint32_t {
         if (profId >= 0 && profId < (int)schema.professions.size()
             && schema.professions[profId].producesResource != INVALID_ID)

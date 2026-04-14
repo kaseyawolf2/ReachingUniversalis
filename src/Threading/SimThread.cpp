@@ -1426,7 +1426,7 @@ void SimThread::WriteSnapshot() {
         int   masterCount = 0;
         float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
-        int   profMask  = 0;  // bitmask: one bit per producing profession (bit N = professionID N)
+        uint32_t profMask  = 0;  // bitmask: one bit per producing profession (bit N = professionID N)
         int   griefCount = 0; // NPCs with griefTimer > 0
         int   mourningCount = 0; // NPCs in mourning procession (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
     };
@@ -1493,7 +1493,7 @@ void SimThread::WriteSnapshot() {
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
                     if (prof->type >= 0 && prof->type < (int)m_schema.professions.size()
                         && m_schema.professions[prof->type].producesResource != INVALID_ID)
-                        ag.profMask |= (1 << prof->type);
+                        ag.profMask |= (uint32_t(1) << prof->type);
                 }
             }
         });
@@ -1953,6 +1953,11 @@ void SimThread::WriteSnapshot() {
         }
     }
 
+    // Pre-compute full profession bitmask (constant per schema, used per-settlement below)
+    uint32_t fullProfMask = 0;
+    for (auto& pd : m_schema.professions)
+        if (pd.producesResource != INVALID_ID) fullProfMask |= (uint32_t(1) << pd.id);
+
     m_registry.view<Position, Settlement>().each(
         [&](auto e, const Position& pos, const Settlement& s) {
         float food = 0.f, water = 0.f, wood = 0.f;
@@ -2020,9 +2025,6 @@ void SimThread::WriteSnapshot() {
         }
 
         // Check all producing professions are present
-        int fullProfMask = 0;
-        for (auto& pd : m_schema.professions)
-            if (pd.producesResource != INVALID_ID) fullProfMask |= (1 << pd.id);
         bool diverse = settlAgg.count(e) && fullProfMask != 0
                        && (settlAgg[e].profMask & fullProfMask) == fullProfMask;
         bool afterglow = (s.afterglowHours > 0.f);

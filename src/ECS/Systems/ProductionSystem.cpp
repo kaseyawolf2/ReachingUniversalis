@@ -143,7 +143,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             if (const auto* prof = registry.try_get<Profession>(e)) {
                 if (prof->type >= 0 && prof->type < (int)schema.professions.size()
                     && schema.professions[prof->type].producesResource != INVALID_ID)
-                    profDiversity[hs.settlement] |= (1 << prof->type);
+                    profDiversity[hs.settlement] |= (uint32_t(1) << prof->type);
             }
             workers[hs.settlement] += workerContrib;
             workerHeadCount[hs.settlement]++;
@@ -157,9 +157,9 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
 
     // ---- Settlement profession diversity bonus ----
     // Settlements with all producing professions get +3% production.
-    int fullProfMask = 0;
+    uint32_t fullProfMask = 0;
     for (auto& pd : schema.professions)
-        if (pd.producesResource != INVALID_ID) fullProfMask |= (1 << pd.id);
+        if (pd.producesResource != INVALID_ID) fullProfMask |= (uint32_t(1) << pd.id);
     {
         static std::map<entt::entity, int> s_diverseLogged;
         for (auto& [settl, w] : workers) {
