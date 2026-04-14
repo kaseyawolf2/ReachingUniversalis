@@ -39,7 +39,7 @@ static float SeasonPriceFloor(ResourceType res, Season season) {
 // on an open road. Low enough to preserve meaningful differentials.
 static constexpr float ARBITRAGE_RATE = 0.003f;
 
-void PriceSystem::Update(entt::registry& registry, float realDt) {
+void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());

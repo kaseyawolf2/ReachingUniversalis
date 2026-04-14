@@ -15,8 +15,8 @@ static constexpr float SIM_STEP_DT   = 1.f / 60.f;
 // manageable and each step can publish a snapshot for smooth rendering.
 static constexpr int   MAX_CATCHUP   = 4;
 
-SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot)
-    : m_input(input), m_snapshot(snapshot)
+SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
+    : m_input(input), m_snapshot(snapshot), m_schema(schema)
 {
     WorldGenerator::Populate(m_registry);
 }
@@ -272,20 +272,20 @@ void SimThread::RunSimStep(float dt) {
             m_profile[i].name = names[i];
     }
 
-    timeCall(m_profile[0].accumUs,  [&]{ m_timeSystem.Advance(m_registry, dt); });
-    timeCall(m_profile[1].accumUs,  [&]{ m_needDrainSystem.Update(m_registry, dt); });
-    timeCall(m_profile[2].accumUs,  [&]{ m_consumptionSystem.Update(m_registry, dt); });
-    timeCall(m_profile[3].accumUs,  [&]{ m_scheduleSystem.Update(m_registry, dt); });
-    timeCall(m_profile[4].accumUs,  [&]{ m_agentDecisionSystem.Update(m_registry, dt); });
-    timeCall(m_profile[5].accumUs,  [&]{ m_movementSystem.Update(m_registry, dt); });
-    timeCall(m_profile[6].accumUs,  [&]{ m_productionSystem.Update(m_registry, dt); });
-    timeCall(m_profile[7].accumUs,  [&]{ m_transportSystem.Update(m_registry, dt); });
-    timeCall(m_profile[8].accumUs,  [&]{ m_priceSystem.Update(m_registry, dt); });
-    timeCall(m_profile[9].accumUs,  [&]{ m_randomEventSystem.Update(m_registry, dt); });
-    timeCall(m_profile[10].accumUs, [&]{ m_economicMobilitySystem.Update(m_registry, dt); });
-    timeCall(m_profile[11].accumUs, [&]{ m_constructionSystem.Update(m_registry, dt); });
-    timeCall(m_profile[12].accumUs, [&]{ m_deathSystem.Update(m_registry, dt); });
-    timeCall(m_profile[13].accumUs, [&]{ m_birthSystem.Update(m_registry, dt); });
+    timeCall(m_profile[0].accumUs,  [&]{ m_timeSystem.Advance(m_registry, dt, m_schema); });
+    timeCall(m_profile[1].accumUs,  [&]{ m_needDrainSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[2].accumUs,  [&]{ m_consumptionSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[3].accumUs,  [&]{ m_scheduleSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[4].accumUs,  [&]{ m_agentDecisionSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[5].accumUs,  [&]{ m_movementSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[6].accumUs,  [&]{ m_productionSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[7].accumUs,  [&]{ m_transportSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[8].accumUs,  [&]{ m_priceSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[9].accumUs,  [&]{ m_randomEventSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[10].accumUs, [&]{ m_economicMobilitySystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[11].accumUs, [&]{ m_constructionSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[12].accumUs, [&]{ m_deathSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[13].accumUs, [&]{ m_birthSystem.Update(m_registry, dt, m_schema); });
     ++m_profileSteps;
 
     // ---- Player work: skill advancement + auto-cancel if player moves ----

@@ -5,7 +5,7 @@
 // plague-afflicted settlement (within its radius).
 static constexpr float PLAGUE_PLAYER_DRAIN_MULT = 1.5f;
 
-void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
+void NeedDrainSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     // Resolve game-time delta from the TimeManager singleton.
     // Needs drain at a consistent game-time rate regardless of tick speed.
     // If paused, gameDt == 0 and no draining occurs.

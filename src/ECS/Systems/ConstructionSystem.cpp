@@ -61,7 +61,7 @@ static constexpr float ROAD_DECAY_PARTIAL        = 0.025f;  // 2.5%/day with one
 static constexpr float ROAD_DECAY_UNMAINTAINED   = 0.045f;  // 4.5%/day with neither paying
 static constexpr float ROAD_COLLAPSE_THRESHOLD   = 0.15f;   // below this → auto-block
 
-void ConstructionSystem::Update(entt::registry& registry, float realDt) {
+void ConstructionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());

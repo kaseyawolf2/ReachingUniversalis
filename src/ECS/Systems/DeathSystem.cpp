@@ -15,7 +15,7 @@ static constexpr float SECS_PER_GAME_DAY = 24.f * 60.f;
 
 static std::mt19937 s_wisdomDeathRng{ std::random_device{}() };
 
-void DeathSystem::Update(entt::registry& registry, float realDt) {
+void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     float gameDt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);

@@ -42,7 +42,7 @@ static Needs MakeNeeds() {
     }};
 }
 
-void BirthSystem::Update(entt::registry& registry, float realDt) {
+void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());

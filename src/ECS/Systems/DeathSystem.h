@@ -2,9 +2,11 @@
 #include <entt/entt.hpp>
 #include <unordered_set>
 
+struct WorldSchema;
+
 class DeathSystem {
 public:
-    void Update(entt::registry& registry, float realDt);
+    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
 
     int totalDeaths = 0;   // running tally for HUD display
 

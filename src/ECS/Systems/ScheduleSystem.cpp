@@ -35,7 +35,7 @@ static bool InRange(const Position& a, const Position& b, float r) {
     return (dx * dx + dy * dy) <= r * r;
 }
 
-void ScheduleSystem::Update(entt::registry& registry, float realDt) {
+void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
