@@ -142,6 +142,8 @@ struct RenderSnapshot {
         int careerChanges = 0;
         // True if this NPC has high reputation (>= 0.6) from charity/donations
         bool generousDonor = false;
+        // True if this NPC has an active reconciliation glow (reconcileGlow > 0)
+        bool reconciling = false;
     };
 
     struct SettlementEntry {
