@@ -456,7 +456,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             continue;
         }
         const EventDef& sDef = schema.events[entry.eventIdx];
-        if (!sDef.spreads) continue;  // guard against non-spreading event at this index
+        if (!sDef.spreads) {          // non-spreading event at this index -- remove stale entry
+            staleSpreadEntries.push_back(plagueSettl);
+            continue;
+        }
 
         entry.timer = sDef.spreadInterval;
 
@@ -507,13 +510,11 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
         const auto* src = registry.try_get<Settlement>(plagueSettl);
         if (log) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "%s spreads from %s to %s [pop %d%s] -- %d died",
-                sDef.displayName.c_str(),
-                src ? src->name.c_str() : "?", ts->name.c_str(),
-                destPop, destTrend, killed);
-            log->Push(tm.day, (int)tm.hourOfDay, buf);
+            std::string srcName = src ? src->name : "?";
+            std::string msg = sDef.displayName + " spreads from " + srcName
+                + " to " + ts->name + " [pop " + std::to_string(destPop)
+                + destTrend + "] -- " + std::to_string(killed) + " died";
+            log->Push(tm.day, (int)tm.hourOfDay, msg);
         }
     }
     // Remove stale/corrupt spread entries
