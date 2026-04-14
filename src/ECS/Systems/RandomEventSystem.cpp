@@ -440,7 +440,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     std::vector<entt::entity> staleSpreadEntries;      // entries to erase after iteration
 
     for (auto& [plagueSettl, entry] : m_plagueSpreadTimer) {
-        if (!registry.valid(plagueSettl)) continue;
+        if (!registry.valid(plagueSettl)) {
+            staleSpreadEntries.push_back(plagueSettl);
+            continue;
+        }
         entry.timer -= gameHoursDt;
         if (entry.timer > 0.f) continue;
 
@@ -504,7 +507,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
         const auto* src = registry.try_get<Settlement>(plagueSettl);
         if (log) {
-            char buf[160];
+            char buf[256];
             std::snprintf(buf, sizeof(buf),
                 "%s spreads from %s to %s [pop %d%s] -- %d died",
                 sDef.displayName.c_str(),
