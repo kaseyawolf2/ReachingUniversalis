@@ -3293,6 +3293,46 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         who + " helped " + whom + at + "." + suffix);
                 }
             }
+            // Charity chain reaction: high-reputation giver triggers pay-it-forward
+            {
+                static std::mt19937 s_chainRng{std::random_device{}()};
+                const auto* giverRep = registry.try_get<Reputation>(helper.entity);
+                if (giverRep && giverRep->score >= 0.5f && s_chainRng() % 6 == 0) {
+                    static constexpr float CHAIN_GIFT = 3.f;
+                    // Recipient looks for a poor NPC at the same settlement
+                    if (starvingMoney->balance >= CHAIN_GIFT) {
+                        entt::entity chainTarget = entt::null;
+                        registry.view<Money, HomeSettlement, Position>(
+                            entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                            [&](auto cand, const Money& candMoney, const HomeSettlement& candHs, const Position& candPos) {
+                                if (chainTarget != entt::null) return;
+                                if (cand == starving.entity || cand == helper.entity) return;
+                                if (candHs.settlement != starving.homeSettl) return;
+                                if (candMoney.balance >= 10.f) return;  // not poor enough
+                                float cdx = candPos.x - starving.x, cdy = candPos.y - starving.y;
+                                if (cdx*cdx + cdy*cdy > CHARITY_RADIUS * CHARITY_RADIUS) return;
+                                chainTarget = cand;
+                            });
+                        if (chainTarget != entt::null) {
+                            auto* chainMoney = registry.try_get<Money>(chainTarget);
+                            if (chainMoney) {
+                                // Gold Flow Rule: balance-to-balance
+                                starvingMoney->balance -= CHAIN_GIFT;
+                                chainMoney->balance    += CHAIN_GIFT;
+                                if (charityLog) {
+                                    std::string rName = "An NPC", gName = "someone";
+                                    if (const auto* rn = registry.try_get<Name>(starving.entity)) rName = rn->value;
+                                    if (const auto* gn = registry.try_get<Name>(helper.entity)) gName = gn->value;
+                                    std::string where = "settlement";
+                                    if (sett) where = sett->name;
+                                    charityLog->Push(charityDay, charityHour,
+                                        rName + " passes on " + gName + "'s generosity at " + where + ".");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             helped = true;
             break;   // helper gives to at most one starving NPC per cooldown window
         }
