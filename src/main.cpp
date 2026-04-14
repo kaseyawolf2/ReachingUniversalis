@@ -239,19 +239,8 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "[ERROR] Failed to load world: %s\n", loadErr.c_str());
             // Continue with defaults — the game still works without configs
         }
-        // Print collected load warnings so diagnostics are visible at startup
-        if (!loadWarnings.empty()) {
-            int warnCount = 0;
-            for (const auto& w : loadWarnings)
-                if (w.level == LoadWarningLevel::Warning) ++warnCount;
-            if (warnCount > 0) {
-                fprintf(stderr, "[WorldLoader] %d warning(s) during load:\n", warnCount);
-                for (const auto& w : loadWarnings) {
-                    if (w.level == LoadWarningLevel::Warning)
-                        fprintf(stderr, "  [%s] %s", w.category.c_str(), w.message.c_str());
-                }
-            }
-        }
+        // loadWarnings is kept for future UI display of load diagnostics;
+        // PushWarning() already prints each warning to stderr during Load().
     }
 
     // Check for --benchmark flag

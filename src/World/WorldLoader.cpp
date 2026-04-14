@@ -45,8 +45,11 @@ static void PushWarning(std::vector<LoadWarning>* warnings,
     va_end(args);
 
     // Allocate exactly the right size and format into it.
-    std::string msg(needed > 0 ? static_cast<size_t>(needed) : 0, '\0');
-    if (needed > 0) {
+    std::string msg;
+    if (needed < 0) {
+        msg = "<format error>";
+    } else if (needed > 0) {
+        msg.resize(static_cast<size_t>(needed), '\0');
         vsnprintf(msg.data(), static_cast<size_t>(needed) + 1, fmt, args_copy);
     }
     va_end(args_copy);
