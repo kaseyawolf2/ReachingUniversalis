@@ -114,19 +114,27 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerRank           = snap.playerRank;
     }
 
-    // ---- Player need bars (top-left) ----
+    // ---- Player panel (top-left) ----
     if (playerAlive) {
         int invItemLines = std::max(1, (int)playerInventory.size()); // at least 1 for "(empty)"
         int skillLine    = (playerFarmSkill >= 0.f) ? 1 : 0;
         int tradeLines   = tradeHint.empty() ? 0 : 1;
         int ledgerLines  = tradeLedger.empty() ? 0 : (1 + std::min((int)tradeLedger.size(), 4));
         int plagueLines  = playerInPlagueZone ? 1 : 0;
-        // +1 for cargo header row (always shown), invItemLines for item rows, +1 for reputation
-        DrawRectangle(4, 4, 320, BAR_GAP * (7 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4, Fade(BLACK, 0.55f));
+        int panelH = BAR_GAP * (7 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4;
+        // Panel background with border
+        DrawRectangle(4, 4, 320, panelH, Fade(BLACK, 0.6f));
+        DrawRectangleLines(4, 4, 320, panelH, Fade(LIGHTGRAY, 0.25f));
+        // Top accent line
+        DrawRectangle(4, 4, 320, 2, Fade(GOLD, 0.4f));
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
         DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 3, heatPct,   heatCrit,   "Heat",   ORANGE);
+
+        // Separator after need bars
+        int sepY = BAR_Y0 + BAR_GAP * 4 - 4;
+        DrawRectangle(BAR_X, sepY, 300, 1, Fade(LIGHTGRAY, 0.15f));
 
         // Age row
         int ageY = BAR_Y0 + BAR_GAP * 4 + 2;
@@ -182,6 +190,9 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
             DrawText(skBuf, BAR_X + 52, skillsEndY, 11, skCol(bestSk));
             skillsEndY += BAR_GAP;
         }
+
+        // Separator before inventory
+        DrawRectangle(BAR_X, skillsEndY - 4, 300, 1, Fade(LIGHTGRAY, 0.15f));
 
         // Inventory lines
         int invY = skillsEndY;
@@ -269,12 +280,15 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         Color tempColor = (temperature < 0.f) ? Color{150,200,255,255} :
                           (temperature < 5.f) ? LIGHTGRAY : seasonColor;
 
-        DrawRectangle(px, 4, pw, 98, Fade(BLACK, 0.55f));
-        DrawText(timeBuf,  px + 8,  8, 16, WHITE);
-        DrawText(speedBuf, px + 8, 28, 14, paused ? ORANGE : LIGHTGRAY);
-        DrawText(seasBuf,  px + 8, 46, 13, tempColor);
-        DrawText(popBuf,   px + 8, 63, 13, LIGHTGRAY);
-        DrawText(fpsBuf,   px + 8, 80, 12, Fade(LIGHTGRAY, 0.6f));
+        DrawRectangle(px, 4, pw, 98, Fade(BLACK, 0.6f));
+        DrawRectangleLines(px, 4, pw, 98, Fade(LIGHTGRAY, 0.25f));
+        DrawRectangle(px, 4, pw, 2, Fade(SKYBLUE, 0.4f));  // accent
+        DrawText(timeBuf,  px + 8,  10, 16, WHITE);
+        DrawText(speedBuf, px + 8, 30, 14, paused ? ORANGE : LIGHTGRAY);
+        DrawRectangle(px + 4, 46, pw - 8, 1, Fade(LIGHTGRAY, 0.15f));  // separator
+        DrawText(seasBuf,  px + 8, 50, 13, tempColor);
+        DrawText(popBuf,   px + 8, 66, 13, LIGHTGRAY);
+        DrawText(fpsBuf,   px + 8, 82, 12, Fade(LIGHTGRAY, 0.6f));
     }
 
     UpdateNotifications(snap);
@@ -303,6 +317,16 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
 
 // ---- World status bar ----
 
+// Helper: draw a tiny resource bar inline (width x height pixels)
+static void DrawMiniBar(int x, int y, int w, int h, float value, float maxVal,
+                        Color fill, Color bg, Color border) {
+    float ratio = (maxVal > 0.f) ? std::min(1.f, value / maxVal) : 0.f;
+    DrawRectangle(x, y, w, h, bg);
+    int fillW = (int)(ratio * w);
+    if (fillW > 0) DrawRectangle(x, y, fillW, h, fill);
+    DrawRectangleLines(x, y, w, h, border);
+}
+
 void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     std::vector<RenderSnapshot::SettlementStatus> ws;
     Season season;
@@ -313,164 +337,143 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
     }
     if (ws.empty()) return;
 
-    // Show Wood stock in Autumn/Winter when fuel matters (hidden in Spring/Summer to save space).
     bool showWood = (season == Season::Autumn || season == Season::Winter);
 
-    static const int STATUS_FONT = 12;
-    char bufs[4][128]; bool hasEvent[4] = {}; bool hungerCrisis[4] = {}; std::string eventNames[4]; int count = 0;
-    for (const auto& s : ws) {
-        if (count >= 4) break;
-        // Format: "Name F:stock@price W:stock@price G:treasury [pop+haulers]"
-        const char* fmt_base  = showWood
-            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d+%d]"
-            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d+%d]";
-        const char* fmt_event = showWood
-            ? "%s  F:%.0f  W:%.0f  Wd:%.0f  G:%.0f  [%d+%d] [%s]"
-            : "%s  F:%.0f@%.1f  W:%.0f@%.1f  G:%.0f  [%d+%d] [%s]";
-
-        // Population trend symbol
-        const char* trendSym = (s.popTrend == '+') ? "↑" :
-                               (s.popTrend == '-') ? "↓" : "";
-
-        if (s.hasEvent) {
-            if (showWood)
-                std::snprintf(bufs[count], 128, fmt_event,
-                    s.name.c_str(), s.food, s.water, s.wood, s.treasury,
-                    s.pop, s.haulers, s.eventName.c_str());
-            else
-                std::snprintf(bufs[count], 128, fmt_event,
-                    s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
-                    s.treasury, s.pop, s.haulers, s.eventName.c_str());
-        } else {
-            if (showWood)
-                std::snprintf(bufs[count], 128, fmt_base,
-                    s.name.c_str(), s.food, s.water, s.wood, s.treasury,
-                    s.pop, s.haulers);
-            else
-                std::snprintf(bufs[count], 128, fmt_base,
-                    s.name.c_str(), s.food, s.foodPrice, s.water, s.waterPrice,
-                    s.treasury, s.pop, s.haulers);
-        }
-        // Append trend indicator (UTF-8 arrows may not render — use ASCII instead)
-        if (s.popTrend == '+' || s.popTrend == '-') {
-            size_t len = strlen(bufs[count]);
-            bufs[count][len] = ' ';
-            bufs[count][len+1] = s.popTrend;
-            bufs[count][len+2] = '\0';
-        }
-        (void)trendSym;  // suppress warning if UTF-8 arrows not used
-        hasEvent[count]    = s.hasEvent;
-        hungerCrisis[count] = s.hungerCrisis;
-        eventNames[count]  = s.eventName;
-        ++count;
-    }
-
-    // Second pass: record child counts and food prefix widths per entry.
-    int childCounts[4] = {};
-    char foodPfx[4][64] = {};  // prefix up to food number, for measuring hunger "!" position
-    {
-        int ci = 0;
-        for (const auto& s : ws) {
-            if (ci >= 4) break;
-            childCounts[ci] = s.childCount;
-            std::snprintf(foodPfx[ci], sizeof(foodPfx[ci]), "%s  F:%.0f", s.name.c_str(), s.food);
-            ++ci;
-        }
-    }
-    // Pre-build child suffix strings (e.g. " (3c)") for width measurement and drawing.
-    char childSuffix[4][16] = {};
-    for (int i = 0; i < count; ++i) {
-        if (childCounts[i] > 0)
-            std::snprintf(childSuffix[i], sizeof(childSuffix[i]), " (%dc)", childCounts[i]);
-    }
-
-    // Pre-build morale label strings (e.g. " M:72%+") for width measurement and drawing.
-    // Morale trend tracking: sample once per second, show +/- if delta > 0.03
+    // Morale trend tracking
     static std::map<std::string, float> s_prevMorale;
     static float s_moraleSampleTimer = 0.f;
     s_moraleSampleTimer += GetFrameTime();
     bool moraleSampleNow = (s_moraleSampleTimer >= 1.f);
     if (moraleSampleNow) s_moraleSampleTimer = 0.f;
 
-    char moraleBuf[4][20] = {};
-    float moraleVal[4] = {};
-    {
-        int mi = 0;
-        for (const auto& s : ws) {
-            if (mi >= 4) break;
-            moraleVal[mi] = s.morale;
-            char trend = ' ';
-            auto it = s_prevMorale.find(s.name);
-            if (it != s_prevMorale.end()) {
-                float delta = s.morale - it->second;
-                if (delta > 0.03f)  trend = '+';
-                if (delta < -0.03f) trend = '-';
-            }
-            if (trend != ' ')
-                std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%%c", s.morale * 100.f, trend);
-            else
-                std::snprintf(moraleBuf[mi], sizeof(moraleBuf[mi]), " M:%.0f%%", s.morale * 100.f);
-            if (moraleSampleNow)
-                s_prevMorale[s.name] = s.morale;
-            ++mi;
-        }
-    }
+    int count = std::min((int)ws.size(), 4);
 
-    // Pre-build contentment label strings (e.g. " C:85%")
-    char contentBuf[4][16] = {};
-    float contentVal[4] = {};
-    {
-        int ci2 = 0;
-        for (const auto& s : ws) {
-            if (ci2 >= 4) break;
-            contentVal[ci2] = s.avgContentment;
-            std::snprintf(contentBuf[ci2], sizeof(contentBuf[ci2]), " C:%.0f%%", s.avgContentment * 100.f);
-            ++ci2;
-        }
-    }
+    // Card layout: evenly spaced across top of screen
+    static const int CARD_H   = 42;
+    static const int CARD_PAD = 6;
+    static const int TOP_Y    = 2;
+    static const int NAME_FONT = 12;
+    static const int DATA_FONT = 10;
+    static const int MINI_BAR_W = 28;
+    static const int MINI_BAR_H = 6;
 
-    static const int HUNGER_W = 8;  // width reserved for "!" indicator
-    int totalW = 0;
-    for (int i = 0; i < count; ++i)
-        totalW += MeasureText(bufs[i], STATUS_FONT) + MeasureText(childSuffix[i], STATUS_FONT)
-                  + MeasureText(moraleBuf[i], STATUS_FONT)
-                  + MeasureText(contentBuf[i], STATUS_FONT)
-                  + (hungerCrisis[i] ? HUNGER_W : 0) + (i > 0 ? 28 : 0);
-    int sx = (SCREEN_W - totalW) / 2;
+    int totalGap  = (count - 1) * CARD_PAD;
+    int cardW     = (SCREEN_W - 20 - totalGap) / count;  // 10px margin each side
+    int startX    = (SCREEN_W - (cardW * count + totalGap)) / 2;
 
-    DrawRectangle(sx - 8, 4, totalW + 16, 34, Fade(BLACK, 0.55f));
-    int cx = sx;
     for (int i = 0; i < count; ++i) {
-        if (i > 0) { DrawText("|", cx, 14, STATUS_FONT, DARKGRAY); cx += 16; }
-        // Color wood stock red if very low in winter; event lines use modifier-specific colour.
-        bool woodLow = showWood && (ws[i].wood < 20.f) && (season == Season::Winter);
-        Color col = woodLow ? RED : (hasEvent[i] ? ModifierColour(eventNames[i]) : WHITE);
-        DrawText(bufs[i], cx, 14, STATUS_FONT, col);
-        // Hunger crisis: draw "!" immediately after the food number in red
-        if (hungerCrisis[i]) {
-            int pfxW = MeasureText(foodPfx[i], STATUS_FONT);
-            DrawText("!", cx + pfxW, 14, STATUS_FONT, Fade(RED, 0.9f));
+        const auto& s = ws[i];
+        int cx = startX + i * (cardW + CARD_PAD);
+
+        // Card background
+        Color cardBg = Fade(BLACK, 0.6f);
+        Color cardBorder = Fade(LIGHTGRAY, 0.25f);
+        if (s.hasEvent) cardBorder = Fade(ModifierColour(s.eventName), 0.6f);
+        DrawRectangle(cx, TOP_Y, cardW, CARD_H, cardBg);
+        DrawRectangleLines(cx, TOP_Y, cardW, CARD_H, cardBorder);
+
+        int tx = cx + 4;
+        int ty = TOP_Y + 3;
+
+        // Row 1: Settlement name + pop + trend + event
+        Color nameCol = s.hasEvent ? Color{255, 200, 80, 230} : WHITE;
+        DrawText(s.name.c_str(), tx, ty, NAME_FONT, nameCol);
+        int nameW = MeasureText(s.name.c_str(), NAME_FONT);
+
+        // Population with trend
+        char popBuf[32];
+        char trendCh = (s.popTrend == '+') ? '+' : (s.popTrend == '-') ? '-' : ' ';
+        if (s.childCount > 0)
+            std::snprintf(popBuf, sizeof(popBuf), " %d%c (%dc)", s.pop, trendCh, s.childCount);
+        else
+            std::snprintf(popBuf, sizeof(popBuf), " %d%c", s.pop, trendCh);
+        Color popCol = (s.popTrend == '+') ? Fade(GREEN, 0.8f) :
+                       (s.popTrend == '-') ? Fade(RED, 0.8f) : Fade(LIGHTGRAY, 0.7f);
+        DrawText(popBuf, tx + nameW, ty, DATA_FONT, popCol);
+
+        // Haulers count (right side of row 1)
+        if (s.haulers > 0) {
+            char hBuf[16];
+            std::snprintf(hBuf, sizeof(hBuf), "H:%d", s.haulers);
+            int hW = MeasureText(hBuf, DATA_FONT);
+            DrawText(hBuf, cx + cardW - hW - 4, ty, DATA_FONT, Fade(SKYBLUE, 0.7f));
         }
-        cx += MeasureText(bufs[i], STATUS_FONT) + (hungerCrisis[i] ? HUNGER_W : 0);
-        if (childCounts[i] > 0) {
-            DrawText(childSuffix[i], cx, 14, STATUS_FONT, Fade(LIGHTGRAY, 0.6f));
-            cx += MeasureText(childSuffix[i], STATUS_FONT);
+
+        // Event badge (right of haulers or right side)
+        if (s.hasEvent && !s.eventName.empty()) {
+            char evBuf[16];
+            std::snprintf(evBuf, sizeof(evBuf), "!%-.8s", s.eventName.c_str());
+            int evW = MeasureText(evBuf, 9);
+            int evX = cx + cardW - evW - (s.haulers > 0 ? 30 : 4);
+            DrawText(evBuf, evX, ty, 9, Fade(ModifierColour(s.eventName), 0.85f));
         }
-        // Morale label: green (≥0.7), yellow (≥0.3), red (<0.3)
-        {
-            Color moraleCol = (moraleVal[i] >= 0.7f) ? Fade(GREEN, 0.8f)  :
-                              (moraleVal[i] >= 0.3f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
-            DrawText(moraleBuf[i], cx, 14, STATUS_FONT, moraleCol);
-            cx += MeasureText(moraleBuf[i], STATUS_FONT);
+
+        // Row 2: Resource mini-bars + gold + morale/contentment
+        int ry = ty + 16;
+        int rx = tx;
+
+        // Food
+        Color foodFill = (s.food < 10.f) ? RED : (s.food < 30.f) ? ORANGE : Fade(GREEN, 0.8f);
+        DrawText("F", rx, ry, DATA_FONT, Fade(LIGHTGRAY, 0.6f));
+        rx += 9;
+        DrawMiniBar(rx, ry + 1, MINI_BAR_W, MINI_BAR_H, s.food, 150.f,
+                    foodFill, Fade(WHITE, 0.08f), Fade(WHITE, 0.3f));
+        if (s.hungerCrisis) DrawText("!", rx + MINI_BAR_W + 1, ry - 1, DATA_FONT, RED);
+        rx += MINI_BAR_W + (s.hungerCrisis ? 10 : 4);
+
+        // Water
+        Color waterFill = (s.water < 10.f) ? RED : (s.water < 30.f) ? ORANGE : Fade(BLUE, 0.8f);
+        DrawText("W", rx, ry, DATA_FONT, Fade(LIGHTGRAY, 0.6f));
+        rx += 10;
+        DrawMiniBar(rx, ry + 1, MINI_BAR_W, MINI_BAR_H, s.water, 150.f,
+                    waterFill, Fade(WHITE, 0.08f), Fade(WHITE, 0.3f));
+        rx += MINI_BAR_W + 4;
+
+        // Wood (always show but dim in spring/summer)
+        Color woodFill = (s.wood < 20.f && (season == Season::Winter)) ? RED :
+                         (s.wood < 30.f) ? ORANGE : Fade(BROWN, 0.9f);
+        float woodAlpha = showWood ? 1.f : 0.5f;
+        DrawText("D", rx, ry, DATA_FONT, Fade(LIGHTGRAY, 0.6f * woodAlpha));
+        rx += 9;
+        DrawMiniBar(rx, ry + 1, MINI_BAR_W, MINI_BAR_H, s.wood, 150.f,
+                    Fade(woodFill, woodAlpha), Fade(WHITE, 0.08f * woodAlpha),
+                    Fade(WHITE, 0.3f * woodAlpha));
+        rx += MINI_BAR_W + 6;
+
+        // Gold
+        char goldBuf[16];
+        std::snprintf(goldBuf, sizeof(goldBuf), "%.0fg", s.treasury);
+        DrawText(goldBuf, rx, ry, DATA_FONT, Fade(GOLD, 0.85f));
+        rx += MeasureText(goldBuf, DATA_FONT) + 6;
+
+        // Morale + Contentment on right side of row 2
+        float morale = s.morale;
+        char trend = ' ';
+        auto it = s_prevMorale.find(s.name);
+        if (it != s_prevMorale.end()) {
+            float delta = morale - it->second;
+            if (delta > 0.03f)  trend = '+';
+            if (delta < -0.03f) trend = '-';
         }
-        // Contentment label: green (≥0.7), yellow (≥0.4), red (<0.4)
-        {
-            Color cCol = (contentVal[i] >= 0.7f) ? Fade(GREEN, 0.7f)  :
-                         (contentVal[i] >= 0.4f) ? Fade(YELLOW, 0.7f) : Fade(RED, 0.8f);
-            DrawText(contentBuf[i], cx, 14, STATUS_FONT, cCol);
-            cx += MeasureText(contentBuf[i], STATUS_FONT);
-        }
-        cx += 12;
+        if (moraleSampleNow) s_prevMorale[s.name] = morale;
+
+        Color moraleCol = (morale >= 0.7f) ? Fade(GREEN, 0.8f) :
+                          (morale >= 0.3f) ? Fade(YELLOW, 0.8f) : Fade(RED, 0.9f);
+        char mBuf[16];
+        if (trend != ' ')
+            std::snprintf(mBuf, sizeof(mBuf), "M%.0f%%%c", morale * 100.f, trend);
+        else
+            std::snprintf(mBuf, sizeof(mBuf), "M%.0f%%", morale * 100.f);
+
+        Color cCol = (s.avgContentment >= 0.7f) ? Fade(GREEN, 0.7f) :
+                     (s.avgContentment >= 0.4f) ? Fade(YELLOW, 0.7f) : Fade(RED, 0.8f);
+        char cBuf[16];
+        std::snprintf(cBuf, sizeof(cBuf), "C%.0f%%", s.avgContentment * 100.f);
+
+        int mW = MeasureText(mBuf, DATA_FONT);
+        int cW = MeasureText(cBuf, DATA_FONT);
+        DrawText(mBuf, cx + cardW - mW - cW - 10, ry, DATA_FONT, moraleCol);
+        DrawText(cBuf, cx + cardW - cW - 4, ry, DATA_FONT, cCol);
     }
 }
 
@@ -490,8 +493,11 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
     static const int PY = SCREEN_H - PH - 4;
 
     DrawRectangle(PX, PY, PW, PH, Fade(BLACK, 0.6f));
-    DrawRectangleLines(PX, PY, PW, PH, Fade(LIGHTGRAY, 0.3f));
-    DrawText("Event Log", PX + 6, PY + 4, 11, Fade(YELLOW, 0.7f));
+    DrawRectangleLines(PX, PY, PW, PH, Fade(LIGHTGRAY, 0.25f));
+    // Title bar with accent
+    DrawRectangle(PX, PY, PW, 14, Fade(WHITE, 0.04f));
+    DrawRectangle(PX, PY + 14, PW, 1, Fade(LIGHTGRAY, 0.15f));
+    DrawText("Event Log", PX + 6, PY + 2, 11, Fade(YELLOW, 0.7f));
 
     int maxScroll = std::max(0, (int)entries.size() - LINES);
     int scroll    = std::min(logScroll, maxScroll);
