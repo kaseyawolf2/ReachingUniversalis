@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
-
 ## Done
+
+- [x] **Hauler farewell toast on retirement** — In `TransportSystem.cpp`'s hauler retirement block (deferred `retireList` processing), when a veteran retires, scan all haulers at the same home settlement. For each with `Relations::affinity >= 0.3`, boost their affinity toward the retiree by +0.05 (cap 1.0). Log "[Hauler] raises a toast to [Retiree]'s years of service at [Settlement]" at 1-in-3 frequency per attending hauler. Creates a social send-off event.
 
 - [x] **Convoy speed bonus for high affinity** — In `TransportSystem.cpp`'s convoy speed calculation (line where `convoySpeed` is set), when the convoy partner has `Relations::affinity >= 0.7` toward the hauler, increase the convoy speed bonus from 25% to 35% (`speed * 1.35f`). No log needed — the effect is visible through faster travel. Uses existing `convoyPartner` entity and `Relations` check.
 
@@ -4492,3 +4492,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Convoy loyalty bonus** — In `TransportSystem.cpp`'s convoy camaraderie block (after delivery arrival), track consecutive convoy trips between the same pair via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_convoyStreak`. On 3+ consecutive convoy trips together, boost mutual affinity by +0.06 instead of +0.04 and log "[Hauler1] and [Hauler2] are becoming inseparable on the road" at 1-in-4 frequency. Reset streak to 0 if either hauler delivers solo. Creates long-term travel partnerships.
 
 - [ ] **Convoy split sadness** — In `TransportSystem.cpp`'s convoy check, when `wasInConvoy == true` but `hauler.inConvoy == false` (convoy broke up), and the previous convoy partner had `Relations::affinity >= 0.5`, apply -0.005 to `Settlement::morale` on the hauler's home settlement. Log "[Hauler] misses travelling with [Partner]" at 1-in-8 frequency via `static std::mt19937 s_splitRng`. Uses existing `wasInConvoy` flag. Creates emotional cost when established travel companions separate.
+
+- [ ] **Retirement morale boost** — In `TransportSystem.cpp`'s retireList processing, after the farewell toast block, apply +0.02 to `Settlement::morale` (cap 1.0) on the retiree's home settlement when the retiree had `Hauler::lifetimeTrips >= 20`. Log "[Settlement] celebrates [Retiree]'s long career" at full frequency. Uses existing `HomeSettlement` and `Settlement::morale`. Creates a community-wide positive event from veteran retirement.
+
+- [ ] **Retiree reputation transfer** — In `TransportSystem.cpp`'s retireList processing, after the farewell toast, if the retiree has `Reputation::score >= 0.4`, find the youngest hauler (lowest `Hauler::lifetimeTrips`) at the same settlement and boost their `Reputation::score` by +0.1 (cap 1.0). Log "[Retiree] passes their good name to [Successor] at [Settlement]" at full frequency. Uses existing `Reputation` and `Hauler::lifetimeTrips`. Creates a legacy transfer mechanic.
