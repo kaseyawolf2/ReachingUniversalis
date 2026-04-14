@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
 
 - [x] **Hauler mentorship affinity boost** — In `TransportSystem.cpp`'s convoy block, when two haulers travel together and one has `Hauler::mentorBonus > 0` (experienced/second-chance hauler) and the other has `tripCount < 5` (novice), boost the novice's affinity toward the mentor by +0.02 per trip and set the novice's `mentorBonus = 0.05f` (small learned bonus). Log "[Mentor] shows [Novice] the ropes on the [Route] road" at 1-in-5 frequency. Creates a mentorship dynamic in convoy travel.
 
@@ -4605,3 +4605,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler mentorship graduation** — In `TransportSystem.cpp`'s delivery block, when a novice hauler (lifetimeTrips was < 5, now reaches 5) completes their 5th delivery while having `mentorBonus > 0`, log "[Novice] graduates from [Mentor]'s tutelage on the [Route] road" at full frequency. Boost the mentor's `Reputation::score` by +0.05. Uses existing `lifetimeTrips` and `mentorBonus`. Creates a narrative milestone for the mentorship arc.
 
 - [ ] **Convoy loyalty bonus** — In `TransportSystem.cpp`'s convoy block, add a `static std::map<std::pair<entt::entity,entt::entity>, int> s_convoyTrips` tracking how many trips two haulers have convoyed together. On 5th+ trip, boost mutual affinity by +0.01 per trip (on top of existing convoy bonus). Log "[HaulerA] and [HaulerB] are road companions" at 1-in-6 frequency on 5th trip. Creates long-term hauler partnerships.
+
+- [ ] **Expert teaching aura** — In `AgentDecisionSystem.cpp`'s skill growth block, when an expert NPC (profession-matching skill >= 0.8) is working at the same facility as a non-expert of the same profession, the non-expert gains +0.0001 passive skill growth per step (proximity learning). Log "[NonExpert] watches [Expert] work at [Settlement]" at 1-in-12 frequency. Uses existing `Profession` and `Skills` try_get. Creates a passive mentorship effect from expert presence.
+
+- [ ] **Expert count in settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement aggregation (`SettlAgg` struct), add `int expertCount = 0`. Increment when an NPC has profession-matching skill >= 0.8. Add `int expertCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Experts: N" after the master count line when N > 0. Makes the settlement's teaching capacity visible.
