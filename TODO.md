@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
-
 ## Done
+
+- [x] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
+
 
 - [x] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
 
@@ -139,6 +140,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Empathic comforter affinity boost** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after a successful empathic comfort (where both have `lastGriefDay >= 0`), boost mutual affinity by +0.03 between comforter and griever (stronger bond than normal comfort). No separate log needed — the empathic comfort log already fires. Uses existing `Relations::affinity`. Creates a social reward for shared grief experience.
 
 - [ ] **Comfort chain reaction** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, after a successful comfort, if the griever's `griefTimer` reaches 0 (fully comforted), the now-recovered griever gains `comfortCooldown = 0` (immediate readiness) and scans for another grieving NPC within 25 units to comfort in turn. Log "[Griever] pays it forward, comforting [Other] at [Settlement]" at 1-in-4 frequency. Creates a cascading comfort dynamic.
+
+- [ ] **Vigil strengthens elder wisdom bonds** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the morale boost, if any participant has `Skills::wisdomGriefDays > 0` (mourning a specific wise elder), all other vigil participants gain +0.01 affinity toward any elder (age>60) at the settlement. Log "[Settlement]'s vigil honours its elders" at 1-in-4 frequency. Connects the vigil system to the elder wisdom narrative.
+
+- [ ] **Seasonal vigil intensity** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, check `tm.CurrentSeason()`. During `Season::Winter`, increase the vigil affinity boost from +0.02 to +0.03 and morale boost from +0.03 to +0.05 (longer nights draw closer bonds). Log "[Settlement] huddles together through winter grief" at 1-in-3 frequency instead of the normal vigil log. Uses existing `TimeManager::CurrentSeason()`.
 
 ## Recently Done
 
