@@ -52,6 +52,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
+- [x] **Lineage pride tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool wisdomHeir = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Skills::wisdomLineage != entt::null` (NPC is carrying an elder's unfinished legacy). In `HUD.cpp`'s NPC tooltip, display "[Heir]" in soft violet after the generous badge. Makes it visible which NPCs are on the path to fulfilling an elder's legacy.
+
 - [x] **Expert gratitude from novice** — In `AgentDecisionSystem.cpp`'s idle chat block, when a novice (skill < 0.5) chats with an expert (skill >= 0.8) of the same profession at the same settlement, boost novice→expert affinity by +0.03 instead of the normal +0.02. Log "[Novice] thanks [Expert] for the guidance at [Settlement]" at 1-in-8 frequency. Uses existing `Profession` and `Skills` try_get. Complements the mastery teaching chain with a social bond component.
 
 - [x] **Repeated reconciliation deepens bond** — In `ScheduleSystem.cpp`'s reconciliation block, track how many times a pair has reconciled via a `static std::map<std::pair<entt::entity,entt::entity>, int> s_reconCount`. On 2nd+ reconciliation, use +0.08 affinity instead of +0.05, and boost `reconcileGlow` to 4 game-hours instead of 2. Log "[NPC1] and [NPC2] are becoming unlikely friends at [Settlement]" at full frequency on 3rd+ reconciliation. Creates an escalating friendship arc from repeated conflict resolution.
@@ -77,8 +79,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Lineage pride tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool wisdomHeir = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Skills::wisdomLineage != entt::null` (NPC is carrying an elder's unfinished legacy). In `HUD.cpp`'s NPC tooltip, display "[Heir]" in soft violet after the generous badge. Makes it visible which NPCs are on the path to fulfilling an elder's legacy.
 
 - [ ] **Lineage chain multi-generation** — In `DeathSystem.cpp`'s elder wisdom fading block, when the dying NPC themselves has `wisdomLineage != entt::null` (they were carrying a legacy but died before achieving mastery), pass the original `wisdomLineageName` to the mourner instead of the dying NPC's name. This allows a lineage to chain across multiple deaths, eventually producing a "[NPC] carries on [Original Elder]'s legacy" log when mastery is finally reached. No new fields needed — reuses `wisdomLineageName`.
 
@@ -4593,3 +4593,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Novice-to-expert career aspiration** — In `AgentDecisionSystem.cpp`'s skill growth block, when a novice (skill < 0.5) has `Relations::affinity >= 0.5` toward an expert (skill >= 0.8) of the same profession at the same settlement, boost skill growth by +0.0002 (10% bonus). Log "[Novice] trains harder to impress [Expert] at [Settlement]" at 1-in-10 frequency. Uses existing `Relations` and `Skills`. Creates a mentorship aspiration that rewards social bonds with faster learning.
 
 - [ ] **Expert recognition ceremony** — In `AgentDecisionSystem.cpp`'s once-per-day block, when an NPC's skill crosses 0.8 (journeyman→expert), scan for other experts at the same settlement with `Relations::affinity >= 0.3`. Each expert gains +0.02 affinity toward the new expert. Log "[Expert1] welcomes [NewExpert] into the guild at [Settlement]" at full frequency. Creates a peer-recognition moment that strengthens the professional community.
+
+- [ ] **Heir completion pride boost** — In `AgentDecisionSystem.cpp`'s skill growth block, when an heir NPC (`wisdomLineage != entt::null`) achieves skill >= 0.8 and the legacy log fires, boost the NPC's `Reputation::score` by +0.1 (cap 1.0) and home `Settlement::morale` by +0.02. Makes fulfilling an elder's legacy a tangible community benefit beyond the narrative log.
+
+- [ ] **Elder mentor tooltip detail** — In `SimThread::WriteSnapshot`'s NPC loop, add `std::string elderMentorName` to `AgentEntry` in `RenderSnapshot.h`. Set from `Skills::elderMentorName` when non-empty. In `HUD.cpp`'s NPC tooltip, display "Mentor: [Name]" in soft blue after the heir badge when non-empty. Makes the apprentice-mentor relationship visible.
