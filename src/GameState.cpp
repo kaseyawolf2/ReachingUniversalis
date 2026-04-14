@@ -1,4 +1,5 @@
 #include "GameState.h"
+#include "World/SeasonThresholds.h"
 #include <cmath>
 #include <algorithm>
 
@@ -252,7 +253,7 @@ void GameState::Draw() {
         } else {
             float minStock = std::min(s.foodStock, s.waterStock);
             // In cold seasons, include wood shortage in ring health assessment
-            bool coldSeason = (s.heatDrainMod > 0.2f);
+            bool coldSeason = (s.heatDrainMod > SeasonThreshold::COLD_SEASON);
             if (coldSeason && s.woodStock < 20.f)
                 minStock = std::min(minStock, s.woodStock);
             ring = s.selected ? YELLOW :
@@ -580,15 +581,15 @@ Color GameState::SkyColor() const {
 
     // Season tint derived from season properties:
     // Cold seasons (high heatDrainMod) get blue tint, warm/harvest seasons get orange/green.
-    if (heatDrainMod >= 0.8f) {
+    if (heatDrainMod >= SeasonThreshold::HARSH_COLD) {
         // Harsh cold: icy blue tint
         Color tint = { 60, 80, 120, 255 };
         base = LerpColor(base, tint, 0.18f);
-    } else if (heatDrainMod >= 0.3f) {
+    } else if (heatDrainMod >= SeasonThreshold::MODERATE_COLD) {
         // Moderate cold (autumn-like): amber/orange tint
         Color tint = { 200, 130, 60, 255 };
         base = LerpColor(base, tint, 0.10f);
-    } else if (heatDrainMod > 0.05f) {
+    } else if (heatDrainMod > SeasonThreshold::MILD_COLD) {
         // Mild cold (spring-like): slight green tint
         Color tint = { 100, 180, 140, 255 };
         base = LerpColor(base, tint, 0.07f);

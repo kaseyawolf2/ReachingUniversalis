@@ -1,5 +1,6 @@
 #include "ScheduleSystem.h"
 #include "ECS/Components.h"
+#include "World/SeasonThresholds.h"
 #include "World/WorldSchema.h"
 #include <cmath>
 #include <cstdio>
@@ -197,9 +198,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
         //   Winter: shorter days — sleep 2h earlier, wake 1h later, end work 2h earlier
         //   Summer: slightly longer productive hours — no adjustment needed (baseline)
         //   Spring/Autumn: base schedule
-        int seasonSleepAdj  = (seasonHeatDrain >= 0.8f) ? -2 : 0;  // negative = earlier sleep in harsh cold
-        int seasonWakeAdj   = (seasonHeatDrain >= 0.8f) ?  1 : 0;  // positive = later wake in harsh cold
-        int seasonWorkEndAdj = (seasonHeatDrain >= 0.8f) ? -2 : 0; // negative = earlier end in harsh cold
+        int seasonSleepAdj  = (seasonHeatDrain >= SeasonThreshold::HARSH_COLD) ? -2 : 0;  // negative = earlier sleep in harsh cold
+        int seasonWakeAdj   = (seasonHeatDrain >= SeasonThreshold::HARSH_COLD) ?  1 : 0;  // positive = later wake in harsh cold
+        int seasonWorkEndAdj = (seasonHeatDrain >= SeasonThreshold::HARSH_COLD) ? -2 : 0; // negative = earlier end in harsh cold
 
         int effSleepHour = sched.sleepHour + seasonSleepAdj;
         int effWakeHour  = sched.wakeHour  + seasonWakeAdj;
@@ -730,8 +731,8 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 coworkers.push_back(other);
                             });
                             // Seasonal work shanty: harvest seasons = more frequent songs, harsh cold = stronger bonds
-                            int songChance = (seasonProdMod > 1.1f) ? 15 : 30;
-                            float songAffinityGain = (seasonHeatDrain >= 0.8f) ? 0.02f : 0.01f;
+                            int songChance = (seasonProdMod > SeasonThreshold::HARVEST_SEASON) ? 15 : 30;
+                            float songAffinityGain = (seasonHeatDrain >= SeasonThreshold::HARSH_COLD) ? 0.02f : 0.01f;
                             if (coworkers.size() >= 3 && s_rng() % songChance == 0) {
                                 // Boost all coworkers' mutual affinity
                                 for (size_t i = 0; i < coworkers.size(); ++i) {
@@ -753,9 +754,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                             where = s->name;
                                     std::string songMsg;
-                                    if (seasonProdMod > 1.1f)
+                                    if (seasonProdMod > SeasonThreshold::HARVEST_SEASON)
                                         songMsg = who + " leads a harvest shanty at " + where + ".";
-                                    else if (seasonHeatDrain >= 0.8f)
+                                    else if (seasonHeatDrain >= SeasonThreshold::HARSH_COLD)
                                         songMsg = who + " leads a fireside song at " + where + ".";
                                     else
                                         songMsg = who + " leads a work song at " + where + ".";
