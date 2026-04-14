@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -884,6 +885,83 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             who + " trains harder, inspired by " + mentorName + "'s teaching.");
                     }
                 });
+        }
+    }
+
+    // ---- Mourning procession: 3+ grieving NPCs at same settlement gather to honour the fallen elder ----
+    {
+        static std::set<entt::entity> s_honouredElders;
+        static int s_lastProcessionDay = -1;
+        if (tm.day != s_lastProcessionDay) {
+            s_lastProcessionDay = tm.day;
+
+            // Count grieving NPCs per settlement, tracking which elder(s) they mourn
+            struct GriefInfo { entt::entity elder; int count; };
+            std::unordered_map<entt::entity, GriefInfo> griefBySettl; // settlement → info
+            registry.view<Skills, HomeSettlement, AgentState, DeprivationTimer>(
+                entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                [&](auto e, const Skills& sk, const HomeSettlement& hs, const AgentState&, const DeprivationTimer&) {
+                    if (sk.wisdomGriefDays <= 0.f || hs.settlement == entt::null) return;
+                    auto& gi = griefBySettl[hs.settlement];
+                    gi.count++;
+                    if (sk.wisdomLineage != entt::null)
+                        gi.elder = sk.wisdomLineage; // last one wins — all mourn the same elder
+                });
+
+            auto logVP = registry.view<EventLog>();
+            for (auto& [settlE, gi] : griefBySettl) {
+                if (gi.count < 3) continue;
+                if (gi.elder != entt::null && s_honouredElders.count(gi.elder)) continue;
+                if (gi.elder != entt::null)
+                    s_honouredElders.insert(gi.elder);
+
+                // Set all grieving NPCs at this settlement to Celebrating for 1 game-hour
+                // and boost mutual affinity +0.02
+                std::vector<entt::entity> participants;
+                registry.view<Skills, HomeSettlement, AgentState, DeprivationTimer>(
+                    entt::exclude<Hauler, PlayerTag, BanditTag>).each(
+                    [&](auto e, const Skills& sk, const HomeSettlement& hs, AgentState& st, DeprivationTimer& dt) {
+                        if (sk.wisdomGriefDays <= 0.f || hs.settlement != settlE) return;
+                        st.behavior = AgentBehavior::Celebrating;
+                        dt.skillCelebrateTimer = 1.0f; // 1 game-hour
+                        participants.push_back(e);
+                    });
+
+                // Mutual affinity boost among participants
+                for (size_t i = 0; i < participants.size(); ++i) {
+                    auto* relA = registry.try_get<Relations>(participants[i]);
+                    if (!relA) continue;
+                    for (size_t j = i + 1; j < participants.size(); ++j) {
+                        auto* relB = registry.try_get<Relations>(participants[j]);
+                        relA->affinity[participants[j]] = std::min(1.f, relA->affinity[participants[j]] + 0.02f);
+                        if (relB)
+                            relB->affinity[participants[i]] = std::min(1.f, relB->affinity[participants[i]] + 0.02f);
+                    }
+                }
+
+                // Log once
+                if (!logVP.empty()) {
+                    std::string where = "a settlement";
+                    if (registry.valid(settlE))
+                        if (const auto* s = registry.try_get<Settlement>(settlE))
+                            where = s->name;
+                    std::string elderName = "an elder";
+                    // Try to get elder name from one of the participants' wisdomLineageName
+                    for (auto p : participants) {
+                        const auto* pSk = registry.try_get<Skills>(p);
+                        if (pSk && !pSk->wisdomLineageName.empty()) {
+                            elderName = pSk->wisdomLineageName;
+                            break;
+                        }
+                    }
+                    logVP.get<EventLog>(*logVP.begin()).Push(tm.day, (int)tm.hourOfDay,
+                        where + " gathers to honour " + elderName + "'s memory.");
+                }
+            }
+
+            // Prune s_honouredElders to prevent unbounded growth (keep last 50)
+            while (s_honouredElders.size() > 50)
+                s_honouredElders.erase(s_honouredElders.begin());
         }
     }
 
