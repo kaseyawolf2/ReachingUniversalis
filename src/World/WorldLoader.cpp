@@ -658,6 +658,7 @@ static bool ResolveCrossRefs(const std::string& worldDir,
         }
     }
 
+    schema.crossRefsResolved = true;
     return true;
 }
 

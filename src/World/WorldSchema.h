@@ -293,6 +293,9 @@ struct WorldSchema {
     ProfessionID idleProfessionId   = INVALID_ID;
     ProfessionID haulerProfessionId = INVALID_ID;
 
+    // Ordering guard: set true by ResolveCrossRefs(), checked by BuildResourceToSkillMap().
+    bool crossRefsResolved = false;
+
     // ---- Lookup helpers (safe, return INVALID_ID on miss) ----
 
     NeedID       FindNeed(const std::string& name) const       { auto it = needsByName.find(name);       return it != needsByName.end()       ? it->second : INVALID_ID; }
@@ -371,6 +374,7 @@ struct WorldSchema {
     // Build the resourceToSkill reverse lookup from SkillDef::forResource.
     // Must be called AFTER ResolveCrossRefs populates forResource fields.
     void BuildResourceToSkillMap() {
+        assert(crossRefsResolved && "BuildResourceToSkillMap() must be called after ResolveCrossRefs()");
         resourceToSkill.assign(resources.size(), INVALID_ID);
         for (const auto& d : skills) {
             if (d.forResource >= 0 && d.forResource < (int)resources.size())
