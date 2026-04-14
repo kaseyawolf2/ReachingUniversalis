@@ -1735,6 +1735,47 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                     }
                 }
 
+                // ---- Elder departure farewell feast ----
+                if (const auto* elderAge = registry.try_get<Age>(entity)) {
+                    if (elderAge->days > 60.f) {
+                        // Count local friends (affinity >= 0.3) at the old settlement
+                        std::vector<entt::entity> localFriends;
+                        if (const auto* elderRel = registry.try_get<Relations>(entity)) {
+                            for (const auto& [fe, aff] : elderRel->affinity) {
+                                if (aff < 0.3f) continue;
+                                auto sit = s_entitySettlement.find(fe);
+                                if (sit != s_entitySettlement.end() && sit->second == home.settlement)
+                                    localFriends.push_back(fe);
+                            }
+                        }
+                        if (localFriends.size() >= 3) {
+                            // Morale hit on settlement
+                            if (auto* settl = registry.try_get<Settlement>(home.settlement))
+                                settl->morale = std::max(0.f, settl->morale - 0.01f);
+                            // Mutual affinity boost +0.03 among friends left behind
+                            for (size_t i = 0; i < localFriends.size(); ++i) {
+                                auto* relA = registry.try_get<Relations>(localFriends[i]);
+                                if (!relA) continue;
+                                for (size_t j = i + 1; j < localFriends.size(); ++j) {
+                                    relA->affinity[localFriends[j]] = std::min(1.f, relA->affinity[localFriends[j]] + 0.03f);
+                                    if (auto* relB = registry.try_get<Relations>(localFriends[j]))
+                                        relB->affinity[localFriends[i]] = std::min(1.f, relB->affinity[localFriends[i]] + 0.03f);
+                                }
+                            }
+                            // Log once
+                            auto lvF = registry.view<EventLog>();
+                            if (!lvF.empty()) {
+                                std::string settlName = "settlement";
+                                if (const auto* s = registry.try_get<Settlement>(home.settlement)) settlName = s->name;
+                                std::string elderName = "an elder";
+                                if (const auto* nm = registry.try_get<Name>(entity)) elderName = nm->value;
+                                lvF.get<EventLog>(*lvF.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    settlName + " holds a farewell feast for " + elderName + ".");
+                            }
+                        }
+                    }
+                }
+
                 // ---- Career changer restlessness log ----
                 static std::mt19937 s_restlessRng{std::random_device{}()};
                 if (careerRestless && s_restlessRng() % 10 == 0) {
