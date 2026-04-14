@@ -1,4 +1,7 @@
 # Medieval World — Skill Definitions
+#
+# growth_rate: multiplier on practice-based growth (1.0 = normal, 2.0 = double)
+# decay_rate:  skill loss per game-day when not practicing (0.0005 = standard rust)
 
 [[skills]]
 name         = "farming"
@@ -6,7 +9,7 @@ display_name = "Farming"
 for_resource = "Food"
 start_value  = 0.5
 growth_rate  = 1.0
-decay_rate   = 0.0
+decay_rate   = 0.0005
 
 [[skills]]
 name         = "water_drawing"
@@ -14,7 +17,7 @@ display_name = "Water Drawing"
 for_resource = "Water"
 start_value  = 0.5
 growth_rate  = 1.0
-decay_rate   = 0.0
+decay_rate   = 0.0005
 
 [[skills]]
 name         = "woodcutting"
@@ -22,4 +25,4 @@ display_name = "Woodcutting"
 for_resource = "Wood"
 start_value  = 0.5
 growth_rate  = 1.0
-decay_rate   = 0.0
+decay_rate   = 0.0005
