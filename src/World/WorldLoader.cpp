@@ -240,16 +240,29 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.durationHours = OptFloat(*item, "duration_hours", 0.0f);
         def.chance        = OptFloat(*item, "chance", 0.01f);
         def.minPopulation = OptInt(*item, "min_population", 0);
-        def.logMessage    = OptStr(*item, "log_message", "");
 
         // Extended fields
         def.moraleImpact          = OptFloat(*item, "morale_impact", 0.0f);
         def.killFraction          = OptFloat(*item, "kill_fraction", 0.0f);
         def.targetResource        = OptStr(*item, "target_resource", "");
+        def.destroyResource       = OptStr(*item, "destroy_resource", "");
+        def.destroyFraction       = OptFloat(*item, "destroy_fraction", 0.0f);
+        // destroy_resources = [{resource = "Food", fraction = 0.45}, ...]
+        if (auto* drArr = item->get("destroy_resources")) {
+            if (auto* darr = drArr->as_array()) {
+                for (size_t di = 0; di < darr->size(); ++di) {
+                    auto* ditem = darr->get(di)->as_table();
+                    if (!ditem) continue;
+                    std::string drName = OptStr(*ditem, "resource", "");
+                    float drFrac = OptFloat(*ditem, "fraction", 0.0f);
+                    if (!drName.empty() && drFrac > 0.f)
+                        def.destroyResourceNames.emplace_back(drName, drFrac);
+                }
+            }
+        }
         def.addResource           = OptStr(*item, "add_resource", "");
         def.addAmount             = OptFloat(*item, "add_amount", 0.0f);
         def.treasuryChange        = OptFloat(*item, "treasury_change", 0.0f);
-        def.blockRoadsConnected   = OptBool(*item, "block_roads_connected", false);
         def.blockAllRoads         = OptBool(*item, "block_all_roads", false);
         def.roadBlockDuration     = OptFloat(*item, "road_block_duration", 0.0f);
         def.roadDamage            = OptFloat(*item, "road_damage", 0.0f);
@@ -272,7 +285,6 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.spawnSkilled          = OptBool(*item, "spawn_skilled", false);
         def.affectsAllSettlements = OptBool(*item, "affects_all_settlements", false);
         def.breaksDrought         = OptBool(*item, "breaks_drought", false);
-        def.isConvoy              = OptBool(*item, "is_convoy", false);
         def.convoyAmount          = OptFloat(*item, "convoy_amount", 0.0f);
         def.convoyMinPrice        = OptFloat(*item, "convoy_min_price", 0.0f);
 
@@ -584,6 +596,24 @@ static bool ResolveCrossRefs(const std::string& worldDir,
                 return false;
             }
             ev.addResourceId = id;
+        }
+        if (!ev.destroyResource.empty()) {
+            auto id = schema.FindResource(ev.destroyResource);
+            if (id == INVALID_ID) {
+                err = worldDir + "/events.toml: event '" + ev.name
+                    + "' references unknown destroy_resource '" + ev.destroyResource + "'";
+                return false;
+            }
+            ev.destroyResourceId = id;
+        }
+        for (const auto& [resName, frac] : ev.destroyResourceNames) {
+            auto id = schema.FindResource(resName);
+            if (id == INVALID_ID) {
+                err = worldDir + "/events.toml: event '" + ev.name
+                    + "' references unknown destroy_resources resource '" + resName + "'";
+                return false;
+            }
+            ev.destroyResources.emplace_back(id, frac);
         }
     }
 

@@ -84,8 +84,6 @@ struct EventDef {
     float       durationHours = 0.0f;         // game-hours the effect lasts (0 = instant)
     float       chance        = 0.01f;        // probability per check (per settlement per hour)
     int         minPopulation = 0;            // minimum pop to trigger
-    std::string logMessage;                   // template with {settlement}, {npc}, etc.
-
     // --- Extended fields for data-driven event effects ---
 
     // Morale impact when event fires (negative = demoralising, positive = uplifting)
@@ -99,6 +97,16 @@ struct EventDef {
     std::string targetResource;               // resource name for stockpile effects
     int         targetResourceId = INVALID_ID; // resolved at load time
 
+    // Destroy a specific resource by fraction (e.g. HeatWave destroys water)
+    std::string destroyResource;              // resource name to destroy (empty = none)
+    int         destroyResourceId = INVALID_ID; // resolved at load time
+    float       destroyFraction   = 0.0f;     // fraction of stockpile to destroy (0 = none)
+
+    // Multiple resource destruction (e.g. fire destroys food + wood)
+    // Each pair is (resourceId, fraction); resolved at load time.
+    std::vector<std::pair<std::string, float>> destroyResourceNames; // raw names from TOML
+    std::vector<std::pair<int, float>>         destroyResources;     // resolved IDs
+
     // Additional stockpile additions (e.g. rainstorm adds water)
     std::string addResource;                  // resource name to add
     int         addResourceId = INVALID_ID;   // resolved at load time
@@ -108,7 +116,6 @@ struct EventDef {
     float       treasuryChange = 0.0f;
 
     // Road effects
-    bool        blockRoadsConnected = false;  // block roads connected to the target settlement
     bool        blockAllRoads       = false;  // block ALL roads in the world (e.g. blizzard)
     float       roadBlockDuration   = 0.0f;   // game-hours roads stay blocked
     float       roadDamage          = 0.0f;   // condition damage to roads (0-1)
@@ -154,7 +161,6 @@ struct EventDef {
     bool        breaksDrought = false;
 
     // Convoy: buy most-expensive resource from off-map
-    bool        isConvoy = false;
     float       convoyAmount   = 0.0f;
     float       convoyMinPrice = 0.0f;        // only dispatch when scarcest price >= this
 };

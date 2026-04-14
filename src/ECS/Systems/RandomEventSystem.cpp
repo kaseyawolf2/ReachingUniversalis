@@ -942,24 +942,19 @@ static entt::entity SpawnNPC(entt::registry& registry, entt::entity target,
         "Vale","Cross","Bridge"
     };
 
-    static constexpr float DRAIN_HUNGER = 0.00083f, DRAIN_THIRST = 0.00125f;
-    static constexpr float DRAIN_ENERGY = 0.00050f, DRAIN_HEAT   = 0.00200f;
-    static constexpr float CRIT_THRESH  = 0.3f;
-    static constexpr float REFILL_H = 0.004f, REFILL_T = 0.006f;
-    static constexpr float REFILL_E = 0.002f, REFILL_HEAT = 0.010f;
-
     float angle = std::uniform_real_distribution<float>(0.f, 6.28f)(rng);
     auto npc = registry.create();
     registry.emplace<Position>(npc, tpos.x + std::cos(angle) * 60.f,
                                     tpos.y + std::sin(angle) * 60.f);
     registry.emplace<Velocity>(npc, 0.f, 0.f);
     registry.emplace<MoveSpeed>(npc, 60.f);
-    Needs npcNeeds{ {
-        Need{NeedType::Hunger, startNeedValue, DRAIN_HUNGER, CRIT_THRESH, REFILL_H},
-        Need{NeedType::Thirst, startNeedValue, DRAIN_THIRST, CRIT_THRESH, REFILL_T},
-        Need{NeedType::Energy, std::min(1.f, startNeedValue + 0.2f), DRAIN_ENERGY, CRIT_THRESH, REFILL_E},
-        Need{NeedType::Heat,   std::min(1.f, startNeedValue + 0.2f), DRAIN_HEAT,   CRIT_THRESH, REFILL_HEAT},
-    } };
+    // Build needs from schema definitions
+    Needs npcNeeds;
+    for (const auto& nd : schema.needs) {
+        // Energy and Heat-like needs (index >= 2) start slightly higher
+        float sv = (nd.id >= 2) ? std::min(1.f, startNeedValue + 0.2f) : startNeedValue;
+        npcNeeds.list.emplace_back(nd.id, sv, nd.drainRate, nd.criticalThreshold, nd.refillRate);
+    }
     // Personality variation: +/-20% drain rates
     std::uniform_real_distribution<float> trait_dist(0.80f, 1.20f);
     for (auto& need : npcNeeds.list) need.drainRate *= trait_dist(rng);
@@ -1051,9 +1046,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
     if (eligible.empty()) return;
 
-    // Pick a random eligible event (uniform distribution among eligible events)
-    std::uniform_int_distribution<int> pickEvt(0, (int)eligible.size() - 1);
-    const EventDef& ev = schema.events[eligible[pickEvt(m_rng)]];
+    // Pick a random eligible event using weighted selection based on ev.chance
+    float totalWeight = 0.f;
+    for (int idx : eligible)
+        totalWeight += schema.events[idx].chance;
+    std::uniform_real_distribution<float> weightDist(0.f, totalWeight);
+    float roll = weightDist(m_rng);
+    int pickedIdx = eligible.back();  // fallback to last
+    float cumulative = 0.f;
+    for (int idx : eligible) {
+        cumulative += schema.events[idx].chance;
+        if (roll <= cumulative) { pickedIdx = idx; break; }
+    }
+    const EventDef& ev = schema.events[pickedIdx];
 
     // ---- Apply event effects based on effectType ----
 
@@ -1085,14 +1090,13 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (ev.moraleImpact != 0.f)
             settl->morale = std::clamp(settl->morale + ev.moraleImpact, 0.f, 1.f);
 
-        // Heat wave: destroy water stockpile
-        if (ev.name == "HeatWave") {
+        // Destroy a specific resource by fraction (e.g. HeatWave destroys water)
+        if (ev.destroyResourceId != INVALID_ID && ev.destroyFraction > 0.f) {
             auto* sp = registry.try_get<Stockpile>(target);
             if (sp) {
-                auto it = sp->quantities.find(RES_WATER);
+                auto it = sp->quantities.find(ev.destroyResourceId);
                 if (it != sp->quantities.end() && it->second > 5.f) {
-                    std::uniform_real_distribution<float> evap(0.20f, 0.35f);
-                    float lost = it->second * evap(m_rng);
+                    float lost = it->second * ev.destroyFraction;
                     it->second -= lost;
                 }
             }
@@ -1405,18 +1409,20 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         std::uniform_real_distribution<float> burnFrac(
             std::max(0.f, ev.effectValue - 0.10f),
             std::min(1.f, ev.effectValue + 0.10f));
-        float fraction = burnFrac(m_rng);
 
-        float foodLost = 0.f, woodLost = 0.f;
-        auto fitFood = sp->quantities.find(RES_FOOD);
-        if (fitFood != sp->quantities.end() && fitFood->second > 5.f) {
-            foodLost = fitFood->second * fraction;
-            fitFood->second -= foodLost;
-        }
-        auto fitWood = sp->quantities.find(RES_WOOD);
-        if (fitWood != sp->quantities.end() && fitWood->second > 5.f) {
-            woodLost = fitWood->second * fraction;
-            fitWood->second -= woodLost;
+        // Destroy resources specified in the destroyResources vector
+        std::string lostDesc;
+        for (const auto& [resId, baseFrac] : ev.destroyResources) {
+            float fraction = burnFrac(m_rng);
+            auto fit = sp->quantities.find(resId);
+            if (fit != sp->quantities.end() && fit->second > 5.f) {
+                float lost = fit->second * fraction;
+                fit->second -= lost;
+                if (!lostDesc.empty()) lostDesc += ", ";
+                std::string resName = (resId >= 0 && resId < (int)schema.resources.size())
+                    ? schema.resources[resId].name : "resource";
+                lostDesc += std::to_string((int)lost) + " " + resName;
+            }
         }
 
         int killed = 0;
@@ -1426,9 +1432,9 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) {
             char buf[200];
             std::snprintf(buf, sizeof(buf),
-                "%s at %s %s -- %.0f food, %.0f wood destroyed, %d died",
+                "%s at %s %s -- %s destroyed, %d died",
                 ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
-                foodLost, woodLost, killed);
+                lostDesc.empty() ? "nothing" : lostDesc.c_str(), killed);
             log->Push(day, hour, buf);
         }
     }
@@ -1445,7 +1451,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
         float spikeBase = ev.priceSpikeMultiplier > 0.f ? ev.priceSpikeMultiplier : 3.0f;
         float actualSpike = std::uniform_real_distribution<float>(
-            spikeBase - 0.5f, spikeBase + 0.5f)(m_rng);
+            std::max(1.0f, spikeBase - 0.5f), spikeBase + 0.5f)(m_rng);
         for (auto& [rt, p] : mkt->price)
             p = std::min(20.f, p * actualSpike);
 
