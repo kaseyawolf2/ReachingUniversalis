@@ -1,5 +1,6 @@
 #include "DeathSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <cassert>
 #include <vector>
 #include <cstdio>
@@ -16,7 +17,26 @@ static constexpr float SECS_PER_GAME_DAY = 24.f * 60.f;
 
 static std::mt19937 s_wisdomDeathRng{ std::random_device{}() };
 
-void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
+DeathSystem::DeathSystem(const WorldSchema& schema)
+    : m_schema(schema) {}
+
+void DeathSystem::Update(entt::registry& registry, float realDt) {
+    // Cache need names on first call to avoid per-tick schema access for death cause strings.
+    if (!m_needsCached) {
+        m_needNames.resize(m_schema.needs.size());
+        for (int i = 0; i < (int)m_schema.needs.size(); ++i) {
+            m_needNames[i] = m_schema.needs[i].name;
+            if (m_schema.needs[i].id == INVALID_ID)
+                fprintf(stderr, "[DeathSystem] WARNING: cached NeedID for \"%s\" is INVALID_ID (-1). "
+                                "Death-cause reporting for this need will fall back to \"deprivation\". "
+                                "Check that the need exists in the schema TOML.\n",
+                        m_schema.needs[i].name.c_str());
+        }
+        if (m_needNames.empty())
+            fprintf(stderr, "[DeathSystem] WARNING: schema contains no needs. "
+                            "All need-deprivation deaths will report cause as \"deprivation\".\n");
+        m_needsCached = true;
+    }
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     float gameDt = timeView.get<TimeManager>(*timeView.begin()).GameDt(realDt);
@@ -85,8 +105,8 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 timer.needsAtZero[i] += gameDt;
                 if (timer.needsAtZero[i] >= DEATH_THRESHOLD) {
                     toRemove.push_back(entity);
-                    const char* cause = (i >= 0 && i < (int)schema.needs.size())
-                                        ? schema.needs[i].name.c_str() : "deprivation";
+                    const char* cause = (i >= 0 && i < (int)m_needNames.size())
+                                        ? m_needNames[i].c_str() : "deprivation";
                     std::string who = "NPC";
                     if (const auto* n = registry.try_get<Name>(entity)) who = n->value;
                     int ageInt = 0;

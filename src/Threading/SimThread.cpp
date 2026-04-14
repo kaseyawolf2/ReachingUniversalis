@@ -19,7 +19,8 @@ static constexpr int   MAX_CATCHUP   = 4;
 SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
     : m_input(input), m_snapshot(snapshot), m_schema(schema),
       m_needDrainSystem(schema),
-      m_consumptionSystem(schema)
+      m_consumptionSystem(schema),
+      m_deathSystem(schema)
 {
     WorldGenerator::Populate(m_registry, m_schema);
 
@@ -306,7 +307,7 @@ void SimThread::RunSimStep(float dt) {
     timeCall(m_profile[9].accumUs,  [&]{ m_randomEventSystem.Update(m_registry, dt, m_schema); });
     timeCall(m_profile[10].accumUs, [&]{ m_economicMobilitySystem.Update(m_registry, dt, m_schema); });
     timeCall(m_profile[11].accumUs, [&]{ m_constructionSystem.Update(m_registry, dt, m_schema); });
-    timeCall(m_profile[12].accumUs, [&]{ m_deathSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[12].accumUs, [&]{ m_deathSystem.Update(m_registry, dt); });
     timeCall(m_profile[13].accumUs, [&]{ m_birthSystem.Update(m_registry, dt, m_schema); });
     ++m_profileSteps;
 
