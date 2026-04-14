@@ -165,7 +165,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **Season threshold TOML test config** — Add a `tests/test_seasons_invalid.toml` with intentionally inverted thresholds (`harshCold < mildCold`) and a test or script that runs `WorldLoader::LoadSeasons()` against it, verifying the warning is logged. Documents the validation behavior for future modders.
 
-- [ ] **Season threshold HUD display** — `GameState.cpp` uses season thresholds for sky tint but the HUD doesn't show the current threshold regime. Add a `seasonRegime` string field to `RenderSnapshot` (e.g., "Harsh Cold", "Mild", "Harvest") set by `TimeSystem` based on current `heatDrainMod` vs thresholds, displayed in the time panel.
+- [x] **Season threshold HUD display** — `GameState.cpp` uses season thresholds for sky tint but the HUD doesn't show the current threshold regime. Add a `seasonRegime` string field to `RenderSnapshot` (e.g., "Harsh Cold", "Mild", "Harvest") set by `TimeSystem` based on current `heatDrainMod` vs thresholds, displayed in the time panel.
 
 - [x] **Flat professionToSkill bounds-check assert** — `WorldSchema::SkillForProfession(ProfessionID)` indexes into `professionToSkill` vector but has no bounds check. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for debug builds, consistent with `SkillIdForResource()`.
 
@@ -282,6 +282,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **ProfessionLabel bounds-check assert** — `WorldSchema::ProfessionLabel()` indexes into `professions` vector without a debug assert. Add `assert(pid >= 0 && pid < (int)professions.size())` consistent with `ProfessionForResource()` and `SkillForProfession()`.
 
 - [ ] **ID-indexed lookup assert sweep** — Multiple `WorldSchema` methods that index by ID (`NeedLabel`, `ResourceLabel`, `SkillLabel`, etc.) lack debug asserts. Audit all ID-indexed lookup methods and add `assert(id >= 0 && id < (int)vec.size())` consistently to catch out-of-bounds access in debug builds.
+
+- [ ] **Season regime enum replacement** — `RenderSnapshot::seasonRegime` is a `std::string` used only for color selection in `HUD.cpp`, not displayed to the user. Replace with an `enum class SeasonRegime` for type-safe matching and zero per-frame string allocation in `WriteSnapshot()`.
+
+- [ ] **Season regime classification to TimeSystem** — The season regime classification logic currently lives in `SimThread::WriteSnapshot()`, which should be a dumb data-copy. Move the classification into `TimeSystem::Update()` so it runs as part of the sim step, and have `WriteSnapshot()` just copy the result.
 
 ## Phase 2 — UI Decoupling
 
