@@ -1,12 +1,34 @@
 #include "NeedDrainSystem.h"
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
+#include <cstdio>
 
 // Extra drain multiplier applied to the player's needs when standing inside a
 // plague-afflicted settlement (within its radius).
 static constexpr float PLAGUE_PLAYER_DRAIN_MULT = 1.5f;
 
-void NeedDrainSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
+NeedDrainSystem::NeedDrainSystem(const WorldSchema& schema)
+    : m_schema(schema) {}
+
+void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
+    // Cache need IDs on first call to avoid string map lookups every tick.
+    if (!m_needsCached) {
+        m_energyNeedId = m_schema.FindNeed("Energy");
+        m_heatNeedId   = m_schema.FindNeed("Heat");
+        m_needsCached  = true;
+
+        if (m_energyNeedId == INVALID_ID)
+            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Energy\" is INVALID_ID (-1). "
+                            "Seasonal energy drain and sleep refill will not function. "
+                            "Check that a need named \"Energy\" exists in the schema TOML.\n");
+        if (m_heatNeedId == INVALID_ID)
+            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Heat\" is INVALID_ID (-1). "
+                            "Seasonal heat drain will not function. "
+                            "Check that a need named \"Heat\" exists in the schema TOML.\n");
+    }
+    const int energyNeedId = m_energyNeedId;
+    const int heatNeedId   = m_heatNeedId;
+
     // Resolve game-time delta from the TimeManager singleton.
     // Needs drain at a consistent game-time rate regardless of tick speed.
     // If paused, gameDt == 0 and no draining occurs.
@@ -17,10 +39,10 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
     if (!timeView.empty()) {
         const auto& tm = timeView.get<TimeManager>(*timeView.begin());
         gameDt          = tm.GameDt(realDt);
-        SeasonID sid    = tm.CurrentSeason(schema.seasons);
-        if (sid >= 0 && sid < (int)schema.seasons.size()) {
-            energyDrainMult = schema.seasons[sid].energyDrainMod;
-            heatDrainMult   = schema.seasons[sid].heatDrainMod;
+        SeasonID sid    = tm.CurrentSeason(m_schema.seasons);
+        if (sid >= 0 && sid < (int)m_schema.seasons.size()) {
+            energyDrainMult = m_schema.seasons[sid].energyDrainMod;
+            heatDrainMult   = m_schema.seasons[sid].heatDrainMod;
         }
     }
 
@@ -62,12 +84,12 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
 
         for (int i = 0; i < (int)needs.list.size(); ++i) {
             auto& need = needs.list[i];
-            if (sleeping && need.type == NeedType::Energy) {
+            if (sleeping && need.needId == energyNeedId) {
                 need.value += need.refillRate * gameDt;
                 if (need.value > 1.0f) need.value = 1.0f;
             } else {
-                float mult = (need.type == NeedType::Energy) ? energyDrainMult :
-                             (need.type == NeedType::Heat)   ? heatDrainMult   : 1.f;
+                float mult = (need.needId == energyNeedId) ? energyDrainMult :
+                             (need.needId == heatNeedId)   ? heatDrainMult   : 1.f;
                 float illnessMult = (pesTimer && pesTimer->illnessTimer > 0.f
                                     && pesTimer->illnessNeedIdx == i) ? 2.f : 1.f;
                 need.value -= need.drainRate * mult * plagueMult * celebrateMult
@@ -78,8 +100,8 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
 
         // Worker fatigue: energy below 0.2 while working triggers production penalty
         if (auto* sched = registry.try_get<Schedule>(entity)) {
-            float energy = ((int)NeedType::Energy < (int)needs.list.size())
-                         ? needs.list[(int)NeedType::Energy].value : 1.f;
+            const Need* energyNeed = needs.ByID(energyNeedId);
+            float energy = energyNeed ? energyNeed->value : 1.f;
             if (const auto* state = registry.try_get<AgentState>(entity)) {
                 if (state->behavior == AgentBehavior::Working && energy < 0.2f)
                     sched->fatigued = true;
