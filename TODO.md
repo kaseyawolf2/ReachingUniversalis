@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
+
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -93,8 +95,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
 
 - [ ] **Harmony-driven migration preference** — In `AgentDecisionSystem.cpp`'s migration destination scoring block, add a bonus of `+0.1 * harmony` to destination settlement scores where harmony data is available (pre-compute harmony in the settlement aggregation map). NPCs prefer socially cohesive settlements. Log "[NPC] is drawn to [Settlement]'s friendly community" at 1-in-12 frequency. Uses the same friendshipPairs / possiblePairs formula from `SimThread::WriteSnapshot`.
 
