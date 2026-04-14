@@ -491,17 +491,20 @@ struct Skills {
             levels[skillId] = v;
     }
 
-    // Returns the relevant skill for a given resource output type, using cached map.
+    // Returns the relevant skill for a given resource output type, using cached flat array.
     float ForResource(int rt, const WorldSchema& schema) const {
-        auto it = schema.resourceToSkill.find(rt);
-        if (it != schema.resourceToSkill.end()) return Get(it->second);
+        if (rt >= 0 && rt < (int)schema.resourceToSkill.size()) {
+            int sid = schema.resourceToSkill[rt];
+            if (sid != INVALID_ID) return Get(sid);
+        }
         return 0.5f;  // no skill mapped to this resource
     }
 
     // Returns the SkillID that maps to a given resource, or INVALID_ID.
     static int SkillIdForResource(int rt, const WorldSchema& schema) {
-        auto it = schema.resourceToSkill.find(rt);
-        return (it != schema.resourceToSkill.end()) ? it->second : INVALID_ID;
+        if (rt >= 0 && rt < (int)schema.resourceToSkill.size())
+            return schema.resourceToSkill[rt];
+        return INVALID_ID;
     }
 
     // Advances the relevant skill for a resource by delta (capped at 1).
