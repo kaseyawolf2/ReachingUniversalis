@@ -163,7 +163,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **DynBitset clear() method** — `DynBitset` has no `clear()` or `reset()` method to zero all bits without reallocating. Add `void clear()` that zeros all words (inline and heap) without changing capacity, and `void reset()` that returns to default-constructed empty state. Add corresponding tests.
 
-- [ ] **Season threshold TOML test config** — Add a `tests/test_seasons_invalid.toml` with intentionally inverted thresholds (`harshCold < mildCold`) and a test or script that runs `WorldLoader::LoadSeasons()` against it, verifying the warning is logged. Documents the validation behavior for future modders.
+- [x] **Season threshold TOML test config** — Add a `tests/test_seasons_invalid.toml` with intentionally inverted thresholds (`harshCold < mildCold`) and a test or script that runs `WorldLoader::LoadSeasons()` against it, verifying the warning is logged. Documents the validation behavior for future modders.
 
 - [x] **Season threshold HUD display** — `GameState.cpp` uses season thresholds for sky tint but the HUD doesn't show the current threshold regime. Add a `seasonRegime` string field to `RenderSnapshot` (e.g., "Harsh Cold", "Mild", "Harvest") set by `TimeSystem` based on current `heatDrainMod` vs thresholds, displayed in the time panel.
 
@@ -286,6 +286,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Season regime enum replacement** — `RenderSnapshot::seasonRegime` is a `std::string` used only for color selection in `HUD.cpp`, not displayed to the user. Replace with an `enum class SeasonRegime` for type-safe matching and zero per-frame string allocation in `WriteSnapshot()`.
 
 - [ ] **Season regime classification to TimeSystem** — The season regime classification logic currently lives in `SimThread::WriteSnapshot()`, which should be a dumb data-copy. Move the classification into `TimeSystem::Update()` so it runs as part of the sim step, and have `WriteSnapshot()` just copy the result.
+
+- [ ] **SeasonValidationTest path robustness** — `tests/SeasonValidationTest.cpp` probes for test data via relative path guessing (`"tests"`, `"../tests"`, `"../../tests"`). Replace with `__FILE__`-based project root derivation or a CMake `target_compile_definitions(-DTEST_DATA_DIR=...)` for robust path resolution regardless of working directory.
+
+- [ ] **SeasonValidationTest warning count decoupling** — `tests/SeasonValidationTest.cpp` asserts `seasonWarnings == 5` which will break when new season validation warnings are added to WorldLoader. Remove the exact count assertion and rely on the individual substring checks to verify specific warnings.
 
 ## Phase 2 — UI Decoupling
 
