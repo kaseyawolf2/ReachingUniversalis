@@ -2553,6 +2553,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                     if (auto* oRel = registry.try_get<Relations>(other))
                         oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
+                    // ---- Low-harmony complaint: tension grumbling drains morale ----
+                    {
+                        auto hIt = s_harmonyCache.values.find(home.settlement);
+                        if (hIt != s_harmonyCache.values.end() && hIt->second < 0.15f) {
+                            // Both NPCs must have low mutual affinity
+                            float myAff = 0.f, otherAff = 0.f;
+                            if (auto* rel = registry.try_get<Relations>(entity)) {
+                                auto it = rel->affinity.find(other);
+                                if (it != rel->affinity.end()) myAff = it->second;
+                            }
+                            if (auto* oRel2 = registry.try_get<Relations>(other)) {
+                                auto it = oRel2->affinity.find(entity);
+                                if (it != oRel2->affinity.end()) otherAff = it->second;
+                            }
+                            if (myAff < 0.3f && otherAff < 0.3f) {
+                                static std::mt19937 s_grumbleRng{ std::random_device{}() };
+                                if (s_grumbleRng() % 10 == 0) {
+                                    // Drain settlement morale
+                                    auto& sett = registry.get<Settlement>(home.settlement);
+                                    sett.morale = std::max(0.f, sett.morale - 0.005f);
+                                    // Log the complaint
+                                    auto lv4 = registry.view<EventLog>();
+                                    if (lv4.begin() != lv4.end()) {
+                                        const auto* myName4 = registry.try_get<Name>(entity);
+                                        const auto* settName = registry.try_get<Name>(home.settlement);
+                                        std::string grumbleMsg = (myName4 ? myName4->value : "NPC") +
+                                            " and " + oName.value + " grumble about tensions at " +
+                                            (settName ? settName->value : "their settlement");
+                                        lv4.get<EventLog>(*lv4.begin()).Push(
+                                            tm.day, (int)tm.hourOfDay, grumbleMsg);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     greeted = true;
                 });
             }
