@@ -1,5 +1,6 @@
 #include "RandomEventSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <set>
 #include <vector>
@@ -41,7 +42,7 @@ static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
     }
 }
 
-void RandomEventSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void RandomEventSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tv = registry.view<TimeManager>();
     if (tv.begin() == tv.end()) return;
     const auto& tm = tv.get<TimeManager>(*tv.begin());
@@ -522,20 +523,23 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             registry.view<Settlement>().each([&](auto e, Settlement& s) {
                 if (s.modifierDuration > 0.f) return;  // already has an event
 
-                // Compute profession diversity bitmask for this settlement
-                int profMask = 0;
+                // Compute profession diversity: count distinct producing professions
+                uint32_t profMask = 0;
+                uint32_t fullProfMask = 0;
+                for (const auto& pdef : schema.professions)
+                    if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+                        fullProfMask |= (1u << pdef.id);
                 registry.view<Profession, HomeSettlement>(
                     entt::exclude<Hauler, PlayerTag, BanditTag, ChildTag>).each(
                     [&](const Profession& prof, const HomeSettlement& hs) {
                         if (hs.settlement != e) return;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      profMask |= 1; break;
-                            case ProfessionType::WaterCarrier: profMask |= 2; break;
-                            case ProfessionType::Lumberjack:   profMask |= 4; break;
-                            default: break;
+                        if (prof.type >= 0 && prof.type < (int)schema.professions.size()) {
+                            const auto& pdef = schema.professions[prof.type];
+                            if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+                                profMask |= (1u << pdef.id);
                         }
                     });
-                if ((profMask & 7) != 7) return;  // not all 3 professions present
+                if ((profMask & fullProfMask) != fullProfMask) return;  // not all producing professions present
 
                 // 1-in-200 chance per game-day
                 if (m_rng() % 200 != 0) return;

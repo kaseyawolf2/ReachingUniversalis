@@ -1,4 +1,5 @@
 #include "WorldGenerator.h"
+#include "WorldSchema.h"
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <array>
@@ -60,7 +61,7 @@ static Needs MakeNeeds() {
 static void SpawnNPCs(entt::registry& registry,
                       entt::entity settlement,
                       float cx, float cy, int count,
-                      ProfessionType profession = ProfessionType::Idle) {
+                      ProfessionID profession = -1) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI;
         float ring  = 40.f + (i % 3) * 22.f;
@@ -166,7 +167,7 @@ static void SpawnHaulers(entt::registry& registry,
     }
 }
 
-void WorldGenerator::Populate(entt::registry& registry) {
+void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schema) {
 
     // ---- Game clock ----
     registry.emplace<TimeManager>(registry.create());
@@ -286,9 +287,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     }
 
     // ---- Population ----
-    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, ProfessionType::Farmer);
-    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, ProfessionType::WaterCarrier);
-    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, ProfessionType::Lumberjack);
+    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, schema.FindProfession("Farmer"));
+    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, schema.FindProfession("WaterCarrier"));
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, schema.FindProfession("Lumberjack"));
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);

@@ -1,5 +1,6 @@
 #include "ProductionSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <map>
 #include <random>
@@ -18,7 +19,7 @@ static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 // 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
 static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
 
-void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -51,8 +52,17 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
     // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
     std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
-    // Profession diversity: bitmask per settlement (bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack)
-    std::unordered_map<entt::entity, uint8_t> profDiversity;
+    // Profession diversity: bitmask per settlement (one bit per producing profession ID)
+    std::unordered_map<entt::entity, uint32_t> profDiversity;
+    // Count how many distinct producing professions exist in the schema
+    int producingProfCount = 0;
+    uint32_t fullDiversityMask = 0;
+    for (const auto& pdef : schema.professions) {
+        if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler) {
+            fullDiversityMask |= (1u << pdef.id);
+            ++producingProfCount;
+        }
+    }
 
     auto resIdx = [](int rt) -> int {
         switch (rt) {
@@ -135,11 +145,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             }
             // Track profession diversity for settlement bonus
             if (const auto* prof = registry.try_get<Profession>(e)) {
-                switch (prof->type) {
-                    case ProfessionType::Farmer:      profDiversity[hs.settlement] |= 1; break;
-                    case ProfessionType::WaterCarrier: profDiversity[hs.settlement] |= 2; break;
-                    case ProfessionType::Lumberjack:   profDiversity[hs.settlement] |= 4; break;
-                    default: break;
+                if (prof->type >= 0 && prof->type < (int)schema.professions.size()) {
+                    const auto& pdef = schema.professions[prof->type];
+                    if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler) {
+                        profDiversity[hs.settlement] |= (1u << pdef.id);
+                    }
                 }
             }
             workers[hs.settlement] += workerContrib;
@@ -157,7 +167,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     {
         static std::map<entt::entity, int> s_diverseLogged;
         for (auto& [settl, w] : workers) {
-            if (profDiversity.count(settl) && profDiversity[settl] == 7) {
+            if (profDiversity.count(settl) && (profDiversity[settl] & fullDiversityMask) == fullDiversityMask) {
                 w *= 1.03f;
                 // Log once per game-day at 1-in-10 frequency
                 if (s_diverseLogged.count(settl) == 0 || s_diverseLogged[settl] != tm.day) {

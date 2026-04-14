@@ -21,6 +21,8 @@ public:
     void       SubProfileFlush();
 
 private:
+    const WorldSchema* m_schema = nullptr;  // set by Update() for private method access
+
     entt::entity FindNearestFacility(entt::registry& registry,
                                      int type,
                                      entt::entity homeSettlement,

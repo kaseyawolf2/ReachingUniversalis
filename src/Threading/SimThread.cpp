@@ -18,7 +18,7 @@ static constexpr int   MAX_CATCHUP   = 4;
 SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
     : m_input(input), m_snapshot(snapshot), m_schema(schema)
 {
-    WorldGenerator::Populate(m_registry);
+    WorldGenerator::Populate(m_registry, schema);
 }
 
 SimThread::~SimThread() {
@@ -1426,7 +1426,7 @@ void SimThread::WriteSnapshot() {
         int   masterCount = 0;
         float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
-        int   profMask  = 0;  // bitmask: bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack
+        int   profMask  = 0;  // bitmask: one bit per producing profession ID from schema
         int   griefCount = 0; // NPCs with griefTimer > 0
         int   mourningCount = 0; // NPCs in mourning procession (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
     };
@@ -1491,11 +1491,10 @@ void SimThread::WriteSnapshot() {
                         ++ag.mourningCount;
                 }
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
-                    switch (prof->type) {
-                        case ProfessionType::Farmer:      ag.profMask |= 1; break;
-                        case ProfessionType::WaterCarrier: ag.profMask |= 2; break;
-                        case ProfessionType::Lumberjack:   ag.profMask |= 4; break;
-                        default: break;
+                    if (prof->type >= 0 && prof->type < (int)m_schema.professions.size()) {
+                        const auto& pdef = m_schema.professions[prof->type];
+                        if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+                            ag.profMask |= (1u << pdef.id);
                     }
                 }
             }
@@ -1577,7 +1576,10 @@ void SimThread::WriteSnapshot() {
             profession = "Merchant";
         } else if (!isPlayer) {
             if (const auto* prof = m_registry.try_get<Profession>(e)) {
-                profession = ProfessionLabel(prof->type);
+                if (prof->type >= 0 && prof->type < (int)m_schema.professions.size())
+                    profession = m_schema.professions[prof->type].displayName;
+                else
+                    profession = "Idle";
                 npcCareerChanges = prof->careerChanges;
             } else {
                 // Fallback: infer from strongest skill (for NPCs without a component)
@@ -1851,17 +1853,23 @@ void SimThread::WriteSnapshot() {
                 float bestVal = sk2->farming;
                 if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = RES_WATER; }
                 if (sk2->woodcutting   > bestVal) { bestRes = RES_WOOD; }
-                inVocation = (prof2->type == ProfessionForResource(bestRes)
-                              && prof2->type != ProfessionType::Idle);
+                {
+                    ProfessionID bestProfForRes = m_schema.FindProfessionForResource(bestRes);
+                    bool pIsIdle = (prof2->type < 0 || prof2->type >= (int)m_schema.professions.size()
+                                    || m_schema.professions[prof2->type].isIdle);
+                    inVocation = (bestProfForRes != INVALID_ID && prof2->type == bestProfForRes && !pIsIdle);
+                }
                 // Expert check: profession-matching skill >= 0.8
                 float profSkill = 0.f;
-                switch (prof2->type) {
-                    case ProfessionType::Farmer:      profSkill = sk2->farming; break;
-                    case ProfessionType::WaterCarrier: profSkill = sk2->water_drawing; break;
-                    case ProfessionType::Lumberjack:   profSkill = sk2->woodcutting; break;
-                    default: break;
+                if (prof2->type >= 0 && prof2->type < (int)m_schema.professions.size()) {
+                    int pRes = m_schema.professions[prof2->type].producesResource;
+                    if (pRes != INVALID_ID) profSkill = sk2->ForResource(pRes);
                 }
-                isExpert = (profSkill >= 0.8f && prof2->type != ProfessionType::Idle);
+                {
+                    bool pIsIdle2 = (prof2->type < 0 || prof2->type >= (int)m_schema.professions.size()
+                                     || m_schema.professions[prof2->type].isIdle);
+                    isExpert = (profSkill >= 0.8f && !pIsIdle2);
+                }
             }
         }
 
@@ -2018,7 +2026,13 @@ void SimThread::WriteSnapshot() {
             }
         }
 
-        bool diverse = settlAgg.count(e) && (settlAgg[e].profMask & 7) == 7;
+        // Build full diversity mask from schema producing professions
+        uint32_t fullProfMask = 0;
+        for (const auto& pdef : m_schema.professions)
+            if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+                fullProfMask |= (1u << pdef.id);
+        bool diverse = settlAgg.count(e) && fullProfMask != 0
+                       && (settlAgg[e].profMask & fullProfMask) == fullProfMask;
         bool afterglow = (s.afterglowHours > 0.f);
         bool vigilActive = settlAgg.count(e) && settlAgg[e].griefCount >= 3;
         bool mourningActive = settlAgg.count(e) && settlAgg[e].mourningCount > 0;
@@ -2444,8 +2458,12 @@ void SimThread::WriteSnapshot() {
                     RenderSnapshot::StockpilePanel::AgentInfo ai;
                     ai.name    = nm.value;
                     ai.balance = mn.balance;
-                    if (const auto* pr = m_registry.try_get<Profession>(npc))
-                        ai.profession = ProfessionLabel(pr->type);
+                    if (const auto* pr = m_registry.try_get<Profession>(npc)) {
+                        if (pr->type >= 0 && pr->type < (int)m_schema.professions.size())
+                            ai.profession = m_schema.professions[pr->type].displayName;
+                        else
+                            ai.profession = "Idle";
+                    }
                     if (const auto* ft = m_registry.try_get<FamilyTag>(npc))
                         ai.familyName = ft->name;
                     if (const auto* needs = m_registry.try_get<Needs>(npc)) {

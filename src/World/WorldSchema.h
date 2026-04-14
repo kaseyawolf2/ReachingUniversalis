@@ -187,6 +187,13 @@ struct WorldSchema {
     EventID      FindEvent(const std::string& name) const      { auto it = eventsByName.find(name);      return it != eventsByName.end()      ? it->second : INVALID_ID; }
     GoalTypeID   FindGoal(const std::string& name) const       { auto it = goalsByName.find(name);       return it != goalsByName.end()       ? it->second : INVALID_ID; }
 
+    // Find the profession whose primary output matches a given resource ID.
+    ProfessionID FindProfessionForResource(ResourceID res) const {
+        for (const auto& p : professions)
+            if (p.producesResource == res) return p.id;
+        return INVALID_ID;
+    }
+
     // ---- Build lookup maps from definition vectors ----
     void BuildMaps() {
         needsByName.clear();

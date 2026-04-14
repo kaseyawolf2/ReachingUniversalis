@@ -1,5 +1,6 @@
 #include "BirthSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -42,7 +43,7 @@ static Needs MakeNeeds() {
     } };
 }
 
-void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());
@@ -123,7 +124,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             stockpile.quantities[RES_WATER] -= BIRTH_WATER_COST;
 
             // Determine this settlement's primary profession from its highest-rate facility.
-            ProfessionType settlProfession = ProfessionType::Idle;
+            ProfessionID settlProfession = schema.FindProfession("Idle");
             {
                 float maxRate = 0.f;
                 registry.view<ProductionFacility>().each(
@@ -131,7 +132,8 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                         if (fac.settlement != settl) return;
                         if (fac.baseRate > maxRate) {
                             maxRate = fac.baseRate;
-                            settlProfession = ProfessionForResource(fac.output);
+                            ProfessionID p = schema.FindProfessionForResource(fac.output);
+                            if (p != INVALID_ID) settlProfession = p;
                         }
                     });
             }
