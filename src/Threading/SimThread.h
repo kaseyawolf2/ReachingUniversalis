@@ -2,6 +2,7 @@
 #include <thread>
 #include <atomic>
 #include <map>
+#include <memory>
 #include <entt/entt.hpp>
 
 #include "Threading/InputSnapshot.h"
@@ -108,8 +109,8 @@ private:
     int m_playerReputation = 0;
 
     // Schema-derived skill display names, built once at construction.
-    // Used by WriteSnapshot to avoid rebuilding per frame.
-    std::vector<std::string> m_cachedSkillNames;
+    // Stored as a shared_ptr so RenderSnapshot can share it without copying.
+    std::shared_ptr<const std::vector<std::string>> m_cachedSkillNames;
 
     // Population history for sparkline: maps settlement entity → ring buffer of daily pop samples
     // Sampled once per game-day (at the same interval as m_popPrev).

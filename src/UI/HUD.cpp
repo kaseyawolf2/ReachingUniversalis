@@ -70,7 +70,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     float hungerCrit, thirstCrit, energyCrit, heatCrit;
     float playerAgeDays, playerMaxDays, playerGold;
     std::vector<float> playerSkills;
-    std::vector<std::string> playerSkillNames;
+    std::shared_ptr<const std::vector<std::string>> playerSkillNamesPtr;
     float temperature;
     bool  playerInPlagueZone;
     int   playerReputation;
@@ -104,8 +104,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerAgeDays   = snap.playerAgeDays;
         playerMaxDays   = snap.playerMaxDays;
         playerGold      = snap.playerGold;
-        playerSkills      = snap.playerSkills;
-        playerSkillNames  = snap.playerSkillNames;
+        playerSkills         = snap.playerSkills;
+        playerSkillNamesPtr  = snap.skillNames;
         playerInventory         = snap.playerInventory;
         playerInventoryCapacity = snap.playerInventoryCapacity;
         tradeHint            = snap.tradeHint;
@@ -118,6 +118,10 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerReputation     = snap.playerReputation;
         playerRank           = snap.playerRank;
     }
+
+    // Dereference shared skill names once; empty fallback if not yet set.
+    static const std::vector<std::string> emptyNames;
+    const auto& playerSkillNames = playerSkillNamesPtr ? *playerSkillNamesPtr : emptyNames;
 
     // ---- Player panel (top-left) ----
     if (playerAlive) {
@@ -578,12 +582,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     Vector2 world = GetScreenToWorld2D(mouse, cam);
 
     std::vector<RenderSnapshot::AgentEntry> agents;
-    std::vector<std::string> skillNames;
+    std::shared_ptr<const std::vector<std::string>> skillNamesPtr;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents = snap.agents;
-        skillNames = snap.skillNames;
+        skillNamesPtr = snap.skillNames;
     }
+    // Dereference once; empty fallback if not yet set.
+    static const std::vector<std::string> emptyNames;
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames;
 
     // Build surname→count and familyName→count maps for family cluster display.
     std::map<std::string, int> surnameCount;
@@ -1269,13 +1276,15 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
 
     std::vector<RenderSnapshot::SettlementEntry>  settls;
     std::vector<RenderSnapshot::SettlementStatus> ws;
-    std::vector<std::string> sharedSkillNames;
+    std::shared_ptr<const std::vector<std::string>> sharedSkillNamesPtr;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         settls = snap.settlements;
         ws     = snap.worldStatus;
-        sharedSkillNames = snap.skillNames;
+        sharedSkillNamesPtr = snap.skillNames;
     }
+    static const std::vector<std::string> emptySkillNames;
+    const auto& sharedSkillNames = sharedSkillNamesPtr ? *sharedSkillNamesPtr : emptySkillNames;
 
     // Find settlement the mouse is inside (by world-space radius)
     const RenderSnapshot::SettlementEntry* best = nullptr;

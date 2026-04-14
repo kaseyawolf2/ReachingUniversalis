@@ -156,7 +156,7 @@ void GameState::Draw() {
     std::vector<RenderSnapshot::RoadEntry>        roads;
     std::vector<RenderSnapshot::FacilityEntry>    facilities;
     RenderSnapshot::StockpilePanel                panel;
-    std::vector<std::string>                      sharedSkillNames;
+    std::shared_ptr<const std::vector<std::string>> sharedSkillNames;
     float snapHour = 12.f;
 
     {
@@ -522,8 +522,8 @@ void GameState::Draw() {
     }
 
     // Stockpile panel (screen-space)
-    if (panel.open)
-        m_renderSystem.DrawStockpilePanel(panel, sharedSkillNames);
+    if (panel.open && sharedSkillNames)
+        m_renderSystem.DrawStockpilePanel(panel, *sharedSkillNames);
 
     // HUD
     m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);
