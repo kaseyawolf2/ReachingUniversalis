@@ -1,0 +1,76 @@
+=== ReachingUniversalis Benchmark Report ===
+Duration: 600.0 seconds wall time
+Samples:  600 (1 per second)
+
+--- Simulation ---
+Final game day:     4
+Avg steps/sec:      509
+Total deaths:       32
+
+--- Population ---
+Average:            65.1
+Min:                48
+Max:                78
+
+--- Economy ---
+Avg total gold:     3835
+Avg NPC wealth:     3.5
+Peak individual:    24g (Holt Baker)
+
+--- Per-System Profiler (avg / median / p99 us per step) ---
+  AgentDecision        avg= 1646.5  med= 1518.4  p99= 3845.3 us  (37.4%)
+  AD:Social            avg= 1084.4  med=  920.8  p99= 3255.1 us  (24.6%)
+  Consumption          avg=  268.4  med=  284.9  p99=  762.1 us  ( 6.1%)
+  Schedule             avg=  188.8  med=  164.1  p99=  732.0 us  ( 4.3%)
+  NeedDrain            avg=  149.7  med=  154.2  p99=  446.8 us  ( 3.4%)
+  AD:Gossip            avg=  148.5  med=  139.3  p99=  524.5 us  ( 3.4%)
+  Production           avg=  147.5  med=  119.5  p99=  375.6 us  ( 3.4%)
+  AD:Bandits           avg=  130.4  med=  124.0  p99=  430.8 us  ( 3.0%)
+  AD:PreLoop           avg=  119.7  med=  113.0  p99=  414.8 us  ( 2.7%)
+  RandomEvent          avg=  114.4  med=  109.5  p99=  324.3 us  ( 2.6%)
+  AD:MainLoop          avg=  103.0  med=   85.4  p99=  411.1 us  ( 2.3%)
+  Movement             avg=   85.7  med=   82.8  p99=  293.3 us  ( 1.9%)
+  Death                avg=   61.1  med=   63.0  p99=  169.9 us  ( 1.4%)
+  AD:Goals             avg=   39.8  med=   37.8  p99=  151.4 us  ( 0.9%)
+  Birth                avg=   31.7  med=   30.3  p99=  113.5 us  ( 0.7%)
+  AD:Orphan            avg=   27.8  med=   27.5  p99=  121.9 us  ( 0.6%)
+  Transport            avg=   20.7  med=   17.6  p99=  171.6 us  ( 0.5%)
+  Price                avg=   17.6  med=   16.2  p99=   65.3 us  ( 0.4%)
+  WriteSnapshot        avg=   13.4  med=   13.0  p99=   52.6 us  ( 0.3%)
+  EconMobility         avg=    0.8  med=    0.7  p99=    4.8 us  ( 0.0%)
+  Time                 avg=    0.7  med=    0.5  p99=   10.0 us  ( 0.0%)
+  Construction         avg=    0.6  med=    0.6  p99=    1.1 us  ( 0.0%)
+  ProcessInput         avg=    0.0  med=    0.0  p99=    0.0 us  ( 0.0%)
+  TOTAL                avg= 4401.3 us  (100%)
+
+--- Settlements (averages) ---
+  Greenfield       pop=14.2  morale=34%
+  Millhaven        pop=23.9  morale=25%
+  Wellsworth       pop=27.0  morale=26%
+
+--- NPC Wealth Distribution (final snapshot, top 20) ---
+  Holt Baker              24.4g  home  goal: Goal: Save Gold (24/100g)
+  Marden Ward             22.3g  home  goal: Goal: Save Gold (22/100g)
+  Torben Smith            18.4g  home  goal: Goal: Reach Age (7/29d)
+  Marden Webb             17.2g  home  goal: Goal: Reach Age (5/27d)
+  Elara Fisher            14.0g  home  goal: Goal: Reach Age (13/35d)
+  Nolan Cross             13.8g  home  goal: Goal: Save Gold (14/100g)
+  Oswin Forger            13.1g  home  goal: Goal: Save Gold (13/100g)
+  Finn Baker              11.7g  home  goal: Goal: Reach Age (10/33d)
+  Brom Wood               11.1g  home  goal: Goal: Save Gold (11/100g)
+  Cedric Forger           10.3g  home  goal: Goal: Become Merchant (0/1)
+  Marden Bridge            9.7g  home  goal: Goal: Reach Age (26/48d)
+  Oswin Baker              8.8g  home  goal: Goal: Reach Age (19/42d)
+  Aela Baker               7.4g  home  goal: Goal: Find Family (0/1)
+  Elara Bridge             6.8g  home  goal: Goal: Become Merchant (0/1)
+  Zane Wood                6.0g  home  goal: Goal: Reach Age (27/45d)
+  Brom Holt                5.6g  home  goal: Goal: Save Gold (6/100g)
+  Gareth Stone             4.4g  home  goal: Goal: Reach Age (8/31d)
+  Aela Fisher              4.4g  home  goal: Goal: Find Family (0/1)
+  Aela Mason               4.3g  home  goal: Goal: Reach Age (22/44d)
+  Holt Mason               3.6g  home  goal: Goal: Save Gold (4/100g)
+
+  Total NPCs:    48
+  Mean wealth:   4.3g
+  Median wealth: 2.5g
+  Gini approx:   0.870 (0=equal, 1=concentrated)

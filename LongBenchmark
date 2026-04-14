@@ -1,0 +1,69 @@
+=== ReachingUniversalis Benchmark Report ===
+Duration: 600.0 seconds wall time
+Samples:  600 (1 per second)
+
+--- Simulation ---
+Final game day:     1
+Avg steps/sec:      46
+Total deaths:       0
+
+--- Population ---
+Average:            78.0
+Min:                78
+Max:                78
+
+--- Economy ---
+Avg total gold:     3928
+Avg NPC wealth:     8.8
+Peak individual:    19g (Brom Holt)
+
+--- Per-System Profiler (avg us/step) ---
+  AgentDecision         14308.6 us  (54.6%)
+  WriteSnapshot          5542.6 us  (21.2%)
+  Schedule               3953.9 us  (15.1%)
+  Consumption             662.0 us  ( 2.5%)
+  Production              521.4 us  ( 2.0%)
+  NeedDrain               355.0 us  ( 1.4%)
+  RandomEvent             294.2 us  ( 1.1%)
+  Movement                205.1 us  ( 0.8%)
+  Death                   113.8 us  ( 0.4%)
+  Birth                    89.3 us  ( 0.3%)
+  Transport                86.9 us  ( 0.3%)
+  Price                    45.9 us  ( 0.2%)
+  ProcessInput              2.7 us  ( 0.0%)
+  EconMobility              2.3 us  ( 0.0%)
+  Time                      2.2 us  ( 0.0%)
+  Construction              2.0 us  ( 0.0%)
+  TOTAL                 26188.0 us  (100%)
+
+--- Settlements (averages) ---
+  Greenfield       pop=26.0  morale=60%
+  Millhaven        pop=23.9  morale=39%
+  Wellsworth       pop=28.1  morale=59%
+
+--- NPC Wealth Distribution (final snapshot, top 20) ---
+  Sven Vale              160.2g  away
+  Dena Miller            159.9g  away
+  Brom Smith             159.6g  away
+  Edric Baker            143.4g  away
+  Marden Webb            123.1g  away
+  Elara Cross            116.5g  away
+  Jorin Vale             116.3g  away
+  Marden Marsh           116.3g  away
+  Yoric Cooper           116.2g  away
+  Gareth Ward            116.2g  away
+  Torben Fisher          116.1g  away
+  Kael Smith             104.3g  away
+  Ivan Forger             57.8g  away
+  Gareth Marsh            50.0g  away
+  Kael Bridge             50.0g  away
+  Vance Wood              50.0g  away
+  Daven Fisher            50.0g  away
+  Daven Smith             46.8g  away
+  Brom Holt               18.8g  away  goal: Goal: Save Gold (19/100g)
+  Wren Webb               12.1g  away  goal: Goal: Become Merchant (0/1)
+
+  Total NPCs:    78
+  Mean wealth:   29.4g
+  Median wealth: 9.1g
+  Gini approx:   0.656 (0=equal, 1=concentrated)
