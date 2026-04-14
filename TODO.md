@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
-
 ## Done
+
+- [x] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
 
 - [x] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
 
@@ -4484,3 +4484,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler rivalry escalation** — In `TransportSystem.cpp`'s GoingToDeposit arrival block, when two haulers from the same home settlement arrive at the same destination within the same game-hour and their `Relations::affinity < 0.1` (deep rivalry), 1-in-6 chance that the losing hauler (lower `tripProfit`) suffers -0.01 `Settlement::morale` on their home settlement. Log "[Loser] seethes at [Winner]'s success at [Destination]" at full frequency. Uses existing `Relations::affinity` and `Hauler::tripProfit`. Creates escalating social consequences for unresolved rivalries.
 
 - [ ] **Hauler gift on return home** — In `TransportSystem.cpp`'s GoingHome arrival block (where `hauler.state` transitions from GoingHome back to Idle), when the hauler's `Money::balance > 50g` and has `Relations::affinity >= 0.6` toward any NPC at home settlement, 1-in-12 chance to gift 5g (balance-to-balance, Gold Flow Rule). Boost mutual affinity +0.02. Log "[Hauler] brings a gift home to [Friend] at [Settlement]" at full frequency. Creates a wealth-sharing mechanic tied to successful trade runs.
+
+- [ ] **Gossip accuracy decay** — In `TransportSystem.cpp`'s trade gossip block, add a `float gossipAge = 0.f` field to `Hauler` in `Components.h`. Set to 0 when gossip is shared. Increment by `gameDt` each step (in the Idle state time tracking). When `gossipAge > 12.f` (12 game-hours), clear `bestRoute` to empty string so stale gossip expires. Prevents haulers from acting on outdated market information indefinitely.
+
+- [ ] **Hauler market report at tavern** — In `AgentDecisionSystem.cpp`'s idle chat block, when a hauler (`registry.any_of<Hauler>(entity)`) chats with a non-hauler NPC and the hauler's `Hauler::bestRoute` is non-empty, 1-in-8 chance to log "[Hauler] tells [NPC] about trade on the [Route] route at [Settlement]." Boost the NPC's affinity toward the hauler by +0.01 (informational value). Uses existing idle chat proximity and stagger checks. Creates cross-class social interaction where haulers share economic knowledge with workers.
