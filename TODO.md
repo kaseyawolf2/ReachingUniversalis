@@ -45,21 +45,21 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Named season thresholds** — `RandomEventSystem.cpp` and `ScheduleSystem.cpp` use magic float thresholds (`0.8f`, `0.3f`, `0.15f`) for season property checks (heatDrainMod, productionMod). Define named constants (e.g., `HARSH_COLD_THRESHOLD`, `FLOOD_HEAT_DRAIN_MAX`) in a shared header or as SeasonDef metadata so modders can tune them.
 
-- [ ] **Profession bitmask scalability** — All profession diversity checks use `uint32_t` bitmasks with `assert(professions.size() < 32)` in `BuildMaps()`. Replace with `std::bitset` or a variable-width bitfield to support worlds with 32+ professions.
+- [x] **Profession bitmask scalability** — All profession diversity checks use `uint32_t` bitmasks with `assert(professions.size() < 32)` in `BuildMaps()`. Replace with `std::bitset` or a variable-width bitfield to support worlds with 32+ professions.
 
-- [ ] **Reduce per-frame RenderSnapshot allocations** — `SimThread::WriteSnapshot()` rebuilds `skillNames`, `settlSkillNames`, and nested `std::map<int, SkillAccum>` every frame under the mutex. Store schema-derived names once at construction, and replace `std::map<int, SkillAccum>` with flat `std::vector<SkillAccum>` indexed by SkillID.
+- [x] **Reduce per-frame RenderSnapshot allocations** — `SimThread::WriteSnapshot()` rebuilds `skillNames`, `settlSkillNames`, and nested `std::map<int, SkillAccum>` every frame under the mutex. Store schema-derived names once at construction, and replace `std::map<int, SkillAccum>` with flat `std::vector<SkillAccum>` indexed by SkillID.
 
-- [ ] **Remove per-agent skillNames duplication in SettlementEntry** — `SettlementEntry::skillNames` is populated identically for every settlement from schema data. Store it once on `RenderSnapshot` (like `AgentEntry` was already fixed) and reference the shared copy in HUD rendering.
+- [x] **Remove per-agent skillNames duplication in SettlementEntry** — `SettlementEntry::skillNames` is populated identically for every settlement from schema data. Store it once on `RenderSnapshot` (like `AgentEntry` was already fixed) and reference the shared copy in HUD rendering.
 
-- [ ] **Event effect type as enum** — `RandomEventSystem.cpp` compares `ev.effectType` strings (`"production_modifier"`, `"road_block"`, etc.) in per-event hot paths. Add an `enum class EventEffectType` resolved at load time in WorldLoader, and switch on it instead of string comparisons.
+- [x] **Event effect type as enum** — `RandomEventSystem.cpp` compares `ev.effectType` strings (`"production_modifier"`, `"road_block"`, etc.) in per-event hot paths. Add an `enum class EventEffectType` resolved at load time in WorldLoader, and switch on it instead of string comparisons.
 
-- [ ] **Multi-spreading event support** — `RandomEventSystem.cpp` spreading logic finds only the first `ev.spreads == true` event. Support multiple spreadable events by storing a vector of spreading event indices and iterating all of them in the spread tick.
+- [x] **Multi-spreading event support** — `RandomEventSystem.cpp` spreading logic finds only the first `ev.spreads == true` event. Support multiple spreadable events by storing a vector of spreading event indices and iterating all of them in the spread tick.
 
-- [ ] **Goal completion cooldown** — When `goalCount == 1` or fixed-target goals (e.g., FindFamily target=1) are re-assigned, NPCs re-complete immediately every tick, spamming celebration logs. Add a `completionCooldown` field to GoalDef (or a per-NPC cooldown timer) to prevent instant re-completion.
+- [x] **Goal completion cooldown** — When `goalCount == 1` or fixed-target goals (e.g., FindFamily target=1) are re-assigned, NPCs re-complete immediately every tick, spamming celebration logs. Add a `completionCooldown` field to GoalDef (or a per-NPC cooldown timer) to prevent instant re-completion.
 
-- [ ] **Validate TOML at load time** — WorldLoader silently accepts invalid field values (e.g., `chance = 0` for all events causes UB in weighted selection, unknown `check_type` strings default silently). Add validation passes in WorldLoader that log warnings or errors for: zero total weight, unknown enum strings, missing required fields for specific effect/check types.
+- [x] **Validate TOML at load time** — WorldLoader silently accepts invalid field values (e.g., `chance = 0` for all events causes UB in weighted selection, unknown `check_type` strings default silently). Add validation passes in WorldLoader that log warnings or errors for: zero total weight, unknown enum strings, missing required fields for specific effect/check types.
 
-- [ ] **Generic DeprivationTimer need timers** — `DeprivationTimer` still has hardcoded `float hungerTimer, thirstTimer, energyTimer, heatTimer`. Replace with `std::vector<float>` indexed by NeedID, sized from `schema.needs`. Systems iterate generically instead of by named field.
+- [x] **Generic DeprivationTimer need timers** — `DeprivationTimer` still has hardcoded `float hungerTimer, thirstTimer, energyTimer, heatTimer`. Replace with `std::vector<float>` indexed by NeedID, sized from `schema.needs`. Systems iterate generically instead of by named field.
 
 - [ ] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
 
@@ -74,6 +74,22 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Season threshold config in TOML** — Move the named constants in `SeasonThresholds.h` (`HARSH_COLD`, `MODERATE_COLD`, `MILD_COLD`, `COLD_SEASON`, `HARVEST_SEASON`, `LOW_PRODUCTION`) into `worlds/medieval/seasons.toml` as global threshold fields. `WorldSchema` stores them; systems read from schema instead of compile-time constants. Enables modders to tune season breakpoints per world.
 
 - [ ] **BuildMaps/ResolveCrossRefs ordering guard** — `WorldSchema::BuildResourceToSkillMap()` must be called after `ResolveCrossRefs()` or the map is empty. Add an `assert(crossRefsResolved)` flag to `WorldSchema` set by `ResolveCrossRefs()` and checked in `BuildResourceToSkillMap()` to catch misordering at dev time.
+
+- [ ] **DynBitset unit tests** — `DynBitset` has SBO with inline/heap modes and edge cases at the 64-bit boundary. Add a test file (`tests/DynBitsetTest.cpp`) that validates: singleBit for bits 0-63 (inline) and 64+ (heap), operator& across inline/heap combinations, intersectsAny, containsAll, operator|= mixed modes, and the n==1 edge case in operator&.
+
+- [ ] **Rename m_plagueSpreadTimer** — `RandomEventSystem::m_plagueSpreadTimer` still uses plague-specific naming after the multi-spreading generalization. Rename to `m_spreadTimers` and update all references. Also rename `SpreadEntry` comment from "Active plagues" to "Active spreading events".
+
+- [ ] **Cache FindNeed results in ConsumptionSystem** — `ConsumptionSystem::Update()` calls `schema.FindNeed("Hunger")` and `schema.FindNeed("Thirst")` (string map lookups) every tick. Cache these as member variables initialized once in the constructor or first `Update()` call.
+
+- [ ] **Validate all EventEffectType variants in WorldLoader** — The TOML validation switch covers 7 of 11 effect types. Add validation for `SpawnNpcs`, `RoadBlock`, `Earthquake`, and `MoraleBoost` — checking their required fields (e.g., `roadBlockDuration` for Earthquake, `spawnCount` for SpawnNpcs).
+
+- [ ] **DeprivationTimer Make() with migrateThreshold param** — All 9 call sites of `DeprivationTimer::Make(schema)` immediately set `migrateThreshold` afterward. Add an optional `migrateThreshold` parameter to `Make()` to eliminate the construct-then-mutate pattern.
+
+- [ ] **Shared skillNames pointer in RenderSnapshot** — `m_cachedSkillNames` is copied 4 times per frame into different snapshot fields. Replace with a `std::shared_ptr<const std::vector<std::string>>` set once at construction, eliminating per-frame string vector copies.
+
+- [ ] **EventLog-based diagnostic warnings** — `RandomEventSystem.cpp` and `WorldLoader.cpp` use `fprintf(stderr, ...)` for diagnostic warnings, which is invisible in-game. Route these through `EventLog::Push` or a dedicated diagnostic log channel so they appear in the HUD event log during gameplay.
+
+- [ ] **Dead effectType string field cleanup** — `EventDef::effectType` (std::string) is now dead weight at runtime after the `EventEffectType` enum was added. Remove it from `EventDef` in `WorldSchema.h` or mark it `#ifndef NDEBUG` for debug-only retention. Saves 32 bytes per event definition.
 
 ## Phase 2 — UI Decoupling
 

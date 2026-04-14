@@ -94,16 +94,31 @@ After each merge (not after all merges):
 4. Append 2 new concrete `- [ ]` tasks to the Backlog for each completed task (following the style and theme of existing tasks)
 5. Commit and push the TODO.md update
 
-### 6. Clean up worktrees
+### 6. Clean up worktrees and branches
 
-After all merges and TODO updates, remove leftover worktrees:
+After all merges and TODO updates, clean up leftover worktrees, branches, and stale PRs:
 
 ```bash
+# Remove worktrees
 for wt in .claude/worktrees/agent-*; do git worktree remove --force "$wt" 2>/dev/null; done
 rm -rf .claude/worktrees/
+
+# Delete merged/stale remote branches (keep only main)
+git fetch --prune
+for b in $(git branch -r | grep -v HEAD | grep -v 'origin/main$' | sed 's|  origin/||'); do
+  git push origin --delete "$b" 2>/dev/null
+done
+
+# Delete local branches (keep only main)
+for b in $(git branch | grep -v '^\* main$'); do
+  git branch -D "$b" 2>/dev/null
+done
+
+# Close any stale open PRs that aren't from active workers
+# (check with gh pr list --state open before closing)
 ```
 
-Verify with `git worktree list` — only the main worktree should remain.
+Verify with `git worktree list` (only main worktree) and `git branch -r` (only origin/main).
 
 ### 7. Report and repeat
 
