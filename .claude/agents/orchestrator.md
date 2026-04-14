@@ -47,7 +47,7 @@ Spawn all worker agents in a **single message** so they run in parallel. From ea
 
 ### 3. Review-fix loop
 
-Process each PR **sequentially** (one at a time) through a review-fix cycle with up to **5 rounds**:
+Process each PR **sequentially** (one at a time) through a review-fix cycle with up to **10 rounds**:
 
 #### Round N (starting at 1):
 
@@ -60,7 +60,7 @@ From the review result, extract ONLY: the verdict line and any CRITICAL/SERIOUS 
 
 - **ACCEPTABLE**: Mark this PR as ready to merge. Move to the next PR.
 - **NEEDS WORK**: Proceed to step (c).
-- **REJECT**: If this is not the final round, treat as NEEDS WORK and give the worker a chance to fix. If this is round 5, post the CRITICAL/SERIOUS items as a PR comment (`gh pr comment <number> --body "..."`), close the PR (`gh pr close <number>`), and move to the next PR.
+- **REJECT**: If this is not the final round, treat as NEEDS WORK and give the worker a chance to fix. If this is round 10, post the CRITICAL/SERIOUS items as a PR comment (`gh pr comment <number> --body "..."`), close the PR (`gh pr close <number>`), and move to the next PR.
 
 **c) Send fixes to worker** — Spawn a **worker** agent (`subagent_type: "general-purpose"`, `isolation: "worktree"`) with this prompt:
    - The original task description (same as step 2)
@@ -74,9 +74,11 @@ Wait for the worker to complete (extract only: success/failure), then go back to
 
 For each PR that passed review:
 
-1. `gh pr merge <number> --squash`
-2. Verify main still builds: `git pull && bash build.sh && bash test.sh 5`
-3. If main breaks, revert: `git revert HEAD --no-edit && git push`
+1. If the PR has merge conflicts, spawn a worker to rebase onto main and force-push.
+2. **After any rebase, run one more code-review round** before merging — rebases can introduce accidental changes or bad conflict resolutions.
+3. `gh pr merge <number> --squash`
+4. Verify main still builds: `git pull && bash build.sh && bash test.sh 5`
+5. If main breaks, revert: `git revert HEAD --no-edit && git push`
 
 Merge PRs one at a time. Pull main between merges so later PRs merge against up-to-date code.
 

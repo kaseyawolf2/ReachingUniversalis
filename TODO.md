@@ -27,17 +27,29 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Generic Resources** — Replace `enum ResourceType` with ResourceID (int). Stockpile, Inventory, Market, ProductionFacility all key by ResourceID. Existing switch statements become schema lookups.
 
-- [ ] **Generic Skills** — Replace `struct Skills { float farming, water_drawing, woodcutting; }` with `std::vector<float>` indexed by SkillID. `ForResource()` and `Advance()` use schema mappings.
+- [x] **Generic Skills** — Replace `struct Skills { float farming, water_drawing, woodcutting; }` with `std::vector<float>` indexed by SkillID. `ForResource()` and `Advance()` use schema mappings.
 
-- [ ] **Generic Professions** — Replace `enum ProfessionType` with ProfessionID. `ProfessionForResource()` becomes a schema lookup. Display names come from config.
+- [x] **Generic Professions** — Replace `enum ProfessionType` with ProfessionID. `ProfessionForResource()` becomes a schema lookup. Display names come from config.
 
-- [ ] **Generic Seasons** — Replace `enum Season` and hardcoded modifier functions (`SeasonProductionModifier`, `SeasonHeatDrainMult`, etc.) with schema lookups. TimeManager references season definitions by index.
+- [x] **Generic Seasons** — Replace `enum Season` and hardcoded modifier functions (`SeasonProductionModifier`, `SeasonHeatDrainMult`, etc.) with schema lookups. TimeManager references season definitions by index.
 
 - [ ] **Generic Events** — Replace hardcoded event cases in RandomEventSystem with event definitions from schema. Each event specifies its effect type, value, duration, and spread behavior.
 
 - [ ] **Generic Goals** — Replace `enum GoalType` with GoalTypeID. Goal assignment and completion check become data-driven.
 
 - [ ] **Slim down DeprivationTimer** — The 40+ fields in DeprivationTimer are medieval-specific social mechanics. Factor out into optional components: SocialBehavior, BanditState, GriefState, etc. Core DeprivationTimer only tracks need-at-zero timers and migration threshold.
+
+- [ ] **Schema-driven skill growth/decay rates** — `SkillDef` already has `growthRate` and `decayRate` fields but `Skills::Advance()` and the rust logic in `AgentDecisionSystem.cpp` use hardcoded `SKILL_GROWTH = 0.001f` / `SKILL_RUST = 0.0005f`. Wire the schema values through so each skill can have its own rate.
+
+- [ ] **Cache hot-path schema lookups** — `Skills::ForResource()` in `Components.h` does a linear scan of `schema.skills` on every call; `SkillForProfession()` does an `unordered_map::find` per call. Add `resourceToSkill` and `professionToSkill` lookup maps to `WorldSchema`, populated in `BuildMaps()`, and use them in these methods.
+
+- [ ] **Named season thresholds** — `RandomEventSystem.cpp` and `ScheduleSystem.cpp` use magic float thresholds (`0.8f`, `0.3f`, `0.15f`) for season property checks (heatDrainMod, productionMod). Define named constants (e.g., `HARSH_COLD_THRESHOLD`, `FLOOD_HEAT_DRAIN_MAX`) in a shared header or as SeasonDef metadata so modders can tune them.
+
+- [ ] **Profession bitmask scalability** — All profession diversity checks use `uint32_t` bitmasks with `assert(professions.size() < 32)` in `BuildMaps()`. Replace with `std::bitset` or a variable-width bitfield to support worlds with 32+ professions.
+
+- [ ] **Reduce per-frame RenderSnapshot allocations** — `SimThread::WriteSnapshot()` rebuilds `skillNames`, `settlSkillNames`, and nested `std::map<int, SkillAccum>` every frame under the mutex. Store schema-derived names once at construction, and replace `std::map<int, SkillAccum>` with flat `std::vector<SkillAccum>` indexed by SkillID.
+
+- [ ] **Remove per-agent skillNames duplication in SettlementEntry** — `SettlementEntry::skillNames` is populated identically for every settlement from schema data. Store it once on `RenderSnapshot` (like `AgentEntry` was already fixed) and reference the shared copy in HUD rendering.
 
 ## Phase 2 — UI Decoupling
 
