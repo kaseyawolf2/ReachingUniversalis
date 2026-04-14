@@ -616,6 +616,7 @@ struct Goal {
     float    target        = 100.f; // threshold to complete
     float    celebrateTimer = 0.f;  // game-hours remaining for personal celebration
     bool     halfwayLogged = false; // true once the 50% milestone log has fired
+    float    cooldownTimer = 0.f;   // game-minutes remaining before this goal can re-complete (prevents spam)
 };
 
 // Helper: data-driven goal label via schema lookup; falls back to "Unknown" if out of range.

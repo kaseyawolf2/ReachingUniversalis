@@ -206,6 +206,7 @@ struct GoalDef {
     std::string behaviourMod;                 // original string; prefer behaviourModEnum in systems
     GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;  // resolved at load time
     ProfessionID targetProfessionId = INVALID_ID;  // for has_profession: which profession to check
+    float       completionCooldown = 5.0f;        // game-minutes before this goal can re-complete (prevents spam)
 };
 
 struct FacilityDef {

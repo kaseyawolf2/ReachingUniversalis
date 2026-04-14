@@ -4332,6 +4332,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 return;  // still celebrating — skip progress check this tick
             }
 
+            // Drain completion cooldown timer (game-minutes); skip progress
+            // check until cooldown expires to prevent instant re-completion.
+            if (goal.cooldownTimer > 0.f) {
+                float gameMinDt = gameHoursDt * 60.f;
+                goal.cooldownTimer = std::max(0.f, goal.cooldownTimer - gameMinDt);
+                return;  // still on cooldown — skip progress check this tick
+            }
+
             // Validate goalId
             if (goal.goalId < 0 || goal.goalId >= goalCount) return;
             const GoalDef& gdef = schema.goals[goal.goalId];
@@ -4397,6 +4405,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
             // Start personal celebration: 2 game-hours for regular NPCs
             goal.celebrateTimer = 2.f;
+            // Set per-NPC cooldown (game-minutes) from GoalDef to prevent
+            // instant re-completion when the same or similar goal is re-assigned.
+            goal.cooldownTimer = gdef.completionCooldown;
             if (!registry.all_of<Hauler>(e)) {
                 if (auto* st = registry.try_get<AgentState>(e))
                     st->behavior = AgentBehavior::Celebrating;
