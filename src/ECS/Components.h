@@ -160,6 +160,9 @@ struct HomeSettlement {
 // Core fields only — medieval-specific social mechanics live in optional
 // components: SocialBehavior, BanditState, GriefState, TheftRecord,
 // PersonalEventState, CharityState.
+//
+// WARNING: Use DeprivationTimer::Make(schema) to construct — the default
+// constructor leaves needsAtZero empty (required for entt compatibility).
 struct DeprivationTimer {
     std::vector<float> needsAtZero;                     // indexed by NeedID; sized from schema.needs
     float              stockpileEmpty   = 0.f;          // seconds with no food, water, OR heat

@@ -1,5 +1,6 @@
 #include "DeathSystem.h"
 #include "ECS/Components.h"
+#include <cassert>
 #include <vector>
 #include <cstdio>
 #include <algorithm>
@@ -73,6 +74,8 @@ void DeathSystem::Update(entt::registry& registry, float realDt, const WorldSche
 
         auto& needs = view.get<Needs>(entity);
         auto& timer = view.get<DeprivationTimer>(entity);
+
+        assert(!timer.needsAtZero.empty() && "DeprivationTimer must be created via Make()");
 
         // Ensure needsAtZero vector is large enough for all needs
         if (timer.needsAtZero.size() < needs.list.size())
