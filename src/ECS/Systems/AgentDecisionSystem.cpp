@@ -4417,6 +4417,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             // (avoids infinite stall where the 5-attempt loop always picks the same goal)
             if (goalCount == 1) {
                 goal.halfwayLogged = false;
+                // If the single goal is a different type than what was active,
+                // reset the cooldown so a stale timer doesn't block the new goal.
+                const GoalTypeID singleId = 0;
+                if (goal.goalId != singleId) {
+                    goal.goalId = singleId;
+                    goal.cooldownTimer = 0.f;
+                }
                 // Re-compute target for the same goal type
                 const GoalDef& sameDef = schema.goals[goal.goalId];
                 switch (sameDef.targetModeEnum) {
@@ -4455,6 +4462,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             goal.goalId = newGoalId;
             goal.progress = 0.f;
             goal.halfwayLogged = false;
+            goal.cooldownTimer = 0.f;  // Reset stale cooldown from previous goal type
 
             // Compute per-NPC target based on targetMode (int enum, no string comparisons)
             switch (newDef.targetModeEnum) {
