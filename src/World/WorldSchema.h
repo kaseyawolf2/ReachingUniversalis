@@ -240,7 +240,7 @@ static constexpr float DEFAULT_MODERATE_COLD  = 0.3f;   // autumn-like: amber/or
 static constexpr float DEFAULT_COLD_SEASON    = 0.2f;   // wood becomes essential heating fuel
 static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight green sky tint
 static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
-static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: food price floor doubles
+static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: reduced yields
 
 // ---- Season thresholds (loaded from seasons.toml, with compile-time defaults) ----
 
