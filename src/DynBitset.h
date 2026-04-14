@@ -146,6 +146,23 @@ public:
         return true;
     }
 
+    // Zero all bits without changing capacity.
+    // Inline mode: set m_inline to 0. Heap mode: fill the vector with zeros.
+    void clear() {
+        if (!usingHeap()) {
+            m_inline = 0;
+        } else {
+            std::fill(m_heap.begin(), m_heap.end(), uint64_t(0));
+        }
+    }
+
+    // Return to default-constructed empty state (inline mode, zero capacity).
+    void reset() {
+        m_inline = 0;
+        m_heap.clear();
+        m_heap.shrink_to_fit();
+    }
+
     // Build a single-bit DynBitset with bit `pos` set.
     // For pos < 64 this is allocation-free thanks to the inline buffer.
     static DynBitset singleBit(size_t pos) {

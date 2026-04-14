@@ -655,6 +655,81 @@ TEST(promotion_from_empty_inline_to_heap) {
 }
 
 // ---------------------------------------------------------------------------
+// clear() — zeroes all bits without changing capacity
+// ---------------------------------------------------------------------------
+
+TEST(clear_inline) {
+    auto b = DynBitset::singleBit(5);
+    b.set(10);
+    b.set(63);
+    assert(b.any());
+
+    b.clear();
+    assert(b.none());
+    assert(!b.test(5));
+    assert(!b.test(10));
+    assert(!b.test(63));
+
+    // Can still set bits after clear
+    b.set(20);
+    assert(b.test(20));
+    assert(b.any());
+}
+
+TEST(clear_heap) {
+    auto b = DynBitset::singleBit(200);
+    b.set(5);
+    b.set(64);
+    assert(b.any());
+
+    b.clear();
+    assert(b.none());
+    assert(!b.test(5));
+    assert(!b.test(64));
+    assert(!b.test(200));
+
+    // Capacity preserved: can set bit 200 again without realloc
+    b.set(200);
+    assert(b.test(200));
+    assert(b.any());
+}
+
+// ---------------------------------------------------------------------------
+// reset() — returns to default-constructed empty state
+// ---------------------------------------------------------------------------
+
+TEST(reset_heap) {
+    auto b = DynBitset::singleBit(200);
+    b.set(5);
+    b.set(64);
+    assert(b.any());
+
+    b.reset();
+    assert(b.none());
+    assert(!b.test(5));
+    assert(!b.test(64));
+    assert(!b.test(200));
+
+    // After reset, should behave like a default-constructed bitset
+    DynBitset empty;
+    assert(b == empty);
+}
+
+TEST(reset_inline) {
+    auto b = DynBitset::singleBit(10);
+    b.set(30);
+    assert(b.any());
+
+    b.reset();
+    assert(b.none());
+    assert(!b.test(10));
+    assert(!b.test(30));
+
+    DynBitset empty;
+    assert(b == empty);
+}
+
+// ---------------------------------------------------------------------------
 
 int main() {
     std::printf("Running DynBitset tests...\n\n");
@@ -735,6 +810,14 @@ int main() {
     RUN(explicit_size_constructor_inline);
     RUN(explicit_size_constructor_heap);
     RUN(promotion_from_empty_inline_to_heap);
+
+    // clear()
+    RUN(clear_inline);
+    RUN(clear_heap);
+
+    // reset()
+    RUN(reset_heap);
+    RUN(reset_inline);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
