@@ -1803,6 +1803,7 @@ void SimThread::WriteSnapshot() {
 
         // Vocation check: profession matches highest skill
         bool inVocation = false;
+        bool isExpert = false;
         if (const auto* prof2 = m_registry.try_get<Profession>(e)) {
             if (const auto* sk2 = m_registry.try_get<Skills>(e)) {
                 ResourceType bestRes = ResourceType::Food;
@@ -1811,6 +1812,15 @@ void SimThread::WriteSnapshot() {
                 if (sk2->woodcutting   > bestVal) { bestRes = ResourceType::Wood; }
                 inVocation = (prof2->type == ProfessionForResource(bestRes)
                               && prof2->type != ProfessionType::Idle);
+                // Expert check: profession-matching skill >= 0.8
+                float profSkill = 0.f;
+                switch (prof2->type) {
+                    case ProfessionType::Farmer:      profSkill = sk2->farming; break;
+                    case ProfessionType::WaterCarrier: profSkill = sk2->water_drawing; break;
+                    case ProfessionType::Lumberjack:   profSkill = sk2->woodcutting; break;
+                    default: break;
+                }
+                isExpert = (profSkill >= 0.8f && prof2->type != ProfessionType::Idle);
             }
         }
 
@@ -1887,7 +1897,7 @@ void SimThread::WriteSnapshot() {
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
-                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir });
+                           std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir, isExpert });
     });
 
     // ---- Settlements ----

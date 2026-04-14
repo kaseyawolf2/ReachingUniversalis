@@ -146,6 +146,8 @@ struct RenderSnapshot {
         bool reconciling = false;
         // True if this NPC carries an elder's unfinished legacy (wisdomLineage != null)
         bool wisdomHeir = false;
+        // True if this NPC's profession-matching skill >= 0.8 (expert in their field)
+        bool isExpert = false;
     };
 
     struct SettlementEntry {
