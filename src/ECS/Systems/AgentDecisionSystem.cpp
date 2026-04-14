@@ -684,6 +684,53 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
 
+                    // Jealousy-driven skill motivation: low affinity toward a skilled rival pushes harder training
+                    if (profFlag && hs.settlement != entt::null) {
+                        const auto* myRel = registry.try_get<Relations>(e);
+                        if (myRel) {
+                            bool jealousMotivated = false;
+                            entt::entity rivalE = entt::null;
+                            for (const auto& [target, aff] : myRel->affinity) {
+                                if (aff >= 0.1f) continue; // not jealous
+                                if (!registry.valid(target)) continue;
+                                const auto* tHome = registry.try_get<HomeSettlement>(target);
+                                if (!tHome || tHome->settlement != hs.settlement) continue;
+                                const auto* tProf = registry.try_get<Profession>(target);
+                                if (!tProf || tProf->type != prof.type) continue;
+                                const auto* tSk = registry.try_get<Skills>(target);
+                                if (!tSk) continue;
+                                float rivalSkill = 0.f;
+                                switch (prof.type) {
+                                    case ProfessionType::Farmer:      rivalSkill = tSk->farming; break;
+                                    case ProfessionType::WaterCarrier: rivalSkill = tSk->water_drawing; break;
+                                    case ProfessionType::Lumberjack:   rivalSkill = tSk->woodcutting; break;
+                                    default: break;
+                                }
+                                if (rivalSkill >= 0.8f) {
+                                    jealousMotivated = true;
+                                    rivalE = target;
+                                    break;
+                                }
+                            }
+                            if (jealousMotivated) {
+                                growth += 0.0003f;
+                                if (s_teachRng() % 12 == 0 && !logV2.empty()) {
+                                    std::string who = "NPC";
+                                    if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
+                                    std::string rival = "a rival";
+                                    if (rivalE != entt::null)
+                                        if (const auto* rn = registry.try_get<Name>(rivalE)) rival = rn->value;
+                                    std::string where = "settlement";
+                                    if (registry.valid(hs.settlement))
+                                        if (const auto* s = registry.try_get<Settlement>(hs.settlement))
+                                            where = s->name;
+                                    logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                        who + " trains harder to surpass " + rival + " at " + where + ".");
+                                }
+                            }
+                        }
+                    }
+
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = 0.f;
                     switch (prof.type) {
