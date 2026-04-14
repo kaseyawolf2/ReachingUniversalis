@@ -55,7 +55,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     EventLog* log = (logView.begin() == logView.end()) ? nullptr
                   : &logView.get<EventLog>(*logView.begin());
 
-    // Tick down active settlement modifiers (drought/plague recovery)
+    // Tick down active settlement modifiers (drought/spreading event recovery)
     // Also update morale drift and unrest threshold crossing.
     registry.view<Settlement>().each([&](auto e, Settlement& s) {
         if (s.modifierDuration > 0.f) {
@@ -63,7 +63,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             if (s.modifierDuration <= 0.f) {
                 s.modifierDuration   = 0.f;
                 s.productionModifier = 1.f;
-                bool wasSpreading = m_plagueSpreadTimer.count(e) > 0;
+                bool wasSpreading = m_spreadTimers.count(e) > 0;
                 bool wasFestival = (s.modifierName == "Festival" || s.modifierName == "Harvest Festival");
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
@@ -102,7 +102,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     }
                 }
                 s.modifierName.clear();
-                if (wasSpreading) m_plagueSpreadTimer.erase(e);
+                if (wasSpreading) m_spreadTimers.erase(e);
             }
         }
 
@@ -431,7 +431,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         }
     });
 
-    // ---- Spreading events (data-driven plague-like spreading) ----
+    // ---- Spreading events (data-driven) ----
     // Each infected settlement tries to spread to a connected neighbour
     // using the parameters of the specific event that infected it.
 
@@ -440,9 +440,9 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     std::unordered_set<entt::entity> newInfectionSet;  // O(1) duplicate check
     std::vector<entt::entity> staleSpreadEntries;      // entries to erase after iteration
 
-    for (auto& [plagueSettl, entry] : m_plagueSpreadTimer) {
-        if (!registry.valid(plagueSettl)) {
-            staleSpreadEntries.push_back(plagueSettl);
+    for (auto& [srcSettl, entry] : m_spreadTimers) {
+        if (!registry.valid(srcSettl)) {
+            staleSpreadEntries.push_back(srcSettl);
             continue;
         }
         entry.timer -= gameHoursDt;
@@ -453,12 +453,12 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         if (entry.eventIdx < 0 || entry.eventIdx >= (int)schema.events.size()) {
             fprintf(stderr, "[RandomEventSystem] WARNING: spread entry for settlement has out-of-range eventIdx %d (schema has %d events) -- removing entry\n",
                     entry.eventIdx, (int)schema.events.size());
-            staleSpreadEntries.push_back(plagueSettl);
+            staleSpreadEntries.push_back(srcSettl);
             continue;
         }
         const EventDef& sDef = schema.events[entry.eventIdx];
         if (!sDef.spreads) {          // non-spreading event at this index -- remove stale entry
-            staleSpreadEntries.push_back(plagueSettl);
+            staleSpreadEntries.push_back(srcSettl);
             continue;
         }
 
@@ -468,8 +468,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         std::vector<entt::entity> neighbors;
         registry.view<Road>().each([&](const Road& r) {
             if (r.blocked) return;
-            if (r.from == plagueSettl && registry.valid(r.to))   neighbors.push_back(r.to);
-            if (r.to   == plagueSettl && registry.valid(r.from)) neighbors.push_back(r.from);
+            if (r.from == srcSettl && registry.valid(r.to))   neighbors.push_back(r.to);
+            if (r.to   == srcSettl && registry.valid(r.from)) neighbors.push_back(r.from);
         });
         if (neighbors.empty()) continue;
 
@@ -479,7 +479,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
         entt::entity target2 = neighbors[pickN(m_rng)];
         if (!registry.valid(target2)) continue;
-        if (m_plagueSpreadTimer.count(target2)) continue;  // already infected
+        if (m_spreadTimers.count(target2)) continue;  // already infected
         // Also skip if already queued for infection this tick
         if (newInfectionSet.count(target2)) continue;
 
@@ -509,7 +509,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             }
         }
 
-        const auto* src = registry.try_get<Settlement>(plagueSettl);
+        const auto* src = registry.try_get<Settlement>(srcSettl);
         if (log) {
             std::string srcName = src ? src->name : "?";
             std::string msg = sDef.displayName + " spreads from " + srcName
@@ -520,10 +520,10 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     }
     // Remove stale/corrupt spread entries
     for (auto& ent : staleSpreadEntries)
-        m_plagueSpreadTimer.erase(ent);
+        m_spreadTimers.erase(ent);
     // Apply deferred new infections
     for (auto& [ent, se] : newInfections)
-        m_plagueSpreadTimer[ent] = se;
+        m_spreadTimers[ent] = se;
 
     // Sample settlement populations every 24 game-hours for trend tracking
     m_popSampleTimer -= gameHoursDt;
@@ -1098,19 +1098,19 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         // Duration-based production modifier requires no existing modifier
         if (ev.durationHours > 0.f) {
             if (settl->modifierDuration > 0.f) return;  // already has an active event
-            // Plague-specific: check not already infected
-            if (ev.spreads && m_plagueSpreadTimer.count(target)) return;
+            // Skip if target is already affected by a spreading event
+            if (ev.spreads && m_spreadTimers.count(target)) return;
 
             settl->productionModifier = ev.effectValue;
             settl->modifierDuration   = ev.durationHours;
             settl->modifierName       = ev.displayName;
 
-            // Plague spreading setup
+            // Spreading event setup
             if (ev.spreads)
-                m_plagueSpreadTimer[target] = {ev.spreadInterval, ev.id};
+                m_spreadTimers[target] = {ev.spreadInterval, ev.id};
         }
 
-        // Kill fraction (Plague)
+        // Kill fraction (if configured)
         int killed = 0;
         if (ev.killFraction > 0.f)
             killed = KillFraction(registry, target, ev.killFraction);
