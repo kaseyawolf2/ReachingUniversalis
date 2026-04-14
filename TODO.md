@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
+
 ## Done
 
 - [x] **Seasonal work shanty** — In `ScheduleSystem.cpp`'s work song block, check `TimeManager::season`. During harvest season (`Season::Autumn`), increase the work song chance from 1-in-30 to 1-in-15 (more singing during busy harvest). During winter (`Season::Winter`), boost the affinity gain from +0.01 to +0.02 (huddling together). Log variant: "[Name] leads a harvest shanty" (autumn) or "[Name] leads a fireside song" (winter). Uses existing `TimeManager` season field.
@@ -16,8 +18,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Hauler route rivalry reconciliation** — In `TransportSystem.cpp`'s delivery block (GoingToDeposit → arrival), when a hauler arrives at a destination and finds another hauler from the same home settlement already there (check via `Hauler::state == Idle` or `GoingHome` with same `cargoSource`), if their `Relations::affinity < 0.2` (rivalry), 1-in-8 chance to reconcile: boost mutual affinity by +0.03. Log "[HaulerA] and [HaulerB] share a drink at [Destination]" at full frequency. Creates a counterbalance to route competition.
 
 - [ ] **Hauler trade gossip** — In `TransportSystem.cpp`'s delivery block, after a successful sale, if another hauler from the same home settlement is within 80 units (check via position scan), the delivering hauler shares trade info: set the other hauler's `bestRoute` to this delivery's route name if profit exceeded 50g. Log "[Hauler] tips off [Other] about the [Route] route" at 1-in-6 frequency. Creates information-sharing between hauler peers.
 
