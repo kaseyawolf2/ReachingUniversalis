@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mourning procession movement** — In `AgentDecisionSystem.cpp`'s grief block, when 3+ NPCs at the same settlement have `wisdomGriefDays > 0` simultaneously, set their `AgentState::behavior = Celebrating` (repurposed as gathering) for 1 game-hour and move them toward the settlement center. Log "[Settlement] gathers to honour [Elder]'s memory" once per elder death via `static std::set<entt::entity> s_honouredElders`. Boosts mutual affinity +0.02 among participants. Creates a visible group mourning event.
-
 ## Done
+
+- [x] **Mourning procession movement** — In `AgentDecisionSystem.cpp`'s grief block, when 3+ NPCs at the same settlement have `wisdomGriefDays > 0` simultaneously, set their `AgentState::behavior = Celebrating` (repurposed as gathering) for 1 game-hour and move them toward the settlement center. Log "[Settlement] gathers to honour [Elder]'s memory" once per elder death via `static std::set<entt::entity> s_honouredElders`. Boosts mutual affinity +0.02 among participants. Creates a visible group mourning event.
+
 
 - [x] **Wisdom lineage tracking** — In `DeathSystem.cpp`'s elder wisdom fading block, when `wisdomGriefDays` is applied to a mourner, also set a new `entt::entity wisdomLineage = entt::null` field on `Skills` in `Components.h` to the deceased elder's entity (for narrative tracking). In `AgentDecisionSystem.cpp`'s skill growth block, when an NPC with `wisdomLineage != entt::null` crosses skill >= 0.8, log "[NPC] carries on [Elder]'s legacy at [Settlement]" at full frequency and clear the field. Creates a narrative thread connecting elder deaths to future mastery.
 
@@ -73,6 +74,12 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Hauler mentorship affinity boost** — In `TransportSystem.cpp`'s convoy block, when two haulers travel together and one has `Hauler::mentorBonus > 0` (experienced/second-chance hauler) and the other has `tripCount < 5` (novice), boost the novice's affinity toward the mentor by +0.02 per trip and set the novice's `mentorBonus = 0.05f` (small learned bonus). Log "[Mentor] shows [Novice] the ropes on the [Route] road" at 1-in-5 frequency. Creates a mentorship dynamic in convoy travel.
 
 - [ ] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
+
+- [ ] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
+
+- [ ] **Post-procession comfort bonus** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when the comforter was a participant in a mourning procession (check `skillCelebrateTimer > 0` and `wisdomGriefDays > 0`), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] draws strength from the procession to comfort [Griever]" at 1-in-6 frequency. Creates a connection between the group mourning event and individual grief support.
+
+- [ ] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
 
 - [ ] **Jealousy-driven skill motivation** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy scan, check if an NPC's `Relations::affinity` toward any same-profession NPC at the settlement is < 0.1 (jealousy threshold) AND that target's matching skill is >= 0.8. If so, apply `growth += 0.0003f` as competitive motivation. Log "[NPC] trains harder to surpass [Rival] at [Settlement]" at 1-in-12 frequency via `s_teachRng`. Creates a feedback loop: jealousy → motivation → eventual pride announcement → more jealousy.
 
