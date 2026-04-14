@@ -107,6 +107,10 @@ private:
     // Player reputation (persists through respawn via registry PlayerTag component)
     int m_playerReputation = 0;
 
+    // Schema-derived skill display names, built once at construction.
+    // Used by WriteSnapshot to avoid rebuilding per frame.
+    std::vector<std::string> m_cachedSkillNames;
+
     // Population history for sparkline: maps settlement entity → ring buffer of daily pop samples
     // Sampled once per game-day (at the same interval as m_popPrev).
     // Maximum POPHISTORY_MAX entries (oldest overwritten).
