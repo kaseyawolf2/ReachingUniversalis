@@ -297,7 +297,8 @@ struct WorldSchema {
     std::unordered_map<std::string, int>          agentTemplatesByName;
 
     // Resource → Profession reverse lookup (built by BuildMaps from ProfessionDef::producesResource)
-    std::unordered_map<ResourceID, ProfessionID> resourceToProfession;
+    // Flat vector indexed by ResourceID; value is ProfessionID (INVALID_ID if none).
+    std::vector<ProfessionID> resourceToProfession;
 
     // Resource → Skill reverse lookup (built by BuildResourceToSkillMap after cross-refs resolved)
     // Flat vector indexed by ResourceID; value is SkillID (INVALID_ID if none).
@@ -322,8 +323,9 @@ struct WorldSchema {
 
     // Map a resource ID to the profession that produces it (INVALID_ID if none).
     ProfessionID ProfessionForResource(ResourceID res) const {
-        auto it = resourceToProfession.find(res);
-        return it != resourceToProfession.end() ? it->second : INVALID_ID;
+        if (res >= 0 && res < (int)resourceToProfession.size())
+            return resourceToProfession[res];
+        return INVALID_ID;
     }
 
     // Get the display name for a profession ID (empty string if out of range).
@@ -376,13 +378,13 @@ struct WorldSchema {
         skillsByName.clear();
         for (auto& d : skills)       { d.id = (SkillID)(&d - skills.data());              skillsByName[d.name] = d.id; }
         professionsByName.clear();
-        resourceToProfession.clear();
+        resourceToProfession.assign(resources.size(), INVALID_ID);
         idleProfessionId = INVALID_ID;
         haulerProfessionId = INVALID_ID;
         for (auto& d : professions)  {
             d.id = (ProfessionID)(&d - professions.data());
             professionsByName[d.name] = d.id;
-            if (d.producesResource != INVALID_ID)
+            if (d.producesResource >= 0 && d.producesResource < (int)resources.size())
                 resourceToProfession[d.producesResource] = d.id;
             if (d.isIdle)   idleProfessionId   = d.id;
             if (d.isHauler) haulerProfessionId = d.id;
