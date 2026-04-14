@@ -156,6 +156,7 @@ void GameState::Draw() {
     std::vector<RenderSnapshot::FacilityEntry>    facilities;
     RenderSnapshot::StockpilePanel                panel;
     float snapHour = 12.f;
+    float snapSeasonHeatMod = 0.f;
 
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
@@ -165,6 +166,7 @@ void GameState::Draw() {
         facilities  = m_snapshot.facilities;
         panel       = m_snapshot.stockpilePanel;
         snapHour    = m_snapshot.hourOfDay;
+        snapSeasonHeatMod = m_snapshot.seasonHeatMod;
     }
 
     // World drawing
@@ -251,8 +253,8 @@ void GameState::Draw() {
                    (s.ruinTimer > 0.f) ? Fade(GRAY, 0.85f) : Fade(DARKGRAY, 0.7f);
         } else {
             float minStock = std::min(s.foodStock, s.waterStock);
-            // In cold seasons, include wood shortage in ring health assessment
-            bool coldSeason = (s.season == Season::Autumn || s.season == Season::Winter);
+            // In cold seasons (high heat drain), include wood shortage in ring health assessment
+            bool coldSeason = (snapSeasonHeatMod >= 0.15f);
             if (coldSeason && s.woodStock < 20.f)
                 minStock = std::min(minStock, s.woodStock);
             ring = s.selected ? YELLOW :
@@ -546,11 +548,12 @@ static Color LerpColor(Color a, Color b, float t) {
 
 Color GameState::SkyColor() const {
     float  hour;
-    Season season;
+    float  heatMod, prodMod;
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
-        hour   = m_snapshot.hourOfDay;
-        season = m_snapshot.season;
+        hour    = m_snapshot.hourOfDay;
+        heatMod = m_snapshot.seasonHeatMod;
+        prodMod = m_snapshot.seasonProdMod;
     }
 
     // Base day/night colors (summer palette — warmest)
@@ -578,31 +581,23 @@ Color GameState::SkyColor() const {
         }
     }
 
-    // Season tint: winter = cooler (blue-shifted), autumn = warmer (orange-shifted)
-    // Spring = slight green tint; Summer = base (no tint)
-    switch (season) {
-        case Season::Winter: {
-            // Shift toward icy blue: reduce red, boost blue slightly
-            Color tint = { 60, 80, 120, 255 };
-            base = LerpColor(base, tint, 0.18f);
-            break;
-        }
-        case Season::Autumn: {
-            // Shift toward amber/orange
-            Color tint = { 200, 130, 60, 255 };
-            base = LerpColor(base, tint, 0.10f);
-            break;
-        }
-        case Season::Spring: {
-            // Very slight green tint
-            Color tint = { 100, 180, 140, 255 };
-            base = LerpColor(base, tint, 0.07f);
-            break;
-        }
-        case Season::Summer:
-        default:
-            break;
+    // Season tint derived from schema properties:
+    //   Cold (high heatMod) → icy blue; harvest (high prodMod) → amber;
+    //   mild cold (moderate heatMod) → green tint; warm/peak → no tint
+    if (heatMod >= 0.8f) {
+        // Winter-like: shift toward icy blue
+        Color tint = { 60, 80, 120, 255 };
+        base = LerpColor(base, tint, 0.18f);
+    } else if (prodMod >= 1.1f) {
+        // Autumn-like (harvest): shift toward amber/orange
+        Color tint = { 200, 130, 60, 255 };
+        base = LerpColor(base, tint, 0.10f);
+    } else if (heatMod >= 0.05f && heatMod < 0.8f) {
+        // Spring-like (mild cold): slight green tint
+        Color tint = { 100, 180, 140, 255 };
+        base = LerpColor(base, tint, 0.07f);
     }
+    // else: summer-like (no cold, normal production) — no tint
 
     return base;
 }

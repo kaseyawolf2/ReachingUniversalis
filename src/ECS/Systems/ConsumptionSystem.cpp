@@ -25,7 +25,7 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 
 static std::map<entt::entity, float> s_desperateCooldown;
 
-void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -35,7 +35,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
 
     // 1 game-hour = 60 game-minutes; GAME_MINS_PER_REAL_SEC scales gameDt to minutes.
     float gameHoursDt  = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-    float heatDrainMult = SeasonHeatDrainMult(tm.CurrentSeason());
+    float heatDrainMult = GetSeasonHeatDrainMod(tm.CurrentSeason(), schema);
 
     // Per-settlement starvation tracking for food crisis warning
     std::map<entt::entity, int> starvingPerSettlement;
