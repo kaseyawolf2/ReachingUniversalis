@@ -1397,6 +1397,7 @@ void SimThread::WriteSnapshot() {
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
         int   profMask  = 0;  // bitmask: bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack
         int   griefCount = 0; // NPCs with griefTimer > 0
+        int   mourningCount = 0; // NPCs in mourning procession (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
     };
     std::unordered_map<entt::entity, SettlAgg> settlAgg;
     // Single pass over all homed NPCs (excluding player)
@@ -1450,6 +1451,13 @@ void SimThread::WriteSnapshot() {
                     ag.skillWaterSum += sk->water_drawing;
                     ag.skillWoodSum  += sk->woodcutting;
                     ++ag.skillCount;
+                }
+                // Mourning procession: check both wisdomGriefDays and skillCelebrateTimer
+                {
+                    const auto* skM = m_registry.try_get<Skills>(e);
+                    const auto* dtM = m_registry.try_get<DeprivationTimer>(e);
+                    if (skM && dtM && skM->wisdomGriefDays > 0.f && dtM->skillCelebrateTimer > 0.f)
+                        ++ag.mourningCount;
                 }
                 if (const auto* prof = m_registry.try_get<Profession>(e)) {
                     switch (prof->type) {
@@ -1980,6 +1988,7 @@ void SimThread::WriteSnapshot() {
         bool diverse = settlAgg.count(e) && (settlAgg[e].profMask & 7) == 7;
         bool afterglow = (s.afterglowHours > 0.f);
         bool vigilActive = settlAgg.count(e) && settlAgg[e].griefCount >= 3;
+        bool mourningActive = settlAgg.count(e) && settlAgg[e].mourningCount > 0;
         float harmony = 0.f;
         if (spop >= 2)
             harmony = (friendPairs * 2.0f) / std::max(1, spop * (spop - 1));
@@ -1992,7 +2001,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            avgFarming, avgWater, avgWood, diverse, afterglow, vigilActive, harmony
+            avgFarming, avgWater, avgWood, diverse, afterglow, vigilActive, mourningActive, harmony
         });
     });
 

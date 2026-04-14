@@ -1287,6 +1287,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     bool isDiverse  = best->diverse;
     bool isAfterglow = best->afterglow;
     bool isVigil    = best->vigil;
+    bool isMourning = best->mourning;
 
     // Line 2: resource stocks
     char line2[64];
@@ -1421,7 +1422,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
     int divW = isDiverse  ? MeasureText("  [Diverse]", 12)  : 0;
     int aglW = isAfterglow ? MeasureText("  [Afterglow]", 12) : 0;
     int vigW = isVigil    ? MeasureText("  [Vigil]", 12)    : 0;
-    int w = std::max({ MeasureText(line1, 12) + hubW + divW + aglW + vigW, MeasureText(line2, 11),
+    int mouW = isMourning ? MeasureText("  [Mourning]", 12)  : 0;
+    int w = std::max({ MeasureText(line1, 12) + hubW + divW + aglW + vigW + mouW, MeasureText(line2, 11),
                        MeasureText(line3, 11),
                        showChildren  ? MeasureText(line4, 11) : 0,
                        showElders    ? MeasureText(line5, 11) : 0,
@@ -1463,8 +1465,12 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         DrawText("  [Afterglow]", tx + badgeOff, ty, 12, Fade(ORANGE, 0.9f));
         badgeOff += MeasureText("  [Afterglow]", 12);
     }
-    if (isVigil)
+    if (isVigil) {
         DrawText("  [Vigil]", tx + badgeOff, ty, 12, Fade(PURPLE, 0.7f));
+        badgeOff += MeasureText("  [Vigil]", 12);
+    }
+    if (isMourning)
+        DrawText("  [Mourning]", tx + badgeOff, ty, 12, Fade(GRAY, 0.7f));
     ty += 16;
     DrawText(line2, tx, ty,      11, LIGHTGRAY);           ty += 16;
     Color tresCol = (treasury < 50.f) ? RED : (treasury < 150.f) ? ORANGE : GOLD;

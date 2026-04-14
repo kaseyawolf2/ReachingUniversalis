@@ -179,6 +179,7 @@ struct RenderSnapshot {
         bool         diverse    = false; // all 3 profession types present
         bool         afterglow  = false; // post-festival morale afterglow active
         bool         vigil     = false; // 3+ NPCs grieving at this settlement
+        bool         mourning  = false; // mourning procession active (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
         float        harmony   = 0.f;  // social cohesion: friendshipPairs / possible pairs (0-1)
     };
 
