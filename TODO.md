@@ -167,7 +167,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **Season threshold HUD display** — `GameState.cpp` uses season thresholds for sky tint but the HUD doesn't show the current threshold regime. Add a `seasonRegime` string field to `RenderSnapshot` (e.g., "Harsh Cold", "Mild", "Harvest") set by `TimeSystem` based on current `heatDrainMod` vs thresholds, displayed in the time panel.
 
-- [ ] **Flat professionToSkill bounds-check assert** — `WorldSchema::SkillForProfession(ProfessionID)` indexes into `professionToSkill` vector but has no bounds check. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for debug builds, consistent with `SkillIdForResource()`.
+- [x] **Flat professionToSkill bounds-check assert** — `WorldSchema::SkillForProfession(ProfessionID)` indexes into `professionToSkill` vector but has no bounds check. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for debug builds, consistent with `SkillIdForResource()`.
 
 - [ ] **BuildProfessionToSkillMap ordering test** — Add a test or assert that calling `BuildProfessionToSkillMap()` before `ResolveCrossRefs()` triggers the `assert(crossRefsResolved)` failure. Currently only tested implicitly by the load path. An explicit test documents the ordering contract.
 
@@ -278,6 +278,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **AgentDecisionSystem jealousy guard ordering** — `AgentDecisionSystem.cpp` line ~762 jealousy block checks `myProfFlag.any() && hs.settlement != entt::null && profSkId != INVALID_ID`. The cheapest check (`profSkId != INVALID_ID`, integer comparison) should be first, before the bitset `.any()` call. Reorder for micro-optimization.
 
 - [ ] **SkillForProfession callers audit documentation** — The PR #78 audit of all 18 `SkillForProfession()` call sites lives only in the closed PR description. Add a brief `///` comment above `SkillForProfession()` in `WorldSchema.h` documenting that callers must guard against INVALID_ID before passing to `SkillGrowthRate()`/`SkillDecayRate()`.
+
+- [ ] **ProfessionLabel bounds-check assert** — `WorldSchema::ProfessionLabel()` indexes into `professions` vector without a debug assert. Add `assert(pid >= 0 && pid < (int)professions.size())` consistent with `ProfessionForResource()` and `SkillForProfession()`.
+
+- [ ] **ID-indexed lookup assert sweep** — Multiple `WorldSchema` methods that index by ID (`NeedLabel`, `ResourceLabel`, `SkillLabel`, etc.) lack debug asserts. Audit all ID-indexed lookup methods and add `assert(id >= 0 && id < (int)vec.size())` consistently to catch out-of-bounds access in debug builds.
 
 ## Phase 2 — UI Decoupling
 
