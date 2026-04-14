@@ -335,6 +335,7 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
         def.unit              = OptStr(*item, "unit", "");
         def.completionMessage = OptStr(*item, "completion_message", "{name} completed a goal!");
         def.behaviourMod      = OptStr(*item, "behaviour_mod", "");
+        def.completionCooldown = OptFloat(*item, "completion_cooldown", 5.0f);
 
         // Resolve string enums to int enums at load time (no string comparisons in hot loops)
         if (def.checkType == "balance_gte")       def.checkTypeEnum = GoalCheckType::BalanceGte;
