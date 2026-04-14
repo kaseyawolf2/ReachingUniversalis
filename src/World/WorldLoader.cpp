@@ -276,6 +276,30 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         def.heatDrainMod    = OptFloat(*item, "heat_drain_mod", 0.0f);
         def.baseTemperature = OptFloat(*item, "base_temperature", 20.0f);
         def.tempSwing       = OptFloat(*item, "temp_swing", 8.0f);
+
+        // Per-resource price floor multipliers: [seasons.price_floors] sub-table.
+        // Each key is a resource name (e.g. "Wood"), value is a float multiplier.
+        // Unspecified resources default to 1.0f.
+        def.priceFloorMult.assign(schema.resources.size(), 1.0f);
+        if (auto* pf = item->get("price_floors")) {
+            if (auto* pfTbl = pf->as_table()) {
+                for (auto& [key, val] : *pfTbl) {
+                    // Look up resource name in already-loaded schema.resources
+                    int resId = -1;
+                    for (size_t r = 0; r < schema.resources.size(); ++r) {
+                        if (schema.resources[r].name == key) { resId = (int)r; break; }
+                    }
+                    if (resId < 0) {
+                        fprintf(stderr, "[WorldLoader] WARNING: %s: price_floors references unknown resource '%s'\n",
+                                ctx.c_str(), std::string(key).c_str());
+                        continue;
+                    }
+                    if (auto fv = val.value<double>()) {
+                        def.priceFloorMult[resId] = (float)*fv;
+                    }
+                }
+            }
+        }
         schema.seasons.push_back(std::move(def));
     }
     return true;
