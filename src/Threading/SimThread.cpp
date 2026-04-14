@@ -1844,16 +1844,21 @@ void SimThread::WriteSnapshot() {
         bool isExpert = false;
         if (const auto* prof2 = m_registry.try_get<Profession>(e)) {
             if (const auto* sk2 = m_registry.try_get<Skills>(e)) {
-                int bestRes = RES_FOOD;
-                float bestVal = sk2->farming;
-                if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = RES_WATER; }
-                if (sk2->woodcutting   > bestVal) { bestRes = RES_WOOD; }
-                inVocation = (prof2->type == m_schema.ProfessionForResource(bestRes)
+                // Generic: iterate all producing professions, find which resource the NPC is best at
+                int bestRes = INVALID_ID;
+                float bestVal = -1.f;
+                for (const auto& pd : m_schema.professions) {
+                    if (pd.producesResource == INVALID_ID) continue;
+                    float val = sk2->ForResource(pd.producesResource);
+                    if (val > bestVal) { bestVal = val; bestRes = pd.producesResource; }
+                }
+                inVocation = (bestRes != INVALID_ID
+                              && prof2->type == m_schema.ProfessionForResource(bestRes)
                               && m_schema.ProfessionProduces(prof2->type));
                 // Expert check: profession-matching skill >= 0.8
-                float profSkill = sk2->ForResource(
-                    (prof2->type >= 0 && prof2->type < (int)m_schema.professions.size())
-                    ? m_schema.professions[prof2->type].producesResource : -1);
+                int profProducedRes = (prof2->type >= 0 && prof2->type < (int)m_schema.professions.size())
+                    ? m_schema.professions[prof2->type].producesResource : INVALID_ID;
+                float profSkill = sk2->ForResource(profProducedRes);
                 isExpert = (profSkill >= 0.8f && m_schema.ProfessionProduces(prof2->type));
             }
         }
@@ -1972,9 +1977,8 @@ void SimThread::WriteSnapshot() {
                     maxRate = fac.baseRate; primary = fac.output;
                 }
             });
-            if (maxRate > 0.f)
-                specialty = (primary == RES_FOOD)  ? "Farming" :
-                            (primary == RES_WATER) ? "Water"   : "Lumber";
+            if (maxRate > 0.f && primary >= 0 && primary < (int)m_schema.resources.size())
+                specialty = m_schema.resources[primary].displayName;
         }
 
         // Compute mood score from pre-computed aggregates

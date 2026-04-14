@@ -1,7 +1,9 @@
 #include "AgentDecisionSystem.h"
 #include "World/WorldSchema.h"
+#include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <random>
 #include <set>
@@ -397,10 +399,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             return schema.professions[profId].producesResource;
         return -1;
     };
-    auto profFlag = [&](int profId) -> int {
+    // Bitmask helper: one bit per producing profession. Requires < 32 professions.
+    assert(schema.professions.size() < 32 && "professions.size() must be < 32 for bitmask flags");
+    auto profFlag = [&](int profId) -> uint32_t {
         if (profId >= 0 && profId < (int)schema.professions.size()
             && schema.professions[profId].producesResource != INVALID_ID)
-            return (1 << profId);
+            return (uint32_t(1) << profId);
         return 0;
     };
 
@@ -503,24 +507,24 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
             // Build per-settlement master profession set
             // Bit flags: bit N = professionID N (only for producing professions)
-            std::unordered_map<entt::entity, int> masterFlags;
+            std::unordered_map<entt::entity, uint32_t> masterFlags;
             registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
-                    int f = profFlag(prof.type);
+                    uint32_t f = profFlag(prof.type);
                     if (f && sk.ForResource(profRes(prof.type)) >= MASTER_THRESHOLD)
                         masterFlags[hs.settlement] |= f;
                 });
 
             // Pre-compute expert flags: settlement → profBits for NPCs with skill >= 0.8
             // (distinct from masterFlags which requires 0.9 — this is for teaching chain)
-            std::unordered_map<entt::entity, int> expertFlags;
+            std::unordered_map<entt::entity, uint32_t> expertFlags;
             registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
-                    int f = profFlag(prof.type);
+                    uint32_t f = profFlag(prof.type);
                     if (f && sk.ForResource(profRes(prof.type)) >= 0.8f)
                         expertFlags[hs.settlement] |= f;
                 });
@@ -528,29 +532,29 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             // Pre-compute active mentoring: settlement → profMask of professions
             // where an elder (age > 60) AND a child (age 12-14) of matching profession coexist.
             // Used for mentorship rivalry: non-mentor skilled NPCs train harder.
-            std::unordered_map<entt::entity, int> elderProfBySettl;
+            std::unordered_map<entt::entity, uint32_t> elderProfBySettl;
             registry.view<Age, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Age& age, const Profession& prof, const HomeSettlement& hs) {
                     if (age.days > 60.f && hs.settlement != entt::null) {
-                        int f = profFlag(prof.type);
+                        uint32_t f = profFlag(prof.type);
                         if (f) elderProfBySettl[hs.settlement] |= f;
                     }
                 });
-            std::unordered_map<entt::entity, int> childProfBySettl;
+            std::unordered_map<entt::entity, uint32_t> childProfBySettl;
             registry.view<ChildTag, Age, Profession, HomeSettlement>().each(
                 [&](auto, const Age& age, const Profession& prof, const HomeSettlement& hs) {
                     if (age.days >= 12.f && age.days <= 14.f && hs.settlement != entt::null) {
-                        int f = profFlag(prof.type);
+                        uint32_t f = profFlag(prof.type);
                         if (f) childProfBySettl[hs.settlement] |= f;
                     }
                 });
             // Active mentoring = intersection of elder and child profession bits per settlement
-            std::unordered_map<entt::entity, int> activeMentoring;
+            std::unordered_map<entt::entity, uint32_t> activeMentoring;
             for (const auto& [settl, elderMask] : elderProfBySettl) {
                 auto cit = childProfBySettl.find(settl);
                 if (cit != childProfBySettl.end()) {
-                    int overlap = elderMask & cit->second;
+                    uint32_t overlap = elderMask & cit->second;
                     if (overlap) activeMentoring[settl] = overlap;
                 }
             }
@@ -558,13 +562,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
             // Pre-compute skilled elders per settlement for elder wisdom boost.
             // Key: settlement → vector of (entity, profFlag) for elders with skill >= 0.8
-            struct ElderInfo { entt::entity e; int profFlag; };
+            struct ElderInfo { entt::entity e; uint32_t profFlag; };
             std::unordered_map<entt::entity, std::vector<ElderInfo>> skilledElders;
             registry.view<Skills, Profession, Age, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](auto elder, const Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days <= 60.f || hs.settlement == entt::null) return;
-                    int f = profFlag(prof.type);
+                    uint32_t f = profFlag(prof.type);
                     if (f && sk.ForResource(profRes(prof.type)) >= 0.8f)
                         skilledElders[hs.settlement].push_back({elder, f});
                 });
@@ -579,7 +583,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](auto e, Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days > 60.f) return;  // elders don't grow skills
                     // Check if settlement has a master of this profession
-                    int myProfFlag = profFlag(prof.type);
+                    uint32_t myProfFlag = profFlag(prof.type);
                     int myProfRes  = profRes(prof.type);
                     bool hasMaster = false;
                     if (myProfFlag && hs.settlement != entt::null) {
