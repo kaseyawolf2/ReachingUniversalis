@@ -564,6 +564,39 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                 }
+                // Hauler mentorship: experienced hauler teaches novice in convoy
+                if (hauler.inConvoy && convoyPartner != entt::null) {
+                    const auto* partnerH = registry.try_get<Hauler>(convoyPartner);
+                    if (partnerH) {
+                        bool iAmMentor  = (hauler.mentorBonus > 0.f && partnerH->lifetimeTrips < 5);
+                        bool theyMentor = (partnerH->mentorBonus > 0.f && hauler.lifetimeTrips < 5);
+                        entt::entity mentor = entt::null, novice = entt::null;
+                        if (iAmMentor)      { mentor = entity; novice = convoyPartner; }
+                        else if (theyMentor) { mentor = convoyPartner; novice = entity; }
+                        if (mentor != entt::null) {
+                            if (auto* nRel = registry.try_get<Relations>(novice))
+                                nRel->affinity[mentor] = std::min(1.f, nRel->affinity[mentor] + 0.02f);
+                            if (auto* nH = registry.try_get<Hauler>(novice))
+                                nH->mentorBonus = std::max(nH->mentorBonus, 0.05f);
+                            static std::mt19937 s_mentorRng{ std::random_device{}() };
+                            if (s_mentorRng() % 5 == 0) {
+                                auto mlv = registry.view<EventLog>();
+                                auto mtv = registry.view<TimeManager>();
+                                if (!mlv.empty() && !mtv.empty()) {
+                                    const auto& tmM = mtv.get<TimeManager>(*mtv.begin());
+                                    std::string mN = "A hauler", nN = "a novice";
+                                    if (const auto* nm = registry.try_get<Name>(mentor)) mN = nm->value;
+                                    if (const auto* nm2 = registry.try_get<Name>(novice)) nN = nm2->value;
+                                    std::string route = "the road";
+                                    if (const auto* ds = registry.try_get<Settlement>(hauler.targetSettlement))
+                                        route = "the " + ds->name + " road";
+                                    mlv.get<EventLog>(*mlv.begin()).Push(tmM.day, (int)tmM.hourOfDay,
+                                        mN + " shows " + nN + " the ropes on " + route + ".");
+                                }
+                            }
+                        }
+                    }
+                }
                 float convoyMult = 1.25f;
                 if (hauler.inConvoy && convoyPartner != entt::null) {
                     if (const auto* partnerRel = registry.try_get<Relations>(convoyPartner)) {
