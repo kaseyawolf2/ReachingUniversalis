@@ -1137,8 +1137,8 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<Needs>(npc, nn);
                         m_registry.emplace<AgentState>(npc);
                         m_registry.emplace<HomeSettlement>(npc, HomeSettlement{newSettl});
-                        auto dtt = DeprivationTimer::Make(m_schema); dtt.migrateThreshold = 5.f * 60.f;
-                        m_registry.emplace<DeprivationTimer>(npc, dtt);
+                        m_registry.emplace<DeprivationTimer>(npc,
+                            DeprivationTimer::Make(m_schema, 5.f * 60.f));
                         m_registry.emplace<SocialBehavior>(npc);
                         m_registry.emplace<GriefState>(npc);
                         m_registry.emplace<TheftRecord>(npc);
@@ -1174,8 +1174,8 @@ void SimThread::ProcessInput() {
                         m_registry.emplace<Needs>(h, hn);
                         m_registry.emplace<AgentState>(h);
                         m_registry.emplace<HomeSettlement>(h, HomeSettlement{newSettl});
-                        auto hdtt = DeprivationTimer::Make(m_schema); hdtt.migrateThreshold = 5.f * 60.f;
-                        m_registry.emplace<DeprivationTimer>(h, hdtt);
+                        m_registry.emplace<DeprivationTimer>(h,
+                            DeprivationTimer::Make(m_schema, 5.f * 60.f));
                         m_registry.emplace<SocialBehavior>(h);
                         m_registry.emplace<GriefState>(h);
                         m_registry.emplace<TheftRecord>(h);

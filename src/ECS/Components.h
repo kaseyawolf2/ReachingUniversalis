@@ -171,9 +171,13 @@ struct DeprivationTimer {
     float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
 
     // Factory: construct with needsAtZero sized from schema.needs.
-    static DeprivationTimer Make(const WorldSchema& schema) {
+    // Optional migrateThreshold param (game-seconds); defaults to the struct
+    // default (2 game-hours = 2*60).  Most NPC spawns pass a randomised value.
+    static DeprivationTimer Make(const WorldSchema& schema,
+                                 float migThreshold = 2.f * 60.f) {
         DeprivationTimer dt;
         dt.needsAtZero.assign(schema.needs.size(), 0.f);
+        dt.migrateThreshold = migThreshold;
         return dt;
     }
 };
