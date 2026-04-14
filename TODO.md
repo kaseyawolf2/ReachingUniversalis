@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
+
 ## Done
 
 - [x] **Mourning procession movement** — In `AgentDecisionSystem.cpp`'s grief block, when 3+ NPCs at the same settlement have `wisdomGriefDays > 0` simultaneously, set their `AgentState::behavior = Celebrating` (repurposed as gathering) for 1 game-hour and move them toward the settlement center. Log "[Settlement] gathers to honour [Elder]'s memory" once per elder death via `static std::set<entt::entity> s_honouredElders`. Boosts mutual affinity +0.02 among participants. Creates a visible group mourning event.
@@ -38,8 +40,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
 
 - [ ] **Elder council road maintenance discount** — In `ConstructionSystem.cpp`'s road maintenance block, when both endpoint settlements have 2+ skilled elders (age>60, skill>=0.7), reduce `ROAD_MAINT_COST_EACH` by 20% for that road. Log "[Road]'s upkeep eased by elder oversight" at 1-in-8 frequency. Reuses the `skilledElderCount` map. Extends the elder council theme to infrastructure maintenance.
 
