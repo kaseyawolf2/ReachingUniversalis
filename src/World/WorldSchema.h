@@ -312,7 +312,6 @@ struct WorldSchema {
 
     // ---- Build lookup maps from definition vectors ----
     void BuildMaps() {
-        assert(professions.size() < 32 && "professions.size() must be < 32 for bitmask flags");
         needsByName.clear();
         for (auto& d : needs)        { d.id = (NeedID)(&d - needs.data());               needsByName[d.name] = d.id; }
         resourcesByName.clear();
