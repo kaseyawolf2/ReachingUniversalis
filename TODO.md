@@ -145,7 +145,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **WorldLoader stderr to structured logging** — All 26+ `fprintf(stderr, ...)` calls in `WorldLoader.cpp` output unstructured text. Define a `LoadWarning` struct or use a vector to collect warnings during loading, then dump them after load completes. Enables future UI display of load diagnostics.
 
-- [ ] **ConsumptionSystem remove redundant bool** — `ConsumptionSystem::m_needsCached` bool is redundant since `m_hungerNeedId` is initialized to `-1` (INVALID_ID). Remove the bool and use `m_hungerNeedId < 0` as the cache-miss sentinel.
+- [x] **ConsumptionSystem remove redundant bool** — `ConsumptionSystem::m_needsCached` bool is redundant since `m_hungerNeedId` is initialized to `-1` (INVALID_ID). Remove the bool and use `m_hungerNeedId < 0` as the cache-miss sentinel.
 
 - [ ] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
 
@@ -242,6 +242,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **WorldLoader LoadWarning thread-through for all loaders** — `LoadSkills`, `LoadProfessions`, `LoadFacilities`, and `LoadAgents` in `WorldLoader.cpp` do not accept a `std::vector<LoadWarning>*` parameter. Thread the warnings pointer through these four functions for consistency, so any future diagnostics added to them automatically collect into the structured warnings vector.
 
 - [ ] **WorldLoader LoadWarning UI display** — `main.cpp` collects `loadWarnings` but only retains them for future use. Wire the warnings vector into `GameState` or `RenderSnapshot` so the HUD can display load-time diagnostics (e.g., a "Load Warnings" panel showing misconfigured TOML entries) during gameplay.
+
+- [ ] **NeedDrainSystem remove redundant bool** — `NeedDrainSystem::m_needsCached` uses the same old bool pattern just removed from `ConsumptionSystem`. Apply the same `NOT_CACHED = -2` sentinel approach: remove the bool, initialize cached NeedIDs to `NOT_CACHED`, and check `== NOT_CACHED` as the cache-miss gate.
+
+- [ ] **Shared NOT_CACHED constant** — `ConsumptionSystem` defines a private `NOT_CACHED = -2` sentinel. If `NeedDrainSystem` and `DeathSystem` adopt the same pattern, each will have its own copy. Define a shared `static constexpr int NOT_CACHED_ID = -2` next to `INVALID_ID` in `WorldSchema.h` so all systems use one source of truth.
 
 ## Phase 2 — UI Decoupling
 
