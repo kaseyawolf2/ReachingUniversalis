@@ -147,7 +147,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **ConsumptionSystem remove redundant bool** — `ConsumptionSystem::m_needsCached` bool is redundant since `m_hungerNeedId` is initialized to `-1` (INVALID_ID). Remove the bool and use `m_hungerNeedId < 0` as the cache-miss sentinel.
 
-- [ ] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
+- [x] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
 
 - [ ] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
 
@@ -246,6 +246,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **NeedDrainSystem remove redundant bool** — `NeedDrainSystem::m_needsCached` uses the same old bool pattern just removed from `ConsumptionSystem`. Apply the same `NOT_CACHED = -2` sentinel approach: remove the bool, initialize cached NeedIDs to `NOT_CACHED`, and check `== NOT_CACHED` as the cache-miss gate.
 
 - [ ] **Shared NOT_CACHED constant** — `ConsumptionSystem` defines a private `NOT_CACHED = -2` sentinel. If `NeedDrainSystem` and `DeathSystem` adopt the same pattern, each will have its own copy. Define a shared `static constexpr int NOT_CACHED_ID = -2` next to `INVALID_ID` in `WorldSchema.h` so all systems use one source of truth.
+
+- [ ] **Shared emptyNames constant** — `GameState.cpp` and `HUD.cpp` each define their own `static const std::vector<std::string> emptyNames` for sharedSkillNames fallback. Extract into a shared file-scope constant in a common header (e.g., `RenderSnapshot.h` near the skillNames shared_ptr) so both translation units reference the same empty vector.
+
+- [ ] **GameState skillNames variable naming** — `GameState.cpp` uses `skillNames` as the local variable name after the emptyNames fallback, while `HUD.cpp` uses `sharedSkillNames`. Unify to the same name across all 4 consumer sites for grep-ability and consistency.
 
 ## Phase 2 — UI Decoupling
 
