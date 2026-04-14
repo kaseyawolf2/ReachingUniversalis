@@ -163,17 +163,19 @@ struct HomeSettlement {
 // WARNING: Use DeprivationTimer::Make(schema) to construct — the default
 // constructor leaves needsAtZero empty (required for entt compatibility).
 struct DeprivationTimer {
+    static constexpr float DEFAULT_MIGRATE_THRESHOLD = 2.f * 60.f;  // 2 game-hours in game-minutes
+
     std::vector<float> needsAtZero;                     // indexed by NeedID; sized from schema.needs
     float              stockpileEmpty   = 0.f;          // seconds with no food, water, OR heat
-    float              migrateThreshold = 2.f * 60.f;   // game-min before migrating; randomised at spawn
+    float              migrateThreshold = DEFAULT_MIGRATE_THRESHOLD;  // game-min before migrating; randomised at spawn
     float              purchaseTimer    = 0.f;           // game-hours since last emergency market purchase
     float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
 
     // Factory: construct with needsAtZero sized from schema.needs.
-    // Optional migrateThreshold param (game-seconds); defaults to the struct
-    // default (2 game-hours = 2*60).  Most NPC spawns pass a randomised value.
+    // Optional migrateThreshold param (game-seconds); defaults to
+    // DEFAULT_MIGRATE_THRESHOLD (2 game-hours = 2*60).  Most NPC spawns pass a randomised value.
     static DeprivationTimer Make(const WorldSchema& schema,
-                                 float migThreshold = 2.f * 60.f) {
+                                 float migThreshold = DEFAULT_MIGRATE_THRESHOLD) {
         DeprivationTimer dt;
         dt.needsAtZero.assign(schema.needs.size(), 0.f);
         dt.migrateThreshold = migThreshold;
