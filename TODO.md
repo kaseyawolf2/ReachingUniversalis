@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Jealousy reconciliation through teaching** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, when an expert (skill >= 0.8) teaches a novice (skill < 0.5) who has `Relations::affinity < 0.2` toward the expert (i.e. jealousy-strained), boost the novice's affinity toward the expert by +0.02 on top of the normal growth. Log "[Novice] warms to [Expert] through learning at [Settlement]" at 1-in-8 frequency. Creates a path for jealousy to resolve through knowledge-sharing.
 
 - [x] **Jealousy-driven skill motivation** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy scan, check if an NPC's `Relations::affinity` toward any same-profession NPC at the settlement is < 0.1 (jealousy threshold) AND that target's matching skill is >= 0.8. If so, apply `growth += 0.0003f` as competitive motivation. Log "[NPC] trains harder to surpass [Rival] at [Settlement]" at 1-in-12 frequency via `s_teachRng`. Creates a feedback loop: jealousy → motivation → eventual pride announcement → more jealousy.
 
@@ -2027,4 +2027,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Jealousy fades with own mastery** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy motivation check, when the motivated NPC's own skill crosses 0.8 (becoming an expert themselves), boost affinity toward the rival by +0.05 and log "[NPC] finds respect for [Rival] as a fellow expert at [Settlement]" at full frequency. Uses existing `Relations::affinity`. Creates a jealousy resolution arc through achievement.
 
 - [ ] **Jealousy tooltip indicator** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool hasRival = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Relations::affinity` contains any entry < 0.1 toward a same-profession NPC at the same settlement with matching skill >= 0.8. In `HUD.cpp`'s NPC tooltip, display "[Competitive]" in orange-red after the expert badge. Makes the jealousy dynamic visible to the player.
+
+- [ ] **Teaching gratitude log detail** — In `AgentDecisionSystem.cpp`'s mastery teaching chain block, after the jealousy reconciliation check, when affinity crosses 0.3 (from below) as a result of teaching-based reconciliation, log "[Novice] has come to respect [Expert] at [Settlement]" at full frequency. Creates a milestone marker in the reconciliation arc. Uses existing `Relations::affinity` and the +0.02 reconciliation increment.
+
+- [ ] **Expert seeks out jealous novice** — In `AgentDecisionSystem.cpp`'s idle chat block, when an expert (skill >= 0.8) chats with a same-profession novice (skill < 0.5) at the same settlement who has `Relations::affinity < 0.2` toward the expert, the expert gains +0.01 affinity toward the novice (reciprocal warmth from mentoring). Log "[Expert] takes [Novice] under their wing at [Settlement]" at 1-in-10 frequency. Creates a bidirectional reconciliation — the expert also grows to care about the jealous novice.
 
