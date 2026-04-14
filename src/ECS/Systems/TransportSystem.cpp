@@ -1085,6 +1085,44 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
     // Process deferred hauler retirements
     for (auto e : retireList) {
         if (registry.valid(e) && registry.all_of<Hauler>(e)) {
+            // ---- Farewell toast: nearby haulers bond with the retiree ----
+            {
+                static std::mt19937 s_toastRng{std::random_device{}()};
+                auto* retireeHs = registry.try_get<HomeSettlement>(e);
+                if (retireeHs && retireeHs->settlement != entt::null) {
+                    entt::entity homeSettl = retireeHs->settlement;
+                    registry.view<Hauler, HomeSettlement, Relations>(entt::exclude<PlayerTag>).each(
+                        [&](auto other, const Hauler&, const HomeSettlement& otherHs, Relations& otherRel) {
+                            if (other == e) return;
+                            if (otherHs.settlement != homeSettl) return;
+                            auto ait = otherRel.affinity.find(e);
+                            if (ait == otherRel.affinity.end() || ait->second < 0.3f) return;
+                            // Boost affinity toward retiree
+                            ait->second = std::min(1.f, ait->second + 0.05f);
+                            // Log at 1-in-3 frequency
+                            if (s_toastRng() % 3 == 0) {
+                                auto logVT = registry.view<EventLog>();
+                                auto tmVT  = registry.view<TimeManager>();
+                                if (!logVT.empty() && !tmVT.empty()) {
+                                    const auto& tmT = tmVT.get<TimeManager>(*tmVT.begin());
+                                    std::string haulerName = "A hauler";
+                                    if (auto* nm = registry.try_get<Name>(other)) haulerName = nm->value;
+                                    std::string retireeName = "a veteran";
+                                    if (auto* nm = registry.try_get<Name>(e)) retireeName = nm->value;
+                                    std::string settlName = "settlement";
+                                    if (registry.valid(homeSettl))
+                                        if (auto* s = registry.try_get<Settlement>(homeSettl))
+                                            settlName = s->name;
+                                    char tbuf[200];
+                                    std::snprintf(tbuf, sizeof(tbuf),
+                                        "%s raises a toast to %s's years of service at %s",
+                                        haulerName.c_str(), retireeName.c_str(), settlName.c_str());
+                                    logVT.get<EventLog>(*logVT.begin()).Push(tmT.day, (int)tmT.hourOfDay, tbuf);
+                                }
+                            }
+                        });
+                }
+            }
             registry.remove<Hauler>(e);
             // Set to idle worker
             if (auto* as = registry.try_get<AgentState>(e)) {
