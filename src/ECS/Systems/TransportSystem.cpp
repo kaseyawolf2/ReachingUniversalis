@@ -939,6 +939,52 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         });
                 }
 
+                // ---- Hauler route rivalry reconciliation ----
+                // When arriving, check for a same-home-settlement hauler already here
+                // with low affinity (rivalry). 1-in-8 chance to reconcile.
+                {
+                    static std::mt19937 s_rivalryRng{std::random_device{}()};
+                    auto* myHs = registry.try_get<HomeSettlement>(entity);
+                    if (myHs && myHs->settlement != entt::null) {
+                        registry.view<Hauler, HomeSettlement, Position>(entt::exclude<PlayerTag>).each(
+                            [&](auto other, const Hauler& otherH, const HomeSettlement& otherHs, const Position& oPos) {
+                                if (other == entity) return;
+                                if (otherHs.settlement != myHs->settlement) return;
+                                // Other hauler must be at the destination (Idle or GoingHome)
+                                if (otherH.state != HaulerState::Idle && otherH.state != HaulerState::GoingHome) return;
+                                // Must be near the destination
+                                float dx = oPos.x - pos.x, dy = oPos.y - pos.y;
+                                if (dx*dx + dy*dy > ARRIVE_RADIUS * ARRIVE_RADIUS) return;
+                                // Check rivalry: affinity < 0.2
+                                auto* myRel = registry.try_get<Relations>(entity);
+                                if (!myRel) return;
+                                auto ait = myRel->affinity.find(other);
+                                if (ait == myRel->affinity.end() || ait->second >= 0.2f) return;
+                                // 1-in-8 chance to reconcile
+                                if (s_rivalryRng() % 8 != 0) return;
+                                // Boost mutual affinity by +0.03
+                                ait->second = std::min(1.f, ait->second + 0.03f);
+                                if (auto* oRel = registry.try_get<Relations>(other))
+                                    oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + 0.03f);
+                                // Log at full frequency
+                                auto logVR = registry.view<EventLog>();
+                                auto tmVR  = registry.view<TimeManager>();
+                                if (!logVR.empty() && !tmVR.empty()) {
+                                    const auto& tmR = tmVR.get<TimeManager>(*tmVR.begin());
+                                    std::string n1 = "Hauler", n2 = "Hauler";
+                                    if (auto* nm = registry.try_get<Name>(entity)) n1 = nm->value;
+                                    if (auto* nm = registry.try_get<Name>(other)) n2 = nm->value;
+                                    std::string dest = destSettl ? destSettl->name : "settlement";
+                                    char rbuf[180];
+                                    std::snprintf(rbuf, sizeof(rbuf),
+                                        "%s and %s share a drink at %s",
+                                        n1.c_str(), n2.c_str(), dest.c_str());
+                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf);
+                                }
+                            });
+                    }
+                }
+
                 inv.contents.clear();
 
                 // Return-trip opportunism: check if destination has profitable goods to
