@@ -143,8 +143,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             // Spawn new NPC at a ring around the settlement centre
             float angle = (float)(pop % 20) / 20.f * 2.f * 3.14159f;
             float ring  = 50.f + (float)(pop % 3) * 22.f;
-            auto dt = DeprivationTimer::Make(schema);
-            dt.migrateThreshold = s_dist(s_rng) * 60.f;  // 2–5 game-hours
+            auto dt = DeprivationTimer::Make(schema, s_dist(s_rng) * 60.f);  // 2–5 game-hours
 
             auto npc = registry.create();
             registry.emplace<Position>(npc,
@@ -317,8 +316,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 stockpile.quantities[RES_WATER] -= BIRTH_WATER_COST;
 
                 float angle2 = angle + 3.14159f;  // opposite side of the settlement
-                auto dt2 = DeprivationTimer::Make(schema);
-                dt2.migrateThreshold = s_dist(s_rng) * 60.f;
+                auto dt2 = DeprivationTimer::Make(schema, s_dist(s_rng) * 60.f);
 
                 auto npc2 = registry.create();
                 registry.emplace<Position>(npc2,

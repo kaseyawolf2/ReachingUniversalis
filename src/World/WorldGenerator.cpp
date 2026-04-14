@@ -83,9 +83,8 @@ static void SpawnNPCs(entt::registry& registry,
         // Randomise migration threshold: NPCs flee at different times (1–10 game-hours)
         // Stagger personal event timers (0–48h offset) so events don't cluster on tick 0.
         static std::uniform_real_distribution<float> evt_stagger(0.f, 48.f);
-        auto dt = DeprivationTimer::Make(schema);
-        dt.migrateThreshold   = migrate_dist(wg_rng) * 60.f;
-        registry.emplace<DeprivationTimer>(npc, dt);
+        registry.emplace<DeprivationTimer>(npc,
+            DeprivationTimer::Make(schema, migrate_dist(wg_rng) * 60.f));
         registry.emplace<SocialBehavior>(npc);
         registry.emplace<GriefState>(npc);
         registry.emplace<TheftRecord>(npc);
@@ -181,9 +180,8 @@ static void SpawnHaulers(entt::registry& registry,
         registry.get<Needs>(h).list[2].drainRate = 0.f;
         registry.emplace<AgentState>(h);
         registry.emplace<HomeSettlement>(h, HomeSettlement{ settlement });
-        auto hdt = DeprivationTimer::Make(schema);
-        hdt.migrateThreshold = migrate_dist(wg_rng) * 60.f;
-        registry.emplace<DeprivationTimer>(h, hdt);
+        registry.emplace<DeprivationTimer>(h,
+            DeprivationTimer::Make(schema, migrate_dist(wg_rng) * 60.f));
         registry.emplace<SocialBehavior>(h);
         registry.emplace<GriefState>(h);
         registry.emplace<TheftRecord>(h);
