@@ -597,8 +597,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Don't boost masters themselves
                     // Look up per-skill growthRate from schema
                     SkillID profSkId = SkillForProfession(prof.type, schema);
-                    float skillGrowthRate = (profSkId >= 0 && profSkId < (int)schema.skills.size())
-                        ? schema.skills[profSkId].growthRate : 1.f;
+                    float skillGrowthRate = schema.SkillGrowthRate(profSkId);
                     float growth = BASE_SKILL_GROWTH * skillGrowthRate;
                     bool masterGrowthApplied = false;
                     // Loyalty bonus: NPCs who never changed profession grow faster
@@ -1150,8 +1149,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         {
                             SkillID mentSk = SkillForProfession(prof.type, schema);
                             if (mentSk != INVALID_ID) {
-                                float mentGrowthRate = (mentSk < (int)schema.skills.size())
-                                    ? schema.skills[mentSk].growthRate : 1.f;
+                                float mentGrowthRate = schema.SkillGrowthRate(mentSk);
                                 sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + BASE_MENTOR_GROWTH * mentGrowthRate));
                             }
                         }

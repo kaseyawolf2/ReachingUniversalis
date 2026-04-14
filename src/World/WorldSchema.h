@@ -321,6 +321,13 @@ struct WorldSchema {
     // Find the "Hauler" profession ID (O(1) via cached field set by BuildMaps).
     ProfessionID FindHaulerProfession() const { return haulerProfessionId; }
 
+    // Get the growthRate for a skill ID (returns 1.f if out of range).
+    float SkillGrowthRate(SkillID id) const {
+        if (id >= 0 && id < (int)skills.size())
+            return skills[id].growthRate;
+        return 1.f;
+    }
+
     // Check if a profession produces a resource (i.e., is not Idle/Hauler).
     bool ProfessionProduces(ProfessionID id) const {
         if (id >= 0 && id < (int)professions.size())
