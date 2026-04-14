@@ -152,11 +152,16 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                 mSkills.elderMentor = entt::null; // mentor is gone
                             }
                             // Track lineage: mourner carries the elder's legacy
+                            // If the dying NPC was already carrying a legacy (died before mastery),
+                            // pass the original elder's name to chain across generations.
                             mSkills.wisdomLineage = e;
-                            if (const auto* nm = registry.try_get<Name>(e))
+                            if (deadSkills->wisdomLineage != entt::null && !deadSkills->wisdomLineageName.empty()) {
+                                mSkills.wisdomLineageName = deadSkills->wisdomLineageName;
+                            } else if (const auto* nm = registry.try_get<Name>(e)) {
                                 mSkills.wisdomLineageName = nm->value;
-                            else
+                            } else {
                                 mSkills.wisdomLineageName = "a wise elder";
+                            }
                             // Log at 1-in-3 frequency
                             if (s_wisdomDeathRng() % 3 == 0) {
                                 auto logVW = registry.view<EventLog>();
