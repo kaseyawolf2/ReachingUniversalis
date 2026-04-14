@@ -798,6 +798,34 @@ bool WorldLoader::Load(const std::string& worldDir,
                 fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': fire effect has no "
                         "destroy_resources or destroy_resource specified\n", worldDir.c_str(), ev.name.c_str());
             break;
+        case EventEffectType::SpawnNpcs:
+            if (ev.effectValue < 1.f && !ev.spawnSkilled)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': SpawnNpcs event has "
+                        "effectValue < 1 (truncates to 0), which causes undefined behavior in spawn count distribution\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::RoadBlock:
+            if (ev.roadBlockDuration <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': road_block effect has "
+                        "road_block_duration <= 0 (will fall back to hardcoded default)\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::Earthquake:
+            if (ev.roadBlockDuration <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': earthquake effect has "
+                        "road_block_duration <= 0 (will fall back to hardcoded default)\n",
+                        worldDir.c_str(), ev.name.c_str());
+            if (ev.facilityDestroyChance <= 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': earthquake effect has "
+                        "facility_destroy_chance <= 0 (will fall back to hardcoded default)\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
+        case EventEffectType::MoraleBoost:
+            if (ev.moraleImpact == 0.f && ev.treasuryChange == 0.f)
+                fprintf(stderr, "[WorldLoader] WARNING: %s/events.toml: event '%s': morale_boost effect has "
+                        "morale_impact = 0 and treasury_change = 0 (event will have no effect)\n",
+                        worldDir.c_str(), ev.name.c_str());
+            break;
         default:
             break;
         }
