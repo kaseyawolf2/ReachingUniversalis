@@ -5,6 +5,7 @@
 // translation unit) does not pull in the full schema.
 
 #include <string>
+#include <vector>
 
 using SeasonID = int;
 
@@ -18,7 +19,10 @@ struct SeasonDef {
     float       heatDrainMod   = 0.0f;        // multiplier on heat need drain (0 = no cold)
     float       baseTemperature = 20.0f;      // noon temperature in °C
     float       tempSwing       = 8.0f;       // ± degrees from diurnal cycle
-    float       priceFloorMult  = 1.0f;       // multiplier on PRICE_MIN for seasonal price floors
+    // Per-resource price floor multipliers, indexed by ResourceID.
+    // Each entry is multiplied by PRICE_MIN to get the seasonal floor for that resource.
+    // Sized to schema.resources.size() at load time; unspecified resources default to 1.0f.
+    std::vector<float> priceFloorMult;
 };
 
 // Approximate air temperature in degrees Celsius.

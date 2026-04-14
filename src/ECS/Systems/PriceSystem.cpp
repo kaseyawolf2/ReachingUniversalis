@@ -16,9 +16,11 @@ static constexpr float PRICE_MAX        =  25.f;   // raised slightly — season
 
 // Seasonal demand pressure: some resources are more valuable in certain seasons.
 // Returns a target floor price below which the price won't fall via decay.
-// Driven by SeasonDef::priceFloorMult from the world schema (seasons.toml).
-static float SeasonPriceFloor(const SeasonDef& sdef) {
-    return PRICE_MIN * sdef.priceFloorMult;
+// Driven by per-resource SeasonDef::priceFloorMult[] from the world schema (seasons.toml).
+static float SeasonPriceFloor(int res, const SeasonDef& sdef) {
+    if (res >= 0 && res < (int)sdef.priceFloorMult.size())
+        return PRICE_MIN * sdef.priceFloorMult[res];
+    return PRICE_MIN;
 }
 
 // Fraction of price gap that closes per game-hour due to arbitrage pressure
@@ -62,7 +64,7 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 else if (stock < PRICE_LOW_STOCK)
                     price *= std::pow(1.f + PRICE_RISE_RATE, gameHoursDt);
 
-                float floor = SeasonPriceFloor(seasonDef);
+                float floor = SeasonPriceFloor(res, seasonDef);
                 price = std::max(floor, std::min(PRICE_MAX, price));
 
                 // Log price spikes > 20% (rate-limited to once per 12 game-hours per resource)
@@ -118,8 +120,8 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
             priceA += (mid - priceA) * convergeFrac;
             priceB += (mid - priceB) * convergeFrac;
             // Re-apply floors after convergence
-            priceA = std::max(SeasonPriceFloor(seasonDef), priceA);
-            priceB = std::max(SeasonPriceFloor(seasonDef), priceB);
+            priceA = std::max(SeasonPriceFloor(res, seasonDef), priceA);
+            priceB = std::max(SeasonPriceFloor(res, seasonDef), priceB);
         }
     });
 }

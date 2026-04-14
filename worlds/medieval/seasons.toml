@@ -28,7 +28,12 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.15     # mild cold
 base_temperature = 12.0     # noon °C
 temp_swing       = 8.0      # ± degrees from diurnal cycle
-price_floor_mult = 2.0      # mild seasonal pressure on prices
+# Per-resource price floor multipliers (× PRICE_MIN 0.5)
+# Wood: 0.5 + 4.5×0.15 = 1.175 → mult 2.35; Food: prod 0.8 ≥ 0.5 → floor 1.0 → mult 2.0; Water: no seasonal variation
+[seasons.price_floors]
+Food  = 2.0
+Water = 1.0
+Wood  = 2.35
 
 [[seasons]]
 name             = "Summer"
@@ -39,7 +44,11 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.0      # no cold
 base_temperature = 28.0
 temp_swing       = 8.0
-price_floor_mult = 1.0      # no seasonal price pressure
+# No heating demand, good production — all floors at baseline
+[seasons.price_floors]
+Food  = 2.0
+Water = 1.0
+Wood  = 1.0
 
 [[seasons]]
 name             = "Autumn"
@@ -50,7 +59,11 @@ energy_drain_mod = 1.0
 heat_drain_mod   = 0.4      # moderate cold
 base_temperature = 8.0
 temp_swing       = 8.0
-price_floor_mult = 2.0      # moderate cold raises price floors
+# Wood: 0.5 + 4.5×0.4 = 2.3 → mult 4.6; Food: prod 1.2 ≥ 0.5 → floor 1.0 → mult 2.0
+[seasons.price_floors]
+Food  = 2.0
+Water = 1.0
+Wood  = 4.6
 
 [[seasons]]
 name             = "Winter"
@@ -61,4 +74,8 @@ energy_drain_mod = 1.8      # exhausting cold
 heat_drain_mod   = 1.0      # full cold drain
 base_temperature = -8.0
 temp_swing       = 8.0
-price_floor_mult = 4.0      # scarcity and cold drive high price floors
+# Wood: 0.5 + 4.5×1.0 = 5.0 → mult 10.0; Food: prod 0.2 < 0.5 → floor 2.0 → mult 4.0
+[seasons.price_floors]
+Food  = 4.0
+Water = 1.0
+Wood  = 10.0
