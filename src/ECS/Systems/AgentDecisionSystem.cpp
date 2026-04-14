@@ -1349,6 +1349,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                 }
+
+                // Migration letter home: partially recover farewell-strained bonds
+                if (home.prevSettlement != entt::null && registry.valid(home.prevSettlement)) {
+                    static std::mt19937 s_letterRng{ std::random_device{}() };
+                    auto* myRel2 = registry.try_get<Relations>(entity);
+                    if (myRel2) {
+                        registry.view<Relations, HomeSettlement>(
+                            entt::exclude<PlayerTag, BanditTag>).each(
+                            [&](auto friend_e, Relations& friendRel, const HomeSettlement& friendHome) {
+                                if (friend_e == entity) return;
+                                if (friendHome.settlement != home.prevSettlement) return;
+                                auto myIt = myRel2->affinity.find(friend_e);
+                                if (myIt == myRel2->affinity.end()) return;
+                                // Only recover bonds that are strained (below 0.5) but still present
+                                if (myIt->second >= 0.5f || myIt->second < 0.05f) return;
+                                auto friendIt = friendRel.affinity.find(entity);
+                                if (friendIt == friendRel.affinity.end()) return;
+                                // Recover +0.03 on both sides
+                                myIt->second = std::min(1.f, myIt->second + 0.03f);
+                                friendIt->second = std::min(1.f, friendIt->second + 0.03f);
+                                // Log at 1-in-4 frequency
+                                if (s_letterRng() % 4 == 0) {
+                                    auto llv = registry.view<EventLog>();
+                                    if (!llv.empty()) {
+                                        std::string migrantName = "A migrant";
+                                        if (const auto* n = registry.try_get<Name>(entity)) migrantName = n->value;
+                                        std::string friendName = "a friend";
+                                        if (const auto* n = registry.try_get<Name>(friend_e)) friendName = n->value;
+                                        llv.get<EventLog>(*llv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                            migrantName + " sends word back to " + friendName);
+                                    }
+                                }
+                            });
+                    }
+                }
             } else {
                 MoveToward(vel, pos, destPos.x, destPos.y, speed);
             }
