@@ -140,6 +140,8 @@ struct RenderSnapshot {
         std::string specialisation;
         // Number of profession changes this NPC has made
         int careerChanges = 0;
+        // True if this NPC has high reputation (>= 0.6) from charity/donations
+        bool generousDonor = false;
     };
 
     struct SettlementEntry {

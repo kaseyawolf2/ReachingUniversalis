@@ -1679,8 +1679,11 @@ void SimThread::WriteSnapshot() {
 
         // Reputation snapshot
         float reputationScore = 0.f;
-        if (const auto* rep = m_registry.try_get<Reputation>(e))
+        bool generousDonor = false;
+        if (const auto* rep = m_registry.try_get<Reputation>(e)) {
             reputationScore = rep->score;
+            generousDonor = (rep->score >= 0.6f);
+        }
 
         // Fatigue snapshot
         bool isFatigued = false;
@@ -1878,7 +1881,7 @@ void SimThread::WriteSnapshot() {
                            chatting,
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
-                           std::move(specTitle), npcCareerChanges });
+                           std::move(specTitle), npcCareerChanges, generousDonor });
     });
 
     // ---- Settlements ----
