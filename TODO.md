@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
+
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -89,8 +91,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Procession badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool mourning = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when any NPC at the settlement has `wisdomGriefDays > 0` and `skillCelebrateTimer > 0` (actively in a mourning procession). In `HUD.cpp`'s settlement tooltip, display "[Mourning]" in muted grey after existing badges. Makes mourning processions visible to the player at the settlement level.
 
 - [ ] **Jealousy-driven skill motivation** — In `AgentDecisionSystem.cpp`'s skill growth block, after the jealousy scan, check if an NPC's `Relations::affinity` toward any same-profession NPC at the settlement is < 0.1 (jealousy threshold) AND that target's matching skill is >= 0.8. If so, apply `growth += 0.0003f` as competitive motivation. Log "[NPC] trains harder to surpass [Rival] at [Settlement]" at 1-in-12 frequency via `s_teachRng`. Creates a feedback loop: jealousy → motivation → eventual pride announcement → more jealousy.
 
