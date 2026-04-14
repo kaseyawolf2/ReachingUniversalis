@@ -297,6 +297,10 @@ struct WorldSchema {
     // Flat vector indexed by ResourceID; value is SkillID (INVALID_ID if none).
     std::vector<int> resourceToSkill;
 
+    // Profession → Skill reverse lookup (built by BuildProfessionToSkillMap, must run after ResolveCrossRefs)
+    // Flat vector indexed by ProfessionID; value is SkillID (INVALID_ID if none).
+    std::vector<SkillID> professionToSkill;
+
     // Cached special profession IDs (populated by BuildMaps; INVALID_ID if absent)
     ProfessionID idleProfessionId   = INVALID_ID;
     ProfessionID haulerProfessionId = INVALID_ID;
@@ -318,6 +322,13 @@ struct WorldSchema {
     ProfessionID ProfessionForResource(ResourceID res) const {
         if (res >= 0 && res < (int)resourceToProfession.size())
             return resourceToProfession[res];
+        return INVALID_ID;
+    }
+
+    // Map a profession ID to its primary skill (INVALID_ID if none).
+    SkillID SkillForProfession(ProfessionID prof) const {
+        if (prof >= 0 && prof < (int)professionToSkill.size())
+            return professionToSkill[prof];
         return INVALID_ID;
     }
 
@@ -402,6 +413,17 @@ struct WorldSchema {
         for (const auto& d : skills) {
             if (d.forResource >= 0 && d.forResource < (int)resources.size())
                 resourceToSkill[d.forResource] = d.id;
+        }
+    }
+
+    // Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
+    // Must be called AFTER ResolveCrossRefs populates primarySkill fields.
+    void BuildProfessionToSkillMap() {
+        assert(crossRefsResolved && "BuildProfessionToSkillMap() must be called after ResolveCrossRefs()");
+        professionToSkill.assign(professions.size(), INVALID_ID);
+        for (const auto& d : professions) {
+            if (d.id >= 0 && d.id < (int)professionToSkill.size())
+                professionToSkill[d.id] = d.primarySkill;
         }
     }
 };
