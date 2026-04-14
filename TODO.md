@@ -127,11 +127,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Cache FindNeed in NeedDrainSystem** — `NeedDrainSystem::Update()` likely calls `schema.FindNeed()` by string every tick, same pattern fixed in `ConsumptionSystem`. Add cached member variables for frequently-used NeedIDs, initialized on first `Update()` call.
 
-- [ ] **Cache FindNeed in DeathSystem** — `DeathSystem::Update()` may call `schema.FindNeed()` by string for death cause determination. Cache the NeedIDs as member variables to eliminate per-tick string lookups.
+- [x] **Cache FindNeed in DeathSystem** — `DeathSystem::Update()` may call `schema.FindNeed()` by string for death cause determination. Cache the NeedIDs as member variables to eliminate per-tick string lookups.
 
-- [ ] **Spread timer comment cleanup** — `RandomEventSystem.cpp` still has `(drought/spreading event recovery)` as an awkward half-rename. Either go fully generic (`(event recovery)`) or use two concrete examples consistently.
+- [x] **Spread timer comment cleanup** — `RandomEventSystem.cpp` still has `(drought/spreading event recovery)` as an awkward half-rename. Either go fully generic (`(event recovery)`) or use two concrete examples consistently.
 
-- [ ] **Duplicate static const emptyNames in HUD.cpp** — `HUD.cpp` declares three separate `static const std::vector<std::string> emptyNames;` in different methods. Consolidate into a single file-scope `static const` to eliminate duplication.
+- [x] **Duplicate static const emptyNames in HUD.cpp** — `HUD.cpp` declares three separate `static const std::vector<std::string> emptyNames;` in different methods. Consolidate into a single file-scope `static const` to eliminate duplication.
 
 - [ ] **DeprivationTimer Make() default constant** — `DeprivationTimer::Make()` default parameter `2.f * 60.f` duplicates the member initializer `migrateThreshold = 2.f * 60.f`. Define a named constant (e.g., `DEFAULT_MIGRATE_THRESHOLD`) used by both to prevent drift.
 
@@ -210,6 +210,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **PriceSystem resource name lookup optimization comment** — `WorldLoader.cpp` does O(n) linear scan over `schema.resources` for each price_floors key. Add a comment explaining why `resourcesByName` map isn't used (BuildMaps hasn't been called yet at this point in load sequence) to prevent someone "optimizing" into uninitialized data.
 
 - [ ] **Remove lowProduction dead threshold** — `SeasonThresholds::lowProduction` is loaded and validated for ordering but no longer consumed by any ECS system after PriceSystem was made data-driven. Audit all consumers; if truly dead, remove the field, its TOML key, its DEFAULT constant, and its ordering validation.
+
+- [ ] **DeathSystem lazy-init to constructor-init** — `DeathSystem` caches need names on first `Update()` call via `m_needsCached` flag. The schema is fully built at construction time. Move the caching into the constructor body and remove the `m_needsCached` flag for simpler per-tick code.
+
+- [ ] **DeathSystem drop unused m_schema** — After caching `m_needNames` in the constructor, `DeathSystem::m_schema` is never read again. Remove the member to avoid holding a dead reference and reduce class size.
+
+- [ ] **RandomEventSystem generic modifier break** — `RandomEventSystem.cpp` line ~1333 only breaks modifiers whose name contains "Drought". Generalize to break any active negative modifier at the target settlement when `ev.breaksDrought` is true, or rename the flag to `breaksModifier` and update the TOML schema.
+
+- [ ] **HUD emptyNames avoid global constructor** — The file-scope `static const std::vector<std::string> emptyNames;` in `HUD.cpp` triggers a global constructor for a heap-allocated empty vector. Replace with `static const std::vector<std::string>* emptyNames` pointing to a function-local static, or use an empty `std::span<const std::string>` to avoid the global init overhead.
+
+- [ ] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
+
+- [ ] **ConsumptionSystem lazy-init to constructor-init** — Same pattern: `ConsumptionSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
 
 ## Phase 2 — UI Decoupling
 
