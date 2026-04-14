@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
-
 ## Done
+
+- [x] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
+
 
 - [x] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
 
@@ -144,6 +145,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Vigil strengthens elder wisdom bonds** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the morale boost, if any participant has `Skills::wisdomGriefDays > 0` (mourning a specific wise elder), all other vigil participants gain +0.01 affinity toward any elder (age>60) at the settlement. Log "[Settlement]'s vigil honours its elders" at 1-in-4 frequency. Connects the vigil system to the elder wisdom narrative.
 
 - [ ] **Seasonal vigil intensity** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, check `tm.CurrentSeason()`. During `Season::Winter`, increase the vigil affinity boost from +0.02 to +0.03 and morale boost from +0.03 to +0.05 (longer nights draw closer bonds). Log "[Settlement] huddles together through winter grief" at 1-in-3 frequency instead of the normal vigil log. Uses existing `TimeManager::CurrentSeason()`.
+
+- [ ] **Grief count on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `int griefCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. Set from the existing `SettlAgg::griefCount`. In `HUD.cpp`'s settlement tooltip, after the vigil badge, show "Grieving: N" as a new line when `griefCount > 0`. Gives the player a numeric read on how widespread grief is.
+
+- [ ] **Vigil ring colour** — In `RenderSystem.cpp`'s settlement ring drawing, when `SettlementEntry::vigil == true`, blend a subtle purple tint into the ring colour (lerp toward `{100, 50, 150, 255}` by 0.3). No new fields needed — uses existing `vigil` bool. Creates a visual indicator of communal grief visible from the map view without hovering.
 
 ## Recently Done
 
