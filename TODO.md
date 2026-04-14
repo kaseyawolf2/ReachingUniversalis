@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-## Backlog
-
 - [ ] **Post-crisis community gathering** — In `RandomEventSystem.cpp`'s modifier expiry block (where `modifierDuration` reaches 0), when a "Drought" or "Plague" modifier expires, scan all NPC pairs at the settlement and boost mutual `Relations::affinity` by +0.02 for pairs with affinity >= 0.2 (cap 1.0). Log "[Settlement] celebrates surviving the [crisis]" once. Represents relief and community strengthening after hardship ends.
+
+## Backlog
 
 - [ ] **Migration letter home** — In `AgentDecisionSystem.cpp`'s migration arrival block (where NPC arrives at new settlement), for each friend from the old settlement whose affinity dropped below 0.5 due to farewell strain, add +0.03 affinity recovery to both sides (cap at pre-farewell - 0.05). Track via a new `entt::entity previousSettlement = entt::null` field on `HomeSettlement` in `Components.h` (set before reassignment). Log "[Migrant] sends word back to [Friend]" at 1-in-4 frequency. Partially offsets farewell strain for strong bonds.
 
