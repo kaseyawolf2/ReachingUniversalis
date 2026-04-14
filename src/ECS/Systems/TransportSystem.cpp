@@ -564,7 +564,15 @@ void TransportSystem::Update(entt::registry& registry, float realDt) {
                         }
                     }
                 }
-                float convoySpeed = hauler.inConvoy ? speed * 1.25f : speed;
+                float convoyMult = 1.25f;
+                if (hauler.inConvoy && convoyPartner != entt::null) {
+                    if (const auto* partnerRel = registry.try_get<Relations>(convoyPartner)) {
+                        auto ait = partnerRel->affinity.find(entity);
+                        if (ait != partnerRel->affinity.end() && ait->second >= 0.7f)
+                            convoyMult = 1.35f;
+                    }
+                }
+                float convoySpeed = hauler.inConvoy ? speed * convoyMult : speed;
                 MoveToward(vel, pos, destPos.x, destPos.y, convoySpeed);
             } else {
                 vel.vx = vel.vy = 0.f;
