@@ -111,11 +111,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **ConsumptionSystem schema reference** — `ConsumptionSystem` receives `const WorldSchema&` in `Update()` but doesn't store it. Add a `const WorldSchema& m_schema` member initialized in the constructor so `FindNeed()` results can be cached as member variables (prerequisite for the "Cache FindNeed results" task).
 
-- [ ] **GameState m_schema member ordering** — `GameState::m_schema` is declared between camera fields and `m_renderSystem`. Move it next to `m_simThread` since both hold references from the same constructor parameter, improving readability of the private section.
+- [x] **GameState m_schema member ordering** — `GameState::m_schema` is declared between camera fields and `m_renderSystem`. Move it next to `m_simThread` since both hold references from the same constructor parameter, improving readability of the private section.
 
-- [ ] **DynBitset rename n1 test** — Rename `and_n1_both_heap_single_word` in `tests/DynBitsetTest.cpp` to `and_heap_heap_word0_only` since the test exercises the general heap loop (n=2), not the n<=1 branch. The companion `and_n1_edge_case` is the one that actually hits n<=1.
+- [x] **DynBitset rename n1 test** — Rename `and_n1_both_heap_single_word` in `tests/DynBitsetTest.cpp` to `and_heap_heap_word0_only` since the test exercises the general heap loop (n=2), not the n<=1 branch. The companion `and_n1_edge_case` is the one that actually hits n<=1.
 
-- [ ] **Validate season threshold ordering in WorldLoader** — After loading season thresholds from TOML, verify the ordering invariant `mildCold < moderateCold < harshCold` and `lowProduction < harvestSeason`. Log a warning if thresholds are inverted, as this would cause nonsensical sky tints and schedule behavior.
+- [x] **Validate season threshold ordering in WorldLoader** — After loading season thresholds from TOML, verify the ordering invariant `mildCold < moderateCold < harshCold` and `lowProduction < harvestSeason`. Log a warning if thresholds are inverted, as this would cause nonsensical sky tints and schedule behavior.
 
 - [ ] **Schema-driven PriceSystem floor thresholds** — `PriceSystem::SeasonPriceFloor()` now takes `const SeasonThresholds&` but still uses hardcoded logic for which thresholds trigger price floors. Make the price floor rules data-driven: add a `priceFloorThreshold` field to `SeasonDef` in `WorldSchema.h` so each season can specify its own floor multiplier.
 
@@ -186,6 +186,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **NeedDrainSystem schema reference** — Same pattern as ConsumptionSystem: `NeedDrainSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in NeedDrainSystem.
 
 - [ ] **DeathSystem schema reference** — Same pattern as ConsumptionSystem: `DeathSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in DeathSystem.
+
+- [ ] **GameState camera member grouping** — After moving `m_schema` next to `m_simThread`, the camera-related fields (`m_camera`, `m_camX`, `m_camY`, `m_camZoom`) are scattered between system references. Group all camera fields together with a `// Camera state` comment block for readability.
+
+- [ ] **GameState constructor init-list comment** — `GameState.cpp` constructor initializer list initializes `m_simThread` then `m_schema` from the same parameter but has no comment. Add a `// Both bind schema from constructor arg` comment to the init list to document the lifetime dependency.
+
+- [ ] **DynBitset test section comment cleanup** — After renaming `and_n1_both_heap_single_word` to `and_heap_heap_word0_only`, the section comment `// operator& n==1 edge case` in `tests/DynBitsetTest.cpp` is stale. Update to `// operator& edge cases` or split the renamed test into the `heap/heap` group above.
+
+- [ ] **DynBitset test boundary exhaustive** — Add tests to `tests/DynBitsetTest.cpp` for the exact boundary between inline and heap: `set(63)` (last inline bit), `set(64)` (first heap bit), and `set(63)` followed by `set(64)` (promoting from inline to heap while preserving bit 63). Verifies the boundary transition is correct.
+
+- [ ] **Season threshold warning consistency** — `WorldLoader.cpp` cold threshold warnings say "should be less than" (soft) but the production threshold warning says "must be less than" (hard). Neither is enforced (no abort/return). Pick consistent wording — use "should" for all non-fatal warnings.
+
+- [ ] **Season threshold range-check constants** — `WorldLoader.cpp` uses magic `0.0f` and `2.0f` bounds for season threshold range validation. Define named constants (e.g., `MIN_THRESHOLD = 0.0f`, `MAX_THRESHOLD = 2.0f`) at file scope or in `WorldSchema.h` so the bounds are documented and reusable.
 
 ## Phase 2 — UI Decoupling
 
