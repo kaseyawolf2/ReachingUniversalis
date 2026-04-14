@@ -580,6 +580,40 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt) {
                                     if (otherSkillT < 0.5f) return;
                                     // 1-in-25 chance per hour
                                     if (s_rng() % 25 != 0) return;
+                                    // Elder mediation: elder at same facility may suppress the taunt
+                                    if (s_rng() % 6 == 0) {
+                                        entt::entity mediator = entt::null;
+                                        registry.view<AgentState, Position, Age, Skills>(
+                                            entt::exclude<Hauler, PlayerTag, ChildTag>).each(
+                                            [&](auto me, const AgentState& meSt, const Position& mePos,
+                                                const Age& meAge, const Skills& meSk) {
+                                            if (mediator != entt::null) return;
+                                            if (me == entity || me == other) return;
+                                            if (meSt.behavior != AgentBehavior::Working) return;
+                                            if (meAge.days <= 60.f) return;
+                                            if (meSk.farming < 0.7f && meSk.water_drawing < 0.7f && meSk.woodcutting < 0.7f) return;
+                                            float mdx = mePos.x - fpos.x, mdy = mePos.y - fpos.y;
+                                            if (mdx*mdx + mdy*mdy > WORK_ARRIVE * WORK_ARRIVE) return;
+                                            mediator = me;
+                                        });
+                                        if (mediator != entt::null) {
+                                            // Both rivals gain +0.02 affinity toward the elder
+                                            myRelT->affinity[mediator] = std::min(1.f, myRelT->affinity[mediator] + 0.02f);
+                                            if (auto* oRel = registry.try_get<Relations>(other))
+                                                oRel->affinity[mediator] = std::min(1.f, oRel->affinity[mediator] + 0.02f);
+                                            // Log at full frequency
+                                            auto logVM = registry.view<EventLog>();
+                                            if (!logVM.empty()) {
+                                                std::string elderNm = "An elder", n1m = "NPC", n2m = "NPC";
+                                                if (const auto* nm = registry.try_get<Name>(mediator)) elderNm = nm->value;
+                                                if (const auto* nm = registry.try_get<Name>(entity)) n1m = nm->value;
+                                                if (const auto* nm = registry.try_get<Name>(other)) n2m = nm->value;
+                                                logVM.get<EventLog>(*logVM.begin()).Push(tm.day, hour,
+                                                    elderNm + " calms tensions between " + n1m + " and " + n2m + ".");
+                                            }
+                                            return; // taunt suppressed
+                                        }
+                                    }
                                     // Decrease mutual affinity by 0.01 (floor 0.0)
                                     myRelT->affinity[other] = std::max(0.f, myRelT->affinity[other] - 0.01f);
                                     if (auto* oRel = registry.try_get<Relations>(other))
