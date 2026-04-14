@@ -180,30 +180,23 @@ struct EventDef {
     float       convoyMinPrice = 0.0f;        // only dispatch when scarcest price >= this
 };
 
-// Resolved enum for GoalDef::checkType (no string comparisons in hot loops)
+// Resolved enums for GoalDef (no string comparisons in hot loops)
 enum class GoalCheckType { None, BalanceGte, AgeGte, HasFamily, HasProfession };
-
-// Resolved enum for GoalDef::behaviourMod
 enum class GoalBehaviourMod { None, Hoard, Ambitious };
-
-// Resolved enum for GoalDef::targetMode
 enum class GoalTargetMode { Fixed, RelativeBalance, RelativeAge };
 
 struct GoalDef {
     GoalTypeID  id          = INVALID_ID;
     std::string name;                         // "SaveGold", "ReachAge", ...
     std::string displayName;                  // "Save Gold", "Reach Age", ...
-    std::string checkType;                    // original string; prefer checkTypeEnum in systems
-    GoalCheckType checkTypeEnum = GoalCheckType::None;  // resolved at load time
+    GoalCheckType checkTypeEnum = GoalCheckType::None;       // resolved at load time from TOML "check_type"
     float       targetValue = 0.0f;           // threshold for completion (or base target)
-    std::string targetMode  = "fixed";        // original string; prefer targetModeEnum in systems
-    GoalTargetMode targetModeEnum = GoalTargetMode::Fixed;  // resolved at load time
+    GoalTargetMode targetModeEnum = GoalTargetMode::Fixed;  // resolved at load time from TOML "target_mode"
     float       offset      = 0.0f;           // added to current value for relative targets
     float       weight      = 1.0f;           // selection weight when assigning goals
     std::string unit;                         // display unit suffix ("g", "d", "")
     std::string completionMessage;            // "{name} reached their savings goal!" — {name} is replaced at runtime
-    std::string behaviourMod;                 // original string; prefer behaviourModEnum in systems
-    GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;  // resolved at load time
+    GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;  // resolved at load time from TOML "behaviour_mod"
     ProfessionID targetProfessionId = INVALID_ID;  // for has_profession: which profession to check
     float       completionCooldown = 5.0f;        // game-minutes before this goal can re-complete (prevents spam)
 };
