@@ -196,7 +196,7 @@ TEST(and_n1_edge_case) {
     assert(c.any());
 }
 
-TEST(and_n1_both_heap_single_word) {
+TEST(and_heap_heap_word0_only) {
     // Both operands are heap-allocated (capacity > 64 bits) but all set bits
     // fall within word 0, so n = min(wordCount, wordCount) > 1 but only
     // word 0 matters. This exercises the general heap-heap AND loop where
@@ -687,7 +687,7 @@ int main() {
 
     // operator& n==1 edge case
     RUN(and_n1_edge_case);
-    RUN(and_n1_both_heap_single_word);
+    RUN(and_heap_heap_word0_only);
 
     // intersectsAny
     RUN(intersectsAny_inline_inline_yes);
