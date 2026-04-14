@@ -63,9 +63,9 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **Consolidate SocialBehavior fields** — `SocialBehavior` has 18 fields including unrelated concerns (visitTimer, bankruptSurvivor, homesickTimer, reconcileGlow). Split into focused sub-components or at minimum group logically: `VisitState`, `MoodState`, `InteractionCooldowns`.
 
-- [ ] **Per-skill growth rate helpers** — Factor the repeated `profSkId >= 0 && profSkId < (int)schema.skills.size() ? schema.skills[profSkId].growthRate : 1.f` ternary in `AgentDecisionSystem.cpp` (lines ~598, ~804, ~1147) and `Components.h` (~503) into a single `WorldSchema::SkillGrowthRate(SkillID)` helper that encapsulates the bounds check and fallback.
+- [x] **Per-skill growth rate helpers** — Factor the repeated `profSkId >= 0 && profSkId < (int)schema.skills.size() ? schema.skills[profSkId].growthRate : 1.f` ternary in `AgentDecisionSystem.cpp` (lines ~598, ~804, ~1147) and `Components.h` (~503) into a single `WorldSchema::SkillGrowthRate(SkillID)` helper that encapsulates the bounds check and fallback.
 
-- [ ] **Symmetric skill fallback defaults** — In `AgentDecisionSystem.cpp`, out-of-range skill indices fall back to `growthRate = 1.f` (normal growth) but `decayRate = 0.f` (no decay). Unify the policy: add `WorldSchema::SkillDecayRate(SkillID)` with a documented default, and add a comment explaining the asymmetry or make both fall back to their `SkillDef` defaults.
+- [x] **Symmetric skill fallback defaults** — In `AgentDecisionSystem.cpp`, out-of-range skill indices fall back to `growthRate = 1.f` (normal growth) but `decayRate = 0.f` (no decay). Unify the policy: add `WorldSchema::SkillDecayRate(SkillID)` with a documented default, and add a comment explaining the asymmetry or make both fall back to their `SkillDef` defaults.
 
 - [ ] **Flat array resourceToSkill** — `WorldSchema::resourceToSkill` is `unordered_map<int,int>` but `ResourceID` is a dense integer. Replace with `std::vector<SkillID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead on the hot path in `Skills::ForResource()` and `Skills::SkillIdForResource()`.
 

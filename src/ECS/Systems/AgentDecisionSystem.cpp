@@ -595,7 +595,6 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         hasMaster = (mit != masterFlags.end() && mit->second.containsAll(myProfFlag));
                     }
                     // Don't boost masters themselves
-                    // Look up per-skill growthRate from schema
                     SkillID profSkId = SkillForProfession(prof.type, schema);
                     float skillGrowthRate = schema.SkillGrowthRate(profSkId);
                     float growth = BASE_SKILL_GROWTH * skillGrowthRate;
@@ -953,7 +952,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         preSkillsBuf[si] = sk.levels[si];
                     for (int si = 0; si < sk.Size(); ++si) {
                         if (si == profSkId) continue; // active skill doesn't rust
-                        float decay = (si < (int)schema.skills.size()) ? schema.skills[si].decayRate : 0.f;
+                        float decay = schema.SkillDecayRate(si);
                         if (decay > 0.f)
                             sk.levels[si] = std::max(SKILL_RUST_FLOOR, sk.levels[si] - decay);
                     }
@@ -1149,8 +1148,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         {
                             SkillID mentSk = SkillForProfession(prof.type, schema);
                             if (mentSk != INVALID_ID) {
-                                float mentGrowthRate = schema.SkillGrowthRate(mentSk);
-                                sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + BASE_MENTOR_GROWTH * mentGrowthRate));
+                                sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + BASE_MENTOR_GROWTH * schema.SkillGrowthRate(mentSk)));
                             }
                         }
                         // Log at 1-in-5 frequency

@@ -523,8 +523,7 @@ struct Skills {
     void Advance(int rt, float delta, const WorldSchema& schema) {
         int sid = SkillIdForResource(rt, schema);
         if (sid != INVALID_ID && sid >= 0 && sid < (int)levels.size()) {
-            float rate = schema.SkillGrowthRate(sid);
-            levels[sid] = std::min(1.f, levels[sid] + delta * rate);
+            levels[sid] = std::min(1.f, levels[sid] + delta * schema.SkillGrowthRate(sid));
         }
     }
 
