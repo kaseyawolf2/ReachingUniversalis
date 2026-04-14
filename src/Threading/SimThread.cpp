@@ -18,7 +18,7 @@ static constexpr int   MAX_CATCHUP   = 4;
 SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
     : m_input(input), m_snapshot(snapshot), m_schema(schema)
 {
-    WorldGenerator::Populate(m_registry);
+    WorldGenerator::Populate(m_registry, m_schema);
 }
 
 SimThread::~SimThread() {
@@ -235,7 +235,11 @@ void SimThread::RespawnPlayer() {
     m_registry.emplace<Age>(player, age);
     m_registry.emplace<Name>(player, Name{ "You" });
     // New character starts with average skills (same as initial spawn in WorldGenerator)
-    m_registry.emplace<Skills>(player, Skills{ 0.4f, 0.4f, 0.4f });
+    {
+        Skills psk;
+        psk.Init((int)m_schema.skills.size(), 0.4f);
+        m_registry.emplace<Skills>(player, std::move(psk));
+    }
 }
 
 // ---- One simulation step ----------------------------------------------
@@ -313,7 +317,8 @@ void SimThread::RunSimStep(float dt) {
                                 float gDt = tmv2.get<TimeManager>(*tmv2.begin()).GameDt(dt);
                                 float gameHoursDt = gDt * GAME_MINS_PER_REAL_SEC / 60.f;
                                 static constexpr float SKILL_GAIN = 0.1f / 24.f;
-                                skills->Advance(fac->output, SKILL_GAIN * gameHoursDt);
+                                int sid = m_schema.SkillForResource(fac->output);
+                                skills->AdvanceSkill(sid, SKILL_GAIN * gameHoursDt);
                             }
                         }
                     }
@@ -1133,7 +1138,12 @@ void SimThread::ProcessInput() {
                         Age age; age.days = ad(frng); age.maxDays = ld(frng);
                         m_registry.emplace<Age>(npc, age);
                         m_registry.emplace<Name>(npc, Name{std::string(FN[fn(frng)])+" "+LN[ln(frng)]});
-                        m_registry.emplace<Skills>(npc, Skills{sk(frng),sk(frng),sk(frng)});
+                        {
+                            Skills nsk;
+                            nsk.Init((int)m_schema.skills.size());
+                            for (auto& v : nsk.levels) v = sk(frng);
+                            m_registry.emplace<Skills>(npc, std::move(nsk));
+                        }
                         m_registry.emplace<Reputation>(npc);
                     }
 
@@ -1424,7 +1434,7 @@ void SimThread::WriteSnapshot() {
         int   contentN   = 0;
         float pendingEstates = 0.f;
         int   masterCount = 0;
-        float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
+        std::vector<float> skillSums;  // sum of each skill level across NPCs
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
         int   profMask  = 0;  // bitmask: bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack
         int   griefCount = 0; // NPCs with griefTimer > 0
@@ -1476,11 +1486,11 @@ void SimThread::WriteSnapshot() {
                     }
                 }
                 if (const auto* sk = m_registry.try_get<Skills>(e)) {
-                    if (sk->farming >= 0.9f || sk->water_drawing >= 0.9f || sk->woodcutting >= 0.9f)
+                    if (sk->AnyAbove(0.9f))
                         ++ag.masterCount;
-                    ag.skillFarmSum  += sk->farming;
-                    ag.skillWaterSum += sk->water_drawing;
-                    ag.skillWoodSum  += sk->woodcutting;
+                    if (ag.skillSums.empty()) ag.skillSums.resize(sk->levels.size(), 0.f);
+                    for (int si = 0; si < (int)sk->levels.size() && si < (int)ag.skillSums.size(); ++si)
+                        ag.skillSums[si] += sk->levels[si];
                     ++ag.skillCount;
                 }
                 // Mourning procession: check both wisdomGriefDays and skillCelebrateTimer
@@ -1582,12 +1592,12 @@ void SimThread::WriteSnapshot() {
             } else {
                 // Fallback: infer from strongest skill (for NPCs without a component)
                 const auto* sk = m_registry.try_get<Skills>(e);
-                if (sk) {
-                    float mx = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
-                    float spread = mx - std::min({sk->farming, sk->water_drawing, sk->woodcutting});
-                    if (spread > 0.05f) {
-                        profession = (sk->farming       == mx) ? "Farmer"       :
-                                     (sk->water_drawing == mx) ? "Water Carrier" : "Woodcutter";
+                if (sk && !sk->levels.empty()) {
+                    int bestId = sk->BestSkillId();
+                    float mx = sk->BestSkill();
+                    float mn = *std::min_element(sk->levels.begin(), sk->levels.end());
+                    if (mx - mn > 0.05f && bestId >= 0 && bestId < (int)m_schema.skills.size()) {
+                        profession = m_schema.skills[bestId].displayName;
                     }
                 }
             }
@@ -1695,31 +1705,45 @@ void SimThread::WriteSnapshot() {
         }
 
         // Skills snapshot
-        float farmSkill = -1.f, waterSkill = -1.f, woodSkill = -1.f;
+        std::vector<float> agentSkillLevels;
+        std::vector<std::string> agentSkillNames;
         float wagePerHour = 0.f;
         bool wisdomHeir = false;
         if (const auto* sk = m_registry.try_get<Skills>(e)) {
-            farmSkill  = sk->farming;
-            waterSkill = sk->water_drawing;
-            woodSkill  = sk->woodcutting;
+            agentSkillLevels = sk->levels;
+            agentSkillNames.resize(sk->levels.size());
+            for (int si = 0; si < (int)sk->levels.size() && si < (int)m_schema.skills.size(); ++si)
+                agentSkillNames[si] = m_schema.skills[si].displayName;
             wisdomHeir = (sk->wisdomLineage != entt::null);
             // Compute wage estimate for working NPCs (same formula as ConsumptionSystem)
             if (!isHauler && !isPlayer && astate.behavior == AgentBehavior::Working) {
-                float bestSkill = std::max({sk->farming, sk->water_drawing, sk->woodcutting});
+                float bestSkill = sk->BestSkill();
                 wagePerHour = 0.3f * (0.5f + bestSkill);  // WAGE_RATE * skillMult
             }
         }
 
         // Skill specialisation title
         std::string specTitle;
-        if (farmSkill >= 0.9f) specTitle = "Master Farmer";
-        else if (waterSkill >= 0.9f) specTitle = "Master Water-drawer";
-        else if (woodSkill >= 0.9f) specTitle = "Master Lumberjack";
-        else if (farmSkill >= 0.4f && waterSkill >= 0.4f && woodSkill >= 0.4f)
-            specTitle = "Generalist";
-        else if (npcCareerChanges >= 2 &&
-                 (farmSkill >= 0.6f || waterSkill >= 0.6f || woodSkill >= 0.6f)) {
-            specTitle = "Veteran " + profession;
+        if (!agentSkillLevels.empty()) {
+            // Check for mastery (>= 0.9)
+            for (int si = 0; si < (int)agentSkillLevels.size(); ++si) {
+                if (agentSkillLevels[si] >= 0.9f && si < (int)m_schema.skills.size()) {
+                    specTitle = "Master " + m_schema.skills[si].displayName;
+                    break;
+                }
+            }
+            if (specTitle.empty()) {
+                // Check generalist
+                bool allAbove04 = true;
+                bool anyAbove06 = false;
+                for (float v : agentSkillLevels) {
+                    if (v < 0.4f) allAbove04 = false;
+                    if (v >= 0.6f) anyAbove06 = true;
+                }
+                if (allAbove04) specTitle = "Generalist";
+                else if (npcCareerChanges >= 2 && anyAbove06)
+                    specTitle = "Veteran " + profession;
+            }
         }
 
         // Reputation snapshot
@@ -1847,21 +1871,15 @@ void SimThread::WriteSnapshot() {
         bool isExpert = false;
         if (const auto* prof2 = m_registry.try_get<Profession>(e)) {
             if (const auto* sk2 = m_registry.try_get<Skills>(e)) {
-                int bestRes = RES_FOOD;
-                float bestVal = sk2->farming;
-                if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = RES_WATER; }
-                if (sk2->woodcutting   > bestVal) { bestRes = RES_WOOD; }
+                int bestId = sk2->BestSkillId();
+                int bestRes = (bestId >= 0 && bestId < (int)m_schema.skills.size())
+                    ? m_schema.skills[bestId].forResource : RES_FOOD;
                 inVocation = (prof2->type == ProfessionForResource(bestRes)
                               && prof2->type != ProfessionType::Idle);
                 // Expert check: profession-matching skill >= 0.8
-                float profSkill = 0.f;
-                switch (prof2->type) {
-                    case ProfessionType::Farmer:      profSkill = sk2->farming; break;
-                    case ProfessionType::WaterCarrier: profSkill = sk2->water_drawing; break;
-                    case ProfessionType::Lumberjack:   profSkill = sk2->woodcutting; break;
-                    default: break;
-                }
-                isExpert = (profSkill >= 0.8f && prof2->type != ProfessionType::Idle);
+                int profSid = m_schema.SkillForResource(ResourceForProfession(prof2->type));
+                float profSkillVal = sk2->ForSkill(profSid);
+                isExpert = (profSkillVal >= 0.8f && prof2->type != ProfessionType::Idle);
             }
         }
 
@@ -1918,7 +1936,7 @@ void SimThread::WriteSnapshot() {
                            std::move(haulerCargo), haulerDestName,
                            profession, homeSettlName,
                            homeX, homeY, hasHome,
-                           farmSkill, waterSkill, woodSkill,
+                           std::move(agentSkillLevels), std::move(agentSkillNames),
                            contentment, std::move(followingName),
                            std::move(familyName), recentlyHelped, recentlyStole,
                            isGrateful, recentWarmthGlow, recentlyTaught, isGrievingSnap, griefHoursLeft, charityReady, charityTimerLeft,
@@ -1987,13 +2005,17 @@ void SimThread::WriteSnapshot() {
 
         // Master count and average skills from pre-computed aggregate
         int masterCount = settlAgg.count(e) ? settlAgg[e].masterCount : 0;
-        float avgFarming = 0.f, avgWater = 0.f, avgWood = 0.f;
+        std::vector<float> avgSkills;
+        std::vector<std::string> settlSkillNames;
         if (settlAgg.count(e) && settlAgg[e].skillCount > 0) {
             float n = (float)settlAgg[e].skillCount;
-            avgFarming = settlAgg[e].skillFarmSum / n;
-            avgWater   = settlAgg[e].skillWaterSum / n;
-            avgWood    = settlAgg[e].skillWoodSum / n;
+            avgSkills.resize(settlAgg[e].skillSums.size());
+            for (int si = 0; si < (int)settlAgg[e].skillSums.size(); ++si)
+                avgSkills[si] = settlAgg[e].skillSums[si] / n;
         }
+        settlSkillNames.resize(m_schema.skills.size());
+        for (int si = 0; si < (int)m_schema.skills.size(); ++si)
+            settlSkillNames[si] = m_schema.skills[si].displayName;
 
         // Count mutual friendship pairs at this settlement
         int friendPairs = 0;
@@ -2034,7 +2056,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            avgFarming, avgWater, avgWood, diverse, afterglow, vigilActive, mourningActive, harmony
+            std::move(avgSkills), std::move(settlSkillNames), diverse, afterglow, vigilActive, mourningActive, harmony
         });
     });
 
@@ -2103,15 +2125,10 @@ void SimThread::WriteSnapshot() {
     {
         // Build skill accum: [settlement][resIndex] = {sum, count}
         struct SA { float sum = 0.f; int count = 0; };
-        std::map<entt::entity, std::array<SA, 3>> facSkillAccum;  // 0=Food,1=Water,2=Wood
+        std::map<entt::entity, std::vector<SA>> facSkillAccum;  // indexed by SkillID
         std::map<entt::entity, int> facWorkers;   // settlement → working count
-        auto resIdx2 = [](int rt) -> int {
-            switch (rt) {
-                case RES_FOOD:  return 0;
-                case RES_WATER: return 1;
-                case RES_WOOD:  return 2;
-                default:                 return -1;
-            }
+        auto resIdx2 = [this](int rt) -> int {
+            return m_schema.SkillForResource(rt);
         };
         m_registry.view<AgentState, HomeSettlement>().each(
             [&](auto e, const AgentState& as, const HomeSettlement& hs) {
@@ -2119,9 +2136,11 @@ void SimThread::WriteSnapshot() {
             facWorkers[hs.settlement]++;
             if (const auto* sk = m_registry.try_get<Skills>(e)) {
                 auto& arr = facSkillAccum[hs.settlement];
-                arr[0].sum += sk->farming;       arr[0].count++;
-                arr[1].sum += sk->water_drawing; arr[1].count++;
-                arr[2].sum += sk->woodcutting;   arr[2].count++;
+                if (arr.empty()) arr.resize(m_schema.skills.size());
+                for (int si = 0; si < (int)sk->levels.size() && si < (int)arr.size(); ++si) {
+                    arr[si].sum += sk->levels[si];
+                    arr[si].count++;
+                }
             }
         });
 
@@ -2132,7 +2151,7 @@ void SimThread::WriteSnapshot() {
             int  workers  = facWorkers.count(fac.settlement) ? facWorkers.at(fac.settlement) : 0;
             float avgSkill = 0.5f;
             int ri = resIdx2(fac.output);
-            if (ri >= 0 && facSkillAccum.count(fac.settlement)) {
+            if (ri >= 0 && facSkillAccum.count(fac.settlement) && ri < (int)facSkillAccum.at(fac.settlement).size()) {
                 const auto& sa = facSkillAccum.at(fac.settlement)[ri];
                 if (sa.count > 0) avgSkill = sa.sum / sa.count;
             }
@@ -2481,14 +2500,17 @@ void SimThread::WriteSnapshot() {
                 });
 
             // Skill summary: count masters (≥0.9) and journeymen (≥0.5) per skill type
-            for (int i = 0; i < 3; ++i) { panel.masterCount[i] = 0; panel.journeymanCount[i] = 0; }
+            int nsk = (int)m_schema.skills.size();
+            panel.masterCount.assign(nsk, 0);
+            panel.journeymanCount.assign(nsk, 0);
+            panel.skillNames.resize(nsk);
+            for (int si = 0; si < nsk; ++si) panel.skillNames[si] = m_schema.skills[si].displayName;
             m_registry.view<Skills, HomeSettlement>(entt::exclude<PlayerTag, Hauler>).each(
                 [&](auto, const Skills& sk, const HomeSettlement& hs) {
                     if (hs.settlement != e) return;
-                    float vals[3] = { sk.farming, sk.water_drawing, sk.woodcutting };
-                    for (int i = 0; i < 3; ++i) {
-                        if (vals[i] >= 0.9f)      ++panel.masterCount[i];
-                        else if (vals[i] >= 0.5f)  ++panel.journeymanCount[i];
+                    for (int si = 0; si < (int)sk.levels.size() && si < nsk; ++si) {
+                        if (sk.levels[si] >= 0.9f)      ++panel.masterCount[si];
+                        else if (sk.levels[si] >= 0.5f)  ++panel.journeymanCount[si];
                     }
                 });
 
@@ -2559,7 +2581,8 @@ void SimThread::WriteSnapshot() {
 
     float playerAgeDays = 0.f, playerMaxDays = 80.f;
     float playerGold = 0.f;
-    float playerFarmSkill = -1.f, playerWaterSkill = -1.f, playerWoodSkill = -1.f;
+    std::vector<float> playerSkillLevels;
+    std::vector<std::string> playerSkillNames;
     std::map<int, int> playerInventory;
     int   playerInventoryCapacity = 15;
     {
@@ -2586,9 +2609,10 @@ void SimThread::WriteSnapshot() {
                 playerInventoryCapacity = inv->maxCapacity;
             }
             if (const auto* sk = m_registry.try_get<Skills>(pe)) {
-                playerFarmSkill  = sk->farming;
-                playerWaterSkill = sk->water_drawing;
-                playerWoodSkill  = sk->woodcutting;
+                playerSkillLevels = sk->levels;
+                playerSkillNames.resize(sk->levels.size());
+                for (int si = 0; si < (int)sk->levels.size() && si < (int)m_schema.skills.size(); ++si)
+                    playerSkillNames[si] = m_schema.skills[si].displayName;
             }
         }
     }
@@ -2796,9 +2820,8 @@ void SimThread::WriteSnapshot() {
         m_snapshot.playerAgeDays  = playerAgeDays;
         m_snapshot.playerMaxDays  = playerMaxDays;
         m_snapshot.playerGold       = playerGold;
-        m_snapshot.playerFarmSkill  = playerFarmSkill;
-        m_snapshot.playerWaterSkill = playerWaterSkill;
-        m_snapshot.playerWoodSkill  = playerWoodSkill;
+        m_snapshot.playerSkillLevels = std::move(playerSkillLevels);
+        m_snapshot.playerSkillNames = std::move(playerSkillNames);
         m_snapshot.playerInventory         = std::move(playerInventory);
         m_snapshot.playerInventoryCapacity = playerInventoryCapacity;
         m_snapshot.tradeHint               = std::move(tradeHint);

@@ -1,5 +1,6 @@
 #include "BirthSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -42,7 +43,7 @@ static Needs MakeNeeds() {
     } };
 }
 
-void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto tmv = registry.view<TimeManager>();
     if (tmv.begin() == tmv.end()) return;
     const auto& tm = tmv.get<TimeManager>(*tmv.begin());
@@ -212,13 +213,14 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             // through childhood passive growth, creating gentle specialisation by
             // the time the NPC enters the workforce. The aptitude also influences which
             // settlement they'll prefer when migrating (skill-aware migration targeting).
-            static std::uniform_int_distribution<int> apt_dist(0, 2);
+            // Newborn skill aptitude: one random skill starts slightly higher
+            int numSkills = (int)schema.skills.size();
+            std::uniform_int_distribution<int> apt_dist(0, std::max(0, numSkills - 1));
             int aptIdx = apt_dist(s_rng);
-            Skills npcSkills{ 0.08f, 0.08f, 0.08f };
-            if      (aptIdx == 0) npcSkills.farming       = 0.15f;
-            else if (aptIdx == 1) npcSkills.water_drawing = 0.15f;
-            else                  npcSkills.woodcutting   = 0.15f;
-            registry.emplace<Skills>(npc, npcSkills);
+            Skills npcSkills;
+            npcSkills.Init(numSkills, 0.08f);
+            if (aptIdx >= 0 && aptIdx < numSkills) npcSkills.levels[aptIdx] = 0.15f;
+            registry.emplace<Skills>(npc, std::move(npcSkills));
             registry.emplace<Profession>(npc, Profession{ settlProfession });
             registry.emplace<ChildTag>(npc);
 
@@ -330,11 +332,10 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 auto& twinNeeds = registry.get<Needs>(npc2);
                 for (auto& need : twinNeeds.list) need.drainRate *= trait_dist(s_rng);
                 // Twin shares same aptitude bias as first sibling (family trait)
-                Skills twinSkills{ 0.08f, 0.08f, 0.08f };
-                if      (aptIdx == 0) twinSkills.farming       = 0.15f;
-                else if (aptIdx == 1) twinSkills.water_drawing = 0.15f;
-                else                  twinSkills.woodcutting   = 0.15f;
-                registry.emplace<Skills>(npc2, twinSkills);
+                Skills twinSkills;
+                twinSkills.Init(numSkills, 0.08f);
+                if (aptIdx >= 0 && aptIdx < numSkills) twinSkills.levels[aptIdx] = 0.15f;
+                registry.emplace<Skills>(npc2, std::move(twinSkills));
                 registry.emplace<Profession>(npc2, Profession{ settlProfession });
                 registry.emplace<ChildTag>(npc2);
 

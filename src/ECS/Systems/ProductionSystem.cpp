@@ -1,5 +1,6 @@
 #include "ProductionSystem.h"
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 #include <algorithm>
 #include <map>
 #include <random>
@@ -18,7 +19,7 @@ static constexpr float STOCKPILE_CAP  = 500.f;  // max units per resource type
 // 0.5% per hour = ~12% loss per game-day; keeps stockpiles from bloating indefinitely.
 static constexpr float FOOD_SPOILAGE_RATE = 0.005f;
 
-void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void ProductionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -49,18 +50,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     std::unordered_map<entt::entity, float> workers;  // float to allow fractional apprentice contributions
     std::unordered_map<entt::entity, int>   workerHeadCount; // integer count for crowding detection
     std::unordered_map<entt::entity, int>   elderCount; // elders per settlement for production bonus
-    // [settlement][resourceIndex 0=Food,1=Water,2=Wood]
-    std::unordered_map<entt::entity, std::array<SkillAccum, 3>> skillData;
+    // [settlement][skillIndex] — dynamically sized from schema
+    const int numSkills = (int)schema.skills.size();
+    std::unordered_map<entt::entity, std::vector<SkillAccum>> skillData;
     // Profession diversity: bitmask per settlement (bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack)
     std::unordered_map<entt::entity, uint8_t> profDiversity;
 
-    auto resIdx = [](int rt) -> int {
-        switch (rt) {
-            case RES_FOOD:  return 0;
-            case RES_WATER: return 1;
-            case RES_WOOD:  return 2;
-            default:                  return -1;
-        }
+    // Map resource type → SkillID for skill-weighted production
+    auto resIdx = [&schema](int rt) -> int {
+        return schema.SkillForResource(rt);
     };
 
     // Include player if Working — they contribute to the facility they're at.
@@ -130,7 +128,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             }
             // Jack-of-all-trades: generalists with all skills ≥ 0.4 get +5%
             if (const auto* skills = registry.try_get<Skills>(e)) {
-                if (skills->farming >= 0.4f && skills->water_drawing >= 0.4f && skills->woodcutting >= 0.4f)
+                if (skills->AllAbove(0.4f))
                     workerContrib *= 1.05f;
             }
             // Track profession diversity for settlement bonus
@@ -146,9 +144,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             workerHeadCount[hs.settlement]++;
             if (const auto* skills = registry.try_get<Skills>(e)) {
                 auto& arr = skillData[hs.settlement];
-                arr[0].sum += skills->farming;       arr[0].count++;
-                arr[1].sum += skills->water_drawing; arr[1].count++;
-                arr[2].sum += skills->woodcutting;   arr[2].count++;
+                if (arr.empty()) arr.resize(numSkills);
+                for (int si = 0; si < (int)skills->levels.size() && si < numSkills; ++si) {
+                    arr[si].sum += skills->levels[si];
+                    arr[si].count++;
+                }
             }
         });
 
@@ -202,16 +202,15 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             if (!registry.valid(it->first)) it = s_lastCrowdLog.erase(it); else ++it;
     }
 
-    // ---- Settlement specialisation: count masters per resource type per settlement ----
-    // masterCount[settlement][0=Food,1=Water,2=Wood] = number of NPCs with skill >= 0.9
-    std::unordered_map<entt::entity, std::array<int, 3>> masterCount;
+    // ---- Settlement specialisation: count masters per skill per settlement ----
+    std::unordered_map<entt::entity, std::vector<int>> masterCount;
     registry.view<Skills, HomeSettlement>(entt::exclude<Hauler>).each(
         [&](auto, const Skills& sk, const HomeSettlement& hs) {
             if (hs.settlement == entt::null || !registry.valid(hs.settlement)) return;
             auto& mc = masterCount[hs.settlement];
-            if (sk.farming       >= 0.9f) mc[0]++;
-            if (sk.water_drawing >= 0.9f) mc[1]++;
-            if (sk.woodcutting   >= 0.9f) mc[2]++;
+            if (mc.empty()) mc.resize(numSkills, 0);
+            for (int si = 0; si < (int)sk.levels.size() && si < numSkills; ++si)
+                if (sk.levels[si] >= 0.9f) mc[si]++;
         });
     // Log specialisation once per settlement+type combination
     static std::set<uint64_t> s_specLogged;
@@ -234,7 +233,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
         // Blended: output × (0.5 + skill), so skill=0.5 → ×1.0, skill=1.0 → ×1.5
         float skillMult = 1.0f;
         int ri = resIdx(fac.output);
-        if (ri >= 0 && skillData.count(fac.settlement)) {
+        if (ri >= 0 && skillData.count(fac.settlement) && ri < (int)skillData.at(fac.settlement).size()) {
             const auto& sa = skillData.at(fac.settlement)[ri];
             if (sa.count > 0) {
                 float avgSkill = sa.sum / sa.count;
@@ -254,14 +253,14 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
             moraleBonus = 1.0f + 0.3f * (settl->morale - 0.5f);
         // Specialisation bonus: +15% when ≥3 masters in the facility's resource type
         float specBonus = 1.0f;
-        if (ri >= 0 && masterCount.count(fac.settlement)) {
+        if (ri >= 0 && masterCount.count(fac.settlement) && ri < (int)masterCount.at(fac.settlement).size()) {
             const auto& mc = masterCount.at(fac.settlement);
             if (mc[ri] >= 3) {
                 specBonus = 1.15f;
                 // Log once per settlement+type
                 uint64_t specKey = (uint64_t)entt::to_integral(fac.settlement) * 10 + ri;
                 if (s_specLogged.insert(specKey).second) {
-                    const char* typeName = (ri == 0) ? "Farming" : (ri == 1) ? "Water" : "Lumber";
+                    const char* typeName = (ri < (int)schema.skills.size()) ? schema.skills[ri].displayName.c_str() : "Unknown";
                     auto lv = registry.view<EventLog>();
                     if (lv.begin() != lv.end()) {
                         std::string sName = settl ? settl->name : "Settlement";

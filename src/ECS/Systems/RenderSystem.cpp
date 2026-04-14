@@ -19,7 +19,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     bool hasTheft    = (panel.theftCount > 0);
     bool hasStruggling = (panel.strugglingHaulers > 0);
     bool hasSkillSummary = false;
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < (int)panel.masterCount.size(); ++i)
         if (panel.masterCount[i] + panel.journeymanCount[i] > 0) { hasSkillSummary = true; break; }
     // Pre-compute largest family for header line and height calc
     std::string largestFamName;
@@ -458,15 +458,16 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     // Settlement skill summary — top skill type with master/journeyman counts
     {
         int bestIdx = -1, bestTotal = 0;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < (int)panel.masterCount.size(); ++i) {
             int total = panel.masterCount[i] + panel.journeymanCount[i];
             if (total > bestTotal) { bestTotal = total; bestIdx = i; }
         }
         if (bestIdx >= 0) {
-            const char* skNames[] = { "Farming", "Water", "Woodcutting" };
+            const char* skName = (bestIdx < (int)panel.skillNames.size())
+                ? panel.skillNames[bestIdx].c_str() : "Unknown";
             char skBuf[80];
             std::snprintf(skBuf, sizeof(skBuf), "Top skill: %s (%d master%s, %d journeyman%s)",
-                skNames[bestIdx],
+                skName,
                 panel.masterCount[bestIdx], panel.masterCount[bestIdx] == 1 ? "" : "s",
                 panel.journeymanCount[bestIdx], panel.journeymanCount[bestIdx] == 1 ? "" : "s");
             DrawText(skBuf, PX + 8, y, 11, Fade(GOLD, 0.7f));

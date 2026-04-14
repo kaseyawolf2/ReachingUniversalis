@@ -1,4 +1,5 @@
 #include "WorldGenerator.h"
+#include "WorldSchema.h"
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <array>
@@ -60,6 +61,7 @@ static Needs MakeNeeds() {
 static void SpawnNPCs(entt::registry& registry,
                       entt::entity settlement,
                       float cx, float cy, int count,
+                      const WorldSchema& schema,
                       ProfessionType profession = ProfessionType::Idle) {
     for (int i = 0; i < count; ++i) {
         float angle = (float)i / count * 2.f * PI;
@@ -92,9 +94,15 @@ static void SpawnNPCs(entt::registry& registry,
         age.maxDays = lifespan_dist(wg_rng);
         registry.emplace<Age>(npc, age);
         registry.emplace<Name>(npc, Name{ MakeName() });
-        // Starting skills: vary ±0.15 around 0.5 baseline
-        static std::uniform_real_distribution<float> skill_dist(0.35f, 0.65f);
-        registry.emplace<Skills>(npc, Skills{ skill_dist(wg_rng), skill_dist(wg_rng), skill_dist(wg_rng) });
+        // Starting skills: vary ±0.15 around schema-defined start values
+        {
+            static std::uniform_real_distribution<float> skill_var(-0.15f, 0.15f);
+            Skills sk;
+            sk.Init((int)schema.skills.size());
+            for (int i = 0; i < (int)schema.skills.size(); ++i)
+                sk.levels[i] = std::clamp(schema.skills[i].startValue + skill_var(wg_rng), 0.f, 1.f);
+            registry.emplace<Skills>(npc, std::move(sk));
+        }
         registry.emplace<Reputation>(npc);
         registry.emplace<Profession>(npc, Profession{ profession });
 
@@ -166,7 +174,7 @@ static void SpawnHaulers(entt::registry& registry,
     }
 }
 
-void WorldGenerator::Populate(entt::registry& registry) {
+void WorldGenerator::Populate(entt::registry& registry, const WorldSchema& schema) {
 
     // ---- Game clock ----
     registry.emplace<TimeManager>(registry.create());
@@ -286,9 +294,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     }
 
     // ---- Population ----
-    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, ProfessionType::Farmer);
-    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, ProfessionType::WaterCarrier);
-    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, ProfessionType::Lumberjack);
+    SpawnNPCs(registry, greenfield, 400.f,  360.f, 20, schema, ProfessionType::Farmer);
+    SpawnNPCs(registry, wellsworth, 2000.f, 360.f, 20, schema, ProfessionType::WaterCarrier);
+    SpawnNPCs(registry, millhaven,  1200.f, 200.f, 20, schema, ProfessionType::Lumberjack);
 
     // ---- Haulers (6 per settlement, shown in sky blue) ----
     SpawnHaulers(registry, greenfield, 400.f,  360.f, 6);
@@ -315,5 +323,9 @@ void WorldGenerator::Populate(entt::registry& registry) {
     playerAge.maxDays = lifespan_dist(wg_rng);
     registry.emplace<Age>(player, playerAge);
     // Player starts with slightly above average skills — represents a capable adult
-    registry.emplace<Skills>(player, Skills{ 0.4f, 0.4f, 0.4f });
+    {
+        Skills psk;
+        psk.Init((int)schema.skills.size(), 0.4f);
+        registry.emplace<Skills>(player, std::move(psk));
+    }
 }

@@ -97,6 +97,16 @@ inline ProfessionType ProfessionForResource(int rt) {
     return ProfessionType::Idle;
 }
 
+// Helper: ProfessionType → resource ID (for skill lookup via schema).
+inline int ResourceForProfession(ProfessionType p) {
+    switch (p) {
+        case ProfessionType::Farmer:       return RES_FOOD;
+        case ProfessionType::WaterCarrier: return RES_WATER;
+        case ProfessionType::Lumberjack:   return RES_WOOD;
+        default:                           return -1;
+    }
+}
+
 // Helper: ProfessionType → display string
 inline const char* ProfessionLabel(ProfessionType p) {
     switch (p) {
@@ -474,27 +484,63 @@ struct Age {
 // Each value is 0-1: 0 = unskilled, 0.5 = average, 1 = mastery.
 // Skills improve through practice. Skill multiplies a worker's production
 // contribution in ProductionSystem (average skill of working NPCs scales output).
+//
+// Skill levels are stored in a vector indexed by SkillID (from WorldSchema).
+// Systems use ForSkill()/AdvanceSkill() with SkillIDs looked up from schema.
 struct Skills {
-    float farming       = 0.5f;  // food production efficiency
-    float water_drawing = 0.5f;  // water production efficiency
-    float woodcutting   = 0.5f;  // wood production efficiency
+    std::vector<float> levels;  // indexed by SkillID; 0-1 range
 
-    // Returns the relevant skill for a given resource output type.
-    float ForResource(int rt) const {
-        if (rt == RES_FOOD)  return farming;
-        if (rt == RES_WATER) return water_drawing;
-        if (rt == RES_WOOD)  return woodcutting;
+    // Initialise the skill vector with `numSkills` slots, all set to `defaultValue`.
+    void Init(int numSkills, float defaultValue = 0.5f) {
+        levels.assign(numSkills, defaultValue);
+    }
+
+    // Returns skill level for a given SkillID. Returns 0.5 for out-of-range IDs.
+    float ForSkill(int skillId) const {
+        if (skillId >= 0 && skillId < (int)levels.size()) return levels[skillId];
         return 0.5f;
     }
 
-    // Advances the relevant skill by delta (capped at 1).
-    void Advance(int rt, float delta) {
-        float* target = nullptr;
-        if      (rt == RES_FOOD)  target = &farming;
-        else if (rt == RES_WATER) target = &water_drawing;
-        else if (rt == RES_WOOD)  target = &woodcutting;
-        else return;
-        *target = std::min(1.f, *target + delta);
+    // Advances skill by delta (clamped to [0, 1]).
+    void AdvanceSkill(int skillId, float delta) {
+        if (skillId >= 0 && skillId < (int)levels.size())
+            levels[skillId] = std::clamp(levels[skillId] + delta, 0.f, 1.f);
+    }
+
+    // Returns the highest skill value across all skills.
+    float BestSkill() const {
+        float best = 0.f;
+        for (float v : levels) if (v > best) best = v;
+        return best;
+    }
+
+    // Returns the SkillID with the highest value (-1 if empty).
+    int BestSkillId() const {
+        int bestId = -1;
+        float best = -1.f;
+        for (int i = 0; i < (int)levels.size(); ++i)
+            if (levels[i] > best) { best = levels[i]; bestId = i; }
+        return bestId;
+    }
+
+    // Returns true if all skills are >= threshold (generalist check).
+    bool AllAbove(float threshold) const {
+        for (float v : levels) if (v < threshold) return false;
+        return !levels.empty();
+    }
+
+    // Returns true if any skill is >= threshold.
+    bool AnyAbove(float threshold) const {
+        for (float v : levels) if (v >= threshold) return true;
+        return false;
+    }
+
+    // Decay all skills by `amount`, with a floor value. Skips skill at `exceptId` if >= 0.
+    void DecayAll(float amount, float floor = 0.f, int exceptId = -1) {
+        for (int i = 0; i < (int)levels.size(); ++i) {
+            if (i == exceptId) continue;
+            levels[i] = std::max(floor, levels[i] - amount);
+        }
     }
 
     float wisdomGriefDays = 0.f;  // days remaining of skill growth penalty after a wise elder dies

@@ -94,9 +94,7 @@ void NeedDrainSystem::Update(entt::registry& registry, float realDt, const World
         if (age.days > 65.f) {
             auto& sk = skillAgeView.get<Skills>(entity);
             float decay = 0.0002f * gameDt;
-            sk.farming       = std::max(0.1f, sk.farming       - decay);
-            sk.water_drawing = std::max(0.1f, sk.water_drawing - decay);
-            sk.woodcutting   = std::max(0.1f, sk.woodcutting   - decay);
+            sk.DecayAll(decay, 0.1f);
         }
     }
 }

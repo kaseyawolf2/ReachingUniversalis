@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "ECS/Components.h"
+#include "World/WorldSchema.h"
 
 // Radius within which an NPC can interact with a production facility.
 static constexpr float FACILITY_RANGE = 35.0f;
@@ -138,6 +139,7 @@ entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
 
 entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
                                                         entt::entity homeSettlement,
+                                                        const WorldSchema& schema,
                                                         const Skills* skills,
                                                         const Profession* profession,
                                                         const MigrationMemory* memory,
@@ -167,11 +169,11 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
     // Determine the NPC's strongest skill (if any) for affinity matching.
     int affinityType = RES_FOOD;
     bool         hasAffinity  = false;
-    if (skills) {
-        float best = skills->farming;
-        affinityType = RES_FOOD;
-        if (skills->water_drawing > best) { best = skills->water_drawing; affinityType = RES_WATER; }
-        if (skills->woodcutting   > best) {                               affinityType = RES_WOOD;  }
+    if (skills && !skills->levels.empty()) {
+        int bestId = skills->BestSkillId();
+        float best = skills->BestSkill();
+        if (bestId >= 0 && bestId < (int)schema.skills.size() && schema.skills[bestId].forResource >= 0)
+            affinityType = schema.skills[bestId].forResource;
         // Only apply affinity bonus if the skill is meaningfully developed (> 0.25)
         hasAffinity = (best > 0.25f);
     }
@@ -384,7 +386,7 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
 
 // ---- Main update ----
 
-void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& /*schema*/) {
+void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
     // Sub-block profiling setup
     using Clock = std::chrono::steady_clock;
     if (m_subProfile[0].name == nullptr) {
@@ -485,14 +487,21 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             // Build per-settlement master profession set
             // Bit flags: 1=Farmer, 2=WaterCarrier, 4=Lumberjack
             std::unordered_map<entt::entity, int> masterFlags;
+            // Helper: get skill level for a profession type using schema lookup
+            auto profSkill = [&schema](const Skills& sk, ProfessionType pt) -> float {
+                int sid = schema.SkillForResource(ResourceForProfession(pt));
+                return sk.ForSkill(sid);
+            };
+
             registry.view<Skills, Profession, HomeSettlement>(
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
+                    float sv = profSkill(sk, prof.type);
                     int flag = 0;
-                    if (prof.type == ProfessionType::Farmer && sk.farming >= MASTER_THRESHOLD) flag = 1;
-                    else if (prof.type == ProfessionType::WaterCarrier && sk.water_drawing >= MASTER_THRESHOLD) flag = 2;
-                    else if (prof.type == ProfessionType::Lumberjack && sk.woodcutting >= MASTER_THRESHOLD) flag = 4;
+                    if (prof.type == ProfessionType::Farmer && sv >= MASTER_THRESHOLD) flag = 1;
+                    else if (prof.type == ProfessionType::WaterCarrier && sv >= MASTER_THRESHOLD) flag = 2;
+                    else if (prof.type == ProfessionType::Lumberjack && sv >= MASTER_THRESHOLD) flag = 4;
                     if (flag) masterFlags[hs.settlement] |= flag;
                 });
 
@@ -503,10 +512,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 entt::exclude<ChildTag, Hauler, PlayerTag, BanditTag>).each(
                 [&](const Skills& sk, const Profession& prof, const HomeSettlement& hs) {
                     if (hs.settlement == entt::null) return;
+                    float sv = profSkill(sk, prof.type);
                     int flag = 0;
-                    if (prof.type == ProfessionType::Farmer && sk.farming >= 0.8f) flag = 1;
-                    else if (prof.type == ProfessionType::WaterCarrier && sk.water_drawing >= 0.8f) flag = 2;
-                    else if (prof.type == ProfessionType::Lumberjack && sk.woodcutting >= 0.8f) flag = 4;
+                    if (prof.type == ProfessionType::Farmer && sv >= 0.8f) flag = 1;
+                    else if (prof.type == ProfessionType::WaterCarrier && sv >= 0.8f) flag = 2;
+                    else if (prof.type == ProfessionType::Lumberjack && sv >= 0.8f) flag = 4;
                     if (flag) expertFlags[hs.settlement] |= flag;
                 });
 
@@ -556,13 +566,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 [&](auto elder, const Skills& sk, const Profession& prof, const Age& age, const HomeSettlement& hs) {
                     if (age.days <= 60.f || hs.settlement == entt::null) return;
                     int flag = 0;
-                    float skill = 0.f;
                     switch (prof.type) {
-                        case ProfessionType::Farmer:      flag = 1; skill = sk.farming; break;
-                        case ProfessionType::WaterCarrier: flag = 2; skill = sk.water_drawing; break;
-                        case ProfessionType::Lumberjack:   flag = 4; skill = sk.woodcutting; break;
+                        case ProfessionType::Farmer:      flag = 1; break;
+                        case ProfessionType::WaterCarrier: flag = 2; break;
+                        case ProfessionType::Lumberjack:   flag = 4; break;
                         default: break;
                     }
+                    float skill = profSkill(sk, prof.type);
                     if (flag && skill >= 0.8f)
                         skilledElders[hs.settlement].push_back({elder, flag});
                 });
@@ -594,13 +604,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // active mentoring of their profession train 10% harder.
                     bool rivalryActive = false;
                     if (profFlag && hs.settlement != entt::null) {
-                        float activeSkill = 0.f;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      activeSkill = sk.farming; break;
-                            case ProfessionType::WaterCarrier: activeSkill = sk.water_drawing; break;
-                            case ProfessionType::Lumberjack:   activeSkill = sk.woodcutting; break;
-                            default: break;
-                        }
+                        float activeSkill = profSkill(sk, prof.type);
                         if (activeSkill >= 0.7f) {
                             auto ait = activeMentoring.find(hs.settlement);
                             if (ait != activeMentoring.end() && (ait->second & profFlag)) {
@@ -701,13 +705,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
                     // Mastery teaching chain: experts (skill >= 0.8) teach novices (skill < 0.5)
                     if (profFlag && hs.settlement != entt::null) {
-                        float activeSkill2 = 0.f;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      activeSkill2 = sk.farming; break;
-                            case ProfessionType::WaterCarrier: activeSkill2 = sk.water_drawing; break;
-                            case ProfessionType::Lumberjack:   activeSkill2 = sk.woodcutting; break;
-                            default: break;
-                        }
+                        float activeSkill2 = profSkill(sk, prof.type);
                         if (activeSkill2 < 0.5f) {
                             auto xit = expertFlags.find(hs.settlement);
                             if (xit != expertFlags.end() && (xit->second & profFlag)) {
@@ -735,13 +733,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (!tProf || tProf->type != prof.type) continue;
                                         const auto* tSk = registry.try_get<Skills>(target);
                                         if (!tSk) continue;
-                                        float tSkill = 0.f;
-                                        switch (prof.type) {
-                                            case ProfessionType::Farmer:      tSkill = tSk->farming; break;
-                                            case ProfessionType::WaterCarrier: tSkill = tSk->water_drawing; break;
-                                            case ProfessionType::Lumberjack:   tSkill = tSk->woodcutting; break;
-                                            default: break;
-                                        }
+                                        float tSkill = profSkill(*tSk, prof.type);
                                         if (tSkill >= 0.8f) {
                                             aff = std::min(1.f, aff + 0.02f);
                                             if (s_teachRng() % 8 == 0 && !logV2.empty()) {
@@ -777,13 +769,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (!tProf || tProf->type != prof.type) continue;
                                 const auto* tSk = registry.try_get<Skills>(target);
                                 if (!tSk) continue;
-                                float rivalSkill = 0.f;
-                                switch (prof.type) {
-                                    case ProfessionType::Farmer:      rivalSkill = tSk->farming; break;
-                                    case ProfessionType::WaterCarrier: rivalSkill = tSk->water_drawing; break;
-                                    case ProfessionType::Lumberjack:   rivalSkill = tSk->woodcutting; break;
-                                    default: break;
-                                }
+                                float rivalSkill = profSkill(*tSk, prof.type);
                                 if (rivalSkill >= 0.8f) {
                                     jealousMotivated = true;
                                     rivalE = target;
@@ -810,38 +796,15 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Capture pre-growth skill for loyalty streak crossing detection
-                    float preActiveSkill = 0.f;
-                    switch (prof.type) {
-                        case ProfessionType::Farmer:      preActiveSkill = sk.farming; break;
-                        case ProfessionType::WaterCarrier: preActiveSkill = sk.water_drawing; break;
-                        case ProfessionType::Lumberjack:   preActiveSkill = sk.woodcutting; break;
-                        default: break;
-                    }
-                    switch (prof.type) {
-                        case ProfessionType::Farmer:
-                            if (hasMaster && sk.farming < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
-                            sk.farming = std::min(1.f, sk.farming + growth);
-                            break;
-                        case ProfessionType::WaterCarrier:
-                            if (hasMaster && sk.water_drawing < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
-                            sk.water_drawing = std::min(1.f, sk.water_drawing + growth);
-                            break;
-                        case ProfessionType::Lumberjack:
-                            if (hasMaster && sk.woodcutting < MASTER_THRESHOLD) growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
-                            sk.woodcutting = std::min(1.f, sk.woodcutting + growth);
-                            break;
-                        default: break;
-                    }
+                    int profSid = schema.SkillForResource(ResourceForProfession(prof.type));
+                    float preActiveSkill = sk.ForSkill(profSid);
+                    if (hasMaster && preActiveSkill < MASTER_THRESHOLD)
+                        growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
+                    sk.AdvanceSkill(profSid, growth);
                     // Loyalty streak: log when a loyal NPC crosses the 0.7 skill threshold
                     {
-                        float postActiveSkill = 0.f;
-                        const char* profName = nullptr;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      postActiveSkill = sk.farming; profName = "farmer"; break;
-                            case ProfessionType::WaterCarrier: postActiveSkill = sk.water_drawing; profName = "water-carrier"; break;
-                            case ProfessionType::Lumberjack:   postActiveSkill = sk.woodcutting; profName = "lumberjack"; break;
-                            default: break;
-                        }
+                        float postActiveSkill = sk.ForSkill(profSid);
+                        const char* profName = ProfessionLabel(prof.type);
                         if (loyal && profName && preActiveSkill < 0.7f && postActiveSkill >= 0.7f
                             && !logV2.empty() && s_teachRng() % 5 == 0) {
                             std::string who = "NPC";
@@ -856,14 +819,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Skill recovery celebration: log when active skill rises back above 0.5
                     {
-                        float postActiveSkill2 = 0.f;
-                        const char* recSkill = nullptr;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      postActiveSkill2 = sk.farming; recSkill = "farming"; break;
-                            case ProfessionType::WaterCarrier: postActiveSkill2 = sk.water_drawing; recSkill = "water-drawing"; break;
-                            case ProfessionType::Lumberjack:   postActiveSkill2 = sk.woodcutting; recSkill = "woodcutting"; break;
-                            default: break;
-                        }
+                        float postActiveSkill2 = sk.ForSkill(profSid);
+                        const char* recSkill = (profSid >= 0 && profSid < (int)schema.skills.size())
+                            ? schema.skills[profSid].name.c_str() : nullptr;
                         if (recSkill && preActiveSkill < 0.5f && postActiveSkill2 >= 0.5f) {
                             // Morale boost: recovering NPCs lift community spirits
                             if (hs.settlement != entt::null && registry.valid(hs.settlement))
@@ -884,14 +842,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Profession pride announcement: when skill crosses 0.8, boost same-prof affinity
                     {
-                        float postSkill3 = 0.f;
-                        const char* prideProfName = nullptr;
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:      postSkill3 = sk.farming; prideProfName = "farming"; break;
-                            case ProfessionType::WaterCarrier: postSkill3 = sk.water_drawing; prideProfName = "water-carrying"; break;
-                            case ProfessionType::Lumberjack:   postSkill3 = sk.woodcutting; prideProfName = "woodcutting"; break;
-                            default: break;
-                        }
+                        float postSkill3 = sk.ForSkill(profSid);
+                        const char* prideProfName = (profSid >= 0 && profSid < (int)schema.skills.size())
+                            ? schema.skills[profSid].name.c_str() : nullptr;
                         if (prideProfName && preActiveSkill < 0.8f && postSkill3 >= 0.8f) {
                             // Boost affinity +0.02 toward all same-profession NPCs at same settlement
                             auto* myRel = registry.try_get<Relations>(e);
@@ -944,13 +897,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (jealousE == e) return;
                                         if (jHs.settlement != hs.settlement) return;
                                         if (jPr.type != prof.type) return;
-                                        float jSkill = 0.f;
-                                        switch (jPr.type) {
-                                            case ProfessionType::Farmer:      jSkill = jSk.farming; break;
-                                            case ProfessionType::WaterCarrier: jSkill = jSk.water_drawing; break;
-                                            case ProfessionType::Lumberjack:   jSkill = jSk.woodcutting; break;
-                                            default: break;
-                                        }
+                                        float jSkill = profSkill(jSk, jPr.type);
                                         if (jSkill < 0.6f || jSkill >= 0.8f) return;
                                         // 1-in-4 chance to feel jealousy
                                         if (s_teachRng() % 4 != 0) return;
@@ -976,26 +923,25 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
                         if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
-                            if (!dt->masterSettled && (sk.farming >= MASTER_THRESHOLD ||
-                                sk.water_drawing >= MASTER_THRESHOLD || sk.woodcutting >= MASTER_THRESHOLD))
+                            if (!dt->masterSettled && sk.AnyAbove(MASTER_THRESHOLD))
                                 dt->masterSettled = true;
                         }
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
-                    float preFarm = sk.farming, preWater = sk.water_drawing, preWood = sk.woodcutting;
-                    if (prof.type != ProfessionType::Farmer)
-                        sk.farming = std::max(SKILL_RUST_FLOOR, sk.farming - SKILL_RUST);
-                    if (prof.type != ProfessionType::WaterCarrier)
-                        sk.water_drawing = std::max(SKILL_RUST_FLOOR, sk.water_drawing - SKILL_RUST);
-                    if (prof.type != ProfessionType::Lumberjack)
-                        sk.woodcutting = std::max(SKILL_RUST_FLOOR, sk.woodcutting - SKILL_RUST);
+                    // Save pre-rust values for notification check
+                    std::vector<float> preRust = sk.levels;
+                    sk.DecayAll(SKILL_RUST, SKILL_RUST_FLOOR, profSid);
 
                     // Skill rust notification: log when a skill drops below 0.5
                     if (!logV2.empty() && s_teachRng() % 5 == 0) {
                         const char* rustSkill = nullptr;
-                        if (preFarm >= 0.5f && sk.farming < 0.5f) rustSkill = "farming";
-                        else if (preWater >= 0.5f && sk.water_drawing < 0.5f) rustSkill = "water-drawing";
-                        else if (preWood >= 0.5f && sk.woodcutting < 0.5f) rustSkill = "woodcutting";
+                        for (int si = 0; si < (int)sk.levels.size(); ++si) {
+                            if (si < (int)preRust.size() && preRust[si] >= 0.5f && sk.levels[si] < 0.5f
+                                && si < (int)schema.skills.size()) {
+                                rustSkill = schema.skills[si].name.c_str();
+                                break;
+                            }
+                        }
                         if (rustSkill) {
                             std::string who = "NPC";
                             if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;
@@ -1016,12 +962,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (hs.settlement != entt::null && registry.valid(hs.settlement))
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     settlName = s->name;
-                            const char* skillName = (prof.type == ProfessionType::Farmer) ? "farming" :
-                                                    (prof.type == ProfessionType::WaterCarrier) ? "water-drawing" :
-                                                    "woodcutting";
+                            const char* skillNameLog = (profSid >= 0 && profSid < (int)schema.skills.size())
+                                ? schema.skills[profSid].name.c_str() : "their trade";
                             std::string msg = "A master inspires " +
                                 std::string(nm ? nm->value : "an NPC") +
-                                "'s " + skillName + " at " + settlName + ".";
+                                "'s " + skillNameLog + " at " + settlName + ".";
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
                         }
                     }
@@ -1177,30 +1122,22 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     for (const auto& elder : it->second) {
                         if (elder.prof != prof.type) continue;
                         // Apply mentor skill growth
-                        switch (prof.type) {
-                            case ProfessionType::Farmer:
-                                sk.farming = std::min(1.f, sk.farming + MENTOR_SKILL_GROWTH); break;
-                            case ProfessionType::WaterCarrier:
-                                sk.water_drawing = std::min(1.f, sk.water_drawing + MENTOR_SKILL_GROWTH); break;
-                            case ProfessionType::Lumberjack:
-                                sk.woodcutting = std::min(1.f, sk.woodcutting + MENTOR_SKILL_GROWTH); break;
-                            default: break;
-                        }
+                        int mentorSid = schema.SkillForResource(ResourceForProfession(prof.type));
+                        sk.AdvanceSkill(mentorSid, MENTOR_SKILL_GROWTH);
                         // Log at 1-in-5 frequency
                         if (!logV.empty() && s_mentorRng() % 5 == 0) {
                             std::string elderName = "An elder";
                             if (const auto* nm = registry.try_get<Name>(elder.e))
                                 elderName = nm->value;
-                            const char* skillName = (prof.type == ProfessionType::Farmer) ? "farming" :
-                                                    (prof.type == ProfessionType::WaterCarrier) ? "water-drawing" :
-                                                    "woodcutting";
+                            const char* skillName2 = (mentorSid >= 0 && mentorSid < (int)schema.skills.size())
+                                ? schema.skills[mentorSid].name.c_str() : "their trade";
                             std::string settlName = "settlement";
                             if (registry.valid(hs.settlement))
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     settlName = s->name;
                             logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay,
                                 elderName + " mentors " + childName.value + " in " +
-                                skillName + " at " + settlName + ".");
+                                skillName2 + " at " + settlName + ".");
                         }
                         break; // one mentor per child per day
                     }
@@ -1485,22 +1422,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (oldType != newType && oldType != ProfessionType::Idle
                                 && newType != ProfessionType::Idle) {
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
-                                    // Map profession → resource for skill lookup
-                                    auto profToRes = [](ProfessionType p) -> int {
-                                        switch (p) {
-                                            case ProfessionType::Farmer:       return RES_FOOD;
-                                            case ProfessionType::WaterCarrier: return RES_WATER;
-                                            case ProfessionType::Lumberjack:   return RES_WOOD;
-                                            default:                           return RES_FOOD;
-                                        }
-                                    };
-                                    int oldRes = profToRes(oldType);
-                                    int newRes = profToRes(newType);
+                                    int oldSid = schema.SkillForResource(ResourceForProfession(oldType));
+                                    int newSid = schema.SkillForResource(ResourceForProfession(newType));
                                     // Halve old skill
-                                    float oldVal = sk->ForResource(oldRes);
-                                    sk->Advance(oldRes, -(oldVal * 0.5f));
-                                    // Boost new skill by 10% (capped at 1.0 by Advance)
-                                    sk->Advance(newRes, 0.1f);
+                                    float oldVal = sk->ForSkill(oldSid);
+                                    sk->AdvanceSkill(oldSid, -(oldVal * 0.5f));
+                                    // Boost new skill by 10% (capped at 1.0 by AdvanceSkill)
+                                    sk->AdvanceSkill(newSid, 0.1f);
                                 }
                             }
                         }
@@ -1551,9 +1479,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (dt->masterSettled) {
                         const auto* sk = registry.try_get<Skills>(entity);
                         if (sk) {
-                            const char* masterSkill = (sk->farming >= 0.9f)       ? "farmer"       :
-                                                      (sk->water_drawing >= 0.9f) ? "water-drawer" :
-                                                      (sk->woodcutting >= 0.9f)   ? "lumberjack"   : nullptr;
+                            const char* masterSkill = nullptr;
+                            for (int si = 0; si < (int)sk->levels.size(); ++si) {
+                                if (sk->levels[si] >= 0.9f && si < (int)schema.skills.size()) {
+                                    masterSkill = schema.skills[si].name.c_str();
+                                    break;
+                                }
+                            }
                             if (masterSkill) {
                                 auto lv2 = registry.view<EventLog>();
                                 if (!lv2.empty()) {
@@ -1848,7 +1780,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 }
             }
 
-            entt::entity dest = FindMigrationTarget(registry, home.settlement, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
+            entt::entity dest = FindMigrationTarget(registry, home.settlement, schema, skills, profession, memory, tm.day, timer.lastSatisfaction, lonely);
             if (dest != entt::null) {
                 home.prevSettlement  = home.settlement;
                 timer.homesickTimer  = 0.f;
@@ -2005,9 +1937,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 // ---- Master exodus warning: losing a master hurts the settlement ----
                 if (skills) {
                     const char* masterSkill = nullptr;
-                    if (skills->farming >= 0.9f)       masterSkill = "farming";
-                    else if (skills->water_drawing >= 0.9f) masterSkill = "water-drawing";
-                    else if (skills->woodcutting >= 0.9f)   masterSkill = "woodcutting";
+                    for (int si = 0; si < (int)skills->levels.size(); ++si) {
+                        if (skills->levels[si] >= 0.9f && si < (int)schema.skills.size()) {
+                            masterSkill = schema.skills[si].name.c_str();
+                            break;
+                        }
+                    }
                     if (masterSkill) {
                         auto lv3 = registry.view<EventLog>();
                         if (!lv3.empty()) {
@@ -2066,7 +2001,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         auto* fHome  = registry.try_get<HomeSettlement>(bestFriend);
                         auto* fState = registry.try_get<AgentState>(bestFriend);
                         entt::entity friendDest = FindMigrationTarget(registry, fHome->settlement,
-                            fSkills, fProfession, fMemory, tm.day, fSatisfaction);
+                            schema, fSkills, fProfession, fMemory, tm.day, fSatisfaction);
                         // Friend follows if they have any valid migration target (score > 0)
                         if (friendDest != entt::null) {
                             // Send friend to same destination as the initiator
@@ -2095,7 +2030,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         auto* cTimerPtr   = registry.try_get<DeprivationTimer>(candidate);
                                         float cSat = cTimerPtr ? cTimerPtr->lastSatisfaction : 0.5f;
                                         entt::entity cDest = FindMigrationTarget(registry, home.settlement,
-                                            cSkills, cProfession, cMemory, tm.day, cSat);
+                                            schema, cSkills, cProfession, cMemory, tm.day, cSat);
                                         if (cDest != entt::null) {
                                             bestThirdAff = aff;
                                             thirdNpc = candidate;
@@ -2225,9 +2160,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
                     // Social shame penalty: reduce all skills by 0.02 (ostracism effect)
                     if (auto* sk = registry.try_get<Skills>(entity)) {
-                        sk->farming       = std::max(0.f, sk->farming       - 0.02f);
-                        sk->water_drawing = std::max(0.f, sk->water_drawing - 0.02f);
-                        sk->woodcutting   = std::max(0.f, sk->woodcutting   - 0.02f);
+                        sk->DecayAll(0.02f, 0.f);
                     }
 
                     // Log the theft
@@ -2824,15 +2757,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
                         // Find a skill where teacher is ≥0.6 and learner is <0.3
-                        struct { int rt; float tVal; float lVal; const char* name; } candidates[3] = {
-                            { RES_FOOD,  mySkills->farming,       oSkills.farming,       "farming" },
-                            { RES_WATER, mySkills->water_drawing, oSkills.water_drawing, "water carrying" },
-                            { RES_WOOD,  mySkills->woodcutting,   oSkills.woodcutting,   "woodcutting" },
-                        };
-                        for (auto& c : candidates) {
-                            if (c.tVal >= TEACH_MIN && c.lVal < LEARN_MAX) {
+                        bool foundCandidate = false;
+                        const char* teachSkillName = nullptr;
+                        for (int si = 0; si < (int)mySkills->levels.size() && si < (int)oSkills.levels.size(); ++si) {
+                            if (mySkills->levels[si] >= TEACH_MIN && oSkills.levels[si] < LEARN_MAX) {
                                 float ghDt = dt * GAME_MINS_PER_REAL_SEC / 60.f;
-                                oSkills.Advance(c.rt, SKILL_GAIN * ghDt);
+                                oSkills.AdvanceSkill(si, SKILL_GAIN * ghDt);
+                                teachSkillName = (si < (int)schema.skills.size()) ? schema.skills[si].name.c_str() : "a skill";
                                 // Mutual affinity boost
                                 if (auto* rel = registry.try_get<Relations>(entity))
                                     rel->affinity[other] = std::min(1.f, rel->affinity[other] + 0.02f);
@@ -2849,7 +2780,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     const auto* myName = registry.try_get<Name>(entity);
                                     std::string msg = (myName ? myName->value : "An NPC") +
                                         std::string(" teaches ") + oName.value +
-                                        " about " + c.name + ".";
+                                        " about " + teachSkillName + ".";
                                     lv.get<EventLog>(*lv.begin()).Push(
                                         tm.day, (int)tm.hourOfDay, msg);
                                 }
@@ -3081,13 +3012,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             const auto* skB   = registry.try_get<Skills>(other);
                             if (profA && profB && skA && skB && profA->type == profB->type
                                 && profA->type != ProfessionType::Idle && profA->type != ProfessionType::Hauler) {
-                                auto getSkill = [](const Skills& sk, ProfessionType t) -> float {
-                                    switch (t) {
-                                        case ProfessionType::Farmer:      return sk.farming;
-                                        case ProfessionType::WaterCarrier: return sk.water_drawing;
-                                        case ProfessionType::Lumberjack:   return sk.woodcutting;
-                                        default: return 0.f;
-                                    }
+                                auto getSkill = [&schema](const Skills& sk, ProfessionType t) -> float {
+                                    int sid = schema.SkillForResource(ResourceForProfession(t));
+                                    return sk.ForSkill(sid);
                                 };
                                 float sA = getSkill(*skA, profA->type);
                                 float sB = getSkill(*skB, profB->type);
