@@ -82,6 +82,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     std::string tradeHint;
     AgentBehavior behavior;
     std::string seasonName;
+    std::string seasonRegime;
     float seasonHeatDrainMod = 0.f;
     float seasonProductionMod = 1.f;
     std::vector<RenderSnapshot::TradeRecord> tradeLedger;
@@ -113,6 +114,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         tradeHint            = snap.tradeHint;
         tradeLedger          = snap.tradeLedger;
         seasonName           = snap.seasonName;
+        seasonRegime         = snap.seasonRegime;
         seasonHeatDrainMod   = snap.seasonHeatDrainMod;
         seasonProductionMod  = snap.seasonProductionMod;
         temperature          = snap.temperature;
@@ -297,6 +299,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
 
         int pw = std::max({ MeasureText(timeBuf, 16), MeasureText(speedBuf, 14),
                             MeasureText(seasBuf, 13),
+                            MeasureText(seasonRegime.c_str(), 11),
                             MeasureText(popBuf, 13),  MeasureText(fpsBuf, 12) }) + 16;
         int px = SCREEN_W - pw - 4;
 
@@ -308,15 +311,23 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         Color tempColor = (temperature < 0.f) ? Color{150,200,255,255} :
                           (temperature < 5.f) ? LIGHTGRAY : seasonColor;
 
-        DrawRectangle(px, 4, pw, 98, Fade(BLACK, 0.6f));
-        DrawRectangleLines(px, 4, pw, 98, Fade(LIGHTGRAY, 0.25f));
+        // Regime label color: matches season severity
+        Color regimeColor = (seasonHeatDrainMod >= 0.8f) ? SKYBLUE :
+                            (seasonHeatDrainMod >= 0.3f) ? ORANGE  :
+                            (seasonHeatDrainMod > 0.05f) ? GREEN   :
+                            (seasonProductionMod >= 1.1f) ? GOLD   :
+                            (seasonProductionMod <= 0.5f) ? RED    : YELLOW;
+
+        DrawRectangle(px, 4, pw, 112, Fade(BLACK, 0.6f));
+        DrawRectangleLines(px, 4, pw, 112, Fade(LIGHTGRAY, 0.25f));
         DrawRectangle(px, 4, pw, 2, Fade(SKYBLUE, 0.4f));  // accent
         DrawText(timeBuf,  px + 8,  10, 16, WHITE);
         DrawText(speedBuf, px + 8, 30, 14, paused ? ORANGE : LIGHTGRAY);
         DrawRectangle(px + 4, 46, pw - 8, 1, Fade(LIGHTGRAY, 0.15f));  // separator
         DrawText(seasBuf,  px + 8, 50, 13, tempColor);
-        DrawText(popBuf,   px + 8, 66, 13, LIGHTGRAY);
-        DrawText(fpsBuf,   px + 8, 82, 12, Fade(LIGHTGRAY, 0.6f));
+        DrawText(seasonRegime.c_str(), px + 8, 64, 11, regimeColor);
+        DrawText(popBuf,   px + 8, 80, 13, LIGHTGRAY);
+        DrawText(fpsBuf,   px + 8, 96, 12, Fade(LIGHTGRAY, 0.6f));
     }
 
     UpdateNotifications(snap);
