@@ -160,12 +160,22 @@ struct HomeSettlement {
 // Core fields only — medieval-specific social mechanics live in optional
 // components: SocialBehavior, BanditState, GriefState, TheftRecord,
 // PersonalEventState, CharityState.
+//
+// WARNING: Use DeprivationTimer::Make(schema) to construct — the default
+// constructor leaves needsAtZero empty (required for entt compatibility).
 struct DeprivationTimer {
-    std::vector<float> needsAtZero      = { 0.f, 0.f, 0.f, 0.f };
+    std::vector<float> needsAtZero;                     // indexed by NeedID; sized from schema.needs
     float              stockpileEmpty   = 0.f;          // seconds with no food, water, OR heat
     float              migrateThreshold = 2.f * 60.f;   // game-min before migrating; randomised at spawn
     float              purchaseTimer    = 0.f;           // game-hours since last emergency market purchase
     float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
+
+    // Factory: construct with needsAtZero sized from schema.needs.
+    static DeprivationTimer Make(const WorldSchema& schema) {
+        DeprivationTimer dt;
+        dt.needsAtZero.assign(schema.needs.size(), 0.f);
+        return dt;
+    }
 };
 
 // ---- Mandatory social-mechanic components (factored out of DeprivationTimer) ----

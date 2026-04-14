@@ -40,6 +40,10 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
     float heatDrainMult = (csId >= 0 && csId < (int)schema.seasons.size())
                           ? schema.seasons[csId].heatDrainMod : 0.f;
 
+    // Cache need IDs for theft desperation checks (schema-driven, not hardcoded).
+    const NeedID hungerNeedId = schema.FindNeed("Hunger");
+    const NeedID thirstNeedId = schema.FindNeed("Thirst");
+
     // Per-settlement starvation tracking for food crisis warning
     std::map<entt::entity, int> starvingPerSettlement;
 
@@ -340,7 +344,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         bool justStole = false;
         if (canSteal) {
             // Steal food if close to dying of hunger
-            if (timer.needsAtZero[0] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
+            if (hungerNeedId != INVALID_ID
+                && hungerNeedId < (int)timer.needsAtZero.size()
+                && timer.needsAtZero[hungerNeedId] >= STEAL_DESPERATION && foodStock >= STEAL_AMOUNT) {
                 foodStock -= STEAL_AMOUNT;
                 // Don't refill need — they'll pick it up as consumption next tick
                 theftRec->stealCooldown = STEAL_COOLDOWN;
@@ -375,7 +381,9 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 }
             }
             // Steal water if close to dying of thirst
-            else if (timer.needsAtZero[1] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
+            else if (thirstNeedId != INVALID_ID
+                     && thirstNeedId < (int)timer.needsAtZero.size()
+                     && timer.needsAtZero[thirstNeedId] >= STEAL_DESPERATION && waterStock >= STEAL_AMOUNT) {
                 waterStock -= STEAL_AMOUNT;
                 theftRec->stealCooldown = STEAL_COOLDOWN;
                 if (auto* bs = registry.try_get<BanditState>(entity))
