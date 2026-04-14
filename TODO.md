@@ -139,7 +139,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **RenderSnapshot immutable field comment** — `RenderSnapshot::skillNames` shared_ptr is written once at construction and never mutated, unlike every other field which is written per frame under mutex. Add a comment `// Immutable after construction; not protected by mutex` to prevent future maintainers from moving it into WriteSnapshot.
 
-- [ ] **EventLog system-name prefix** — `RandomEventSystem.cpp` diagnostic warnings use `[WARNING]` prefix, dropping the system name. Restore `[RandomEventSystem]` prefix so stderr grep can identify the source system.
+- [x] **EventLog system-name prefix** — `RandomEventSystem.cpp` diagnostic warnings use `[WARNING]` prefix, dropping the system name. Restore `[RandomEventSystem]` prefix so stderr grep can identify the source system.
 
 - [ ] **SpawnNpcs effectValue runtime clamp** — `RandomEventSystem.cpp` line ~1297 casts `effectValue` to `int` for `maxArrivals` without clamping, so values < 1 produce UB in `uniform_int_distribution`. Add `maxArrivals = std::max(1, (int)ev.effectValue)` as a runtime safety net alongside the load-time validation.
 
@@ -230,6 +230,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **RenderSnapshot WriteSnapshot mutex scope comment** — `RenderSnapshot` has an `// Immutable after construction` comment on `skillNames` but no comment on the mutable fields explaining they ARE protected by mutex. Add a `// Written per-frame under mutex` section comment above the mutable field block.
 
 - [ ] **SimThread WriteSnapshot skillNames skip** — `SimThread::WriteSnapshot()` should skip writing `skillNames` since it's immutable. Verify it doesn't re-assign the shared_ptr each frame. If it does, remove the redundant write.
+
+- [ ] **RandomEventSystem diagnostic severity levels** — `RandomEventSystem.cpp` uses `[RandomEventSystem]` prefix but drops the severity level (WARNING/ERROR/INFO). Add severity to all diagnostic messages following the pattern `[RandomEventSystem] WARNING: ...` consistent with `WorldLoader.cpp` diagnostics, enabling severity-level grep across all stderr output.
+
+- [ ] **EventLog source-system filtering** — `EventLog::Push()` stores plain message strings with no metadata. Add an optional `sourceSystem` field to log entries so the HUD event log can filter by system (e.g., show only RandomEventSystem events, or hide diagnostic messages from gameplay events).
 
 ## Phase 2 — UI Decoupling
 
