@@ -2141,6 +2141,45 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                         settl->morale = std::max(0.f, settl->morale - 0.05f * ghDtGrief);
                 }
             }
+            // ---- Grief anniversary remembrance ----
+            // Every 30 days after the last grief event, if the NPC has a close
+            // friend at the same settlement, brief renewed grief triggers.
+            if (timer.griefTimer <= 0.f && timer.lastGriefDay >= 0.f) {
+                int daysSince = (int)tm.day - (int)timer.lastGriefDay;
+                if (daysSince > 0 && daysSince % 30 == 0) {
+                    // Check for at least one friend (affinity >= 0.4) at the same settlement
+                    bool hasLocalFriend = false;
+                    if (const auto* rel = registry.try_get<Relations>(entity)) {
+                        for (const auto& [fe, aff] : rel->affinity) {
+                            if (aff < 0.4f) continue;
+                            auto sit = s_entitySettlement.find(fe);
+                            if (sit != s_entitySettlement.end() && sit->second == home.settlement) {
+                                hasLocalFriend = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (hasLocalFriend) {
+                        timer.griefTimer = 1.f;  // 1 game-hour of renewed grief
+                        // Log at 1-in-4 frequency
+                        static std::mt19937 s_anniversaryRng{ std::random_device{}() };
+                        if (s_anniversaryRng() % 4 == 0) {
+                            auto logVA = registry.view<EventLog>();
+                            if (!logVA.empty()) {
+                                std::string who = "NPC";
+                                if (const auto* nm = registry.try_get<Name>(entity)) who = nm->value;
+                                std::string where = "settlement";
+                                if (home.settlement != entt::null && registry.valid(home.settlement))
+                                    if (const auto* s = registry.try_get<Settlement>(home.settlement))
+                                        where = s->name;
+                                logVA.get<EventLog>(*logVA.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                    who + " reflects on those lost at " + where + ".");
+                            }
+                        }
+                    }
+                }
+            }
+
             bool isGrieving = (timer.griefTimer > 0.f);
 
             // ---- Grief vigil gathering: 3+ grieving NPCs at same settlement ----
