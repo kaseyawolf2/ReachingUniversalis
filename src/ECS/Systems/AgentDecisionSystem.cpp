@@ -594,10 +594,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
                     // Don't boost masters themselves
                     // Look up per-skill growthRate from schema
-                    SkillID profSkIdGR = SkillForProfession(prof.type, schema);
-                    float skillGrowthRate = (profSkIdGR >= 0 && profSkIdGR < (int)schema.skills.size())
-                        ? schema.skills[profSkIdGR].growthRate : 1.f;
+                    SkillID profSkId = SkillForProfession(prof.type, schema);
+                    float skillGrowthRate = (profSkId >= 0 && profSkId < (int)schema.skills.size())
+                        ? schema.skills[profSkId].growthRate : 1.f;
                     float growth = BASE_SKILL_GROWTH * skillGrowthRate;
+                    bool masterGrowthApplied = false;
                     // Loyalty bonus: NPCs who never changed profession grow faster
                     bool loyal = (prof.prevType == prof.type
                                   || (prof.prevType >= 0 && prof.prevType < (int)schema.professions.size()
@@ -606,7 +607,6 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Mentorship rivalry: skilled NPCs (≥ 0.7) at settlements with
                     // active mentoring of their profession train 10% harder.
                     bool rivalryActive = false;
-                    SkillID profSkId = SkillForProfession(prof.type, schema);
                     if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
                         float activeSkill = sk.Get(profSkId);
                         if (activeSkill >= 0.7f) {
@@ -802,8 +802,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
                     if (profSkId != INVALID_ID) {
-                        if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD)
+                        if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD) {
+                            // NOTE: master-growth intentionally replaces base growth;
+                            // rivalry bonus is not compounded (inherited behavior).
                             growth = BASE_MASTER_GROWTH * skillGrowthRate + (loyal ? LOYALTY_BONUS : 0.f);
+                            masterGrowthApplied = true;
+                        }
                         sk.Set(profSkId, std::min(1.f, sk.Get(profSkId) + growth));
                     }
                     // Loyalty streak: log when a loyal NPC crosses the 0.7 skill threshold
@@ -969,7 +973,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Log at 1-in-10 frequency
-                    if (hasMaster && growth > BASE_SKILL_GROWTH * skillGrowthRate && !logV2.empty()) {
+                    if (masterGrowthApplied && !logV2.empty()) {
                         if (s_teachRng() % 10 == 0) {
                             const auto* nm = registry.try_get<Name>(e);
                             std::string settlName = "settlement";
