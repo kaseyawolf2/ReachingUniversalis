@@ -251,24 +251,23 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.name          = ReqStr(*item, "name", ctx, err);
         if (!err.empty()) return false;
         def.displayName   = OptStr(*item, "display_name", def.name);
-        def.effectType    = OptStr(*item, "effect_type", "none");
-
-        // Resolve effectType string to enum at load time (no string comparisons in hot loops)
-        if      (def.effectType == "production_modifier") def.effectEnum = EventEffectType::ProductionModifier;
-        else if (def.effectType == "stockpile_destroy")   def.effectEnum = EventEffectType::StockpileDestroy;
-        else if (def.effectType == "road_block")          def.effectEnum = EventEffectType::RoadBlock;
-        else if (def.effectType == "treasury_boost")      def.effectEnum = EventEffectType::TreasuryBoost;
-        else if (def.effectType == "spawn_npcs")          def.effectEnum = EventEffectType::SpawnNpcs;
-        else if (def.effectType == "stockpile_add")       def.effectEnum = EventEffectType::StockpileAdd;
-        else if (def.effectType == "convoy")              def.effectEnum = EventEffectType::Convoy;
-        else if (def.effectType == "earthquake")          def.effectEnum = EventEffectType::Earthquake;
-        else if (def.effectType == "fire")                def.effectEnum = EventEffectType::Fire;
-        else if (def.effectType == "price_spike")         def.effectEnum = EventEffectType::PriceSpike;
-        else if (def.effectType == "morale_boost")        def.effectEnum = EventEffectType::MoraleBoost;
-        else if (def.effectType == "none")                def.effectEnum = EventEffectType::None;
+        // Resolve effect_type string to enum at load time (string is not stored on EventDef)
+        std::string effectType = OptStr(*item, "effect_type", "none");
+        if      (effectType == "production_modifier") def.effectEnum = EventEffectType::ProductionModifier;
+        else if (effectType == "stockpile_destroy")   def.effectEnum = EventEffectType::StockpileDestroy;
+        else if (effectType == "road_block")          def.effectEnum = EventEffectType::RoadBlock;
+        else if (effectType == "treasury_boost")      def.effectEnum = EventEffectType::TreasuryBoost;
+        else if (effectType == "spawn_npcs")          def.effectEnum = EventEffectType::SpawnNpcs;
+        else if (effectType == "stockpile_add")       def.effectEnum = EventEffectType::StockpileAdd;
+        else if (effectType == "convoy")              def.effectEnum = EventEffectType::Convoy;
+        else if (effectType == "earthquake")          def.effectEnum = EventEffectType::Earthquake;
+        else if (effectType == "fire")                def.effectEnum = EventEffectType::Fire;
+        else if (effectType == "price_spike")         def.effectEnum = EventEffectType::PriceSpike;
+        else if (effectType == "morale_boost")        def.effectEnum = EventEffectType::MoraleBoost;
+        else if (effectType == "none")                def.effectEnum = EventEffectType::None;
         else {
             fprintf(stderr, "[WorldLoader] WARNING: %s: event '%s' has unknown effect_type '%s', defaulting to None\n",
-                    path.c_str(), def.name.c_str(), def.effectType.c_str());
+                    path.c_str(), def.name.c_str(), effectType.c_str());
             def.effectEnum = EventEffectType::None;
         }
 

@@ -1091,7 +1091,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
     const EventDef& ev = schema.events[pickedIdx];
 
-    // ---- Apply event effects based on effectType enum (resolved at load time) ----
+    // ---- Apply event effects based on effectEnum (resolved at load time) ----
 
     switch (ev.effectEnum) {
     case EventEffectType::ProductionModifier: {
