@@ -295,7 +295,7 @@ void SimThread::RunSimStep(float dt) {
 
     timeCall(m_profile[0].accumUs,  [&]{ m_timeSystem.Advance(m_registry, dt, m_schema); });
     timeCall(m_profile[1].accumUs,  [&]{ m_needDrainSystem.Update(m_registry, dt, m_schema); });
-    timeCall(m_profile[2].accumUs,  [&]{ m_consumptionSystem.Update(m_registry, dt, m_schema); });
+    timeCall(m_profile[2].accumUs,  [&]{ m_consumptionSystem.Update(m_registry, dt); });
     timeCall(m_profile[3].accumUs,  [&]{ m_scheduleSystem.Update(m_registry, dt, m_schema); });
     timeCall(m_profile[4].accumUs,  [&]{ m_agentDecisionSystem.Update(m_registry, dt, m_schema); });
     timeCall(m_profile[5].accumUs,  [&]{ m_movementSystem.Update(m_registry, dt, m_schema); });

@@ -7,7 +7,7 @@ class ConsumptionSystem {
 public:
     explicit ConsumptionSystem(const WorldSchema& schema);
 
-    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
+    void Update(entt::registry& registry, float realDt);
 
 private:
     const WorldSchema& m_schema;
