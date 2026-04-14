@@ -186,10 +186,10 @@ void SimThread::RespawnPlayer() {
     float        bestStock = -1.f;
     m_registry.view<Position, Settlement, Stockpile>().each(
         [&](auto e, const Position&, const Settlement&, const Stockpile& sp) {
-        float food  = sp.quantities.count(ResourceType::Food)
-                      ? sp.quantities.at(ResourceType::Food)  : 0.f;
-        float water = sp.quantities.count(ResourceType::Water)
-                      ? sp.quantities.at(ResourceType::Water) : 0.f;
+        float food  = sp.quantities.count(RES_FOOD)
+                      ? sp.quantities.at(RES_FOOD)  : 0.f;
+        float water = sp.quantities.count(RES_WATER)
+                      ? sp.quantities.at(RES_WATER) : 0.f;
         if (food + water > bestStock) { bestStock = food + water; bestSettl = e; }
     });
     if (bestSettl == entt::null) return;
@@ -427,7 +427,7 @@ void SimThread::ProcessInput() {
                 // Inventory empty → buy the highest-profit tradeable good
                 else if (inv.TotalItems() == 0 && sp2 && mkt2) {
                     // Find the resource with the best sell price at a different settlement
-                    ResourceType bestRes = ResourceType::Food;
+                    int bestRes = RES_FOOD;
                     float bestMargin = 0.f;
                     int   bestQty    = 0;
                     float bestBuy    = 0.f;
@@ -466,8 +466,8 @@ void SimThread::ProcessInput() {
                         mon.balance -= cost;
                         // Purchase price goes to the selling settlement's treasury
                         settl.treasury += cost;
-                        const char* rn2 = (bestRes == ResourceType::Food)  ? "food"  :
-                                          (bestRes == ResourceType::Water) ? "water" : "wood";
+                        const char* rn2 = (bestRes == RES_FOOD)  ? "food"  :
+                                          (bestRes == RES_WATER) ? "water" : "wood";
                         if (log2) {
                             log2->Push(day2, hr2,
                                 "Bought " + std::to_string(bestQty) + " goods at "
@@ -752,7 +752,7 @@ void SimThread::ProcessInput() {
                 // Find nearest production facility in range
                 entt::entity nearFac = entt::null;
                 float nearDSq = WORK_RADIUS * WORK_RADIUS;
-                ResourceType nearOut = ResourceType::Food;
+                int nearOut = RES_FOOD;
 
                 m_registry.view<Position, ProductionFacility>().each(
                     [&](auto fe, const Position& fp, const ProductionFacility& fac) {
@@ -765,9 +765,9 @@ void SimThread::ProcessInput() {
                 if (nearFac != entt::null) {
                     pst3.behavior = AgentBehavior::Working;
                     pst3.target   = nearFac;
-                    const char* facName = (nearOut == ResourceType::Food)  ? "farm"       :
-                                         (nearOut == ResourceType::Water) ? "well"       :
-                                         (nearOut == ResourceType::Wood)  ? "lumber mill" : "facility";
+                    const char* facName = (nearOut == RES_FOOD)  ? "farm"       :
+                                         (nearOut == RES_WATER) ? "well"       :
+                                         (nearOut == RES_WOOD)  ? "lumber mill" : "facility";
                     if (plog) plog->Push(tm.day, (int)tm.hourOfDay,
                         std::string("You begin working at the ") + facName);
                 } else {
@@ -817,12 +817,12 @@ void SimThread::ProcessInput() {
                     // Find cheapest available resource (best value for the player to carry).
                     // Buy as many units as the player can carry and afford, capped at half
                     // the stockpile so the settlement isn't stripped bare.
-                    ResourceType cheapRes  = ResourceType::Food;
+                    int cheapRes  = RES_FOOD;
                     float        cheapPrice = std::numeric_limits<float>::max();
                     int          buyQty    = 0;
 
                     int freeSlots = inv4.maxCapacity - inv4.TotalItems();
-                    for (auto res : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                    for (auto res : { RES_FOOD, RES_WATER, RES_WOOD }) {
                         float stock = sp4->quantities.count(res) ? sp4->quantities.at(res) : 0.f;
                         if (stock < 1.f) continue;
                         float price = mkt4->GetPrice(res);
@@ -851,8 +851,8 @@ void SimThread::ProcessInput() {
                         // Purchase price goes to the selling settlement's treasury
                         if (auto* settl4 = m_registry.try_get<Settlement>(nearS))
                             settl4->treasury += totalCost;
-                        const char* rname = (cheapRes == ResourceType::Food)  ? "food"  :
-                                            (cheapRes == ResourceType::Water) ? "water" : "wood";
+                        const char* rname = (cheapRes == RES_FOOD)  ? "food"  :
+                                            (cheapRes == RES_WATER) ? "water" : "wood";
                         char buf[120];
                         std::snprintf(buf, sizeof(buf), "Bought %d %s at %s for %.2fg (%.2fg/unit)",
                                       buyQty, rname, sname.c_str(), totalCost, cheapPrice);
@@ -970,9 +970,9 @@ void SimThread::ProcessInput() {
                 const auto* sPos5 = m_registry.try_get<Position>(nearSettl5);
                 const auto* st5   = m_registry.try_get<Settlement>(nearSettl5);
                 if (mkt5 && sPos5) {
-                    ResourceType buildType5 = ResourceType::Food;
+                    int buildType5 = RES_FOOD;
                     float bestPrice5 = -1.f;
-                    for (auto r : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                    for (auto r : { RES_FOOD, RES_WATER, RES_WOOD }) {
                         float p = mkt5->GetPrice(r);
                         if (p > bestPrice5) { bestPrice5 = p; buildType5 = r; }
                     }
@@ -982,8 +982,8 @@ void SimThread::ProcessInput() {
                     m_registry.emplace<Position>(newFac5, pp5.x, pp5.y);
                     m_registry.emplace<ProductionFacility>(newFac5,
                         ProductionFacility{ buildType5, BUILD_RATE, nearSettl5, {} });
-                    const char* rname5 = (buildType5 == ResourceType::Food)  ? "farm"      :
-                                         (buildType5 == ResourceType::Water) ? "well"      : "lumber mill";
+                    const char* rname5 = (buildType5 == RES_FOOD)  ? "farm"      :
+                                         (buildType5 == RES_WATER) ? "well"      : "lumber mill";
                     m_playerReputation += 5;  // +5 rep for funding a facility
                     char buf[140];
                     std::snprintf(buf, sizeof(buf),
@@ -1060,15 +1060,15 @@ void SimThread::ProcessInput() {
                     m_registry.emplace<BirthTracker>(newSettl);
                     m_registry.emplace<StockpileAlert>(newSettl);
                     m_registry.emplace<Stockpile>(newSettl, Stockpile{{
-                        { ResourceType::Food,  60.f },
-                        { ResourceType::Water, 60.f },
-                        { ResourceType::Wood,  40.f }
+                        { RES_FOOD,  60.f },
+                        { RES_WATER, 60.f },
+                        { RES_WOOD,  40.f }
                     }});
                     // Starting market: mid-range prices
                     m_registry.emplace<Market>(newSettl, Market{{
-                        { ResourceType::Food,  4.f },
-                        { ResourceType::Water, 4.f },
-                        { ResourceType::Wood,  4.f }
+                        { RES_FOOD,  4.f },
+                        { RES_WATER, 4.f },
+                        { RES_WOOD,  4.f }
                     }});
 
                     // Shelter node
@@ -1076,15 +1076,15 @@ void SimThread::ProcessInput() {
                         auto rest = m_registry.create();
                         m_registry.emplace<Position>(rest, ppf.x, ppf.y + 50.f);
                         m_registry.emplace<ProductionFacility>(rest,
-                            ProductionFacility{ ResourceType::Shelter, 0.f, newSettl, {} });
+                            ProductionFacility{ RES_SHELTER, 0.f, newSettl, {} });
                     }
 
                     // One production facility — pick resource type that's most scarce
                     // (highest average price across existing settlements)
                     {
                         float bestPrice = 0.f;
-                        ResourceType buildRes = ResourceType::Food;
-                        for (auto res : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+                        int buildRes = RES_FOOD;
+                        for (auto res : { RES_FOOD, RES_WATER, RES_WOOD }) {
                             float totalP = 0.f; int cnt = 0;
                             m_registry.view<Market>().each([&](auto me, const Market& mkt) {
                                 if (me == newSettl) return;
@@ -1542,8 +1542,8 @@ void SimThread::WriteSnapshot() {
                 for (const auto& [type, qty] : inv->contents) {
                     if (qty <= 0) continue;
                     hasCargo  = true;
-                    cargoColor = (type == ResourceType::Food)  ? GREEN :
-                                 (type == ResourceType::Water) ? BLUE  : BROWN;
+                    cargoColor = (type == RES_FOOD)  ? GREEN :
+                                 (type == RES_WATER) ? BLUE  : BROWN;
                     break;
                 }
             }
@@ -1596,7 +1596,7 @@ void SimThread::WriteSnapshot() {
         // Trade route destination for haulers en route (makes trade flow visible)
         bool  hasRouteDest = false;
         float routeDestX = 0.f, routeDestY = 0.f;
-        std::map<ResourceType, int> haulerCargo;
+        std::map<int, int> haulerCargo;
         std::string haulerDestName;
         if (isHauler) {
             if (const auto* h = m_registry.try_get<Hauler>(e)) {
@@ -1847,10 +1847,10 @@ void SimThread::WriteSnapshot() {
         bool isExpert = false;
         if (const auto* prof2 = m_registry.try_get<Profession>(e)) {
             if (const auto* sk2 = m_registry.try_get<Skills>(e)) {
-                ResourceType bestRes = ResourceType::Food;
+                int bestRes = RES_FOOD;
                 float bestVal = sk2->farming;
-                if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = ResourceType::Water; }
-                if (sk2->woodcutting   > bestVal) { bestRes = ResourceType::Wood; }
+                if (sk2->water_drawing > bestVal) { bestVal = sk2->water_drawing; bestRes = RES_WATER; }
+                if (sk2->woodcutting   > bestVal) { bestRes = RES_WOOD; }
                 inVocation = (prof2->type == ProfessionForResource(bestRes)
                               && prof2->type != ProfessionType::Idle);
                 // Expert check: profession-matching skill >= 0.8
@@ -1955,19 +1955,19 @@ void SimThread::WriteSnapshot() {
         [&](auto e, const Position& pos, const Settlement& s) {
         float food = 0.f, water = 0.f, wood = 0.f;
         if (const auto* sp = m_registry.try_get<Stockpile>(e)) {
-            food  = sp->quantities.count(ResourceType::Food)
-                    ? sp->quantities.at(ResourceType::Food)  : 0.f;
-            water = sp->quantities.count(ResourceType::Water)
-                    ? sp->quantities.at(ResourceType::Water) : 0.f;
-            wood  = sp->quantities.count(ResourceType::Wood)
-                    ? sp->quantities.at(ResourceType::Wood)  : 0.f;
+            food  = sp->quantities.count(RES_FOOD)
+                    ? sp->quantities.at(RES_FOOD)  : 0.f;
+            water = sp->quantities.count(RES_WATER)
+                    ? sp->quantities.at(RES_WATER) : 0.f;
+            wood  = sp->quantities.count(RES_WOOD)
+                    ? sp->quantities.at(RES_WOOD)  : 0.f;
         }
         int spop = settlAgg.count(e) ? settlAgg[e].pop : 0;
 
         // Infer specialty from primary production facility
         std::string specialty;
         {
-            ResourceType primary = ResourceType::Food;
+            int primary = RES_FOOD;
             float maxRate = 0.f;
             m_registry.view<ProductionFacility>().each(
                 [&](const ProductionFacility& fac) {
@@ -1976,8 +1976,8 @@ void SimThread::WriteSnapshot() {
                 }
             });
             if (maxRate > 0.f)
-                specialty = (primary == ResourceType::Food)  ? "Farming" :
-                            (primary == ResourceType::Water) ? "Water"   : "Lumber";
+                specialty = (primary == RES_FOOD)  ? "Farming" :
+                            (primary == RES_WATER) ? "Water"   : "Lumber";
         }
 
         // Compute mood score from pre-computed aggregates
@@ -2075,9 +2075,9 @@ void SimThread::WriteSnapshot() {
                                float& food, float& water, float& wood) {
             if (const auto* s = m_registry.try_get<Settlement>(e)) nm = s->name;
             if (const auto* m = m_registry.try_get<Market>(e)) {
-                food  = m->GetPrice(ResourceType::Food);
-                water = m->GetPrice(ResourceType::Water);
-                wood  = m->GetPrice(ResourceType::Wood);
+                food  = m->GetPrice(RES_FOOD);
+                water = m->GetPrice(RES_WATER);
+                wood  = m->GetPrice(RES_WOOD);
             }
         };
         fillRoadEnd(road.from, nA, fA, wA, dA);
@@ -2105,11 +2105,11 @@ void SimThread::WriteSnapshot() {
         struct SA { float sum = 0.f; int count = 0; };
         std::map<entt::entity, std::array<SA, 3>> facSkillAccum;  // 0=Food,1=Water,2=Wood
         std::map<entt::entity, int> facWorkers;   // settlement → working count
-        auto resIdx2 = [](ResourceType rt) -> int {
+        auto resIdx2 = [](int rt) -> int {
             switch (rt) {
-                case ResourceType::Food:  return 0;
-                case ResourceType::Water: return 1;
-                case ResourceType::Wood:  return 2;
+                case RES_FOOD:  return 0;
+                case RES_WATER: return 1;
+                case RES_WOOD:  return 2;
                 default:                 return -1;
             }
         };
@@ -2231,19 +2231,19 @@ void SimThread::WriteSnapshot() {
 
     m_registry.view<Position, Settlement, Stockpile>().each(
         [&](auto e, const Position&, const Settlement& s, const Stockpile& sp) {
-        float food  = sp.quantities.count(ResourceType::Food)
-                      ? sp.quantities.at(ResourceType::Food)  : 0.f;
-        float water = sp.quantities.count(ResourceType::Water)
-                      ? sp.quantities.at(ResourceType::Water) : 0.f;
-        float wood  = sp.quantities.count(ResourceType::Wood)
-                      ? sp.quantities.at(ResourceType::Wood)  : 0.f;
+        float food  = sp.quantities.count(RES_FOOD)
+                      ? sp.quantities.at(RES_FOOD)  : 0.f;
+        float water = sp.quantities.count(RES_WATER)
+                      ? sp.quantities.at(RES_WATER) : 0.f;
+        float wood  = sp.quantities.count(RES_WOOD)
+                      ? sp.quantities.at(RES_WOOD)  : 0.f;
 
         // Market prices (default 1.0 if no market component)
         float foodPrice = 1.f, waterPrice = 1.f, woodPrice = 1.f;
         if (const auto* mkt = m_registry.try_get<Market>(e)) {
-            foodPrice  = mkt->GetPrice(ResourceType::Food);
-            waterPrice = mkt->GetPrice(ResourceType::Water);
-            woodPrice  = mkt->GetPrice(ResourceType::Wood);
+            foodPrice  = mkt->GetPrice(RES_FOOD);
+            waterPrice = mkt->GetPrice(RES_WATER);
+            woodPrice  = mkt->GetPrice(RES_WOOD);
         }
 
         auto sagIt = settlAgg.find(e);
@@ -2267,15 +2267,15 @@ void SimThread::WriteSnapshot() {
         char foodPriceTrend = '=', waterPriceTrend = '=', woodPriceTrend = '=';
         auto pIt = m_pricePrev.find(e);
         if (pIt != m_pricePrev.end()) {
-            auto getTrend = [&](ResourceType rt, float cur) -> char {
+            auto getTrend = [&](int rt, float cur) -> char {
                 auto it2 = pIt->second.find(rt);
                 if (it2 == pIt->second.end()) return '=';
                 return (cur > it2->second * 1.05f) ? '+' :
                        (cur < it2->second * 0.95f) ? '-' : '=';
             };
-            foodPriceTrend  = getTrend(ResourceType::Food,  foodPrice);
-            waterPriceTrend = getTrend(ResourceType::Water, waterPrice);
-            woodPriceTrend  = getTrend(ResourceType::Wood,  woodPrice);
+            foodPriceTrend  = getTrend(RES_FOOD,  foodPrice);
+            waterPriceTrend = getTrend(RES_WATER, waterPrice);
+            woodPriceTrend  = getTrend(RES_WOOD,  woodPrice);
         }
 
         bool hungerCrisis = (sagIt != settlAgg.end()) ? sagIt->second.hungerCrisis : false;
@@ -2299,9 +2299,9 @@ void SimThread::WriteSnapshot() {
                 if (fac.settlement != e || fac.baseRate <= 0.f) return;
                 float r = fac.baseRate * ws * sm;
                 switch (fac.output) {
-                    case ResourceType::Food:  foodRate2  += r; break;
-                    case ResourceType::Water: waterRate2 += r; break;
-                    case ResourceType::Wood:  woodRate2  += r; break;
+                    case RES_FOOD:  foodRate2  += r; break;
+                    case RES_WATER: waterRate2 += r; break;
+                    case RES_WOOD:  woodRate2  += r; break;
                 }
             });
         }
@@ -2323,7 +2323,7 @@ void SimThread::WriteSnapshot() {
         if (e == m_selectedSettlement) {
             // Estimate per-resource net flow rate (game-hours)
             // Production: sum up facility output rates (adjusted for workers and season)
-            std::map<ResourceType, float> prodRate, consRate;
+            std::map<int, float> prodRate, consRate;
             int workers = (sagIt != settlAgg.end()) ? sagIt->second.workerCount : 0;
             float wScale = std::min(2.f, std::max(0.1f, workers / BASE_WORKERS_EST));
             float smod   = s.productionModifier * curSeasonMod;
@@ -2339,13 +2339,13 @@ void SimThread::WriteSnapshot() {
             });
 
             // NPC food/water consumption
-            consRate[ResourceType::Food]  += pop * FOOD_RATE_EST;
-            consRate[ResourceType::Water] += pop * WATER_RATE_EST;
+            consRate[RES_FOOD]  += pop * FOOD_RATE_EST;
+            consRate[RES_WATER] += pop * WATER_RATE_EST;
             // Wood heat consumption (seasonal)
             if (curHeatMult > 0.f)
-                consRate[ResourceType::Wood] += pop * WOOD_HEAT_EST * curHeatMult;
+                consRate[RES_WOOD] += pop * WOOD_HEAT_EST * curHeatMult;
 
-            std::map<ResourceType, float> netRate;
+            std::map<int, float> netRate;
             for (const auto& [res, pr] : prodRate)
                 netRate[res] += pr;
             for (const auto& [res, cr] : consRate)
@@ -2414,7 +2414,7 @@ void SimThread::WriteSnapshot() {
             panel.modifierHoursLeft = s.modifierDuration;
             // Infer specialty from primary facility (same logic as SettlementEntry)
             {
-                ResourceType primary = ResourceType::Food;
+                int primary = RES_FOOD;
                 float maxRate = 0.f;
                 m_registry.view<ProductionFacility>().each(
                     [&](const ProductionFacility& pf) {
@@ -2424,8 +2424,8 @@ void SimThread::WriteSnapshot() {
                     }
                 });
                 if (maxRate > 0.f)
-                    panel.specialty = (primary == ResourceType::Food)  ? "Farming" :
-                                     (primary == ResourceType::Water) ? "Water"   : "Lumber";
+                    panel.specialty = (primary == RES_FOOD)  ? "Farming" :
+                                     (primary == RES_WATER) ? "Water"   : "Lumber";
             }
             panel.recentEvents    = std::move(filteredEvents);
             if (const auto* mkt = m_registry.try_get<Market>(e))
@@ -2560,7 +2560,7 @@ void SimThread::WriteSnapshot() {
     float playerAgeDays = 0.f, playerMaxDays = 80.f;
     float playerGold = 0.f;
     float playerFarmSkill = -1.f, playerWaterSkill = -1.f, playerWoodSkill = -1.f;
-    std::map<ResourceType, int> playerInventory;
+    std::map<int, int> playerInventory;
     int   playerInventoryCapacity = 15;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
@@ -2612,8 +2612,8 @@ void SimThread::WriteSnapshot() {
     // If the player is not near any settlement, falls back to the global best margin.
     std::string tradeHint;
     {
-        static const ResourceType kTradeRes[] = {
-            ResourceType::Food, ResourceType::Water, ResourceType::Wood };
+        static const int kTradeRes[] = {
+            RES_FOOD, RES_WATER, RES_WOOD };
         static const char* kTradeNames[] = { "Food", "Water", "Wood" };
         static constexpr float HINT_RADIUS    = 200.f; // wider than BUY_RADIUS for early warning
         static constexpr float MIN_MARGIN     = 2.0f;
@@ -2635,7 +2635,7 @@ void SimThread::WriteSnapshot() {
             if (!fromMkt) return best;
             const auto* fromName = m_registry.try_get<Settlement>(fromSettl);
             for (int ri = 0; ri < 3; ++ri) {
-                ResourceType res = kTradeRes[ri];
+                int res = kTradeRes[ri];
                 float buyP = fromMkt->GetPrice(res);
                 // Find settlement that pays the most for this resource
                 float    bestSell = 0.f;
@@ -2679,7 +2679,7 @@ void SimThread::WriteSnapshot() {
         if (result.resIdx < 0) {
             struct PriceRecord { float price; std::string name; };
             for (int ri = 0; ri < 3; ++ri) {
-                ResourceType res = kTradeRes[ri];
+                int res = kTradeRes[ri];
                 PriceRecord lo{ 9999.f, "" }, hi{ 0.f, "" };
                 m_registry.view<Settlement, Market>().each(
                     [&](auto, const Settlement& s, const Market& mkt) {

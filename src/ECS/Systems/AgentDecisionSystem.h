@@ -22,7 +22,7 @@ public:
 
 private:
     entt::entity FindNearestFacility(entt::registry& registry,
-                                     ResourceType type,
+                                     int type,
                                      entt::entity homeSettlement,
                                      float px, float py);
 

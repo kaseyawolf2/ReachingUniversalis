@@ -77,10 +77,10 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
     EventLog* log = (lv.begin() == lv.end()) ? nullptr : &lv.get<EventLog>(*lv.begin());
 
     // Count existing productive facilities per settlement per resource type
-    std::map<entt::entity, std::map<ResourceType, int>> facCount;
+    std::map<entt::entity, std::map<int, int>> facCount;
     // Also track average position of existing facilities by type for placement
-    std::map<entt::entity, std::map<ResourceType, std::pair<float,float>>> facPos;
-    std::map<entt::entity, std::map<ResourceType, int>> facPosCount;
+    std::map<entt::entity, std::map<int, std::pair<float,float>>> facPos;
+    std::map<entt::entity, std::map<int, int>> facPosCount;
 
     registry.view<Position, ProductionFacility>().each(
         [&](auto fe, const Position& pos, const ProductionFacility& fac) {
@@ -111,11 +111,11 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
         if (s.treasury < CONSTRUCTION_COST) return;
 
         // Find the most critically scarce resource (highest price, below stock threshold)
-        ResourceType buildType  = ResourceType::Food;
+        int buildType  = RES_FOOD;
         float        bestPrice  = 0.f;
         bool         shouldBuild = false;
 
-        for (auto resType : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+        for (auto resType : { RES_FOOD, RES_WATER, RES_WOOD }) {
             float price = mkt.GetPrice(resType);
             if (price <= PRICE_THRESHOLD) continue;
 
@@ -172,8 +172,8 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
             py = sPos.y + std::sin(angle) * radius;
         } else {
             // No existing facility of this type — place at a type-specific direction offset
-            float angle = (buildType == ResourceType::Food)  ? 4.71f :   // south (~270°)
-                          (buildType == ResourceType::Water) ? 1.57f :   // north (~90°)
+            float angle = (buildType == RES_FOOD)  ? 4.71f :   // south (~270°)
+                          (buildType == RES_WATER) ? 1.57f :   // north (~90°)
                                                                0.f;      // east (0°) for wood
             px = sPos.x + std::cos(angle) * PLACEMENT_RADIUS;
             py = sPos.y + std::sin(angle) * PLACEMENT_RADIUS;
@@ -185,8 +185,8 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
         registry.emplace<ProductionFacility>(newFac,
             ProductionFacility{ buildType, NEW_FACILITY_RATE, e, {} });
 
-        const char* resName = (buildType == ResourceType::Food)  ? "farm"    :
-                              (buildType == ResourceType::Water) ? "well"    : "lumber mill";
+        const char* resName = (buildType == RES_FOOD)  ? "farm"    :
+                              (buildType == RES_WATER) ? "well"    : "lumber mill";
 
         if (log) {
             std::string where = "?";
@@ -195,8 +195,8 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
             std::snprintf(buf, sizeof(buf),
                 "%s built a new %s (%.0fg) — %s price was %.1fg",
                 where.c_str(), resName, actualCost,
-                (buildType == ResourceType::Food)  ? "food"  :
-                (buildType == ResourceType::Water) ? "water" : "wood",
+                (buildType == RES_FOOD)  ? "food"  :
+                (buildType == RES_WATER) ? "water" : "wood",
                 bestPrice);
             log->Push(tm.day, (int)tm.hourOfDay, buf);
 
@@ -287,9 +287,9 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
             if (fac.settlement != entt::null && registry.valid(fac.settlement))
                 if (const auto* s = registry.try_get<Settlement>(fac.settlement))
                     where = s->name;
-            if (fac.output == ResourceType::Food)  facName = "farm";
-            else if (fac.output == ResourceType::Water) facName = "well";
-            else if (fac.output == ResourceType::Wood)  facName = "lumber mill";
+            if (fac.output == RES_FOOD)  facName = "farm";
+            else if (fac.output == RES_WATER) facName = "well";
+            else if (fac.output == RES_WOOD)  facName = "lumber mill";
 
             if (log) {
                 char buf[120];

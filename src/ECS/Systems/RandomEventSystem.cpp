@@ -156,9 +156,9 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         // Rewards players who maintain surpluses; gives morale a second recovery path.
         static constexpr float STOCKPILE_ABUNDANCE = 80.f;
         if (const auto* sp = registry.try_get<Stockpile>(e)) {
-            auto foodIt  = sp->quantities.find(ResourceType::Food);
-            auto waterIt = sp->quantities.find(ResourceType::Water);
-            auto woodIt  = sp->quantities.find(ResourceType::Wood);
+            auto foodIt  = sp->quantities.find(RES_FOOD);
+            auto waterIt = sp->quantities.find(RES_WATER);
+            auto woodIt  = sp->quantities.find(RES_WOOD);
             bool abundant = (foodIt  != sp->quantities.end() && foodIt->second  >= STOCKPILE_ABUNDANCE) &&
                             (waterIt != sp->quantities.end() && waterIt->second >= STOCKPILE_ABUNDANCE) &&
                             (woodIt  != sp->quantities.end() && woodIt->second  >= STOCKPILE_ABUNDANCE);
@@ -724,8 +724,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 case 0: {   // Skill discovery — +0.1 to a random skill
                     int idx = skillIdxDist(m_rng);
                     float gain = skillGain_dist(m_rng);
-                    ResourceType rt = (idx == 0) ? ResourceType::Food :
-                                      (idx == 1) ? ResourceType::Water : ResourceType::Wood;
+                    int rt = (idx == 0) ? RES_FOOD :
+                                      (idx == 1) ? RES_WATER : RES_WOOD;
                     skills.Advance(rt, gain);
                     if (log) {
                         const char* skillName = (idx == 0) ? "farming" :
@@ -808,11 +808,11 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     float bestSkill = std::max({skills.farming, skills.water_drawing, skills.woodcutting});
                     if (bestSkill >= 0.6f) {
                         // Find the best skill type to transfer
-                        ResourceType bestType = ResourceType::Food;
+                        int bestType = RES_FOOD;
                         if (skills.water_drawing >= skills.farming && skills.water_drawing >= skills.woodcutting)
-                            bestType = ResourceType::Water;
+                            bestType = RES_WATER;
                         else if (skills.woodcutting >= skills.farming)
-                            bestType = ResourceType::Wood;
+                            bestType = RES_WOOD;
 
                         // Find a younger co-settled NPC to receive the knowledge
                         const auto* hs = registry.try_get<HomeSettlement>(e);
@@ -831,8 +831,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                 auto target = candidates[pick(m_rng)];
                                 auto* tSkills = registry.try_get<Skills>(target);
                                 if (tSkills) {
-                                    float& tVal = (bestType == ResourceType::Food) ? tSkills->farming :
-                                                  (bestType == ResourceType::Water) ? tSkills->water_drawing :
+                                    float& tVal = (bestType == RES_FOOD) ? tSkills->farming :
+                                                  (bestType == RES_WATER) ? tSkills->water_drawing :
                                                   tSkills->woodcutting;
                                     tVal = std::min(0.8f, tVal + 0.1f);
                                     dt.wisdomFired = true;
@@ -960,7 +960,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     case 1: {   // Blight — destroy food stockpile
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
-        auto it = sp->quantities.find(ResourceType::Food);
+        auto it = sp->quantities.find(RES_FOOD);
         if (it == sp->quantities.end() || it->second < 5.f) break;
         float lost = it->second * BLIGHT_FRACTION;
         it->second -= lost;
@@ -1107,7 +1107,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (season != Season::Spring) break;
         auto* sp = registry.try_get<Stockpile>(target);
         if (!sp) break;
-        auto it = sp->quantities.find(ResourceType::Food);
+        auto it = sp->quantities.find(RES_FOOD);
         if (it == sp->quantities.end() || it->second < 5.f) break;
         float lost = it->second * 0.40f;
         it->second -= lost;
@@ -1227,7 +1227,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         static constexpr float RAIN_WATER = 25.f;   // water added to every settlement
         registry.view<Settlement, Stockpile>().each(
             [&](auto e, Settlement& rs, Stockpile& rsp) {
-            rsp.quantities[ResourceType::Water] += RAIN_WATER;
+            rsp.quantities[RES_WATER] += RAIN_WATER;
             // Break drought at this settlement
             if (e == target && rs.modifierDuration > 0.f &&
                 rs.modifierName.find("Drought") != std::string::npos) {
@@ -1251,7 +1251,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (!mkt || !sp || !settl2) break;
 
         // Find the most scarce (highest-priced) resource
-        ResourceType scarcest    = ResourceType::Food;
+        int scarcest    = RES_FOOD;
         float        highestPrice = 0.f;
         for (const auto& [res, price] : mkt->price) {
             if (price > highestPrice) { highestPrice = price; scarcest = res; }
@@ -1276,8 +1276,8 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl2->treasury -= cost;
         sp->quantities[scarcest] += CONVOY_AMOUNT;
 
-        const char* resName = (scarcest == ResourceType::Food)  ? "food"  :
-                              (scarcest == ResourceType::Water) ? "water" : "wood";
+        const char* resName = (scarcest == RES_FOOD)  ? "food"  :
+                              (scarcest == RES_WATER) ? "water" : "wood";
         if (log) log->Push(day, hour,
             "OFF-MAP CONVOY at " + settl->name + " " + popTag + " +"
             + std::to_string((int)CONVOY_AMOUNT)
@@ -1336,12 +1336,12 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         float fraction = burnFrac(m_rng);
 
         float foodLost = 0.f, woodLost = 0.f;
-        auto fitFood = sp->quantities.find(ResourceType::Food);
+        auto fitFood = sp->quantities.find(RES_FOOD);
         if (fitFood != sp->quantities.end() && fitFood->second > 5.f) {
             foodLost = fitFood->second * fraction;
             fitFood->second -= foodLost;
         }
-        auto fitWood = sp->quantities.find(ResourceType::Wood);
+        auto fitWood = sp->quantities.find(RES_WOOD);
         if (fitWood != sp->quantities.end() && fitWood->second > 5.f) {
             woodLost = fitWood->second * fraction;
             fitWood->second -= woodLost;
@@ -1373,7 +1373,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         // Destroy 20-35% of water stockpile (evaporation / dehydration)
         auto* sp = registry.try_get<Stockpile>(target);
         if (sp) {
-            auto it = sp->quantities.find(ResourceType::Water);
+            auto it = sp->quantities.find(RES_WATER);
             if (it != sp->quantities.end() && it->second > 5.f) {
                 std::uniform_real_distribution<float> evap(0.20f, 0.35f);
                 float lost = it->second * evap(m_rng);
@@ -1398,7 +1398,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
         std::uniform_real_distribution<float> lumberAmt(50.f, 80.f);
         float windfall = lumberAmt(m_rng);
-        sp->quantities[ResourceType::Wood] += windfall;
+        sp->quantities[RES_WOOD] += windfall;
 
         if (log) {
             char buf[140];

@@ -12,7 +12,7 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
     // Each resource gets two display lines: qty/price row + prod/cons row
     int resLines    = 0;
     for (const auto& [type, qty] : panel.quantities)
-        if (type != ResourceType::Shelter) resLines += 2;
+        if (type != RES_SHELTER) resLines += 2;
     int eventLines  = (int)panel.recentEvents.size();
     int sparklineH  = panel.popHistory.empty() ? 0 : (12 + 24 + 8);  // label + chart + gap
     bool hasSpecialty = !panel.specialty.empty();
@@ -167,10 +167,10 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         const char* label = "?";
         Color col = WHITE;
         switch (type) {
-            case ResourceType::Food:    label = "Food";    col = GREEN;   break;
-            case ResourceType::Water:   label = "Water";   col = SKYBLUE; break;
-            case ResourceType::Wood:    label = "Wood";    col = BROWN;   break;
-            case ResourceType::Shelter: continue;  // not shown in stockpile
+            case RES_FOOD:    label = "Food";    col = GREEN;   break;
+            case RES_WATER:   label = "Water";   col = SKYBLUE; break;
+            case RES_WOOD:    label = "Wood";    col = BROWN;   break;
+            case RES_SHELTER: continue;  // not shown in stockpile
         }
 
         auto priceIt = panel.prices.find(type);
@@ -211,11 +211,11 @@ void RenderSystem::DrawStockpilePanel(const RenderSnapshot::StockpilePanel& pane
         static constexpr int   BAR_MAX_W   = 100;
         static constexpr int   BAR_H       = 6;
         static constexpr int   BAR_GAP     = 3;
-        struct BarDef { ResourceType type; const char* label; Color col; };
+        struct BarDef { int type; const char* label; Color col; };
         BarDef bars[] = {
-            { ResourceType::Food,  "F", GREEN },
-            { ResourceType::Water, "W", SKYBLUE },
-            { ResourceType::Wood,  "Wd", BROWN },
+            { RES_FOOD,  "F", GREEN },
+            { RES_WATER, "W", SKYBLUE },
+            { RES_WOOD,  "Wd", BROWN },
         };
         y += 2;
         int labelX = PX + 8;

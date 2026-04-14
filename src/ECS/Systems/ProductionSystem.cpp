@@ -35,7 +35,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                          (season == Season::Winter) ? 0.5f : 1.0f;
     float spoilFraction = FOOD_SPOILAGE_RATE * spoilageMult * gameHoursDt;
     registry.view<Stockpile>().each([&](Stockpile& sp) {
-        auto it = sp.quantities.find(ResourceType::Food);
+        auto it = sp.quantities.find(RES_FOOD);
         if (it != sp.quantities.end() && it->second > 0.f) {
             float loss = it->second * spoilFraction;
             it->second = std::max(0.f, it->second - loss);
@@ -54,11 +54,11 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
     // Profession diversity: bitmask per settlement (bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack)
     std::unordered_map<entt::entity, uint8_t> profDiversity;
 
-    auto resIdx = [](ResourceType rt) -> int {
+    auto resIdx = [](int rt) -> int {
         switch (rt) {
-            case ResourceType::Food:  return 0;
-            case ResourceType::Water: return 1;
-            case ResourceType::Wood:  return 2;
+            case RES_FOOD:  return 0;
+            case RES_WATER: return 1;
+            case RES_WOOD:  return 2;
             default:                  return -1;
         }
     };

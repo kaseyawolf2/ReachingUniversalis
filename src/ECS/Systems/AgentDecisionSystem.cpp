@@ -36,20 +36,20 @@ static AgentBehavior BehaviorForNeed(NeedType type) {
     return AgentBehavior::Idle;
 }
 
-static ResourceType ResourceTypeForNeed(NeedType type) {
+static int ResourceTypeForNeed(NeedType type) {
     switch (type) {
-        case NeedType::Hunger: return ResourceType::Food;
-        case NeedType::Thirst: return ResourceType::Water;
-        case NeedType::Energy: return ResourceType::Shelter;
+        case NeedType::Hunger: return RES_FOOD;
+        case NeedType::Thirst: return RES_WATER;
+        case NeedType::Energy: return RES_SHELTER;
     }
-    return ResourceType::Food;
+    return RES_FOOD;
 }
 
-static int NeedIndexForResource(ResourceType type) {
+static int NeedIndexForResource(int type) {
     switch (type) {
-        case ResourceType::Food:    return (int)NeedType::Hunger;
-        case ResourceType::Water:   return (int)NeedType::Thirst;
-        case ResourceType::Shelter: return (int)NeedType::Energy;
+        case RES_FOOD:    return (int)NeedType::Hunger;
+        case RES_WATER:   return (int)NeedType::Thirst;
+        case RES_SHELTER: return (int)NeedType::Energy;
     }
     return -1;
 }
@@ -74,13 +74,13 @@ static void MoveToward(Velocity& vel, const Position& from,
 // is the same regardless of NPC position within the settlement.
 
 entt::entity AgentDecisionSystem::FindNearestFacility(entt::registry& registry,
-                                                       ResourceType type,
+                                                       int type,
                                                        entt::entity homeSettlement,
                                                        float px, float py) {
     // --- Cache keyed by (settlement, resourceType), invalidated per game-hour ---
     struct FacCacheKey {
         entt::entity settlement;
-        ResourceType resType;
+        int resType;
         bool operator==(const FacCacheKey& o) const {
             return settlement == o.settlement && resType == o.resType;
         }
@@ -165,25 +165,25 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
     }
 
     // Determine the NPC's strongest skill (if any) for affinity matching.
-    ResourceType affinityType = ResourceType::Food;
+    int affinityType = RES_FOOD;
     bool         hasAffinity  = false;
     if (skills) {
         float best = skills->farming;
-        affinityType = ResourceType::Food;
-        if (skills->water_drawing > best) { best = skills->water_drawing; affinityType = ResourceType::Water; }
-        if (skills->woodcutting   > best) {                               affinityType = ResourceType::Wood;  }
+        affinityType = RES_FOOD;
+        if (skills->water_drawing > best) { best = skills->water_drawing; affinityType = RES_WATER; }
+        if (skills->woodcutting   > best) {                               affinityType = RES_WOOD;  }
         // Only apply affinity bonus if the skill is meaningfully developed (> 0.25)
         hasAffinity = (best > 0.25f);
     }
 
     // Determine profession-based affinity resource type (additional bonus on top of skills).
-    ResourceType profAffinityType = ResourceType::Food;
+    int profAffinityType = RES_FOOD;
     bool         hasProfAffinity  = false;
     if (profession) {
         switch (profession->type) {
-            case ProfessionType::Farmer:       profAffinityType = ResourceType::Food;  hasProfAffinity = true; break;
-            case ProfessionType::WaterCarrier: profAffinityType = ResourceType::Water; hasProfAffinity = true; break;
-            case ProfessionType::Lumberjack:   profAffinityType = ResourceType::Wood;  hasProfAffinity = true; break;
+            case ProfessionType::Farmer:       profAffinityType = RES_FOOD;  hasProfAffinity = true; break;
+            case ProfessionType::WaterCarrier: profAffinityType = RES_WATER; hasProfAffinity = true; break;
+            case ProfessionType::Lumberjack:   profAffinityType = RES_WOOD;  hasProfAffinity = true; break;
             default: break;
         }
     }
@@ -195,7 +195,7 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         static constexpr float SCARCITY_THRESHOLD = 10.f;
         const auto* homeSp = registry.try_get<Stockpile>(homeSettlement);
         if (homeSp) {
-            for (auto rt : { ResourceType::Food, ResourceType::Water, ResourceType::Wood }) {
+            for (auto rt : { RES_FOOD, RES_WATER, RES_WOOD }) {
                 auto it = homeSp->quantities.find(rt);
                 if (it == homeSp->quantities.end() || it->second < SCARCITY_THRESHOLD)
                     scarcityNudge += 0.3f;
@@ -261,12 +261,12 @@ entt::entity AgentDecisionSystem::FindMigrationTarget(entt::registry& registry,
         const auto* sp = registry.try_get<Stockpile>(dest);
         if (!sp) return;
 
-        float food  = sp->quantities.count(ResourceType::Food)
-                      ? sp->quantities.at(ResourceType::Food)  : 0.f;
-        float water = sp->quantities.count(ResourceType::Water)
-                      ? sp->quantities.at(ResourceType::Water) : 0.f;
-        float wood  = sp->quantities.count(ResourceType::Wood)
-                      ? sp->quantities.at(ResourceType::Wood)  : 0.f;
+        float food  = sp->quantities.count(RES_FOOD)
+                      ? sp->quantities.at(RES_FOOD)  : 0.f;
+        float water = sp->quantities.count(RES_WATER)
+                      ? sp->quantities.at(RES_WATER) : 0.f;
+        float wood  = sp->quantities.count(RES_WOOD)
+                      ? sp->quantities.at(RES_WOOD)  : 0.f;
         float total = food + water;
 
         // In cold seasons (Autumn/Winter), wood stock matters for warmth.
@@ -1456,9 +1456,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (const auto* mkt = registry.try_get<Market>(home.settlement))
                             if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                 mem->Record(stt->name,
-                                    mkt->GetPrice(ResourceType::Food),
-                                    mkt->GetPrice(ResourceType::Water),
-                                    mkt->GetPrice(ResourceType::Wood), tm.day);
+                                    mkt->GetPrice(RES_FOOD),
+                                    mkt->GetPrice(RES_WATER),
+                                    mkt->GetPrice(RES_WOOD), tm.day);
                     }
                 }
 
@@ -1486,16 +1486,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 && newType != ProfessionType::Idle) {
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
                                     // Map profession → resource for skill lookup
-                                    auto profToRes = [](ProfessionType p) -> ResourceType {
+                                    auto profToRes = [](ProfessionType p) -> int {
                                         switch (p) {
-                                            case ProfessionType::Farmer:       return ResourceType::Food;
-                                            case ProfessionType::WaterCarrier: return ResourceType::Water;
-                                            case ProfessionType::Lumberjack:   return ResourceType::Wood;
-                                            default:                           return ResourceType::Food;
+                                            case ProfessionType::Farmer:       return RES_FOOD;
+                                            case ProfessionType::WaterCarrier: return RES_WATER;
+                                            case ProfessionType::Lumberjack:   return RES_WOOD;
+                                            default:                           return RES_FOOD;
                                         }
                                     };
-                                    ResourceType oldRes = profToRes(oldType);
-                                    ResourceType newRes = profToRes(newType);
+                                    int oldRes = profToRes(oldType);
+                                    int newRes = profToRes(newType);
                                     // Halve old skill
                                     float oldVal = sk->ForResource(oldRes);
                                     sk->Advance(oldRes, -(oldVal * 0.5f));
@@ -1833,9 +1833,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 if (const auto* mkt  = registry.try_get<Market>(home.settlement))
                     if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                         memory->Record(stt->name,
-                            mkt->GetPrice(ResourceType::Food),
-                            mkt->GetPrice(ResourceType::Water),
-                            mkt->GetPrice(ResourceType::Wood), tm.day);
+                            mkt->GetPrice(RES_FOOD),
+                            mkt->GetPrice(RES_WATER),
+                            mkt->GetPrice(RES_WOOD), tm.day);
             }
 
             // Check loneliness: no friends (affinity >= 0.3) at current settlement
@@ -2203,7 +2203,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 if (n.value < stealLow) { stealLow = n.value; stealIdx = i; }
             }
             if (stealIdx != -1) {
-                ResourceType stealRes = ResourceTypeForNeed(needs.list[stealIdx].type);
+                int stealRes = ResourceTypeForNeed(needs.list[stealIdx].type);
                 auto* sp  = registry.try_get<Stockpile>(home.settlement);
                 auto* mkt = registry.try_get<Market>(home.settlement);
                 auto* stl = registry.try_get<Settlement>(home.settlement);
@@ -2240,9 +2240,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (auto* n = registry.try_get<Name>(entity))   who   = n->value;
                             if (stl)                                          where = stl->name;
                             std::string resName =
-                                (stealRes == ResourceType::Food)    ? "food"    :
-                                (stealRes == ResourceType::Water)   ? "water"   :
-                                (stealRes == ResourceType::Wood)    ? "wood"    : "goods";
+                                (stealRes == RES_FOOD)    ? "food"    :
+                                (stealRes == RES_WATER)   ? "water"   :
+                                (stealRes == RES_WOOD)    ? "wood"    : "goods";
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm2.day, (int)tm2.hourOfDay,
                                 who + " stole " + resName + " from " + where + ".");
@@ -2824,10 +2824,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         float tdx = oPos.x - pos.x, tdy = oPos.y - pos.y;
                         if (tdx*tdx + tdy*tdy > TEACH_RADIUS * TEACH_RADIUS) return;
                         // Find a skill where teacher is ≥0.6 and learner is <0.3
-                        struct { ResourceType rt; float tVal; float lVal; const char* name; } candidates[3] = {
-                            { ResourceType::Food,  mySkills->farming,       oSkills.farming,       "farming" },
-                            { ResourceType::Water, mySkills->water_drawing, oSkills.water_drawing, "water carrying" },
-                            { ResourceType::Wood,  mySkills->woodcutting,   oSkills.woodcutting,   "woodcutting" },
+                        struct { int rt; float tVal; float lVal; const char* name; } candidates[3] = {
+                            { RES_FOOD,  mySkills->farming,       oSkills.farming,       "farming" },
+                            { RES_WATER, mySkills->water_drawing, oSkills.water_drawing, "water carrying" },
+                            { RES_WOOD,  mySkills->woodcutting,   oSkills.woodcutting,   "woodcutting" },
                         };
                         for (auto& c : candidates) {
                             if (c.tVal >= TEACH_MIN && c.lVal < LEARN_MAX) {
@@ -3245,7 +3245,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             continue;
         }
 
-        ResourceType resType = ResourceTypeForNeed(needs.list[critIdx].type);
+        int resType = ResourceTypeForNeed(needs.list[critIdx].type);
         state.behavior       = BehaviorForNeed(needs.list[critIdx].type);
 
         entt::entity fac = FindNearestFacility(registry, resType,
@@ -3431,9 +3431,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             if (auto* memA = registry.try_get<MigrationMemory>(A.entity)) {
                 if (const auto* sttB = registry.try_get<Settlement>(B.homeSettl))
                     memA->Record(sttB->name,
-                        mktB->GetPrice(ResourceType::Food),
-                        mktB->GetPrice(ResourceType::Water),
-                        mktB->GetPrice(ResourceType::Wood), tm.day);
+                        mktB->GetPrice(RES_FOOD),
+                        mktB->GetPrice(RES_WATER),
+                        mktB->GetPrice(RES_WOOD), tm.day);
             }
             if (bWasReady) {
                 for (auto& [res, priceB] : mktB->price) {
@@ -3444,9 +3444,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 if (auto* memB = registry.try_get<MigrationMemory>(B.entity)) {
                     if (const auto* sttA = registry.try_get<Settlement>(A.homeSettl))
                         memB->Record(sttA->name,
-                            mktA->GetPrice(ResourceType::Food),
-                            mktA->GetPrice(ResourceType::Water),
-                            mktA->GetPrice(ResourceType::Wood), tm.day);
+                            mktA->GetPrice(RES_FOOD),
+                            mktA->GetPrice(RES_WATER),
+                            mktA->GetPrice(RES_WOOD), tm.day);
                 }
                 tmrB->gossipCooldown = GOSSIP_COOLDOWN;
             }
@@ -3476,18 +3476,18 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
 
                 const char* rumourLabel = nullptr;
                 if (rum->type == RumourType::PlagueNearby) {
-                    mkt->price[ResourceType::Food] =
-                        std::min(mkt->price[ResourceType::Food] * 1.10f, 20.f);
+                    mkt->price[RES_FOOD] =
+                        std::min(mkt->price[RES_FOOD] * 1.10f, 20.f);
                     rumourLabel = "plague";
                 } else if (rum->type == RumourType::DroughtNearby) {
-                    mkt->price[ResourceType::Water] =
-                        std::min(mkt->price[ResourceType::Water] * 1.15f, 20.f);
+                    mkt->price[RES_WATER] =
+                        std::min(mkt->price[RES_WATER] * 1.15f, 20.f);
                     rumourLabel = "drought";
                 } else if (rum->type == RumourType::BanditRoads) {
                     rumourLabel = "bandits";
                 } else if (rum->type == RumourType::GoodHarvest) {
-                    mkt->price[ResourceType::Food] =
-                        std::max(mkt->price[ResourceType::Food] * 0.95f, 0.5f);
+                    mkt->price[RES_FOOD] =
+                        std::max(mkt->price[RES_FOOD] * 0.95f, 0.5f);
                     rumourLabel = "good harvest";
                 }
                 if (rumourLabel) {
@@ -3766,11 +3766,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
             auto* sp  = registry.try_get<Stockpile>(starving.homeSettl);
             auto* sett = registry.try_get<Settlement>(starving.homeSettl);
             if (mkt && sp && sett) {
-                float price = mkt->GetPrice(ResourceType::Food);
+                float price = mkt->GetPrice(RES_FOOD);
                 if (starvingMoney->balance >= price) {
                     starvingMoney->balance -= price;
                     sett->treasury         += price;
-                    sp->quantities[ResourceType::Food] += 1.f;
+                    sp->quantities[RES_FOOD] += 1.f;
                 }
             }
 

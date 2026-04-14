@@ -123,9 +123,9 @@ static void SpawnNPCs(entt::registry& registry,
             if (const auto* mkt = registry.try_get<Market>(settlement))
                 if (const auto* stt = registry.try_get<Settlement>(settlement))
                     mm.Record(stt->name,
-                        mkt->GetPrice(ResourceType::Food),
-                        mkt->GetPrice(ResourceType::Water),
-                        mkt->GetPrice(ResourceType::Wood));
+                        mkt->GetPrice(RES_FOOD),
+                        mkt->GetPrice(RES_WATER),
+                        mkt->GetPrice(RES_WOOD));
             registry.emplace<MigrationMemory>(npc, mm);
         }
     }
@@ -188,15 +188,15 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<BirthTracker>(greenfield);
     registry.emplace<StockpileAlert>(greenfield);
     registry.emplace<Stockpile>(greenfield, Stockpile{{
-        { ResourceType::Food,  120.f },
-        { ResourceType::Water,  80.f },   // raised from 20 — gives haulers time to supply
-        { ResourceType::Wood,    0.f }
+        { RES_FOOD,  120.f },
+        { RES_WATER,  80.f },   // raised from 20 — gives haulers time to supply
+        { RES_WOOD,    0.f }
     }});
     // Market: Food cheap (surplus), Water expensive (scarce), Wood scarce
     registry.emplace<Market>(greenfield, Market{{
-        { ResourceType::Food,  2.0f },
-        { ResourceType::Water, 8.0f },
-        { ResourceType::Wood,  6.0f }
+        { RES_FOOD,  2.0f },
+        { RES_WATER, 8.0f },
+        { RES_WOOD,  6.0f }
     }});
 
     auto wellsworth = registry.create();
@@ -205,15 +205,15 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<BirthTracker>(wellsworth);
     registry.emplace<StockpileAlert>(wellsworth);
     registry.emplace<Stockpile>(wellsworth, Stockpile{{
-        { ResourceType::Food,   20.f },
-        { ResourceType::Water, 120.f },
-        { ResourceType::Wood,    0.f }
+        { RES_FOOD,   20.f },
+        { RES_WATER, 120.f },
+        { RES_WOOD,    0.f }
     }});
     // Market: Water cheap (surplus), Food expensive (scarce), Wood scarce
     registry.emplace<Market>(wellsworth, Market{{
-        { ResourceType::Food,  8.0f },
-        { ResourceType::Water, 2.0f },
-        { ResourceType::Wood,  6.0f }
+        { RES_FOOD,  8.0f },
+        { RES_WATER, 2.0f },
+        { RES_WOOD,  6.0f }
     }});
 
     auto millhaven = registry.create();
@@ -222,15 +222,15 @@ void WorldGenerator::Populate(entt::registry& registry) {
     registry.emplace<BirthTracker>(millhaven);
     registry.emplace<StockpileAlert>(millhaven);
     registry.emplace<Stockpile>(millhaven, Stockpile{{
-        { ResourceType::Food,   30.f },
-        { ResourceType::Water,  30.f },
-        { ResourceType::Wood,  120.f }
+        { RES_FOOD,   30.f },
+        { RES_WATER,  30.f },
+        { RES_WOOD,  120.f }
     }});
     // Market: Wood cheap (surplus), Food/Water mid-priced (imported)
     registry.emplace<Market>(millhaven, Market{{
-        { ResourceType::Food,  5.0f },
-        { ResourceType::Water, 5.0f },
-        { ResourceType::Wood,  1.5f }
+        { RES_FOOD,  5.0f },
+        { RES_WATER, 5.0f },
+        { RES_WOOD,  1.5f }
     }});
 
     // ---- Roads ----
@@ -246,27 +246,27 @@ void WorldGenerator::Populate(entt::registry& registry) {
         auto farm = registry.create();
         registry.emplace<Position>(farm, 400.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(farm,
-            ProductionFacility{ ResourceType::Food, 4.f, greenfield,
-                                {{ ResourceType::Water, 0.15f }} });
+            ProductionFacility{ RES_FOOD, 4.f, greenfield,
+                                {{ RES_WATER, 0.15f }} });
     }
     for (int i = 0; i < 2; ++i) {
         auto well = registry.create();
         registry.emplace<Position>(well, 2000.f + (i == 0 ? -50.f : 50.f), 290.f);
         registry.emplace<ProductionFacility>(well,
-            ProductionFacility{ ResourceType::Water, 4.f, wellsworth, {} });
+            ProductionFacility{ RES_WATER, 4.f, wellsworth, {} });
     }
     // Shelter/rest spots — Energy need satisfaction
     {
         auto rest = registry.create();
         registry.emplace<Position>(rest, 400.f, 430.f);
         registry.emplace<ProductionFacility>(rest,
-            ProductionFacility{ ResourceType::Shelter, 0.f, greenfield });
+            ProductionFacility{ RES_SHELTER, 0.f, greenfield });
     }
     {
         auto rest = registry.create();
         registry.emplace<Position>(rest, 2000.f, 430.f);
         registry.emplace<ProductionFacility>(rest,
-            ProductionFacility{ ResourceType::Shelter, 0.f, wellsworth });
+            ProductionFacility{ RES_SHELTER, 0.f, wellsworth });
     }
     // Millhaven: 2 lumber mills + shelter
     // Mills require food to operate (workers need to eat) — creates supply-chain dependency
@@ -275,14 +275,14 @@ void WorldGenerator::Populate(entt::registry& registry) {
         auto lmill = registry.create();
         registry.emplace<Position>(lmill, 1200.f + (i == 0 ? -50.f : 50.f), 130.f);
         registry.emplace<ProductionFacility>(lmill,
-            ProductionFacility{ ResourceType::Wood, 3.f, millhaven,
-                                {{ ResourceType::Food, 0.1f }} });
+            ProductionFacility{ RES_WOOD, 3.f, millhaven,
+                                {{ RES_FOOD, 0.1f }} });
     }
     {
         auto rest = registry.create();
         registry.emplace<Position>(rest, 1200.f, 290.f);
         registry.emplace<ProductionFacility>(rest,
-            ProductionFacility{ ResourceType::Shelter, 0.f, millhaven });
+            ProductionFacility{ RES_SHELTER, 0.f, millhaven });
     }
 
     // ---- Population ----

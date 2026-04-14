@@ -69,12 +69,12 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
         auto& stockpile = settlView.get<Stockpile>(settl);
         const auto& spos = settlView.get<Position>(settl);
 
-        float food  = stockpile.quantities.count(ResourceType::Food)
-                      ? stockpile.quantities[ResourceType::Food]  : 0.f;
-        float water = stockpile.quantities.count(ResourceType::Water)
-                      ? stockpile.quantities[ResourceType::Water] : 0.f;
-        float wood  = stockpile.quantities.count(ResourceType::Wood)
-                      ? stockpile.quantities[ResourceType::Wood]  : 0.f;
+        float food  = stockpile.quantities.count(RES_FOOD)
+                      ? stockpile.quantities[RES_FOOD]  : 0.f;
+        float water = stockpile.quantities.count(RES_WATER)
+                      ? stockpile.quantities[RES_WATER] : 0.f;
+        float wood  = stockpile.quantities.count(RES_WOOD)
+                      ? stockpile.quantities[RES_WOOD]  : 0.f;
         int   pop   = popCount.count(settl) ? popCount[settl] : 0;
 
         // In cold seasons, require some wood reserve before having children
@@ -119,8 +119,8 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             if (chance_dist(s_rng) > birthChance) continue;
 
             // Deduct birth cost
-            stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
-            stockpile.quantities[ResourceType::Water] -= BIRTH_WATER_COST;
+            stockpile.quantities[RES_FOOD]  -= BIRTH_FOOD_COST;
+            stockpile.quantities[RES_WATER] -= BIRTH_WATER_COST;
 
             // Determine this settlement's primary profession from its highest-rate facility.
             ProfessionType settlProfession = ProfessionType::Idle;
@@ -298,11 +298,11 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
             int popNow = popCount.count(settl) ? popCount[settl] + 1 : 1;
             if (chance_dist(s_rng) < TWIN_CHANCE
                 && popNow < effectivePopCap
-                && stockpile.quantities[ResourceType::Food]  >= BIRTH_FOOD_COST
-                && stockpile.quantities[ResourceType::Water] >= BIRTH_WATER_COST) {
+                && stockpile.quantities[RES_FOOD]  >= BIRTH_FOOD_COST
+                && stockpile.quantities[RES_WATER] >= BIRTH_WATER_COST) {
 
-                stockpile.quantities[ResourceType::Food]  -= BIRTH_FOOD_COST;
-                stockpile.quantities[ResourceType::Water] -= BIRTH_WATER_COST;
+                stockpile.quantities[RES_FOOD]  -= BIRTH_FOOD_COST;
+                stockpile.quantities[RES_WATER] -= BIRTH_WATER_COST;
 
                 float angle2 = angle + 3.14159f;  // opposite side of the settlement
                 DeprivationTimer dt2;

@@ -38,7 +38,7 @@ static bool InRange(const Position& a, const Position& b, float r) {
 // Describes the best available trade opportunity for a hauler.
 struct TradeRoute {
     entt::entity dest     = entt::null;
-    ResourceType resType  = ResourceType::Food;
+    int resType  = RES_FOOD;
     int          qty      = 0;
     float        profit   = 0.f;
     float        buyPrice = 0.f;
@@ -738,8 +738,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                         std::string cargo;
                         for (const auto& [type, qty] : inv.contents) {
                             if (!cargo.empty()) cargo += "+";
-                            const char* rn = (type == ResourceType::Food)  ? "food"  :
-                                             (type == ResourceType::Water) ? "water" : "wood";
+                            const char* rn = (type == RES_FOOD)  ? "food"  :
+                                             (type == RES_WATER) ? "water" : "wood";
                             cargo += std::to_string(qty) + " " + rn;
                         }
                         char buf[160];
@@ -767,8 +767,8 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                 for (const auto& [type, qty] : inv.contents) {
                                     totalUnits += (int)qty;
                                     if (resName.empty())
-                                        resName = (type == ResourceType::Food) ? "food" :
-                                                  (type == ResourceType::Water) ? "water" : "wood";
+                                        resName = (type == RES_FOOD) ? "food" :
+                                                  (type == RES_WATER) ? "water" : "wood";
                                 }
                                 if (inv.contents.size() > 1) resName = "mixed goods";
                                 char abuf[180];

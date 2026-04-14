@@ -35,7 +35,7 @@ struct RenderSnapshot {
         bool  hasRouteDest = false;
         float destX = 0.f, destY = 0.f;
         // Hauler cargo contents (populated for Hauler role only)
-        std::map<ResourceType, int> cargo;
+        std::map<int, int> cargo;
         std::string destSettlName;   // name of destination settlement
         // NPC's inferred profession based on home settlement's primary output
         std::string profession;
@@ -201,7 +201,7 @@ struct RenderSnapshot {
 
     struct FacilityEntry {
         float        x, y;
-        ResourceType output;
+        int output;
         float        baseRate    = 0.f;   // units/game-hour at 1 worker, 1x season
         int          workerCount = 0;     // Working NPCs currently assigned here
         float        avgSkill    = 0.5f;  // average relevant skill of workers
@@ -247,11 +247,11 @@ struct RenderSnapshot {
     struct StockpilePanel {
         bool                          open = false;
         std::string                   name;
-        std::map<ResourceType, float> quantities;
-        std::map<ResourceType, float> prices;          // market prices for display
-        std::map<ResourceType, float> netRatePerHour;  // estimated net flow (production - consumption), game-hours
-        std::map<ResourceType, float> prodRatePerHour; // gross production rate estimate
-        std::map<ResourceType, float> consRatePerHour; // gross consumption rate estimate
+        std::map<int, float> quantities;
+        std::map<int, float> prices;          // market prices for display
+        std::map<int, float> netRatePerHour;  // estimated net flow (production - consumption), game-hours
+        std::map<int, float> prodRatePerHour; // gross production rate estimate
+        std::map<int, float> consRatePerHour; // gross consumption rate estimate
         float                         treasury  = 0.f;
         float                         bountyPool = 0.f;
         int                           pop       = 0;
@@ -335,7 +335,7 @@ struct RenderSnapshot {
     float         playerFarmSkill  = -1.f;   // -1 = no Skills component
     float         playerWaterSkill = -1.f;
     float         playerWoodSkill  = -1.f;
-    std::map<ResourceType, int> playerInventory;   // current carried goods
+    std::map<int, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity
 
     // Player reputation — earned by trading, building, founding, repairing

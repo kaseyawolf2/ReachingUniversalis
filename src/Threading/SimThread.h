@@ -94,7 +94,7 @@ private:
     int                         m_popSampleDay{0};  // day of last sample
 
     // Price trend tracking: sample prices every N days
-    std::map<entt::entity, std::map<ResourceType, float>> m_pricePrev;
+    std::map<entt::entity, std::map<int, float>> m_pricePrev;
     int                                                    m_priceSampleDay{0};
 
     // Player trade ledger — last 6 trades, newest first
