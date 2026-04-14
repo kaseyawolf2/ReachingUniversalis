@@ -236,6 +236,21 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         if (!err.empty()) return false;
         def.displayName   = OptStr(*item, "display_name", def.name);
         def.effectType    = OptStr(*item, "effect_type", "none");
+
+        // Resolve effectType string to enum at load time (no string comparisons in hot loops)
+        if      (def.effectType == "production_modifier") def.effectEnum = EventEffectType::ProductionModifier;
+        else if (def.effectType == "stockpile_destroy")   def.effectEnum = EventEffectType::StockpileDestroy;
+        else if (def.effectType == "road_block")          def.effectEnum = EventEffectType::RoadBlock;
+        else if (def.effectType == "treasury_boost")      def.effectEnum = EventEffectType::TreasuryBoost;
+        else if (def.effectType == "spawn_npcs")          def.effectEnum = EventEffectType::SpawnNpcs;
+        else if (def.effectType == "stockpile_add")       def.effectEnum = EventEffectType::StockpileAdd;
+        else if (def.effectType == "convoy")              def.effectEnum = EventEffectType::Convoy;
+        else if (def.effectType == "earthquake")          def.effectEnum = EventEffectType::Earthquake;
+        else if (def.effectType == "fire")                def.effectEnum = EventEffectType::Fire;
+        else if (def.effectType == "price_spike")         def.effectEnum = EventEffectType::PriceSpike;
+        else if (def.effectType == "morale_boost")        def.effectEnum = EventEffectType::MoraleBoost;
+        else                                              def.effectEnum = EventEffectType::None;
+
         def.effectValue   = OptFloat(*item, "effect_value", 1.0f);
         def.durationHours = OptFloat(*item, "duration_hours", 0.0f);
         def.chance        = OptFloat(*item, "chance", 0.01f);
