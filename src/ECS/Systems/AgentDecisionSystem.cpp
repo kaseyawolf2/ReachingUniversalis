@@ -499,10 +499,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         static int s_lastSkillGrowthDay = -1;
         if (tm.day != s_lastSkillGrowthDay) {
             s_lastSkillGrowthDay = tm.day;
-            static constexpr float SKILL_GROWTH        = 0.001f;
-            static constexpr float MASTER_SKILL_GROWTH = 0.002f;
+            static constexpr float BASE_SKILL_GROWTH   = 0.001f;   // base daily growth (scaled by SkillDef::growthRate)
+            static constexpr float BASE_MASTER_GROWTH  = 0.002f;   // base daily growth with a master present
             static constexpr float MASTER_THRESHOLD    = 0.9f;
-            static constexpr float SKILL_RUST          = 0.0005f;
+            // SKILL_RUST removed — decay now comes from SkillDef::decayRate per skill
             static constexpr float SKILL_RUST_FLOOR    = 0.3f;
             static constexpr float LOYALTY_BONUS       = 0.0005f;
 
@@ -594,7 +594,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         hasMaster = (mit != masterFlags.end() && (mit->second & myProfFlag));
                     }
                     // Don't boost masters themselves
-                    float growth = SKILL_GROWTH;
+                    // Look up per-skill growthRate from schema
+                    SkillID profSkId = SkillForProfession(prof.type, schema);
+                    float skillGrowthRate = (profSkId >= 0 && profSkId < (int)schema.skills.size())
+                        ? schema.skills[profSkId].growthRate : 1.f;
+                    float growth = BASE_SKILL_GROWTH * skillGrowthRate;
+                    bool masterGrowthApplied = false;
                     // Loyalty bonus: NPCs who never changed profession grow faster
                     bool loyal = (prof.prevType == prof.type
                                   || (prof.prevType >= 0 && prof.prevType < (int)schema.professions.size()
@@ -603,7 +608,6 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Mentorship rivalry: skilled NPCs (≥ 0.7) at settlements with
                     // active mentoring of their profession train 10% harder.
                     bool rivalryActive = false;
-                    SkillID profSkId = SkillForProfession(prof.type, schema);
                     if (myProfFlag && hs.settlement != entt::null && profSkId != INVALID_ID) {
                         float activeSkill = sk.Get(profSkId);
                         if (activeSkill >= 0.7f) {
@@ -799,8 +803,16 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Capture pre-growth skill for loyalty streak crossing detection
                     float preActiveSkill = (profSkId != INVALID_ID) ? sk.Get(profSkId) : 0.f;
                     if (profSkId != INVALID_ID) {
-                        if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD)
-                            growth = MASTER_SKILL_GROWTH + (loyal ? LOYALTY_BONUS : 0.f);
+                        if (hasMaster && sk.Get(profSkId) < MASTER_THRESHOLD) {
+                            // NOTE: master-growth intentionally replaces base growth (inherited behavior).
+                            // This discards all previously accumulated bonuses: rivalry 1.1x,
+                            // elder wisdom (+0.0003), bankruptcy survivor (+0.0002),
+                            // wisdom grief (-0.0002), tribute days (+0.0003),
+                            // expert teaching chain (+0.0004), and jealousy motivation (+0.0003).
+                            // Only loyalty bonus is re-applied below.
+                            growth = BASE_MASTER_GROWTH * skillGrowthRate + (loyal ? LOYALTY_BONUS : 0.f);
+                            masterGrowthApplied = true;
+                        }
                         sk.Set(profSkId, std::min(1.f, sk.Get(profSkId) + growth));
                     }
                     // Loyalty streak: log when a loyal NPC crosses the 0.7 skill threshold
@@ -941,7 +953,9 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         preSkillsBuf[si] = sk.levels[si];
                     for (int si = 0; si < sk.Size(); ++si) {
                         if (si == profSkId) continue; // active skill doesn't rust
-                        sk.levels[si] = std::max(SKILL_RUST_FLOOR, sk.levels[si] - SKILL_RUST);
+                        float decay = (si < (int)schema.skills.size()) ? schema.skills[si].decayRate : 0.f;
+                        if (decay > 0.f)
+                            sk.levels[si] = std::max(SKILL_RUST_FLOOR, sk.levels[si] - decay);
                     }
 
                     // Skill rust notification: log when a skill drops below 0.5
@@ -964,7 +978,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     }
 
                     // Log at 1-in-10 frequency
-                    if (hasMaster && growth > SKILL_GROWTH && !logV2.empty()) {
+                    if (masterGrowthApplied && !logV2.empty()) {
                         if (s_teachRng() % 10 == 0) {
                             const auto* nm = registry.try_get<Name>(e);
                             std::string settlName = "settlement";
@@ -1098,7 +1112,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         static int s_lastMentorDay = -1;
         if (tm.day != s_lastMentorDay) {
             s_lastMentorDay = tm.day;
-            static constexpr float MENTOR_SKILL_GROWTH = 0.003f;
+            static constexpr float BASE_MENTOR_GROWTH = 0.003f;  // base daily mentor growth (scaled by SkillDef::growthRate)
             static std::mt19937 s_mentorRng{ std::random_device{}() };
 
             // Build per-settlement elder profession set: settlement → vector of (entity, profType)
@@ -1131,11 +1145,14 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Find an elder with matching profession
                     for (const auto& elder : it->second) {
                         if (elder.prof != prof.type) continue;
-                        // Apply mentor skill growth
+                        // Apply mentor skill growth (scaled by per-skill growthRate)
                         {
                             SkillID mentSk = SkillForProfession(prof.type, schema);
-                            if (mentSk != INVALID_ID)
-                                sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + MENTOR_SKILL_GROWTH));
+                            if (mentSk != INVALID_ID) {
+                                float mentGrowthRate = (mentSk < (int)schema.skills.size())
+                                    ? schema.skills[mentSk].growthRate : 1.f;
+                                sk.Set(mentSk, std::min(1.f, sk.Get(mentSk) + BASE_MENTOR_GROWTH * mentGrowthRate));
+                            }
                         }
                         // Log at 1-in-5 frequency
                         if (!logV.empty() && s_mentorRng() % 5 == 0) {

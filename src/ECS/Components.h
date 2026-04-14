@@ -495,10 +495,13 @@ struct Skills {
     }
 
     // Advances the relevant skill for a resource by delta (capped at 1).
+    // The delta is scaled by the skill's growthRate from the schema.
     void Advance(int rt, float delta, const WorldSchema& schema) {
         int sid = SkillIdForResource(rt, schema);
-        if (sid != INVALID_ID && sid >= 0 && sid < (int)levels.size())
-            levels[sid] = std::min(1.f, levels[sid] + delta);
+        if (sid != INVALID_ID && sid >= 0 && sid < (int)levels.size()) {
+            float rate = (sid < (int)schema.skills.size()) ? schema.skills[sid].growthRate : 1.f;
+            levels[sid] = std::min(1.f, levels[sid] + delta * rate);
+        }
     }
 
     // Returns the SkillID with the highest value, or INVALID_ID if empty.
