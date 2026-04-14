@@ -1,6 +1,11 @@
 // WorldLoader.cpp — TOML config parser for world definitions.
 // Reads worlds/<name>/*.toml and populates a WorldSchema.
 // Validates cross-references and reports clear errors.
+//
+// NOTE: All fprintf(stderr, ...) calls in this file are load-time only
+// diagnostics.  They run before the ECS registry (and its EventLog
+// singleton) exists, so they cannot be routed through EventLog::Push.
+// They are visible on stderr / the terminal log.
 
 #include "WorldLoader.h"
 
