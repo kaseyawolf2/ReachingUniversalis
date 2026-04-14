@@ -9,6 +9,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
+- [ ] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
+
 ## Done
 
 - [x] **Grief support network** — In `AgentDecisionSystem.cpp`'s comfort-grieving block, when an NPC comforts a grieving NPC and both have `lastGriefDay >= 0` (both experienced grief before), double the comfort effectiveness: reduce `griefTimer` by 1.0 instead of 0.5. Log "[Comforter] understands [Griever]'s pain at [Settlement]" at 1-in-6 frequency. Uses existing `lastGriefDay` field. Creates empathy-based social dynamics where experienced grievers are better comforters.
@@ -59,8 +61,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [x] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
 
 ## Backlog
-
-- [ ] **Vigil morale recovery** — In `AgentDecisionSystem.cpp`'s grief vigil gathering block, after the affinity boost, apply +0.03 to `Settlement::morale` (cap 1.0). This offsets the individual grief morale drain by giving settlements a collective healing mechanism. Log "[Settlement]'s vigil brings comfort" at 1-in-3 frequency after the vigil log. No new fields needed — purely extends the existing vigil block.
 
 - [ ] **Vigil badge on settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement loop, add `bool vigil = false` to `SettlementEntry` in `RenderSnapshot.h`. Set when 3+ NPCs at the settlement have `griefTimer > 0` (check via `DeprivationTimer`). In `HUD.cpp`'s settlement tooltip, display "[Vigil]" in muted purple after existing badges. Gives the player visibility into communal grief events.
 
