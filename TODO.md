@@ -159,7 +159,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **SkillForProfession INVALID_ID propagation audit** — After the INVALID_ID guard was added at line ~598 of `AgentDecisionSystem.cpp`, audit all other call sites of `SkillForProfession()` across all systems to ensure they also guard against INVALID_ID before passing to `SkillGrowthRate()` or `SkillDecayRate()`.
 
-- [ ] **DynBitset copy assignment operator test** — `tests/DynBitsetTest.cpp` tests copy/move constructors but not copy/move assignment operators. Add tests for `DynBitset a; a = b;` (copy assign) and `DynBitset a; a = std::move(b);` (move assign) for both inline and heap modes, verifying independence and source state.
+- [x] **DynBitset copy assignment operator test** — `tests/DynBitsetTest.cpp` tests copy/move constructors but not copy/move assignment operators. Add tests for `DynBitset a; a = b;` (copy assign) and `DynBitset a; a = std::move(b);` (move assign) for both inline and heap modes, verifying independence and source state.
 
 - [x] **DynBitset clear() method** — `DynBitset` has no `clear()` or `reset()` method to zero all bits without reallocating. Add `void clear()` that zeros all words (inline and heap) without changing capacity, and `void reset()` that returns to default-constructed empty state. Add corresponding tests.
 
@@ -270,6 +270,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **DynBitset clear/reset naming review** — `DynBitset::clear()` zeros bits (like `std::bitset::reset()`) while `DynBitset::reset()` releases memory (like `std::vector::clear()`). The names are swapped relative to STL conventions. Consider renaming to `clearBits()` and `releaseMemory()`, or add comments explaining the naming choice to prevent confusion.
 
 - [ ] **DynBitset clear/reset sequencing test** — `tests/DynBitsetTest.cpp` tests `clear()` and `reset()` independently but not in combination. Add tests for `clear()` after `reset()` and `reset()` after `clear()` to verify no interaction bugs between the two operations.
+
+- [ ] **DynBitset move-assign self test** — `tests/DynBitsetTest.cpp` tests copy-assign self for both inline and heap modes but not move-assign self (`x = std::move(x)`). Add move-self-assignment tests for both modes to verify the compiler-generated move-assign handles this edge case.
+
+- [ ] **DynBitset moved-from state documentation** — `tests/DynBitsetTest.cpp` move tests assert specific moved-from state (e.g., `b.none()` for heap, `b.test(bit)` for inline) which depends on compiler-generated move semantics. Add comments on each moved-from assertion noting this is implementation-detail verification, not a behavioral contract.
 
 ## Phase 2 — UI Decoupling
 
