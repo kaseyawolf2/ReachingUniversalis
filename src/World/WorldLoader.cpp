@@ -25,24 +25,35 @@ static std::vector<LoadWarning>* s_warnings = nullptr;
 static void PushWarning(LoadWarningLevel level,
                         const char* category,
                         const char* fmt, ...)
-    __attribute__((format(printf, 3, 4)));
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((format(printf, 3, 4)))
+#endif
+    ;
 
 static void PushWarning(LoadWarningLevel level,
                         const char* category,
                         const char* fmt, ...) {
-    // Format the message
-    char buf[1024];
+    // First pass: measure the required buffer size.
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int needed = vsnprintf(nullptr, 0, fmt, args);
     va_end(args);
 
+    // Allocate exactly the right size and format into it.
+    std::string msg(needed > 0 ? static_cast<size_t>(needed) : 0, '\0');
+    if (needed > 0) {
+        vsnprintf(msg.data(), static_cast<size_t>(needed) + 1, fmt, args_copy);
+    }
+    va_end(args_copy);
+
     // Always print to stderr
-    fprintf(stderr, "%s", buf);
+    fprintf(stderr, "%s", msg.c_str());
 
     // Collect into the vector if the caller asked for it
     if (s_warnings) {
-        s_warnings->push_back({level, category ? category : "", buf});
+        s_warnings->push_back({level, category ? category : "", std::move(msg)});
     }
 }
 

@@ -224,6 +224,7 @@ static void RunBenchmark(int durationSec, const char* outFile, const WorldSchema
 int main(int argc, char* argv[]) {
     // ---- Load world schema from TOML configs ----
     WorldSchema worldSchema;
+    std::vector<LoadWarning> loadWarnings;
     {
         std::string worldDir = "worlds/medieval";
         // Allow override via --world flag
@@ -234,7 +235,6 @@ int main(int argc, char* argv[]) {
             }
         }
         std::string loadErr;
-        std::vector<LoadWarning> loadWarnings;
         if (!WorldLoader::Load(worldDir, worldSchema, loadErr, &loadWarnings)) {
             fprintf(stderr, "[ERROR] Failed to load world: %s\n", loadErr.c_str());
             // Continue with defaults — the game still works without configs
