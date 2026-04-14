@@ -431,12 +431,8 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
     });
 
     // ---- Spreading events (data-driven plague-like spreading) ----
-    // Collect all spreading event definitions from schema.
     // Each infected settlement tries to spread to a connected neighbour
     // using the parameters of the specific event that infected it.
-    std::vector<int> spreadEventIndices;
-    for (int i = 0; i < (int)schema.events.size(); ++i)
-        if (schema.events[i].spreads) spreadEventIndices.push_back(i);
 
     // Collect new infections to add after iteration (cannot modify map during iteration)
     std::vector<std::pair<entt::entity, SpreadEntry>> newInfections;
