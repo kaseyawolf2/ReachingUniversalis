@@ -2867,6 +2867,46 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt) {
                             rel->affinity[other] = std::min(1.f, rel->affinity[other] + affinityGain);
                         if (auto* oRel = registry.try_get<Relations>(other))
                             oRel->affinity[entity] = std::min(1.f, oRel->affinity[entity] + affinityGain);
+                        // Expert gratitude: novice gains extra affinity toward expert of same profession
+                        {
+                            const auto* profA = registry.try_get<Profession>(entity);
+                            const auto* profB = registry.try_get<Profession>(other);
+                            const auto* skA   = registry.try_get<Skills>(entity);
+                            const auto* skB   = registry.try_get<Skills>(other);
+                            if (profA && profB && skA && skB && profA->type == profB->type
+                                && profA->type != ProfessionType::Idle && profA->type != ProfessionType::Hauler) {
+                                auto getSkill = [](const Skills& sk, ProfessionType t) -> float {
+                                    switch (t) {
+                                        case ProfessionType::Farmer:      return sk.farming;
+                                        case ProfessionType::WaterCarrier: return sk.water_drawing;
+                                        case ProfessionType::Lumberjack:   return sk.woodcutting;
+                                        default: return 0.f;
+                                    }
+                                };
+                                float sA = getSkill(*skA, profA->type);
+                                float sB = getSkill(*skB, profB->type);
+                                entt::entity novice = entt::null, expert = entt::null;
+                                if (sA < 0.5f && sB >= 0.8f) { novice = entity; expert = other; }
+                                else if (sB < 0.5f && sA >= 0.8f) { novice = other; expert = entity; }
+                                if (novice != entt::null) {
+                                    if (auto* nRel = registry.try_get<Relations>(novice))
+                                        nRel->affinity[expert] = std::min(1.f, nRel->affinity[expert] + 0.01f); // extra +0.01 on top of normal
+                                    if (s_chatRng() % 8 == 0) {
+                                        auto egLv = registry.view<EventLog>();
+                                        if (!egLv.empty()) {
+                                            std::string nN = "A novice", eN = "an expert";
+                                            if (const auto* nm = registry.try_get<Name>(novice)) nN = nm->value;
+                                            if (const auto* nm2 = registry.try_get<Name>(expert)) eN = nm2->value;
+                                            std::string where = "settlement";
+                                            if (const auto* stt = registry.try_get<Settlement>(home.settlement))
+                                                where = stt->name;
+                                            egLv.get<EventLog>(*egLv.begin()).Push(tm.day, (int)tm.hourOfDay,
+                                                nN + " thanks " + eN + " for the guidance at " + where + ".");
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         // Grief-born friendship log at 1-in-8
                         if (griefBond && s_chatRng() % 8 == 0) {
                             auto glv = registry.view<EventLog>();
