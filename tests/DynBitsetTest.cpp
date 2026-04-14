@@ -158,6 +158,22 @@ TEST(and_heap_heap_disjoint) {
     assert(c.none());
 }
 
+TEST(and_heap_asymmetric_sizes) {
+    // a spans 2 words (bits up to 127), b spans 4 words (bits up to 255).
+    // n = min(2,4) = 2, so only the first 2 words are ANDed.
+    auto a = DynBitset::singleBit(64);   // heap, word 1
+    a.set(5);                             // word 0
+    auto b = DynBitset::singleBit(200);  // heap, word 3
+    b.set(64);                            // word 1
+    b.set(5);                             // word 0
+    b.set(100);                           // word 1
+    auto c = a & b;
+    assert(c.test(5));       // both have it in word 0
+    assert(c.test(64));      // both have it in word 1
+    assert(!c.test(100));    // only in b's word 1 (a lacks it)
+    assert(!c.test(200));    // beyond a's word count, not included
+}
+
 // ---------------------------------------------------------------------------
 // operator& — n==1 edge case (one heap, one inline, overlap in word 0 only)
 // ---------------------------------------------------------------------------
@@ -180,23 +196,22 @@ TEST(and_n1_edge_case) {
 }
 
 TEST(and_n1_both_heap_single_word) {
-    // Both heap but with exactly 1 word each
-    DynBitset a(65); // needs 2 words but let's use a different approach
-    // Actually DynBitset(65) = wordsNeeded(65) = 2, so that's 2 words.
-    // We need exactly 1-word heap. Let's construct via set() on bit <64
-    // after promoting.
-    // Actually the n==1 edge case is: min(wordCount(), other.wordCount()) == 1
-    // which happens when at least one operand has wordCount()==1 (inline)
-    // and the other is heap. Let's test the exact scenario from the code comment.
-
-    // Inline (wordCount=1) & heap with bits only in word 0
-    auto a2 = DynBitset::singleBit(10);
-    DynBitset b2(128);
-    b2.set(10);
-    b2.set(20);
-    auto c2 = a2 & b2;
-    assert(c2.test(10));
-    assert(!c2.test(20));
+    // Both operands are heap-allocated (capacity > 64 bits) but all set bits
+    // fall within word 0, so n = min(wordCount, wordCount) > 1 but only
+    // word 0 matters. This exercises the general heap-heap AND loop where
+    // higher words are all zero.
+    DynBitset a(128); // heap: 2 words, all zero
+    a.set(7);
+    a.set(30);
+    DynBitset b(128); // heap: 2 words, all zero
+    b.set(7);
+    b.set(50);
+    auto c = a & b;
+    assert(c.test(7));       // common bit survives
+    assert(!c.test(30));     // only in a
+    assert(!c.test(50));     // only in b
+    assert(!c.test(64));     // word 1 is zero in both
+    assert(c.any());
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +302,15 @@ TEST(containsAll_mixed_subset) {
     a.set(5);
     auto mask = DynBitset::singleBit(5);
     assert(a.containsAll(mask));
+}
+
+TEST(containsAll_inline_this_heap_mask) {
+    // this is inline (bit 5 only), mask is heap (bit 5 + bit 100).
+    // this lacks bit 100, so containsAll must return false.
+    auto a = DynBitset::singleBit(5);
+    auto mask = DynBitset::singleBit(100);
+    mask.set(5);
+    assert(!a.containsAll(mask));
 }
 
 TEST(containsAll_empty_mask) {
@@ -430,6 +454,7 @@ int main() {
     // operator& heap/heap
     RUN(and_heap_heap);
     RUN(and_heap_heap_disjoint);
+    RUN(and_heap_asymmetric_sizes);
 
     // operator& n==1 edge case
     RUN(and_n1_edge_case);
@@ -450,6 +475,7 @@ int main() {
     RUN(containsAll_heap_subset);
     RUN(containsAll_heap_not_subset);
     RUN(containsAll_mixed_subset);
+    RUN(containsAll_inline_this_heap_mask);
     RUN(containsAll_empty_mask);
     RUN(containsAll_self);
 
