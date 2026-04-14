@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Lonely migrant morale drain** — In `AgentDecisionSystem.cpp`'s idle chat block, when an NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (all friends are elsewhere), apply -0.005 to home `Settlement::morale` per game-day via a `static std::set<entt::entity> s_lonelyChecked` per-day guard. Log "[Name] feels lonely at [Settlement]" at 1-in-10 frequency. Creates a visible cost of social isolation after migration.
-
 ## Backlog
 
 - [ ] **Work song morale lift** — In `ScheduleSystem.cpp`'s new work song block, after the song triggers, apply +0.01 to the home `Settlement::morale` (cap 1.0). Only when 4+ coworkers participate (larger group = bigger lift). Log "[Settlement] hums along" at 1-in-4 frequency after the song log. Makes work songs a tangible community benefit beyond individual affinity.
@@ -87,7 +85,14 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 - [ ] **Migrant nostalgia on crisis** — In `RandomEventSystem.cpp`'s drought/plague trigger blocks, when a crisis begins, scan NPCs at the settlement whose `HomeSettlement::prevSettlement` is non-null (recent migrants). For each, if they have 2+ friends (affinity >= 0.4) at their old settlement, apply `effectiveMigrateThreshold *= 0.7f` via a new `bool nostalgicMigrant = false` flag on `DeprivationTimer`. Log "[Migrant] longs for [OldSettlement] during the crisis" at 1-in-6 frequency. Crisis makes homesick migrants more likely to return.
 
+- [ ] **Lonely NPC seeks friendship proactively** — In `AgentDecisionSystem.cpp`'s idle chat block, after the lonely migrant check, when an NPC is flagged lonely (no local friends >= 0.3), increase their idle chat `affinityGain` from 0.02 to 0.04 for the next chat (eager to bond). Log "[NPC] eagerly befriends [Other] at [Settlement]" at 1-in-8 frequency. Creates a self-correcting mechanism: lonely NPCs form bonds faster, eventually escaping loneliness.
+
+- [ ] **Loneliness visible on NPC tooltip** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isLonely = false` to `AgentEntry` in `RenderSnapshot.h`. Set when the NPC has `Relations::affinity` entries but none >= 0.3 at their current settlement (same check as lonely migrant). In `HUD.cpp`'s NPC tooltip, display "[Lonely]" in gray-blue after existing badges. Makes the social isolation state visible to the player.
+
 ## Recently Done
+
+- [x] **Lonely migrant morale drain** — Idle NPCs with relations but no local friends (affinity >= 0.3)
+  drain settlement morale by -0.005 per game-day. Logs at 1-in-10. Per-day guard prevents repeats.
 
 - [x] **Migration letter home** — On arrival at new settlement, scans friends at old settlement with
   strained affinity (0.05-0.5), recovers +0.03 on both sides. Logs at 1-in-4.
