@@ -9,9 +9,9 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
-
 ## Done
+
+- [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
 
 - [x] **Generous donor tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool generousDonor = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Reputation::score >= 0.6` (high reputation from charity/donations). In `HUD.cpp`'s NPC tooltip, display "[Generous]" in gold after the specialisation line. Makes charitable NPCs visible to the player.
 
@@ -4508,3 +4508,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Generous donor social magnet** — In `AgentDecisionSystem.cpp`'s idle chat block, when a generous donor (`Reputation::score >= 0.6`) chats with any NPC, boost the other NPC's affinity toward the donor by an extra +0.01 on top of normal gain. Log "[NPC] admires [Donor]'s generosity at [Settlement]" at 1-in-10 frequency. Uses existing idle chat stagger and `Reputation` try_get. Creates a social pull where generous NPCs become more popular.
 
 - [ ] **Donor reputation decay** — In `AgentDecisionSystem.cpp`'s once-per-day block (or add a per-day guard), reduce all NPCs' `Reputation::score` by 0.01 (floor 0.0) each game-day. This means generosity must be ongoing to maintain [Generous] status. No log needed. Uses existing `Reputation` component and `TimeManager::day`. Creates a dynamic reputation system where status must be earned continuously.
+
+- [ ] **Charity chain depth counter** — In `AgentDecisionSystem.cpp`'s charity chain reaction block, add a `static std::map<entt::entity, int> s_chainDepth` tracking how many times a chain extends per game-day (clear on day change). Cap at depth 3 to prevent runaway gold drainage. When chain reaches depth 3, log "[Settlement] is abuzz with generosity" at full frequency. Uses existing charity block and `TimeManager::day`.
+
+- [ ] **Charity gratitude affinity** — In `AgentDecisionSystem.cpp`'s charity block, after the chain reaction, boost the recipient's `Relations::affinity` toward the chain target by +0.02 (the recipient helped someone, creating a new bond). Log "[Recipient] and [ChainTarget] share a grateful smile at [Settlement]" at 1-in-6 frequency. Uses existing `Relations` component. Creates social bonds that emerge from generosity chains.
