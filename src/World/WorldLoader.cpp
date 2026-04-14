@@ -230,6 +230,7 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         rangeCheck(st.harvestSeason, "harvest_season");
         rangeCheck(st.lowProduction, "low_production");
 
+        // Pairwise ordering: mildCold < coldSeason < moderateCold < harshCold
         if (!(st.mildCold < st.coldSeason))
             fprintf(stderr, "[WorldLoader] WARNING: %s: mild_cold (%.3f) should be less than cold_season (%.3f)\n",
                     path.c_str(), st.mildCold, st.coldSeason);
@@ -239,8 +240,19 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         if (!(st.moderateCold < st.harshCold))
             fprintf(stderr, "[WorldLoader] WARNING: %s: moderate_cold (%.3f) should be less than harsh_cold (%.3f)\n",
                     path.c_str(), st.moderateCold, st.harshCold);
+
+        // Top-level ordering invariant: mildCold < moderateCold < harshCold.
+        // Inverted ordering causes nonsensical sky tints and schedule behavior.
+        if (!(st.mildCold < st.moderateCold))
+            fprintf(stderr, "[WorldLoader] WARNING: %s: cold threshold ordering violated: "
+                    "mild_cold (%.3f) must be less than moderate_cold (%.3f)\n",
+                    path.c_str(), st.mildCold, st.moderateCold);
+
+        // Production threshold ordering: lowProduction < harvestSeason.
+        // Inverted ordering causes nonsensical schedule behavior.
         if (!(st.lowProduction < st.harvestSeason))
-            fprintf(stderr, "[WorldLoader] WARNING: %s: low_production (%.3f) should be less than harvest_season (%.3f)\n",
+            fprintf(stderr, "[WorldLoader] WARNING: %s: production threshold ordering violated: "
+                    "low_production (%.3f) must be less than harvest_season (%.3f)\n",
                     path.c_str(), st.lowProduction, st.harvestSeason);
     }
 
