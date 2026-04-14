@@ -427,11 +427,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
         return INVALID_ID;
     };
     // Map profession to a bitmask bit (for diversity tracking)
-    auto profBit = [&](ProfessionID p) -> int {
-        if (p < 0 || p >= (int)schema.professions.size()) return 0;
+    auto profBit = [&](ProfessionID p) -> uint32_t {
+        if (p < 0 || p >= (int)schema.professions.size()) return 0u;
         const auto& pdef = schema.professions[p];
-        if (pdef.isIdle || pdef.isHauler || pdef.producesResource == INVALID_ID) return 0;
-        return (1 << pdef.id);
+        if (pdef.isIdle || pdef.isHauler || pdef.producesResource == INVALID_ID) return 0u;
+        return (1u << pdef.id);
     };
 
     // Charity frequency counter: counts lifetime charity acts per helper entity.
@@ -935,27 +935,41 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     // Master retention: mark NPC as settled master when any skill reaches 0.9
                     if (!registry.all_of<Hauler>(e)) {
                         if (auto* dt = registry.try_get<DeprivationTimer>(e)) {
-                            if (!dt->masterSettled && (sk.farming >= MASTER_THRESHOLD ||
-                                sk.water_drawing >= MASTER_THRESHOLD || sk.woodcutting >= MASTER_THRESHOLD))
-                                dt->masterSettled = true;
+                            if (!dt->masterSettled) {
+                                for (const auto& sdef : schema.skills) {
+                                    if (sdef.forResource != INVALID_ID &&
+                                        sk.ForResource(sdef.forResource) >= MASTER_THRESHOLD) {
+                                        dt->masterSettled = true;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                     // Skill rust: inactive skills decay slowly (floor 0.3)
-                    float preFarm = sk.farming, preWater = sk.water_drawing, preWood = sk.woodcutting;
                     int activeProfRes = profRes(prof.type);
-                    if (activeProfRes != RES_FOOD)
-                        sk.farming = std::max(SKILL_RUST_FLOOR, sk.farming - SKILL_RUST);
-                    if (activeProfRes != RES_WATER)
-                        sk.water_drawing = std::max(SKILL_RUST_FLOOR, sk.water_drawing - SKILL_RUST);
-                    if (activeProfRes != RES_WOOD)
-                        sk.woodcutting = std::max(SKILL_RUST_FLOOR, sk.woodcutting - SKILL_RUST);
+                    // Store pre-decay values and apply rust per schema skill
+                    struct SkillSnap { int res; float pre; std::string name; };
+                    std::vector<SkillSnap> skillSnaps;
+                    for (const auto& sdef : schema.skills) {
+                        if (sdef.forResource == INVALID_ID) continue;
+                        float pre = sk.ForResource(sdef.forResource);
+                        skillSnaps.push_back({ sdef.forResource, pre, sdef.displayName });
+                        if (sdef.forResource != activeProfRes) {
+                            float decayed = std::max(SKILL_RUST_FLOOR, pre - SKILL_RUST);
+                            sk.Advance(sdef.forResource, decayed - pre);  // negative delta
+                        }
+                    }
 
                     // Skill rust notification: log when a skill drops below 0.5
                     if (!logV2.empty() && s_teachRng() % 5 == 0) {
                         const char* rustSkill = nullptr;
-                        if (preFarm >= 0.5f && sk.farming < 0.5f) rustSkill = "farming";
-                        else if (preWater >= 0.5f && sk.water_drawing < 0.5f) rustSkill = "water-drawing";
-                        else if (preWood >= 0.5f && sk.woodcutting < 0.5f) rustSkill = "woodcutting";
+                        for (const auto& snap : skillSnaps) {
+                            if (snap.pre >= 0.5f && sk.ForResource(snap.res) < 0.5f) {
+                                rustSkill = snap.name.c_str();
+                                break;
+                            }
+                        }
                         if (rustSkill) {
                             std::string who = "NPC";
                             if (const auto* nm = registry.try_get<Name>(e)) who = nm->value;

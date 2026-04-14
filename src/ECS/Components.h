@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <entt/entt.hpp>
+#include "../World/WorldSchema.h"
 
 // ---- Domain enums ----
 
@@ -82,7 +83,6 @@ struct AgentState {
 // Persistent component assigned at spawn and updated when an NPC changes role.
 // Used for migration preference and tooltip display.
 // ProfessionID (int) indexes into WorldSchema::professions; see WorldSchema.h.
-using ProfessionID = int;
 
 struct Profession {
     ProfessionID type     = -1;  // index into WorldSchema::professions

@@ -1426,7 +1426,7 @@ void SimThread::WriteSnapshot() {
         int   masterCount = 0;
         float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
-        int   profMask  = 0;  // bitmask: one bit per producing profession ID from schema
+        uint32_t profMask = 0;  // bitmask: one bit per producing profession ID from schema
         int   griefCount = 0; // NPCs with griefTimer > 0
         int   mourningCount = 0; // NPCs in mourning procession (wisdomGriefDays > 0 && skillCelebrateTimer > 0)
     };
@@ -1959,6 +1959,12 @@ void SimThread::WriteSnapshot() {
             snapSeason = stmv.get<TimeManager>(*stmv.begin()).CurrentSeason();
     }
 
+    // Pre-compute full profession diversity mask (schema-invariant, outside per-settlement loop)
+    uint32_t fullProfMask = 0;
+    for (const auto& pdef : m_schema.professions)
+        if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+            fullProfMask |= (1u << pdef.id);
+
     m_registry.view<Position, Settlement>().each(
         [&](auto e, const Position& pos, const Settlement& s) {
         float food = 0.f, water = 0.f, wood = 0.f;
@@ -2026,11 +2032,6 @@ void SimThread::WriteSnapshot() {
             }
         }
 
-        // Build full diversity mask from schema producing professions
-        uint32_t fullProfMask = 0;
-        for (const auto& pdef : m_schema.professions)
-            if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
-                fullProfMask |= (1u << pdef.id);
         bool diverse = settlAgg.count(e) && fullProfMask != 0
                        && (settlAgg[e].profMask & fullProfMask) == fullProfMask;
         bool afterglow = (s.afterglowHours > 0.f);

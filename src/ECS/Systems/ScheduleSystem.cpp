@@ -382,17 +382,6 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                     if (hourChanged) {
                         ProfessionID newProf = schema.FindProfessionForResource(facType);
                         if (auto* prof = registry.try_get<Profession>(entity)) {
-                            auto profIsIdle = [&](ProfessionID p) {
-                                return p >= 0 && p < (int)schema.professions.size() && schema.professions[p].isIdle;
-                            };
-                            auto profIsHauler = [&](ProfessionID p) {
-                                return p >= 0 && p < (int)schema.professions.size() && schema.professions[p].isHauler;
-                            };
-                            auto profLabel = [&](ProfessionID p) -> std::string {
-                                if (p >= 0 && p < (int)schema.professions.size())
-                                    return schema.professions[p].displayName;
-                                return "Idle";
-                            };
                             if (prof->type != newProf && newProf != INVALID_ID && !profIsIdle(newProf)) {
                                 static std::mt19937 s_profRng{ std::random_device{}() };
                                 if (!profIsIdle(prof->type) && !profIsHauler(prof->type)
@@ -440,11 +429,6 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 // Skill transfer: experienced workers carry knowledge to new careers
                                 if (auto* sk = registry.try_get<Skills>(entity)) {
                                     // Check old profession's skill level
-                                    auto profRes = [&](ProfessionID p) -> int {
-                                        if (p >= 0 && p < (int)schema.professions.size())
-                                            return schema.professions[p].producesResource;
-                                        return INVALID_ID;
-                                    };
                                     int oldRes = profRes(prof->type);
                                     int newRes = profRes(newProf);
                                     if (oldRes != INVALID_ID) {

@@ -520,15 +520,17 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             static constexpr float HARVEST_FEST_AFFINITY = 0.02f;
             static constexpr float HARVEST_FEST_DURATION = 4.f;  // game-hours
 
+            // Pre-compute full profession diversity mask (schema-invariant)
+            uint32_t fullProfMask = 0;
+            for (const auto& pdef : schema.professions)
+                if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
+                    fullProfMask |= (1u << pdef.id);
+
             registry.view<Settlement>().each([&](auto e, Settlement& s) {
                 if (s.modifierDuration > 0.f) return;  // already has an event
 
                 // Compute profession diversity: count distinct producing professions
                 uint32_t profMask = 0;
-                uint32_t fullProfMask = 0;
-                for (const auto& pdef : schema.professions)
-                    if (pdef.producesResource != INVALID_ID && !pdef.isIdle && !pdef.isHauler)
-                        fullProfMask |= (1u << pdef.id);
                 registry.view<Profession, HomeSettlement>(
                     entt::exclude<Hauler, PlayerTag, BanditTag, ChildTag>).each(
                     [&](const Profession& prof, const HomeSettlement& hs) {
