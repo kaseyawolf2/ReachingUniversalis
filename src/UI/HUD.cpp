@@ -578,9 +578,11 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     Vector2 world = GetScreenToWorld2D(mouse, cam);
 
     std::vector<RenderSnapshot::AgentEntry> agents;
+    std::vector<std::string> skillNames;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents = snap.agents;
+        skillNames = snap.skillNames;
     }
 
     // Build surname→count and familyName→count maps for family cluster display.
@@ -893,8 +895,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         for (int i = 1; i < (int)best->skillLevels.size(); ++i)
             if (best->skillLevels[i] > best->skillLevels[bestIdx]) bestIdx = i;
         sk = best->skillLevels[bestIdx];
-        if (bestIdx < (int)snap.skillNames.size() && !snap.skillNames[bestIdx].empty())
-            skLabel = snap.skillNames[bestIdx];
+        if (bestIdx < (int)skillNames.size() && !skillNames[bestIdx].empty())
+            skLabel = skillNames[bestIdx];
         const char* rank = (sk >= 0.85f) ? " [Master]"  :
                            (sk >= 0.65f) ? " [Expert]"  :
                            (sk >= 0.40f) ? " [Trained]" :
@@ -919,7 +921,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         for (int i = 0; i < (int)best->skillLevels.size(); ++i) {
             if (best->skillLevels[i] > bestSk) {
                 bestSk = best->skillLevels[i];
-                bestType = (i < (int)snap.skillNames.size()) ? snap.skillNames[i] : "Unknown";
+                bestType = (i < (int)skillNames.size()) ? skillNames[i] : "Unknown";
             }
         }
         if (bestSk >= 0.5f) {

@@ -494,7 +494,9 @@ struct Skills {
     }
 
     // True if all skills are at or above the threshold.
+    // Returns false for an empty levels vector (no skills = not above anything).
     bool AllAbove(float threshold) const {
+        if (levels.empty()) return false;
         for (float v : levels) if (v < threshold) return false;
         return true;
     }
