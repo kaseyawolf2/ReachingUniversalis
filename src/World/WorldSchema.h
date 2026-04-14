@@ -75,7 +75,7 @@ struct ProfessionDef {
 
 // SeasonDef is defined in SeasonDef.h
 
-// Resolved enum for EventDef::effectType (no string comparisons in hot loops)
+// Enum for EventDef effect type (no string comparisons in hot loops)
 enum class EventEffectType {
     None,
     ProductionModifier,
@@ -95,8 +95,7 @@ struct EventDef {
     EventID     id            = INVALID_ID;
     std::string name;                         // "Drought", "Plague", ...
     std::string displayName;
-    std::string effectType;                   // "production_modifier", "stockpile_destroy", etc.
-    EventEffectType effectEnum = EventEffectType::None;  // resolved at load time
+    EventEffectType effectEnum = EventEffectType::None;  // resolved at load time from TOML "effect_type"
     float       effectValue   = 1.0f;         // magnitude of the effect
     float       durationHours = 0.0f;         // game-hours the effect lasts (0 = instant)
     float       chance        = 0.01f;        // probability per check (per settlement per hour)
