@@ -1396,6 +1396,7 @@ void SimThread::WriteSnapshot() {
         float skillFarmSum = 0.f, skillWaterSum = 0.f, skillWoodSum = 0.f;
         int   skillCount = 0;  // NPCs with Skills component (non-hauler, non-bandit)
         int   profMask  = 0;  // bitmask: bit0=Farmer, bit1=WaterCarrier, bit2=Lumberjack
+        int   griefCount = 0; // NPCs with griefTimer > 0
     };
     std::unordered_map<entt::entity, SettlAgg> settlAgg;
     // Single pass over all homed NPCs (excluding player)
@@ -1434,6 +1435,7 @@ void SimThread::WriteSnapshot() {
                 }
                 if (const auto* dt = m_registry.try_get<DeprivationTimer>(e)) {
                     if (dt->charityTimer > 0.f) ++ag.recentGivers;
+                    if (dt->griefTimer > 0.f) ++ag.griefCount;
                 }
                 if (const auto* age2 = m_registry.try_get<Age>(e)) {
                     if (age2->days > 60.f) {
@@ -1963,6 +1965,7 @@ void SimThread::WriteSnapshot() {
 
         bool diverse = settlAgg.count(e) && (settlAgg[e].profMask & 7) == 7;
         bool afterglow = (s.afterglowHours > 0.f);
+        bool vigilActive = settlAgg.count(e) && settlAgg[e].griefCount >= 3;
         float harmony = 0.f;
         if (spop >= 2)
             harmony = (friendPairs * 2.0f) / std::max(1, spop * (spop - 1));
@@ -1975,7 +1978,7 @@ void SimThread::WriteSnapshot() {
             s.modifierName, s.ruinTimer, s.morale, s.tradeVolume,
             s.importCount, s.exportCount, s.desperatePurchases, moodScore,
             friendPairs, masterCount,
-            avgFarming, avgWater, avgWood, diverse, afterglow, harmony
+            avgFarming, avgWater, avgWood, diverse, afterglow, vigilActive, harmony
         });
     });
 
