@@ -1,0 +1,72 @@
+# Medieval World — Random Event Definitions
+# These define the stochastic events that RandomEventSystem can trigger.
+
+[[events]]
+name           = "Drought"
+display_name   = "Drought"
+effect_type    = "production_modifier"
+effect_value   = 0.3          # production multiplier while active
+duration_hours = 48.0
+chance         = 0.01         # per settlement per hour
+min_population = 5
+log_message    = "DROUGHT strikes {settlement} — crops wither"
+
+[[events]]
+name           = "Blight"
+display_name   = "Blight"
+effect_type    = "stockpile_destroy"
+effect_value   = 0.5          # fraction of food destroyed
+duration_hours = 0.0          # instant
+chance         = 0.008
+min_population = 3
+log_message    = "BLIGHT hits {settlement} — {amount} food destroyed"
+
+[[events]]
+name           = "Plague"
+display_name   = "Plague"
+effect_type    = "production_modifier"
+effect_value   = 0.45
+duration_hours = 72.0
+chance         = 0.005
+min_population = 8
+log_message    = "PLAGUE ravages {settlement}"
+
+[[events]]
+name           = "Festival"
+display_name   = "Festival"
+effect_type    = "morale_boost"
+effect_value   = 0.1          # morale increase
+duration_hours = 0.0          # instant
+chance         = 0.02
+min_population = 5
+log_message    = "{settlement} holds a grand festival!"
+
+[[events]]
+name           = "MigrationWave"
+display_name   = "Migration Wave"
+effect_type    = "spawn_npcs"
+effect_value   = 3.0          # number of NPCs to spawn
+duration_hours = 0.0
+chance         = 0.01
+min_population = 3
+log_message    = "A group of migrants arrives at {settlement}"
+
+[[events]]
+name           = "GoodHarvest"
+display_name   = "Good Harvest"
+effect_type    = "production_boost"
+effect_value   = 1.5          # production multiplier for one NPC
+duration_hours = 24.0
+chance         = 0.015
+min_population = 3
+log_message    = "{npc} has an excellent harvest at {settlement}"
+
+[[events]]
+name           = "Fire"
+display_name   = "Fire"
+effect_type    = "stockpile_destroy"
+effect_value   = 0.3          # fraction of wood destroyed
+duration_hours = 0.0
+chance         = 0.006
+min_population = 3
+log_message    = "Fire breaks out at {settlement} — wood stores burn"

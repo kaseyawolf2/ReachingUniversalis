@@ -1,0 +1,43 @@
+# Medieval World — Need Definitions
+# Each [[needs]] block defines a need that NPCs must satisfy to survive.
+# Order matters: index in this array becomes the NeedID.
+
+[[needs]]
+name               = "Hunger"
+display_name       = "Hunger"
+drain_rate         = 0.00083    # units per real-second
+refill_rate        = 0.004      # units per real-second while eating
+critical_threshold = 0.3
+start_value        = 1.0
+satisfied_by       = "Food"     # resource name
+satisfy_behavior   = "consume"
+
+[[needs]]
+name               = "Thirst"
+display_name       = "Thirst"
+drain_rate         = 0.00125
+refill_rate        = 0.006
+critical_threshold = 0.3
+start_value        = 1.0
+satisfied_by       = "Water"
+satisfy_behavior   = "consume"
+
+[[needs]]
+name               = "Energy"
+display_name       = "Energy"
+drain_rate         = 0.00050
+refill_rate        = 0.002
+critical_threshold = 0.3
+start_value        = 1.0
+satisfied_by       = ""          # satisfied by sleeping, not a resource
+satisfy_behavior   = "sleep"
+
+[[needs]]
+name               = "Heat"
+display_name       = "Heat"
+drain_rate         = 0.00200
+refill_rate        = 0.010
+critical_threshold = 0.3
+start_value        = 1.0
+satisfied_by       = "Wood"     # wood fuel
+satisfy_behavior   = "warmth"

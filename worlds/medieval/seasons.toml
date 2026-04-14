@@ -1,0 +1,42 @@
+# Medieval World — Season Definitions
+# Order matters: seasons cycle in the order defined here.
+
+[[seasons]]
+name             = "Spring"
+display_name     = "Spring"
+duration_days    = 30
+production_mod   = 0.8      # growth season, moderate output
+energy_drain_mod = 1.0
+heat_drain_mod   = 0.15     # mild cold
+base_temperature = 12.0     # noon °C
+temp_swing       = 8.0      # ± degrees from diurnal cycle
+
+[[seasons]]
+name             = "Summer"
+display_name     = "Summer"
+duration_days    = 30
+production_mod   = 1.0      # peak production
+energy_drain_mod = 1.0
+heat_drain_mod   = 0.0      # no cold
+base_temperature = 28.0
+temp_swing       = 8.0
+
+[[seasons]]
+name             = "Autumn"
+display_name     = "Autumn"
+duration_days    = 30
+production_mod   = 1.2      # harvest bonus
+energy_drain_mod = 1.0
+heat_drain_mod   = 0.4      # moderate cold
+base_temperature = 8.0
+temp_swing       = 8.0
+
+[[seasons]]
+name             = "Winter"
+display_name     = "Winter"
+duration_days    = 30
+production_mod   = 0.2      # very low production
+energy_drain_mod = 1.8      # exhausting cold
+heat_drain_mod   = 1.0      # full cold drain
+base_temperature = -8.0
+temp_swing       = 8.0

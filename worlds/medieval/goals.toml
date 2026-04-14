@@ -1,0 +1,29 @@
+# Medieval World — NPC Goal Definitions
+
+[[goals]]
+name         = "SaveGold"
+display_name = "Save Gold"
+check_type   = "balance_gte"
+target_value = 100.0
+weight       = 1.0
+
+[[goals]]
+name         = "ReachAge"
+display_name = "Reach Age"
+check_type   = "age_gte"
+target_value = 0.0      # actual target set per-NPC at assignment
+weight       = 1.0
+
+[[goals]]
+name         = "FindFamily"
+display_name = "Find Family"
+check_type   = "has_relation"
+target_value = 1.0
+weight       = 0.5
+
+[[goals]]
+name         = "BecomeHauler"
+display_name = "Become Merchant"
+check_type   = "profession_is"
+target_value = 0.0      # checked against Hauler profession ID
+weight       = 0.5

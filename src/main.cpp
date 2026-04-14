@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "GameState.h"
+#include "World/WorldLoader.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -21,8 +22,8 @@ static void RunBenchmark(int durationSec, const char* outFile) {
 
     GameState state;
 
-    // Set max tick speed directly for benchmark
-    state.SetTickSpeed(128);
+    // Set uncapped speed (Speed 5) for benchmark
+    state.SetTickSpeed(0);
     state.Update(1.f / 60.f);
     BeginDrawing(); ClearBackground(BLACK); EndDrawing();
 
@@ -240,6 +241,24 @@ int main(int argc, char* argv[]) {
             screenshotFile = (i + 1 < argc) ? argv[i + 1] : "screenshot.png";
             screenshotDelay = (i + 2 < argc) ? atoi(argv[i + 2]) : 5;
             break;
+        }
+    }
+
+    // ---- Load world schema from TOML configs ----
+    WorldSchema worldSchema;
+    {
+        std::string worldDir = "worlds/medieval";
+        // Allow override via --world flag
+        for (int i = 1; i < argc; ++i) {
+            if (strcmp(argv[i], "--world") == 0 && i + 1 < argc) {
+                worldDir = argv[i + 1];
+                break;
+            }
+        }
+        std::string loadErr;
+        if (!WorldLoader::Load(worldDir, worldSchema, loadErr)) {
+            fprintf(stderr, "[ERROR] Failed to load world: %s\n", loadErr.c_str());
+            // Continue with defaults — the game still works without configs
         }
     }
 

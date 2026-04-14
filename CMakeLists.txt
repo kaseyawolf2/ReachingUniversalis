@@ -21,6 +21,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(entt)
 
+FetchContent_Declare(
+    tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG v3.4.0
+)
+FetchContent_MakeAvailable(tomlplusplus)
+
 set(SOURCES
     src/main.cpp
     src/GameState.cpp
@@ -48,13 +55,14 @@ set(SOURCES
     src/ECS/Systems/RenderSystem.cpp
 
     src/World/WorldGenerator.cpp
+    src/World/WorldLoader.cpp
     src/UI/HUD.cpp
 )
 
 add_executable(ReachingUniversalis ${SOURCES})
 
 target_include_directories(ReachingUniversalis PRIVATE src)
-target_link_libraries(ReachingUniversalis PRIVATE raylib EnTT::EnTT)
+target_link_libraries(ReachingUniversalis PRIVATE raylib EnTT::EnTT tomlplusplus::tomlplusplus)
 
 # pthreads on Linux
 find_package(Threads REQUIRED)

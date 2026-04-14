@@ -1,0 +1,37 @@
+# Medieval World — Agent Template Definitions
+
+[[agents]]
+name               = "Villager"
+display_name       = "Villager"
+start_profession   = "Idle"
+start_gold         = 50.0
+move_speed         = 80.0
+inventory_capacity = 5
+min_age            = 18.0
+max_age            = 30.0
+min_lifespan       = 60.0
+max_lifespan       = 100.0
+
+[[agents]]
+name               = "Hauler"
+display_name       = "Merchant"
+start_profession   = "Hauler"
+start_gold         = 100.0
+move_speed         = 100.0
+inventory_capacity = 15
+min_age            = 20.0
+max_age            = 35.0
+min_lifespan       = 60.0
+max_lifespan       = 100.0
+
+[[agents]]
+name               = "Player"
+display_name       = "Player"
+start_profession   = "Idle"
+start_gold         = 150.0
+move_speed         = 120.0
+inventory_capacity = 15
+min_age            = 18.0
+max_age            = 18.0
+min_lifespan       = 80.0
+max_lifespan       = 100.0

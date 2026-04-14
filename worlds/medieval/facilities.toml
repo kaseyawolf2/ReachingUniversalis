@@ -1,0 +1,25 @@
+# Medieval World — Production Facility Definitions
+
+[[facilities]]
+name            = "Farm"
+display_name    = "Farm"
+output_resource = "Food"
+base_rate       = 1.0       # units per game-hour per worker
+inputs          = []        # no inputs required
+build_cost      = 200.0
+
+[[facilities]]
+name            = "Well"
+display_name    = "Well"
+output_resource = "Water"
+base_rate       = 1.0
+inputs          = []
+build_cost      = 200.0
+
+[[facilities]]
+name            = "LumberCamp"
+display_name    = "Lumber Camp"
+output_resource = "Wood"
+base_rate       = 1.0
+inputs          = []
+build_cost      = 200.0

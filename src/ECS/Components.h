@@ -351,7 +351,8 @@ struct TimeManager {
     float gameSeconds  = 0.0f;   // total elapsed game-time seconds
     int   day          = 1;      // current day (1-indexed)
     float hourOfDay    = 6.0f;   // 0.0–24.0, starts at dawn
-    int   tickSpeed    = 1;      // multiplier: 1, 2, or 4
+    int   tickSpeed    = 1;      // multiplier: 1, 2, 4, 16, or 0 (uncapped)
+    int   speedIndex   = 1;      // 1-based Paradox-style index (1..5)
     bool  paused       = false;
 
     // Returns realDt unchanged — tickSpeed is handled by the sub-tick loop in

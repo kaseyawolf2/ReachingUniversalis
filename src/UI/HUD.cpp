@@ -64,7 +64,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     // we received a const reference to the snapshot and GameState holds no lock
     // here. GameState copies the vectors under lock; HUD reads the scalars.
     // For the scalar HUD fields we do a quick lock here.
-    int   day, hour, minute, tickSpeed, pop, deaths;
+    int   day, hour, minute, tickSpeed, speedIndex, pop, deaths;
     bool  paused, roadBlocked, playerAlive;
     float hungerPct, thirstPct, energyPct, heatPct;
     float hungerCrit, thirstCrit, energyCrit, heatCrit;
@@ -87,6 +87,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         hour        = snap.hour;
         minute      = snap.minute;
         tickSpeed   = snap.tickSpeed;
+        speedIndex  = snap.speedIndex;
         pop         = snap.population;
         deaths      = snap.totalDeaths;
         paused      = snap.paused;
@@ -261,7 +262,15 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     {
         char timeBuf[64], speedBuf[16], popBuf[32], fpsBuf[32], seasBuf[48];
         std::snprintf(timeBuf,  sizeof(timeBuf),  "Day %d  %02d:%02d", day, hour, minute);
-        std::snprintf(speedBuf, sizeof(speedBuf), paused ? "PAUSED" : "%dx", tickSpeed);
+        // Paradox-style speed labels
+        static const char* SPEED_LABELS[] = {"", "Speed 1", "Speed 2", "Speed 3", "Speed 4", "Speed 5"};
+        if (paused)
+            std::snprintf(speedBuf, sizeof(speedBuf), "PAUSED");
+        else if (speedIndex >= 1 && speedIndex <= 5)
+            std::snprintf(speedBuf, sizeof(speedBuf), "%s%s", SPEED_LABELS[speedIndex],
+                          speedIndex == 5 ? " [MAX]" : "");
+        else
+            std::snprintf(speedBuf, sizeof(speedBuf), "%dx", tickSpeed);
         std::snprintf(popBuf,   sizeof(popBuf),   "Pop: %d  Deaths: %d", pop, deaths);
         std::snprintf(fpsBuf,   sizeof(fpsBuf),   "FPS: %d  (%.1f ms)",
                       GetFPS(), GetFrameTime() * 1000.f);
@@ -1718,7 +1727,7 @@ void HUD::DrawMarketOverlay(const RenderSnapshot& snap) const {
 // ---- Debug overlay ----
 
 void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
-    int agents, tickSpeed, pop, deaths, simSteps, entities, haulerCount;
+    int agents, tickSpeed, speedIndex, pop, deaths, simSteps, entities, haulerCount;
     bool paused;
     Season dbgSeason;
     float  dbgTemp, econTotal, econAvg, econRichest;
@@ -1728,7 +1737,8 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents    = (int)snap.agents.size();
-        tickSpeed = snap.tickSpeed;
+        tickSpeed  = snap.tickSpeed;
+        speedIndex = snap.speedIndex;
         pop       = snap.population;
         deaths    = snap.totalDeaths;
         paused    = snap.paused;
@@ -1764,9 +1774,12 @@ void HUD::DrawDebugOverlay(const RenderSnapshot& snap) const {
     char lines[20][64];
     std::snprintf(lines[0],  64, "[F1] DEBUG OVERLAY");
     std::snprintf(lines[1],  64, "Render FPS:   %d  (%.1f ms)", GetFPS(), GetFrameTime()*1000.f);
-    int desiredSteps = 60 * tickSpeed;
-    std::snprintf(lines[2],  64, "Sim steps/s:  %d / %d", simSteps, desiredSteps);
-    std::snprintf(lines[3],  64, "Tick speed:   %dx%s", tickSpeed, paused ? " (PAUSED)" : "");
+    int desiredSteps = (tickSpeed == 0) ? simSteps : 60 * tickSpeed;
+    std::snprintf(lines[2],  64, "Sim steps/s:  %d%s", simSteps,
+                  tickSpeed == 0 ? " (uncapped)" : "");
+    std::snprintf(lines[3],  64, "Speed:        %d/5%s%s",
+                  speedIndex, tickSpeed == 0 ? " [MAX]" : "",
+                  paused ? " (PAUSED)" : "");
     std::snprintf(lines[4],  64, "Entities:     %d", entities);
     std::snprintf(lines[5],  64, "Population:   %d  Deaths: %d", pop, deaths);
     std::snprintf(lines[6],  64, "Season:       %s  %.1f°C", SeasonName(dbgSeason), dbgTemp);

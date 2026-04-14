@@ -1,0 +1,25 @@
+# Medieval World — Skill Definitions
+
+[[skills]]
+name         = "farming"
+display_name = "Farming"
+for_resource = "Food"
+start_value  = 0.5
+growth_rate  = 1.0
+decay_rate   = 0.0
+
+[[skills]]
+name         = "water_drawing"
+display_name = "Water Drawing"
+for_resource = "Water"
+start_value  = 0.5
+growth_rate  = 1.0
+decay_rate   = 0.0
+
+[[skills]]
+name         = "woodcutting"
+display_name = "Woodcutting"
+for_resource = "Wood"
+start_value  = 0.5
+growth_rate  = 1.0
+decay_rate   = 0.0

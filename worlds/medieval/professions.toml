@@ -1,0 +1,33 @@
+# Medieval World — Profession Definitions
+
+[[professions]]
+name              = "Farmer"
+display_name      = "Farmer"
+produces_resource = "Food"
+primary_skill     = "farming"
+
+[[professions]]
+name              = "WaterCarrier"
+display_name      = "Water Carrier"
+produces_resource = "Water"
+primary_skill     = "water_drawing"
+
+[[professions]]
+name              = "Lumberjack"
+display_name      = "Woodcutter"
+produces_resource = "Wood"
+primary_skill     = "woodcutting"
+
+[[professions]]
+name              = "Hauler"
+display_name      = "Merchant"
+produces_resource = ""
+primary_skill     = ""
+is_hauler         = true
+
+[[professions]]
+name              = "Idle"
+display_name      = "Idle"
+produces_resource = ""
+primary_skill     = ""
+is_idle           = true

@@ -312,6 +312,7 @@ struct RenderSnapshot {
 
     // HUD — simulation state
     int  tickSpeed  = 1;
+    int  speedIndex = 1;      // 1-based Paradox-style speed (1..5)
     bool paused     = false;
     int  population = 0;
     int  totalDeaths = 0;

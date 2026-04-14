@@ -41,7 +41,7 @@ The main thread (`GameState`, `src/GameState.h`) does three things: poll Raylib 
 
 `WriteSnapshot()` walks the registry and populates every field of `RenderSnapshot` under the mutex. Anything that needs to reach the HUD must be explicitly written here — there is no automatic sync.
 
-**Tick speed** (1×/2×/4×): `GameState::Update` runs the sim step loop multiple times per frame rather than scaling `dt`. Systems receive `realDt` unchanged and convert it to game-time via `TimeManager::GameDt()`.
+**Tick speed** (Paradox-style 5-speed): Speed 1 (1×), Speed 2 (2×), Speed 3 (4×), Speed 4 (16×), Speed 5 (uncapped). Speeds 1–4 run `virtualFrames * tickSpeed` sim steps per frame. Speed 5 sets `tickSpeed = 0` (sentinel) and runs as many steps as fit in a 16ms wall-clock budget per iteration. `TimeManager::speedIndex` (1–5) tracks the current speed for HUD display. Systems receive `realDt` unchanged and convert it to game-time via `TimeManager::GameDt()`.
 
 ### ECS Systems (execution order in `RunSimStep`)
 
@@ -84,7 +84,7 @@ The main thread (`GameState`, `src/GameState.h`) does three things: poll Raylib 
 | H | Set nearest settlement as home |
 | Z | Toggle sleep |
 | Space | Pause |
-| `[` / `]` | Speed down / up |
+| `[` / `]` | Speed down / up (5 speeds: 1×, 2×, 4×, 16×, uncapped) |
 
 ### World Generation
 

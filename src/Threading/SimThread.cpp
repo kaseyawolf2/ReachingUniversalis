@@ -98,20 +98,45 @@ void SimThread::Run() {
         }
 
         if (!paused) {
-            int totalSteps = virtualFrames * tickSpeed;
-            // Write a snapshot every N steps so the render thread sees smooth
-            // intermediate positions.  At low speeds (1×–4×) every step gets
-            // a snapshot; at very high speeds we throttle to avoid making
-            // WriteSnapshot the bottleneck.
-            int snapshotInterval = std::max(1, totalSteps / 4);
-            for (int i = 0; i < totalSteps; ++i) {
-                RunSimStep(SIM_STEP_DT);
-                if ((i + 1) % snapshotInterval == 0 || i == totalSteps - 1) {
-                    using hrc = std::chrono::high_resolution_clock;
+            int totalSteps = 0;
+            if (tickSpeed == 0) {
+                // Uncapped (Speed 5): run as many steps as possible within
+                // a wall-clock budget of ~16ms per iteration, so the render
+                // thread still gets snapshots at a reasonable rate.
+                using hrc = std::chrono::high_resolution_clock;
+                auto budgetStart = hrc::now();
+                constexpr float BUDGET_MS = 16.f;
+                while (true) {
+                    RunSimStep(SIM_STEP_DT);
+                    ++totalSteps;
+                    auto elapsed = std::chrono::duration<float, std::milli>(hrc::now() - budgetStart).count();
+                    if (elapsed >= BUDGET_MS) break;
+                }
+                // Single snapshot at the end of the burst
+                {
                     auto t0 = hrc::now();
                     WriteSnapshot();
                     auto t1 = hrc::now();
                     m_profile[14].accumUs += std::chrono::duration<float, std::micro>(t1 - t0).count();
+                }
+                // Drain accumulator so we don't build up a debt
+                accumulator = 0.f;
+            } else {
+                totalSteps = virtualFrames * tickSpeed;
+                // Write a snapshot every N steps so the render thread sees smooth
+                // intermediate positions.  At low speeds (1×–4×) every step gets
+                // a snapshot; at very high speeds we throttle to avoid making
+                // WriteSnapshot the bottleneck.
+                int snapshotInterval = std::max(1, totalSteps / 4);
+                for (int i = 0; i < totalSteps; ++i) {
+                    RunSimStep(SIM_STEP_DT);
+                    if ((i + 1) % snapshotInterval == 0 || i == totalSteps - 1) {
+                        using hrc = std::chrono::high_resolution_clock;
+                        auto t0 = hrc::now();
+                        WriteSnapshot();
+                        auto t1 = hrc::now();
+                        m_profile[14].accumUs += std::chrono::duration<float, std::micro>(t1 - t0).count();
+                    }
                 }
             }
             m_stepCounter += totalSteps;
@@ -310,11 +335,14 @@ void SimThread::ProcessInput() {
         tm.paused = !tm.paused;
 
     // One-shot: speed
-    static constexpr int SPEEDS[]    = {1, 2, 4, 8, 16, 32, 64, 128};
+    // Paradox-style 5-speed system: real-time → uncapped
+    // Speed 0 = uncapped (sentinel), handled specially in the sim loop
+    static constexpr int SPEEDS[]    = {1, 2, 4, 16, 0};
     static constexpr int NUM_SPEEDS  = sizeof(SPEEDS) / sizeof(SPEEDS[0]);
     // Direct tick speed override (benchmark mode)
-    int directSpeed = m_input.setTickSpeed.exchange(0);
-    if (directSpeed > 0) tm.tickSpeed = directSpeed;
+    // Uses -1 as "no override" sentinel since 0 means uncapped speed
+    int directSpeed = m_input.setTickSpeed.exchange(-1);
+    if (directSpeed >= 0) tm.tickSpeed = directSpeed;
     if (m_input.speedUp.exchange(false)) {
         for (int i = 0; i < NUM_SPEEDS - 1; ++i)
             if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i+1]; break; }
@@ -323,6 +351,9 @@ void SimThread::ProcessInput() {
         for (int i = NUM_SPEEDS - 1; i > 0; --i)
             if (tm.tickSpeed == SPEEDS[i]) { tm.tickSpeed = SPEEDS[i-1]; break; }
     }
+    // Store the speed index for HUD display (1-based: Speed 1..5)
+    for (int i = 0; i < NUM_SPEEDS; ++i)
+        if (tm.tickSpeed == SPEEDS[i]) { tm.speedIndex = i + 1; break; }
 
     // One-shot: player trade (T key) — buy most profitable good or sell loaded goods
     if (m_input.playerTrade.exchange(false)) {
@@ -2491,7 +2522,7 @@ void SimThread::WriteSnapshot() {
     });
 
     // ---- HUD data ----
-    int    day = 1, hour = 6, minute = 0, tickSpeed = 1, deaths = 0;
+    int    day = 1, hour = 6, minute = 0, tickSpeed = 1, speedIndex = 1, deaths = 0;
     bool   paused = false;
     float  hourOfDay = 6.f;
     Season season    = Season::Spring;
@@ -2506,6 +2537,7 @@ void SimThread::WriteSnapshot() {
             minute      = (int)((tm.hourOfDay - hour) * 60.f);
             hourOfDay   = tm.hourOfDay;
             tickSpeed   = tm.tickSpeed;
+            speedIndex  = tm.speedIndex;
             paused      = tm.paused;
             season      = tm.CurrentSeason();
             temperature = AmbientTemperature(season, hourOfDay);
@@ -2744,6 +2776,7 @@ void SimThread::WriteSnapshot() {
         m_snapshot.season       = season;
         m_snapshot.temperature  = temperature;
         m_snapshot.tickSpeed    = tickSpeed;
+        m_snapshot.speedIndex   = speedIndex;
         m_snapshot.paused       = paused;
         m_snapshot.population   = pop;
         m_snapshot.totalDeaths  = deaths;

@@ -1,0 +1,18 @@
+# Medieval World — Global Settings
+# These values configure the map, economy, and game-speed defaults.
+
+[settings]
+name               = "Medieval"
+map_width          = 2400.0
+map_height         = 720.0
+game_mins_per_real_sec = 1.0
+start_population   = 25        # per settlement
+num_settlements    = 3
+start_treasury     = 200.0
+default_pop_cap    = 35
+road_build_cost    = 400.0
+road_repair_cost   = 30.0
+facility_build_cost = 200.0
+cart_cost          = 300.0
+settlement_found_cost = 1500.0
+npc_start_gold     = 50.0
