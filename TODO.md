@@ -93,15 +93,15 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Flat array resourceToProfession** — `WorldSchema::resourceToProfession` is still an `unordered_map<int,int>` but `ResourceID` is a dense integer (same pattern fixed for `resourceToSkill`). Replace with `std::vector<ProfessionID>` sized to `resources.size()` and indexed by `ResourceID`, initialized to `INVALID_ID`. Eliminates hash overhead in `ProfessionForResource()`.
 
-- [ ] **SocialBehavior sub-struct relocation** — `MoodState::skillCelebrateTimer` and `MoodState::reconcileGlow` are functionally cooldown timers gating behavior, not persistent mood flags. Move them to `InteractionCooldowns` for consistency, and update all access sites in `AgentDecisionSystem.cpp`, `ProductionSystem.cpp`, and `ScheduleSystem.cpp`.
+- [x] **SocialBehavior sub-struct relocation** — `MoodState::skillCelebrateTimer` and `MoodState::reconcileGlow` are functionally cooldown timers gating behavior, not persistent mood flags. Move them to `InteractionCooldowns` for consistency, and update all access sites in `AgentDecisionSystem.cpp`, `ProductionSystem.cpp`, and `ScheduleSystem.cpp`.
 
-- [ ] **WorldSchema::SkillGrowthRate INVALID_ID guard** — `AgentDecisionSystem.cpp` line ~598 passes the result of `SkillForProfession()` directly into `SkillGrowthRate()` without checking for `INVALID_ID` (-1). Add an explicit guard (`if (profSkId != INVALID_ID)`) before calling `SkillGrowthRate()`, consistent with the mentor growth call site at line ~1151 which already guards.
+- [x] **WorldSchema::SkillGrowthRate INVALID_ID guard** — `AgentDecisionSystem.cpp` line ~598 passes the result of `SkillForProfession()` directly into `SkillGrowthRate()` without checking for `INVALID_ID` (-1). Add an explicit guard (`if (profSkId != INVALID_ID)`) before calling `SkillGrowthRate()`, consistent with the mentor growth call site at line ~1151 which already guards.
 
-- [ ] **DynBitset copy/move semantics tests** — `DynBitset` relies on compiler-generated copy/move constructors with a `vector<uint64_t>` heap member. Add tests to `tests/DynBitsetTest.cpp` that copy a heap-mode bitset and mutate the copy (verifying original is untouched), and move a heap-mode bitset (verifying source is empty).
+- [x] **DynBitset copy/move semantics tests** — `DynBitset` relies on compiler-generated copy/move constructors with a `vector<uint64_t>` heap member. Add tests to `tests/DynBitsetTest.cpp` that copy a heap-mode bitset and mutate the copy (verifying original is untouched), and move a heap-mode bitset (verifying source is empty).
 
-- [ ] **Season threshold TOML validation** — `WorldLoader::LoadSeasons()` accepts any float values for season thresholds without sanity checks. Add validation that `mildCold < moderateCold < harshCold`, all values are in `[0.0, 2.0]`, and log warnings for inverted or out-of-range values.
+- [x] **Season threshold TOML validation** — `WorldLoader::LoadSeasons()` accepts any float values for season thresholds without sanity checks. Add validation that `mildCold < moderateCold < harshCold`, all values are in `[0.0, 2.0]`, and log warnings for inverted or out-of-range values.
 
-- [ ] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill`.
+- [x] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill`.
 
 - [ ] **DynBitset promotion-path test** — Add a test to `tests/DynBitsetTest.cpp` that calls `set(200)` on a default-constructed (empty inline) `DynBitset`, exercising the `promoteIfNeeded` path from truly empty inline state to heap allocation. Verify `test(200)` returns true and `test(0)` returns false.
 
@@ -121,9 +121,9 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **WorldLoader OptFloat default source-of-truth** — `LoadSeasons()` uses `OptFloat(tbl, key, struct_default)` where the default comes from the struct's in-class initializer. If someone changes the struct default without updating the TOML comment, they silently diverge. Add a comment warning about this coupling, or define named constants in `WorldSchema.h` used by both the struct initializer and the TOML comment.
 
-- [ ] **Dead GoalDef string fields cleanup** — `GoalDef` still carries dead `std::string checkType`, `targetMode`, and `behaviourMod` fields alongside their resolved enums — the same pattern just removed from `EventDef`. Remove them from `GoalDef` in `WorldSchema.h` and use local variables in `WorldLoader.cpp` during parsing.
+- [x] **Dead GoalDef string fields cleanup** — `GoalDef` still carries dead `std::string checkType`, `targetMode`, and `behaviourMod` fields alongside their resolved enums — the same pattern just removed from `EventDef`. Remove them from `GoalDef` in `WorldSchema.h` and use local variables in `WorldLoader.cpp` during parsing.
 
-- [ ] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill` and `resourceToProfession`.
+- [x] **Flat array professionToSkill** — `WorldSchema::professionToSkill` is `unordered_map<int,int>` but `ProfessionID` is a dense integer. Replace with `std::vector<SkillID>` sized to `professions.size()` and indexed by `ProfessionID`, initialized to `INVALID_ID`. Same optimization as `resourceToSkill` and `resourceToProfession`.
 
 - [ ] **Cache FindNeed in NeedDrainSystem** — `NeedDrainSystem::Update()` likely calls `schema.FindNeed()` by string every tick, same pattern fixed in `ConsumptionSystem`. Add cached member variables for frequently-used NeedIDs, initialized on first `Update()` call.
 
@@ -150,6 +150,30 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **Shared skillNames null-check consistency** — `GameState.cpp` null-checks `sharedSkillNames` before use, but the three HUD methods use `emptyNames` fallback. Pick one pattern: either always null-check with early return, or always fallback to empty. Apply consistently across all 4 consumer sites.
 
 - [ ] **ProfessionForResource callers audit** — After `resourceToProfession` changed to flat vector, audit all callers of `ProfessionForResource()` to ensure none pass ResourceIDs that could exceed `resources.size()`. Add an assert in `ProfessionForResource()` for debug builds.
+
+- [ ] **SocialBehavior InteractionCooldowns doc comment** — `InteractionCooldowns` in `Components.h` now holds `skillCelebrateTimer` and `reconcileGlow` after the sub-struct relocation, but has no doc comment explaining that these are behavior-gating cooldowns (not mood state). Add a brief `///` comment above the struct listing each timer's purpose and units (game-seconds).
+
+- [ ] **SocialBehavior MoodState dead field audit** — After relocating `skillCelebrateTimer` and `reconcileGlow` out of `MoodState`, audit whether any remaining `MoodState` fields are also functionally cooldowns. Candidates: `griefLevel` decays over time and gates visit behavior. Document each field's category (persistent state vs. decaying timer) with inline comments.
+
+- [ ] **SkillGrowthRate bounds-check unit test** — Add a test to `tests/` that constructs a minimal `WorldSchema` with 2 skills, then calls `SkillGrowthRate(INVALID_ID)`, `SkillGrowthRate(-1)`, and `SkillGrowthRate(999)` to verify the fallback returns 1.0f for all out-of-range inputs. Same for `SkillDecayRate`.
+
+- [ ] **SkillForProfession INVALID_ID propagation audit** — After the INVALID_ID guard was added at line ~598 of `AgentDecisionSystem.cpp`, audit all other call sites of `SkillForProfession()` across all systems to ensure they also guard against INVALID_ID before passing to `SkillGrowthRate()` or `SkillDecayRate()`.
+
+- [ ] **DynBitset copy assignment operator test** — `tests/DynBitsetTest.cpp` tests copy/move constructors but not copy/move assignment operators. Add tests for `DynBitset a; a = b;` (copy assign) and `DynBitset a; a = std::move(b);` (move assign) for both inline and heap modes, verifying independence and source state.
+
+- [ ] **DynBitset clear() method** — `DynBitset` has no `clear()` or `reset()` method to zero all bits without reallocating. Add `void clear()` that zeros all words (inline and heap) without changing capacity, and `void reset()` that returns to default-constructed empty state. Add corresponding tests.
+
+- [ ] **Season threshold TOML test config** — Add a `tests/test_seasons_invalid.toml` with intentionally inverted thresholds (`harshCold < mildCold`) and a test or script that runs `WorldLoader::LoadSeasons()` against it, verifying the warning is logged. Documents the validation behavior for future modders.
+
+- [ ] **Season threshold HUD display** — `GameState.cpp` uses season thresholds for sky tint but the HUD doesn't show the current threshold regime. Add a `seasonRegime` string field to `RenderSnapshot` (e.g., "Harsh Cold", "Mild", "Harvest") set by `TimeSystem` based on current `heatDrainMod` vs thresholds, displayed in the time panel.
+
+- [ ] **Flat professionToSkill bounds-check assert** — `WorldSchema::SkillForProfession(ProfessionID)` indexes into `professionToSkill` vector but has no bounds check. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for debug builds, consistent with `SkillIdForResource()`.
+
+- [ ] **BuildProfessionToSkillMap ordering test** — Add a test or assert that calling `BuildProfessionToSkillMap()` before `ResolveCrossRefs()` triggers the `assert(crossRefsResolved)` failure. Currently only tested implicitly by the load path. An explicit test documents the ordering contract.
+
+- [ ] **GoalDef resolved enum validation** — After removing dead string fields from `GoalDef`, the resolved enums (`checkEnum`, `targetEnum`, `behaviourEnum`) are the only source of truth. Add validation in `WorldLoader.cpp` that warns if any resolved enum is the default/unknown value after parsing, indicating the TOML had an unrecognized string that was silently defaulted.
+
+- [ ] **GoalDef field documentation** — `GoalDef` in `WorldSchema.h` has no doc comments on its remaining fields after the dead string removal. Add `///` comments for each field explaining its purpose, valid range, and which system consumes it (e.g., `completionCooldown` is consumed by `AgentDecisionSystem`).
 
 ## Phase 2 — UI Decoupling
 
