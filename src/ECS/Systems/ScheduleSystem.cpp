@@ -689,9 +689,9 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 }
                                 // Set reconcileGlow on both NPCs
                                 if (auto* sbA = registry.try_get<SocialBehavior>(entity))
-                                    sbA->reconcileGlow = glowDuration;
+                                    sbA->mood.reconcileGlow = glowDuration;
                                 if (auto* sbB = registry.try_get<SocialBehavior>(other))
-                                    sbB->reconcileGlow = glowDuration;
+                                    sbB->mood.reconcileGlow = glowDuration;
                                 // 3rd+ reconciliation: escalating friendship log
                                 if (reconTimes >= 3) {
                                     auto ufLogV = registry.view<EventLog>();
@@ -843,7 +843,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             as->behavior = AgentBehavior::Celebrating;
                                         }
                                         auto& sbCeleb = registry.get<SocialBehavior>(entity);
-                                        sbCeleb.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
+                                        sbCeleb.mood.skillCelebrateTimer = 0.5f; // 0.5 game-hours = ~30 real-seconds at 1×
                                     }
                                     // Master milestone boosts home settlement morale
                                     if (idx == 1) {
