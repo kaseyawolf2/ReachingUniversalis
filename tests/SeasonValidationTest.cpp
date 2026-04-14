@@ -45,6 +45,17 @@ static bool HasWarning(const std::vector<LoadWarning>& warnings,
     return false;
 }
 
+// Return true if any single warning message contains BOTH substrings.
+static bool HasWarning(const std::vector<LoadWarning>& warnings,
+                       const char* s1, const char* s2) {
+    for (const auto& w : warnings) {
+        if (w.message.find(s1) != std::string::npos &&
+            w.message.find(s2) != std::string::npos)
+            return true;
+    }
+    return false;
+}
+
 // Return true if any warning has the given category.
 static bool HasCategory(const std::vector<LoadWarning>& warnings,
                         const char* category) {
@@ -115,18 +126,15 @@ int main() {
                 "At least one warning has category 'seasons'");
 
     // Pairwise ordering: mild_cold (0.800) should be less than cold_season (0.300)
-    ASSERT_TRUE(HasWarning(warnings, "mild_cold") &&
-                HasWarning(warnings, "should be less than cold_season"),
+    ASSERT_TRUE(HasWarning(warnings, "mild_cold", "should be less than cold_season"),
                 "mild_cold >= cold_season pairwise warning");
 
     // Pairwise ordering: cold_season (0.300) should be less than moderate_cold (0.100)
-    ASSERT_TRUE(HasWarning(warnings, "cold_season") &&
-                HasWarning(warnings, "should be less than moderate_cold"),
+    ASSERT_TRUE(HasWarning(warnings, "cold_season", "should be less than moderate_cold"),
                 "cold_season >= moderate_cold pairwise warning");
 
     // Pairwise ordering: moderate_cold (0.100) should be less than harsh_cold (0.050)
-    ASSERT_TRUE(HasWarning(warnings, "moderate_cold") &&
-                HasWarning(warnings, "should be less than harsh_cold"),
+    ASSERT_TRUE(HasWarning(warnings, "moderate_cold", "should be less than harsh_cold"),
                 "moderate_cold >= harsh_cold pairwise warning");
 
     // Top-level ordering invariant: mild_cold < moderate_cold
