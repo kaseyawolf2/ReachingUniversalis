@@ -571,6 +571,74 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt) {
         }
     }
 
+    // ---- Elder storytelling event ----
+    // Once per day, each settlement rolls a 1-in-200 chance. If triggered, a skilled
+    // elder tells tales: attendees with affinity >= 0.2 gain +0.02 mutual affinity,
+    // the elder gains +0.01 toward all attendees, settlement morale +0.02.
+    {
+        static int s_lastStoryDay = -1;
+        if (tm.day != s_lastStoryDay) {
+            s_lastStoryDay = tm.day;
+
+            registry.view<Settlement>().each([&](auto settlE, Settlement& s) {
+                // 1-in-200 chance per game-day
+                if (m_rng() % 200 != 0) return;
+
+                // Find a skilled elder at this settlement
+                entt::entity storyteller = entt::null;
+                registry.view<Age, Skills, HomeSettlement, Relations>(
+                    entt::exclude<PlayerTag, BanditTag, ChildTag>).each(
+                    [&](auto npc, const Age& age, const Skills& sk, const HomeSettlement& hs, Relations&) {
+                        if (storyteller != entt::null) return; // already found one
+                        if (hs.settlement != settlE) return;
+                        if (age.days <= 60.f) return;
+                        if (sk.farming < 0.7f && sk.water_drawing < 0.7f && sk.woodcutting < 0.7f) return;
+                        storyteller = npc;
+                    });
+                if (storyteller == entt::null) return;
+
+                // Gather attendees: NPCs with affinity >= 0.2 toward the elder
+                auto& elderRel = registry.get<Relations>(storyteller);
+                std::vector<entt::entity> attendees;
+                registry.view<Relations, HomeSettlement>(
+                    entt::exclude<PlayerTag, BanditTag>).each(
+                    [&](auto npc, Relations& rel, const HomeSettlement& hs) {
+                        if (npc == storyteller) return;
+                        if (hs.settlement != settlE) return;
+                        auto it = rel.affinity.find(storyteller);
+                        if (it != rel.affinity.end() && it->second >= 0.2f)
+                            attendees.push_back(npc);
+                    });
+                if (attendees.empty()) return;
+
+                // Boost mutual affinity +0.02 among all attendees
+                for (size_t i = 0; i < attendees.size(); ++i) {
+                    auto& relA = registry.get<Relations>(attendees[i]);
+                    for (size_t j = i + 1; j < attendees.size(); ++j) {
+                        relA.affinity[attendees[j]] = std::min(1.f, relA.affinity[attendees[j]] + 0.02f);
+                        auto& relB = registry.get<Relations>(attendees[j]);
+                        relB.affinity[attendees[i]] = std::min(1.f, relB.affinity[attendees[i]] + 0.02f);
+                    }
+                }
+
+                // Elder gains +0.01 affinity toward each attendee
+                for (auto att : attendees)
+                    elderRel.affinity[att] = std::min(1.f, elderRel.affinity[att] + 0.01f);
+
+                // Morale boost
+                s.morale = std::min(1.f, s.morale + 0.02f);
+
+                // Log
+                if (log) {
+                    std::string elderName = "An elder";
+                    if (const auto* nm = registry.try_get<Name>(storyteller)) elderName = nm->value;
+                    log->Push(tm.day, (int)tm.hourOfDay,
+                        elderName + " tells tales of the old days at " + s.name + ".");
+                }
+            });
+        }
+    }
+
     // Count down to next event
     m_nextEvent -= gameHoursDt;
     if (m_nextEvent <= 0.f) {
