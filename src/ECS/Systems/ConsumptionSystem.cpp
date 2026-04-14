@@ -26,7 +26,10 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 
 static std::map<entt::entity, float> s_desperateCooldown;
 
-void ConsumptionSystem::Update(entt::registry& registry, float realDt, const WorldSchema& schema) {
+ConsumptionSystem::ConsumptionSystem(const WorldSchema& schema)
+    : m_schema(schema) {}
+
+void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
     if (timeView.empty()) return;
     const auto& tm = timeView.get<TimeManager>(*timeView.begin());
@@ -36,15 +39,15 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
 
     // 1 game-hour = 60 game-minutes; GAME_MINS_PER_REAL_SEC scales gameDt to minutes.
     float gameHoursDt  = gameDt * GAME_MINS_PER_REAL_SEC / 60.f;
-    SeasonID csId = tm.CurrentSeason(schema.seasons);
-    float heatDrainMult = (csId >= 0 && csId < (int)schema.seasons.size())
-                          ? schema.seasons[csId].heatDrainMod : 0.f;
+    SeasonID csId = tm.CurrentSeason(m_schema.seasons);
+    float heatDrainMult = (csId >= 0 && csId < (int)m_schema.seasons.size())
+                          ? m_schema.seasons[csId].heatDrainMod : 0.f;
 
     // Cache need IDs for theft desperation checks (schema-driven, not hardcoded).
     // Looked up once and stored as member variables to avoid string map lookups every tick.
     if (!m_needsCached) {
-        m_hungerNeedId = schema.FindNeed("Hunger");
-        m_thirstNeedId = schema.FindNeed("Thirst");
+        m_hungerNeedId = m_schema.FindNeed("Hunger");
+        m_thirstNeedId = m_schema.FindNeed("Thirst");
         m_needsCached  = true;
     }
     const NeedID hungerNeedId = m_hungerNeedId;
@@ -275,8 +278,8 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
         timer.purchaseTimer += gameHoursDt;
         float effectivePurchaseInterval = PURCHASE_INTERVAL;
         if (const auto* g = registry.try_get<Goal>(entity))
-            if (g->goalId >= 0 && g->goalId < (int)schema.goals.size()
-                && schema.goals[g->goalId].behaviourModEnum == GoalBehaviourMod::Hoard)
+            if (g->goalId >= 0 && g->goalId < (int)m_schema.goals.size()
+                && m_schema.goals[g->goalId].behaviourModEnum == GoalBehaviourMod::Hoard)
                 effectivePurchaseInterval *= 2.f;   // hoarders delay emergency purchases
         if (timer.purchaseTimer >= effectivePurchaseInterval && settl && money && money->balance > 0.f) {
             auto* mkt = registry.try_get<Market>(home.settlement);
@@ -367,7 +370,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    float foodSkill = sk->ForResource(RES_FOOD, schema);
+                    float foodSkill = sk->ForResource(RES_FOOD, m_schema);
                     char sb[32];
                     std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(foodSkill * 100));
                     skillSuffix = sb;
@@ -400,7 +403,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::string skillSuffix2;
                 if (auto* sk = registry.try_get<Skills>(entity)) {
                     sk->DecayAll(0.02f, 0.f);
-                    float waterSkill = sk->ForResource(RES_WATER, schema);
+                    float waterSkill = sk->ForResource(RES_WATER, m_schema);
                     char sb[32];
                     std::snprintf(sb, sizeof(sb), " (skill %d%%)", (int)(waterSkill * 100));
                     skillSuffix2 = sb;

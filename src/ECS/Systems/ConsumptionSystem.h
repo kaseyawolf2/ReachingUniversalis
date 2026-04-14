@@ -5,9 +5,13 @@ struct WorldSchema;
 
 class ConsumptionSystem {
 public:
-    void Update(entt::registry& registry, float realDt, const WorldSchema& schema);
+    explicit ConsumptionSystem(const WorldSchema& schema);
+
+    void Update(entt::registry& registry, float realDt);
 
 private:
+    const WorldSchema& m_schema;
+
     int  m_hungerNeedId  = -1;
     int  m_thirstNeedId  = -1;
     bool m_needsCached   = false;
