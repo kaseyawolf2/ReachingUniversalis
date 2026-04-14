@@ -41,8 +41,14 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt, const Wor
                           ? schema.seasons[csId].heatDrainMod : 0.f;
 
     // Cache need IDs for theft desperation checks (schema-driven, not hardcoded).
-    const NeedID hungerNeedId = schema.FindNeed("Hunger");
-    const NeedID thirstNeedId = schema.FindNeed("Thirst");
+    // Looked up once and stored as member variables to avoid string map lookups every tick.
+    if (!m_needsCached) {
+        m_hungerNeedId = schema.FindNeed("Hunger");
+        m_thirstNeedId = schema.FindNeed("Thirst");
+        m_needsCached  = true;
+    }
+    const NeedID hungerNeedId = m_hungerNeedId;
+    const NeedID thirstNeedId = m_thirstNeedId;
 
     // Per-settlement starvation tracking for food crisis warning
     std::map<entt::entity, int> starvingPerSettlement;
