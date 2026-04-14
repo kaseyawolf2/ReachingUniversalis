@@ -9,8 +9,6 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
-
 ## Done
 
 - [x] **Work buddy co-migration** — In `AgentDecisionSystem.cpp`'s friend co-migration block, extend the co-migration check to also consider `Relations::workBestFriend`. When an NPC migrates and their work best friend is at the same settlement with `stockpileEmpty >= migrateThreshold * 0.7f` (close to migrating anyway), 1-in-4 chance the buddy follows to the same destination. Log "[Buddy] follows work partner [Migrant] to [Destination]" at full frequency. Strengthens the social pull of workplace bonds.
@@ -53,6 +51,8 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 
 - [x] **Charity chain reaction** — In `AgentDecisionSystem.cpp`'s trade gift block, when the giver has `Reputation::score >= 0.5`, 1-in-6 chance that the recipient also donates 3g to a nearby NPC with `Money::balance < 10g` at the same settlement (balance-to-balance, Gold Flow Rule). Log "[Recipient] passes on [Giver]'s generosity at [Settlement]" at full frequency. Creates a cascade of kindness triggered by high-reputation donors.
+
+- [x] **Mourning procession morale boost** — In `AgentDecisionSystem.cpp`'s mourning procession block (after participants gather), apply `Settlement::morale += 0.02f` (cap 1.0) to the settlement where the procession occurs. This represents the community healing benefit of collective mourning. No new fields needed — uses existing `Settlement::morale`. Log "[Settlement] finds solace in shared grief" at 1-in-3 frequency after the procession log.
 
 - [x] **Teaching chain tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool isExpert = false` to `AgentEntry` in `RenderSnapshot.h`. Set when any skill >= 0.8 and matching `Profession::type`. In `HUD.cpp`'s NPC tooltip, display "[Expert]" in amber after the specialisation line. Makes the teaching chain hierarchy visible to the player.
 
@@ -4609,3 +4609,7 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Expert teaching aura** — In `AgentDecisionSystem.cpp`'s skill growth block, when an expert NPC (profession-matching skill >= 0.8) is working at the same facility as a non-expert of the same profession, the non-expert gains +0.0001 passive skill growth per step (proximity learning). Log "[NonExpert] watches [Expert] work at [Settlement]" at 1-in-12 frequency. Uses existing `Profession` and `Skills` try_get. Creates a passive mentorship effect from expert presence.
 
 - [ ] **Expert count in settlement tooltip** — In `SimThread::WriteSnapshot`'s settlement aggregation (`SettlAgg` struct), add `int expertCount = 0`. Increment when an NPC has profession-matching skill >= 0.8. Add `int expertCount = 0` to `SettlementEntry` in `RenderSnapshot.h`. In `HUD.cpp`'s settlement tooltip, display "Experts: N" after the master count line when N > 0. Makes the settlement's teaching capacity visible.
+
+- [ ] **Mourning procession size scaling** — In `AgentDecisionSystem.cpp`'s mourning procession block, scale the morale boost by procession size: `0.02f + 0.005f * (participants.size() - 3)` (capped at +0.05). Larger processions have more community healing impact. Log variant when 5+ participants: "[Settlement] holds a grand procession for [Elder]" at full frequency. Uses existing `participants` vector size.
+
+- [ ] **Shared grief friendship persistence** — In `AgentDecisionSystem.cpp`'s mourning procession block, after the mutual affinity boost among participants, set a new `bool processedGrief = false` on `DeprivationTimer` in `Components.h` to `true` for each participant. In the idle chat block, when both chatters have `processedGrief == true`, boost affinity by an extra +0.01. Log "[NPC1] and [NPC2] share a quiet moment of remembrance at [Settlement]" at 1-in-8 frequency. Creates lasting bonds from shared mourning experiences.
