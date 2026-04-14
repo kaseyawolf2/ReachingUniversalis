@@ -587,7 +587,6 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (age.days > 60.f) return;  // elders don't grow skills
                     // Check if settlement has a master of this profession
                     uint32_t myProfFlag = profFlag(prof.type);
-                    int myProfRes  = profRes(prof.type);
                     bool hasMaster = false;
                     if (myProfFlag && hs.settlement != entt::null) {
                         auto mit = masterFlags.find(hs.settlement);
