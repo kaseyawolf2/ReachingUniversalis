@@ -9,9 +9,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 
 ## In Progress
 
-- [ ] **Elder council road maintenance discount** — In `ConstructionSystem.cpp`'s road maintenance block, when both endpoint settlements have 2+ skilled elders (age>60, skill>=0.7), reduce `ROAD_MAINT_COST_EACH` by 20% for that road. Log "[Road]'s upkeep eased by elder oversight" at 1-in-8 frequency. Reuses the `skilledElderCount` map. Extends the elder council theme to infrastructure maintenance.
-
 ## Done
+
+- [x] **Elder council road maintenance discount** — In `ConstructionSystem.cpp`'s road maintenance block, when both endpoint settlements have 2+ skilled elders (age>60, skill>=0.7), reduce `ROAD_MAINT_COST_EACH` by 20% for that road. Log "[Road]'s upkeep eased by elder oversight" at 1-in-8 frequency. Reuses the `skilledElderCount` map. Extends the elder council theme to infrastructure maintenance.
+
 
 - [x] **Elder apprentice fast-track** — In `AgentDecisionSystem.cpp`'s elder wisdom skill boost block, track each NPC's highest-affinity elder via a new `entt::entity elderMentor = entt::null` field on `Skills` in `Components.h`. When the elder mentor dies, the apprentice gets `growth += 0.0003f` for 5 days (accelerated learning spurt to honour their teacher). Log "[Apprentice] redoubles their efforts in memory of [Elder]" at 1-in-4 frequency. Counterbalances wisdom grief with motivated tribute.
 
@@ -109,6 +110,10 @@ marks it done, then appends 2–3 new concrete tasks to keep the queue full.
 - [ ] **Tribute tooltip badge** — In `SimThread::WriteSnapshot`'s NPC loop, add `bool inTribute = false` to `AgentEntry` in `RenderSnapshot.h`. Set when `Skills::tributeDays > 0` (NPC is in accelerated growth honouring a fallen mentor). In `HUD.cpp`'s NPC tooltip, display "[Tribute]" in soft gold after existing badges. Makes the post-mentor-death learning spurt visible to the player.
 
 - [ ] **Apprentice seeks new mentor after tribute** — In `AgentDecisionSystem.cpp`'s elder wisdom block, when `sk.tributeDays` ticks from 1 to 0 (tribute ending), if the NPC still has no `elderMentor` (i.e. the old one died and no replacement found yet), scan elders of the same profession at the settlement. If a replacement elder exists with affinity >= 0.3 (lower than normal 0.6 threshold), adopt them as `elderMentor`. Log "[NPC] finds guidance anew with [Elder] at [Settlement]" at full frequency. Creates a narrative arc: loss → tribute → recovery.
+
+- [ ] **Elder council road repair priority** — In `ConstructionSystem.cpp`'s autonomous road repair block, when both endpoint settlements have 2+ skilled elders (reuse `skilledElderCount`), reduce `ROAD_REPAIR_COST` by 20% (from 30g to 24g per endpoint). Log "[Road] repaired efficiently under elder guidance" at 1-in-6 frequency. Extends the elder council infrastructure theme to active repairs, not just maintenance.
+
+- [ ] **Elder council morale stabiliser** — In `AgentDecisionSystem.cpp`'s once-per-day block (near the `s_lastSkillGrowthDay` check), when a settlement has 3+ skilled elders (`skilledElderCount >= 3`, pre-computed from the existing elder scan), apply `Settlement::morale += 0.005f` (cap 1.0). Log "[Settlement]'s elder council steadies the community" at 1-in-10 frequency. Gives settlements with many elders passive morale recovery.
 
 ## Recently Done
 
