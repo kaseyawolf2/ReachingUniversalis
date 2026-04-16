@@ -169,11 +169,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Flat professionToSkill bounds-check assert** — `WorldSchema::SkillForProfession(ProfessionID)` indexes into `professionToSkill` vector but has no bounds check. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for debug builds, consistent with `SkillIdForResource()`.
 
-- [ ] **BuildProfessionToSkillMap ordering test** — Add a test or assert that calling `BuildProfessionToSkillMap()` before `ResolveCrossRefs()` triggers the `assert(crossRefsResolved)` failure. Currently only tested implicitly by the load path. An explicit test documents the ordering contract.
+- [x] **BuildProfessionToSkillMap ordering test** — Add a test or assert that calling `BuildProfessionToSkillMap()` before `ResolveCrossRefs()` triggers the `assert(crossRefsResolved)` failure. Currently only tested implicitly by the load path. An explicit test documents the ordering contract.
 
-- [ ] **GoalDef resolved enum validation** — After removing dead string fields from `GoalDef`, the resolved enums (`checkEnum`, `targetEnum`, `behaviourEnum`) are the only source of truth. Add validation in `WorldLoader.cpp` that warns if any resolved enum is the default/unknown value after parsing, indicating the TOML had an unrecognized string that was silently defaulted.
+- [x] **GoalDef resolved enum validation** — After removing dead string fields from `GoalDef`, the resolved enums (`checkEnum`, `targetEnum`, `behaviourEnum`) are the only source of truth. Add validation in `WorldLoader.cpp` that warns if any resolved enum is the default/unknown value after parsing, indicating the TOML had an unrecognized string that was silently defaulted.
 
-- [ ] **GoalDef field documentation** — `GoalDef` in `WorldSchema.h` has no doc comments on its remaining fields after the dead string removal. Add `///` comments for each field explaining its purpose, valid range, and which system consumes it (e.g., `completionCooldown` is consumed by `AgentDecisionSystem`).
+- [x] **GoalDef field documentation** — `GoalDef` in `WorldSchema.h` has no doc comments on its remaining fields after the dead string removal. Add `///` comments for each field explaining its purpose, valid range, and which system consumes it (e.g., `completionCooldown` is consumed by `AgentDecisionSystem`).
 
 - [ ] **DynBitset promoteIfNeeded capacity test** — Add a test to `tests/DynBitsetTest.cpp` that sets bits 0 (inline), then 65 (promoting to heap), then 200 (growing heap), verifying all three bits remain set after each promotion step. Tests that promotion preserves existing bits across multiple resizes.
 
@@ -290,6 +290,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **SeasonValidationTest path robustness** — `tests/SeasonValidationTest.cpp` probes for test data via relative path guessing (`"tests"`, `"../tests"`, `"../../tests"`). Replace with `__FILE__`-based project root derivation or a CMake `target_compile_definitions(-DTEST_DATA_DIR=...)` for robust path resolution regardless of working directory.
 
 - [ ] **SeasonValidationTest warning count decoupling** — `tests/SeasonValidationTest.cpp` asserts `seasonWarnings == 5` which will break when new season validation warnings are added to WorldLoader. Remove the exact count assertion and rely on the individual substring checks to verify specific warnings.
+
+- [ ] **BuildMapOrderingTest stderr capture helper** — `tests/BuildMapOrderingTest.cpp` duplicates the stderr-capture pattern (dup/dup2/tmpfile/fread) verbatim across both `stderr_resource_map` and `stderr_profession_map` tests. Extract a `std::string captureStderr(std::function<void()>)` helper to eliminate ~30 lines of copy-paste.
+
+- [ ] **BuildMapOrderingTest POSIX portability comment** — `tests/BuildMapOrderingTest.cpp` includes `<unistd.h>` and uses `dup`/`dup2`/`fileno` which are POSIX-only. The main CMakeLists has a `if(WIN32)` block implying cross-platform intent. Add a `#ifdef _WIN32` guard or a comment at the top of the file documenting that this test is POSIX-only and will not compile on Windows.
+
+- [ ] **GoalDef enum validation test config** — Add a `tests/test_goals_invalid.toml` with intentionally unknown `check_type`, `target_mode`, and `behaviour_mod` strings, and a test that runs `WorldLoader` against it verifying the new GoalDef enum validation warnings are emitted. Documents the validation behavior for future modders, same pattern as `SeasonValidationTest`.
+
+- [ ] **GoalDef behaviourModEnum None suppression comment** — `WorldLoader.cpp` GoalDef enum validation warns on unknown `checkEnum` and `targetEnum` but silently accepts `behaviourModEnum == None`. Add a one-line comment explaining why `None` is valid (most goals have no behaviour mod) to prevent future maintainers from adding a warning for it.
+
+- [ ] **GoalDef consumer cross-reference audit** — `GoalDef` doc comments now list "Consumed by: AgentDecisionSystem" for most fields. Grep all GoalDef field accesses across the codebase and verify the "Consumed by" lists are complete. Add any missing consumer systems to the doc comments.
+
+- [ ] **GoalDef doc comments unit range validation** — Several `GoalDef` fields documented as "Valid range: >= 0" or "Valid range: 0.0+" have no load-time validation enforcing these ranges. Add `std::max(0, ...)` clamps or warnings in `WorldLoader.cpp` for `target`, `goalCount`, `completionCooldown`, and `effectValue` to match the documented constraints.
 
 ## Phase 2 — UI Decoupling
 
