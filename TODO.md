@@ -175,11 +175,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **GoalDef field documentation** — `GoalDef` in `WorldSchema.h` has no doc comments on its remaining fields after the dead string removal. Add `///` comments for each field explaining its purpose, valid range, and which system consumes it (e.g., `completionCooldown` is consumed by `AgentDecisionSystem`).
 
-- [ ] **DynBitset promoteIfNeeded capacity test** — Add a test to `tests/DynBitsetTest.cpp` that sets bits 0 (inline), then 65 (promoting to heap), then 200 (growing heap), verifying all three bits remain set after each promotion step. Tests that promotion preserves existing bits across multiple resizes.
+- [x] **DynBitset promoteIfNeeded capacity test** — Add a test to `tests/DynBitsetTest.cpp` that sets bits 0 (inline), then 65 (promoting to heap), then 200 (growing heap), verifying all three bits remain set after each promotion step. Tests that promotion preserves existing bits across multiple resizes.
 
-- [ ] **DynBitset count() method** — `DynBitset` has `none()` but no `count()` to return the number of set bits (population count). Add `size_t count() const` using `__builtin_popcountll` for each word (inline and heap). Add tests for empty, single-bit, full-word, and multi-word cases.
+- [x] **DynBitset count() method** — `DynBitset` has `none()` but no `count()` to return the number of set bits (population count). Add `size_t count() const` using `__builtin_popcountll` for each word (inline and heap). Add tests for empty, single-bit, full-word, and multi-word cases.
 
-- [ ] **BuildResourceToSkillMap abort test** — The assert-to-runtime change replaced `assert(crossRefsResolved)` with `fprintf + std::abort()`. Add a comment in `WorldSchema.h` documenting that `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` will abort if called before `ResolveCrossRefs()`, and reference the call ordering in `WorldLoader.cpp`.
+- [x] **BuildResourceToSkillMap abort test** — The assert-to-runtime change replaced `assert(crossRefsResolved)` with `fprintf + std::abort()`. Add a comment in `WorldSchema.h` documenting that `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` will abort if called before `ResolveCrossRefs()`, and reference the call ordering in `WorldLoader.cpp`.
 
 - [ ] **WorldSchema InitDerivedData() method** — `WorldLoader.cpp` calls `ResolveCrossRefs()`, `BuildResourceToSkillMap()`, `BuildProfessionToSkillMap()` in sequence. Bundle these into a single `WorldSchema::InitDerivedData()` method that enforces the correct call order internally, eliminating the class of ordering bugs that the runtime abort guards against.
 
@@ -302,6 +302,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **GoalDef consumer cross-reference audit** — `GoalDef` doc comments now list "Consumed by: AgentDecisionSystem" for most fields. Grep all GoalDef field accesses across the codebase and verify the "Consumed by" lists are complete. Add any missing consumer systems to the doc comments.
 
 - [ ] **GoalDef doc comments unit range validation** — Several `GoalDef` fields documented as "Valid range: >= 0" or "Valid range: 0.0+" have no load-time validation enforcing these ranges. Add `std::max(0, ...)` clamps or warnings in `WorldLoader.cpp` for `target`, `goalCount`, `completionCooldown`, and `effectValue` to match the documented constraints.
+
+- [ ] **DynBitset count() after clear/reset test** — `tests/DynBitsetTest.cpp` tests `count()` and `clear()`/`reset()` independently but not in combination. Add tests verifying `count()` returns 0 after `clear()` on an inline bitset and after `reset()` on a heap bitset, to ensure the operations interact correctly.
+
+- [ ] **DynBitset count() multi-word stress test** — `tests/DynBitsetTest.cpp` `count_multi_word` test sets only 5 bits across 3 words. Add a stress test that sets every bit from 0 to 255 (4 words), verifies `count() == 256`, then clears odd-indexed bits and verifies `count() == 128`. Tests popcount correctness at scale.
+
+- [ ] **BuildMap doc comment LoadWorld reference fix** — `WorldSchema.h` doc comments for `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` reference `WorldLoader.cpp LoadWorld()` but the actual function is `WorldLoader::Load()`. Fix the cross-reference to use the correct function name.
+
+- [ ] **BuildMap dead assert removal audit** — PR #86 removed the dead `assert(crossRefsResolved)` lines from `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` in `WorldSchema.cpp`. Verify `BuildMaps()` (which calls both) also has no dead asserts, and that the `ResolveCrossRefs()` function itself sets the flag correctly in all code paths (including early-return error paths).
+
+- [ ] **DynBitset promoteIfNeeded shrink-to-fit** — `DynBitset` promotes from inline to heap when bits > 63 are set, but never shrinks back. Add a `shrinkToFit()` method that converts a heap-mode bitset back to inline if all set bits fit in 64 bits. Add tests for the roundtrip: set bit 200 (promote), clear bit 200, shrinkToFit, verify inline mode.
+
+- [ ] **DynBitset iterator/forEach method** — `DynBitset` has `test()` for individual bits but no way to iterate over set bits. Add `void forEach(std::function<void(size_t)>)` that calls the callback for each set bit index, using `__builtin_ctzll` to find set bits efficiently. Add tests with empty, sparse, and dense bitsets.
 
 ## Phase 2 — UI Decoupling
 
