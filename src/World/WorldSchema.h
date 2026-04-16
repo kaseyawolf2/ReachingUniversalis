@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 
 #include "SeasonDef.h"
 
@@ -396,11 +397,11 @@ struct WorldSchema {
     // Flat vector indexed by ResourceID; value is ProfessionID (INVALID_ID if none).
     std::vector<ProfessionID> resourceToProfession;
 
-    // Resource → Skill reverse lookup (built by BuildResourceToSkillMap after cross-refs resolved)
+    // Resource → Skill reverse lookup (built by InitDerivedData after cross-refs resolved)
     // Flat vector indexed by ResourceID; value is SkillID (INVALID_ID if none).
     std::vector<int> resourceToSkill;
 
-    // Profession → Skill reverse lookup (built by BuildProfessionToSkillMap, must run after ResolveCrossRefs)
+    // Profession → Skill reverse lookup (built by InitDerivedData after cross-refs resolved)
     // Flat vector indexed by ProfessionID; value is SkillID (INVALID_ID if none).
     std::vector<SkillID> professionToSkill;
 
@@ -408,7 +409,8 @@ struct WorldSchema {
     ProfessionID idleProfessionId   = INVALID_ID;
     ProfessionID haulerProfessionId = INVALID_ID;
 
-    // Ordering guard: set true by ResolveCrossRefs(), checked by BuildResourceToSkillMap().
+    // Ordering guard: set true by ResolveCrossRefs(), checked by InitDerivedData().
+    // Violation aborts the process.
     bool crossRefsResolved = false;
 
     // ---- Lookup helpers (safe, return INVALID_ID on miss) ----
@@ -515,19 +517,14 @@ struct WorldSchema {
     /// Build the resourceToSkill reverse lookup from SkillDef::forResource.
     ///
     /// Precondition: ResolveCrossRefs() must have been called first (sets
-    /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
-    /// function prints an error to stderr and returns early (in all build
-    /// configurations).
+    /// crossRefsResolved = true).  Violation aborts the process.
     ///
-    /// Required call ordering (see WorldLoader.cpp LoadWorld()):
-    ///   1. BuildMaps()
-    ///   2. ResolveCrossRefs()
-    ///   3. BuildResourceToSkillMap()   <-- this function
-    ///   4. BuildProfessionToSkillMap()
+    /// Prefer calling InitDerivedData() instead — it bundles this method
+    /// and BuildProfessionToSkillMap() in the correct order.
     void BuildResourceToSkillMap() {
         if (!crossRefsResolved) {
-            fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
-            return;
+            fprintf(stderr, "[WorldSchema] FATAL: %s called before ResolveCrossRefs() — aborting\n", __func__);
+            std::abort();
         }
         resourceToSkill.assign(resources.size(), INVALID_ID);
         for (const auto& d : skills) {
@@ -539,24 +536,45 @@ struct WorldSchema {
     /// Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
     ///
     /// Precondition: ResolveCrossRefs() must have been called first (sets
-    /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
-    /// function prints an error to stderr and returns early (in all build
-    /// configurations).
+    /// crossRefsResolved = true).  Violation aborts the process.
     ///
-    /// Required call ordering (see WorldLoader.cpp LoadWorld()):
-    ///   1. BuildMaps()
-    ///   2. ResolveCrossRefs()
-    ///   3. BuildResourceToSkillMap()
-    ///   4. BuildProfessionToSkillMap()   <-- this function
+    /// Prefer calling InitDerivedData() instead — it bundles this method
+    /// and BuildResourceToSkillMap() in the correct order.
     void BuildProfessionToSkillMap() {
         if (!crossRefsResolved) {
-            fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
-            return;
+            fprintf(stderr, "[WorldSchema] FATAL: %s called before ResolveCrossRefs() — aborting\n", __func__);
+            std::abort();
         }
         professionToSkill.assign(professions.size(), INVALID_ID);
         for (const auto& d : professions) {
             if (d.id >= 0 && d.id < (int)professionToSkill.size())
                 professionToSkill[d.id] = d.primarySkill;
         }
+    }
+
+    /// Single entry point that builds every derived / reverse-lookup table.
+    /// Must be called exactly once, after BuildMaps() and ResolveCrossRefs()
+    /// have populated the definition vectors and resolved all string-to-ID
+    /// cross-references (crossRefsResolved == true).
+    ///
+    /// Internally calls BuildResourceToSkillMap() then BuildProfessionToSkillMap()
+    /// in the required order, eliminating the class of ordering bugs that
+    /// callers would otherwise have to get right manually.
+    ///
+    /// Precondition violation (crossRefsResolved == false) is a programmer
+    /// error and aborts the process — the game cannot run with empty lookup
+    /// tables.
+    ///
+    /// Required call ordering in WorldLoader.cpp LoadWorld():
+    ///   1. BuildMaps()
+    ///   2. ResolveCrossRefs()
+    ///   3. InitDerivedData()   <-- this function
+    void InitDerivedData() {
+        if (!crossRefsResolved) {
+            fprintf(stderr, "[WorldSchema] FATAL: %s called before ResolveCrossRefs() — aborting\n", __func__);
+            std::abort();
+        }
+        BuildResourceToSkillMap();
+        BuildProfessionToSkillMap();
     }
 };
