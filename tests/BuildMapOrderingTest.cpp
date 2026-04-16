@@ -89,9 +89,13 @@ TEST(resourceToSkillMap_blocked_before_crossRefs) {
 TEST(professionToSkillMap_succeeds_after_crossRefs) {
     auto ws = makeSchema();
 
-    // Simulate that ResolveCrossRefs() has run by setting the flag.
-    // In real code, ResolveCrossRefs() also resolves string references into
-    // integer IDs, but our makeSchema() already set them directly.
+    // Known test gap: we set the flag directly instead of calling the real
+    // ResolveCrossRefs(), which is a static function inside WorldLoader.cpp
+    // that re-parses TOML files from disk.  Calling it here would require
+    // the full TOML world directory (needs.toml, skills.toml, professions.toml,
+    // etc.).  Our makeSchema() already populates integer IDs directly, so the
+    // maps build correctly, but this does not exercise the TOML-to-ID
+    // resolution path.
     ws.crossRefsResolved = true;
 
     ws.BuildProfessionToSkillMap();
@@ -106,6 +110,7 @@ TEST(professionToSkillMap_succeeds_after_crossRefs) {
 TEST(resourceToSkillMap_succeeds_after_crossRefs) {
     auto ws = makeSchema();
 
+    // Known test gap: see comment in professionToSkillMap_succeeds_after_crossRefs.
     ws.crossRefsResolved = true;
 
     ws.BuildResourceToSkillMap();
@@ -128,7 +133,6 @@ TEST(professionToSkillMap_prints_stderr_before_crossRefs) {
     assert(!ws.crossRefsResolved);
 
     // Redirect stderr to a temp file
-    FILE* origStderr = stderr;
     FILE* tmp = tmpfile();
     assert(tmp && "tmpfile() failed");
 
