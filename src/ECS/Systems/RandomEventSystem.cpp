@@ -1330,9 +1330,9 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.view<Settlement, Stockpile>().each(
                 [&](auto e, Settlement& rs, Stockpile& rsp) {
                     rsp.quantities[addResId] += amount;
-                    // Break active negative modifier at target
-                    if (ev.breaksDrought && e == target && rs.modifierDuration > 0.f &&
-                        rs.modifierName.find("Drought") != std::string::npos) {
+                    // Modifier break targets only the primary settlement, even for all-settlement events
+                    if (ev.breaksNegativeModifiers && e == target &&
+                        rs.modifierDuration > 0.f && rs.productionModifier < 1.f) {
                         rs.modifierDuration   = 0.f;
                         rs.productionModifier = 1.f;
                         rs.modifierName.clear();
@@ -1350,6 +1350,13 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             auto* sp = registry.try_get<Stockpile>(target);
             if (!sp) return;
             sp->quantities[addResId] += amount;
+            // Break any active negative modifier at target
+            if (ev.breaksNegativeModifiers &&
+                settl->modifierDuration > 0.f && settl->productionModifier < 1.f) {
+                settl->modifierDuration   = 0.f;
+                settl->productionModifier = 1.f;
+                settl->modifierName.clear();
+            }
             if (log) {
                 std::string resName = (ev.addResourceId != INVALID_ID
                     && ev.addResourceId < (int)schema.resources.size())

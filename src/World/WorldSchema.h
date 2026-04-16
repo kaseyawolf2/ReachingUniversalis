@@ -174,8 +174,8 @@ struct EventDef {
     // Applies to all settlements (e.g. rainstorm adds water everywhere)
     bool        affectsAllSettlements = false;
 
-    // Breaks drought at the target settlement if active
-    bool        breaksDrought = false;
+    // Breaks any active negative modifier (productionModifier < 1) at the target settlement
+    bool        breaksNegativeModifiers = false;
 
     // Convoy: buy most-expensive resource from off-map
     float       convoyAmount   = 0.0f;
