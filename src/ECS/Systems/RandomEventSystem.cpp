@@ -1330,7 +1330,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             registry.view<Settlement, Stockpile>().each(
                 [&](auto e, Settlement& rs, Stockpile& rsp) {
                     rsp.quantities[addResId] += amount;
-                    // Break any active negative modifier at target
+                    // Modifier break targets only the primary settlement, even for all-settlement events
                     if (ev.breaksNegativeModifiers && e == target &&
                         rs.modifierDuration > 0.f && rs.productionModifier < 1.f) {
                         rs.modifierDuration   = 0.f;
