@@ -332,6 +332,11 @@ static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight g
 static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
 static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: reduced yields
 
+// Valid range for season threshold values loaded from TOML.  Both heat-drain
+// and production-mod thresholds must lie within [MIN, MAX].
+static constexpr float SEASON_THRESHOLD_MIN = 0.0f;
+static constexpr float SEASON_THRESHOLD_MAX = 2.0f;
+
 // ---- Season thresholds (loaded from seasons.toml, with compile-time defaults) ----
 
 struct SeasonThresholds {
