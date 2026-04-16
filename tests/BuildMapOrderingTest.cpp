@@ -1,14 +1,13 @@
-// BuildMapOrderingTest.cpp — verify that calling BuildProfessionToSkillMap()
-// or BuildResourceToSkillMap() before ResolveCrossRefs() triggers the ordering
-// guard (early return without building the map, error printed to stderr).
+// BuildMapOrderingTest.cpp — verify that calling BuildProfessionToSkillMap(),
+// BuildResourceToSkillMap(), or InitDerivedData() before ResolveCrossRefs()
+// aborts the process with a diagnostic message on stderr.
 //
 // Build via CMake target BuildMapOrderingTest (see CMakeLists.txt).
 // Run:  ./build/BuildMapOrderingTest
 //
-// The ordering contract: ResolveCrossRefs() must be called before either
-// Build*Map() method.  Both methods check `crossRefsResolved` and silently
-// return if it is false (with an error message to stderr).  This test
-// documents that contract explicitly.
+// The ordering contract: ResolveCrossRefs() must be called before
+// InitDerivedData() (or the individual Build*Map() methods).  Violation
+// is a fatal programmer error — the guard calls std::abort().
 
 #include "World/WorldSchema.h"
 #include <cassert>
@@ -16,6 +15,7 @@
 #include <cstring>
 #include <string>
 #include <unistd.h>
+#include <sys/wait.h>
 
 static int passed = 0;
 
@@ -50,36 +50,106 @@ static WorldSchema makeSchema() {
 }
 
 // ---------------------------------------------------------------------------
-// BuildProfessionToSkillMap — guard blocks when crossRefsResolved is false
+// Helper: fork a child, run `fn`, and verify the child was killed by a signal
+// (SIGABRT).  Optionally capture the child's stderr into `stderrOut`.
+// Returns true if the child was signalled (i.e. aborted as expected).
 // ---------------------------------------------------------------------------
 
-TEST(professionToSkillMap_blocked_before_crossRefs) {
-    auto ws = makeSchema();
+static bool expectAbort(void (*fn)(), std::string* stderrOut = nullptr) {
+    int pipeFds[2] = {-1, -1};
+    if (stderrOut) {
+        if (pipe(pipeFds) != 0) return false;
+    }
 
-    // crossRefsResolved is false by default (ResolveCrossRefs not called)
-    assert(!ws.crossRefsResolved);
+    pid_t pid = fork();
+    if (pid < 0) return false;
 
-    // Calling BuildProfessionToSkillMap should silently return
-    ws.BuildProfessionToSkillMap();
+    if (pid == 0) {
+        // Child: redirect stderr to pipe if requested, then run fn (should abort)
+        if (stderrOut) {
+            close(pipeFds[0]);  // close read end
+            dup2(pipeFds[1], fileno(stderr));
+            close(pipeFds[1]);
+        }
+        fn();
+        // If fn() returns, exit normally — the parent will detect this as failure
+        _exit(0);
+    }
 
-    // The map must remain empty (the function returned early)
-    assert(ws.professionToSkill.empty()
-           && "professionToSkill should be empty when called before ResolveCrossRefs()");
+    // Parent
+    if (stderrOut) {
+        close(pipeFds[1]);  // close write end
+        char buf[1024];
+        ssize_t n;
+        while ((n = read(pipeFds[0], buf, sizeof(buf) - 1)) > 0) {
+            buf[n] = '\0';
+            stderrOut->append(buf);
+        }
+        close(pipeFds[0]);
+    }
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+
+    // The child should have been killed by SIGABRT (signal 6)
+    return WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT;
 }
 
 // ---------------------------------------------------------------------------
-// BuildResourceToSkillMap — guard blocks when crossRefsResolved is false
+// BuildProfessionToSkillMap — guard aborts when crossRefsResolved is false
 // ---------------------------------------------------------------------------
 
-TEST(resourceToSkillMap_blocked_before_crossRefs) {
+static void callBuildProfessionToSkillMap() {
     auto ws = makeSchema();
+    ws.BuildProfessionToSkillMap();
+}
 
-    assert(!ws.crossRefsResolved);
+TEST(professionToSkillMap_aborts_before_crossRefs) {
+    std::string captured;
+    bool aborted = expectAbort(callBuildProfessionToSkillMap, &captured);
+    assert(aborted && "BuildProfessionToSkillMap should abort when crossRefsResolved is false");
+    assert(captured.find("BuildProfessionToSkillMap") != std::string::npos
+           && "Stderr message should mention BuildProfessionToSkillMap");
+    assert(captured.find("before ResolveCrossRefs()") != std::string::npos
+           && "Stderr message should mention ResolveCrossRefs ordering");
+}
 
+// ---------------------------------------------------------------------------
+// BuildResourceToSkillMap — guard aborts when crossRefsResolved is false
+// ---------------------------------------------------------------------------
+
+static void callBuildResourceToSkillMap() {
+    auto ws = makeSchema();
     ws.BuildResourceToSkillMap();
+}
 
-    assert(ws.resourceToSkill.empty()
-           && "resourceToSkill should be empty when called before ResolveCrossRefs()");
+TEST(resourceToSkillMap_aborts_before_crossRefs) {
+    std::string captured;
+    bool aborted = expectAbort(callBuildResourceToSkillMap, &captured);
+    assert(aborted && "BuildResourceToSkillMap should abort when crossRefsResolved is false");
+    assert(captured.find("BuildResourceToSkillMap") != std::string::npos
+           && "Stderr message should mention BuildResourceToSkillMap");
+    assert(captured.find("before ResolveCrossRefs()") != std::string::npos
+           && "Stderr message should mention ResolveCrossRefs ordering");
+}
+
+// ---------------------------------------------------------------------------
+// InitDerivedData — guard aborts when crossRefsResolved is false
+// ---------------------------------------------------------------------------
+
+static void callInitDerivedData() {
+    auto ws = makeSchema();
+    ws.InitDerivedData();
+}
+
+TEST(initDerivedData_aborts_before_crossRefs) {
+    std::string captured;
+    bool aborted = expectAbort(callInitDerivedData, &captured);
+    assert(aborted && "InitDerivedData should abort when crossRefsResolved is false");
+    assert(captured.find("InitDerivedData") != std::string::npos
+           && "Stderr message should mention InitDerivedData");
+    assert(captured.find("before ResolveCrossRefs()") != std::string::npos
+           && "Stderr message should mention ResolveCrossRefs ordering");
 }
 
 // ---------------------------------------------------------------------------
@@ -123,75 +193,26 @@ TEST(resourceToSkillMap_succeeds_after_crossRefs) {
 }
 
 // ---------------------------------------------------------------------------
-// Stderr output — verify the guard prints a diagnostic message.
-// We redirect stderr to a temporary file, call the guarded function, then
-// check the file contents for the expected error string.
+// InitDerivedData builds both maps when crossRefsResolved is true
 // ---------------------------------------------------------------------------
 
-TEST(professionToSkillMap_prints_stderr_before_crossRefs) {
+TEST(initDerivedData_builds_both_maps) {
     auto ws = makeSchema();
-    assert(!ws.crossRefsResolved);
+    ws.crossRefsResolved = true;
 
-    // Redirect stderr to a temp file
-    FILE* tmp = tmpfile();
-    assert(tmp && "tmpfile() failed");
+    ws.InitDerivedData();
 
-    // Swap stderr to the temp file
-    int origFd = dup(fileno(stderr));
-    dup2(fileno(tmp), fileno(stderr));
+    // resourceToSkill
+    assert(!ws.resourceToSkill.empty()
+           && "resourceToSkill should be populated by InitDerivedData");
+    assert(ws.resourceToSkill.size() == ws.resources.size());
+    assert(ws.resourceToSkill[0] == 0);
 
-    ws.BuildProfessionToSkillMap();
-
-    // Restore stderr
-    fflush(stderr);
-    dup2(origFd, fileno(stderr));
-    close(origFd);
-
-    // Read back the captured output
-    fseek(tmp, 0, SEEK_END);
-    long sz = ftell(tmp);
-    assert(sz > 0 && "Expected stderr output from the ordering guard");
-    fseek(tmp, 0, SEEK_SET);
-
-    std::string captured(sz, '\0');
-    fread(&captured[0], 1, sz, tmp);
-    fclose(tmp);
-
-    assert(captured.find("BuildProfessionToSkillMap") != std::string::npos
-           && "Stderr message should mention BuildProfessionToSkillMap");
-    assert(captured.find("before ResolveCrossRefs()") != std::string::npos
-           && "Stderr message should mention ResolveCrossRefs ordering");
-}
-
-TEST(resourceToSkillMap_prints_stderr_before_crossRefs) {
-    auto ws = makeSchema();
-    assert(!ws.crossRefsResolved);
-
-    FILE* tmp = tmpfile();
-    assert(tmp && "tmpfile() failed");
-
-    int origFd = dup(fileno(stderr));
-    dup2(fileno(tmp), fileno(stderr));
-
-    ws.BuildResourceToSkillMap();
-
-    fflush(stderr);
-    dup2(origFd, fileno(stderr));
-    close(origFd);
-
-    fseek(tmp, 0, SEEK_END);
-    long sz = ftell(tmp);
-    assert(sz > 0 && "Expected stderr output from the ordering guard");
-    fseek(tmp, 0, SEEK_SET);
-
-    std::string captured(sz, '\0');
-    fread(&captured[0], 1, sz, tmp);
-    fclose(tmp);
-
-    assert(captured.find("BuildResourceToSkillMap") != std::string::npos
-           && "Stderr message should mention BuildResourceToSkillMap");
-    assert(captured.find("before ResolveCrossRefs()") != std::string::npos
-           && "Stderr message should mention ResolveCrossRefs ordering");
+    // professionToSkill
+    assert(!ws.professionToSkill.empty()
+           && "professionToSkill should be populated by InitDerivedData");
+    assert(ws.professionToSkill.size() == ws.professions.size());
+    assert(ws.professionToSkill[0] == 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -199,17 +220,17 @@ TEST(resourceToSkillMap_prints_stderr_before_crossRefs) {
 int main() {
     std::printf("Running BuildMap ordering-guard tests...\n\n");
 
-    // Guard blocks before cross-refs
-    RUN(professionToSkillMap_blocked_before_crossRefs);
-    RUN(resourceToSkillMap_blocked_before_crossRefs);
+    // Guard aborts before cross-refs (with diagnostic on stderr)
+    RUN(professionToSkillMap_aborts_before_crossRefs);
+    RUN(resourceToSkillMap_aborts_before_crossRefs);
+    RUN(initDerivedData_aborts_before_crossRefs);
 
     // Maps build correctly after cross-refs
     RUN(professionToSkillMap_succeeds_after_crossRefs);
     RUN(resourceToSkillMap_succeeds_after_crossRefs);
 
-    // Guard prints diagnostic to stderr
-    RUN(professionToSkillMap_prints_stderr_before_crossRefs);
-    RUN(resourceToSkillMap_prints_stderr_before_crossRefs);
+    // InitDerivedData builds both maps in one call
+    RUN(initDerivedData_builds_both_maps);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
