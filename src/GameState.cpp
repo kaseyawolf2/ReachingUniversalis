@@ -8,7 +8,7 @@ static constexpr float LERP_SPD =    5.f;
 
 GameState::GameState(const WorldSchema& schema)
     : m_simThread(m_input, m_snapshot, schema)
-    , m_schema(schema)
+    , m_schema(schema)  // const& — GameState must not outlive the WorldSchema
 {
     m_simThread.Start();
 }
