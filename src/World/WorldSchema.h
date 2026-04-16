@@ -512,8 +512,18 @@ struct WorldSchema {
         for (auto& d : agentTemplates) { d.id = (int)(&d - agentTemplates.data());        agentTemplatesByName[d.name] = d.id; }
     }
 
-    // Build the resourceToSkill reverse lookup from SkillDef::forResource.
-    // Must be called AFTER ResolveCrossRefs populates forResource fields.
+    /// Build the resourceToSkill reverse lookup from SkillDef::forResource.
+    ///
+    /// Precondition: ResolveCrossRefs() must have been called first (sets
+    /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
+    /// function prints an error to stderr and returns early in release builds,
+    /// and fires a debug assert in debug builds.
+    ///
+    /// Required call ordering (see WorldLoader.cpp LoadWorld()):
+    ///   1. BuildMaps()
+    ///   2. ResolveCrossRefs()
+    ///   3. BuildResourceToSkillMap()   <-- this function
+    ///   4. BuildProfessionToSkillMap()
     void BuildResourceToSkillMap() {
         if (!crossRefsResolved) {
             fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
@@ -527,8 +537,18 @@ struct WorldSchema {
         }
     }
 
-    // Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
-    // Must be called AFTER ResolveCrossRefs populates primarySkill fields.
+    /// Build the professionToSkill reverse lookup from ProfessionDef::primarySkill.
+    ///
+    /// Precondition: ResolveCrossRefs() must have been called first (sets
+    /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
+    /// function prints an error to stderr and returns early in release builds,
+    /// and fires a debug assert in debug builds.
+    ///
+    /// Required call ordering (see WorldLoader.cpp LoadWorld()):
+    ///   1. BuildMaps()
+    ///   2. ResolveCrossRefs()
+    ///   3. BuildResourceToSkillMap()
+    ///   4. BuildProfessionToSkillMap()   <-- this function
     void BuildProfessionToSkillMap() {
         if (!crossRefsResolved) {
             fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
