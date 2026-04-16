@@ -6,8 +6,9 @@
 # Modders can tune these to change when visual tints, schedule contractions,
 # and migration penalties kick in.
 #
-# Compile-time defaults live in WorldSchema.h (DEFAULT_HARSH_COLD, etc.).
-# If you omit a key below, the loader falls back to that constant.
+# Compile-time defaults live in SeasonThresholds (WorldSchema.h), e.g.
+# SeasonThresholds::DEFAULT_HARSH_COLD.  If you omit a key below, the
+# loader falls back to that constant.
 
 # Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
 harsh_cold    = 0.8    # winter-like: schedule contraction, migration penalty, icy-blue sky tint  (DEFAULT_HARSH_COLD)
