@@ -344,7 +344,10 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         if (auto* pf = item->get("price_floors")) {
             if (auto* pfTbl = pf->as_table()) {
                 for (auto& [key, val] : *pfTbl) {
-                    // Look up resource name in already-loaded schema.resources
+                    // O(n) scan intentional — resourcesByName map is not yet
+                    // populated at this point in the load sequence (BuildMaps
+                    // hasn't been called). Do not "optimize" to use
+                    // resourcesByName here; it would read uninitialized data.
                     int resId = -1;
                     for (size_t r = 0; r < schema.resources.size(); ++r) {
                         if (schema.resources[r].name == key) { resId = (int)r; break; }
