@@ -306,7 +306,7 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         if (!(st.mildCold < st.moderateCold))
             PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
                     "%s: cold threshold ordering violated: "
-                    "mild_cold (%.3f) must be less than moderate_cold (%.3f)\n",
+                    "mild_cold (%.3f) should be less than moderate_cold (%.3f)\n",
                     path.c_str(), st.mildCold, st.moderateCold);
 
         // Production threshold ordering: lowProduction < harvestSeason.
@@ -314,7 +314,7 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
         if (!(st.lowProduction < st.harvestSeason))
             PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
                     "%s: production threshold ordering violated: "
-                    "low_production (%.3f) must be less than harvest_season (%.3f)\n",
+                    "low_production (%.3f) should be less than harvest_season (%.3f)\n",
                     path.c_str(), st.lowProduction, st.harvestSeason);
     }
 
