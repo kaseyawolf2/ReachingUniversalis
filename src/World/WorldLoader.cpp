@@ -366,6 +366,10 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
                         def.priceFloorMult[resId] = mult;
                     }
                 }
+            } else {
+                PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                        "%s: price_floors should be a table, not a scalar; ignored\n",
+                        ctx.c_str());
             }
         }
         schema.seasons.push_back(std::move(def));
