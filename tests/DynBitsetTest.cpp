@@ -888,6 +888,45 @@ TEST(reset_inline) {
 }
 
 // ---------------------------------------------------------------------------
+// promoteIfNeeded — capacity growth preserves existing bits
+// ---------------------------------------------------------------------------
+
+TEST(promoteIfNeeded_preserves_bits_across_promotions) {
+    // Start with a default-constructed bitset (inline mode, all zeros).
+    DynBitset b;
+
+    // Step 1: Set bit 0 — stays in inline mode (word index 0).
+    b.set(0);
+    assert(b.test(0));
+    assert(!b.test(1));
+    assert(!b.test(65));
+    assert(!b.test(200));
+
+    // Step 2: Set bit 65 — promotes from inline to heap (word index 1 > 0).
+    // This triggers the inline-to-heap branch of promoteIfNeeded.
+    // Bit 0 (stored in m_inline) must survive the promotion into m_heap[0].
+    b.set(65);
+    assert(b.test(0));   // survived promotion from inline to heap
+    assert(b.test(65));  // newly set in heap word 1
+    assert(!b.test(1));
+    assert(!b.test(64));
+    assert(!b.test(200));
+
+    // Step 3: Set bit 200 — grows the heap (word index 3 > current size 2).
+    // This triggers the heap-growth branch of promoteIfNeeded.
+    // Both bit 0 (heap word 0) and bit 65 (heap word 1) must survive the resize.
+    b.set(200);
+    assert(b.test(0));   // survived heap growth
+    assert(b.test(65));  // survived heap growth
+    assert(b.test(200)); // newly set in heap word 3
+    assert(!b.test(1));
+    assert(!b.test(64));
+    assert(!b.test(66));
+    assert(!b.test(199));
+    assert(!b.test(201));
+}
+
+// ---------------------------------------------------------------------------
 
 int main() {
     std::printf("Running DynBitset tests...\n\n");
@@ -988,6 +1027,9 @@ int main() {
     // reset()
     RUN(reset_heap);
     RUN(reset_inline);
+
+    // promoteIfNeeded capacity growth
+    RUN(promoteIfNeeded_preserves_bits_across_promotions);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
