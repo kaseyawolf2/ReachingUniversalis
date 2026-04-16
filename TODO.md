@@ -199,11 +199,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Season threshold range-check constants** — `WorldLoader.cpp` uses magic `0.0f` and `2.0f` bounds for season threshold range validation. Define named constants (e.g., `MIN_THRESHOLD = 0.0f`, `MAX_THRESHOLD = 2.0f`) at file scope or in `WorldSchema.h` so the bounds are documented and reusable.
 
-- [ ] **PriceSystem per-resource floor validation** — `WorldLoader.cpp` parses `[seasons.price_floors]` per-resource multipliers but does not validate values. Add a `std::max(0.0f, ...)` clamp or warning for negative/zero multipliers to prevent nonsensical negative price floors.
+- [x] **PriceSystem per-resource floor validation** — `WorldLoader.cpp` parses `[seasons.price_floors]` per-resource multipliers but does not validate values. Add a `std::max(0.0f, ...)` clamp or warning for negative/zero multipliers to prevent nonsensical negative price floors.
 
-- [ ] **PriceSystem price_floors non-table warning** — If a modder writes `price_floors = 2.0` (scalar instead of table) in `seasons.toml`, the loader silently ignores it. Add a `fprintf(stderr, "[WorldLoader] WARNING: ...")` when `price_floors` exists but is not a TOML table.
+- [x] **PriceSystem price_floors non-table warning** — If a modder writes `price_floors = 2.0` (scalar instead of table) in `seasons.toml`, the loader silently ignores it. Add a `fprintf(stderr, "[WorldLoader] WARNING: ...")` when `price_floors` exists but is not a TOML table.
 
-- [ ] **SeasonThresholds constants into struct scope** — The `DEFAULT_HARSH_COLD` etc. constants in `WorldSchema.h` are at file scope, polluting the namespace of every TU. Move them inside `SeasonThresholds` as `static constexpr` members (e.g., `SeasonThresholds::DEFAULT_HARSH_COLD`), and update the struct initializers and any references.
+- [x] **SeasonThresholds constants into struct scope** — The `DEFAULT_HARSH_COLD` etc. constants in `WorldSchema.h` are at file scope, polluting the namespace of every TU. Move them inside `SeasonThresholds` as `static constexpr` members (e.g., `SeasonThresholds::DEFAULT_HARSH_COLD`), and update the struct initializers and any references.
 
 - [ ] **NeedDrainSystem FindNeed validation for ConsumptionSystem** — `ConsumptionSystem` caches `FindNeed("Hunger")` and `FindNeed("Thirst")` but has no INVALID_ID warning (same gap just fixed in NeedDrainSystem). Add `fprintf(stderr, "[ConsumptionSystem] WARNING: ...")` when cached IDs are INVALID_ID.
 
@@ -342,6 +342,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **WorldLoader warning severity enum** — `WorldLoader.cpp` warnings use free-form string prefixes ("WARNING:", "ERROR:"). Define a `enum class LoadSeverity { Info, Warning, Error }` and add it to the `LoadWarning` struct so downstream consumers (HUD, test harness) can filter by severity programmatically instead of string-matching.
 
 - [ ] **WorldLoader warning dedup** — `WorldLoader.cpp` can emit duplicate warnings when the same TOML key fails multiple validation checks (e.g., range + ordering). Add deduplication to the warnings vector (by message string or by source line) before returning, so the HUD and test harness see each unique warning only once.
+
+- [ ] **PriceSystem floor clamp upper bound** — `WorldLoader.cpp` now clamps negative price floor multipliers to 0.01f but does not cap absurdly large values (e.g., `price_floors.Wood = 999999`). Add an upper clamp (e.g., `MAX_PRICE_FLOOR_MULT = 100.0f`) with a warning when the original value exceeds it, preventing floors that exceed the price ceiling.
+
+- [ ] **PriceSystem non-numeric price_floors value warning** — `WorldLoader.cpp` silently ignores non-numeric values under `[seasons.price_floors]` (e.g., `Wood = "high"` as a string). Add a `PushWarning` when `val.value<double>()` returns `nullopt` for a price_floors entry, consistent with the new scalar-vs-table warning.
+
+- [ ] **PriceSystem price_floors TOML array warning** — The new non-table warning says "not a scalar" but the else branch also fires for TOML arrays (`price_floors = [1.0, 2.0]`). Update the message to say "not a table" for accuracy, covering both scalar and array misuse cases.
+
+- [ ] **SeasonThresholds static_assert on constant ordering** — The `SeasonThresholds` struct now has `static constexpr` defaults but no compile-time check that they satisfy the ordering invariant (`DEFAULT_HARSH_COLD < DEFAULT_MODERATE_COLD < ... < DEFAULT_HARVEST_SEASON`). Add `static_assert`s inside the struct to catch accidental reordering of constant values.
+
+- [ ] **SeasonThresholds TOML comment qualified names** — `worlds/medieval/seasons.toml` inline comments reference bare constant names like `(DEFAULT_HARSH_COLD)` but the constants now live inside `SeasonThresholds`. Update inline comments to `(SeasonThresholds::DEFAULT_HARSH_COLD)` or remove the parenthetical references to avoid stale documentation.
+
+- [ ] **SeasonThresholds DEFAULT_LOW_PRODUCTION consumer audit** — After moving constants into struct scope, `DEFAULT_LOW_PRODUCTION` is referenced only in validation, not in any ECS system. Grep all consumers of `lowProduction` and the default constant; if truly unused at runtime, mark it as validation-only in a doc comment.
 
 ## Phase 2 — UI Decoupling
 
