@@ -516,8 +516,8 @@ struct WorldSchema {
     ///
     /// Precondition: ResolveCrossRefs() must have been called first (sets
     /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
-    /// function prints an error to stderr and returns early in release builds,
-    /// and fires a debug assert in debug builds.
+    /// function prints an error to stderr and returns early (in all build
+    /// configurations).
     ///
     /// Required call ordering (see WorldLoader.cpp LoadWorld()):
     ///   1. BuildMaps()
@@ -529,7 +529,6 @@ struct WorldSchema {
             fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
             return;
         }
-        assert(crossRefsResolved && "BuildResourceToSkillMap() must be called after ResolveCrossRefs()");
         resourceToSkill.assign(resources.size(), INVALID_ID);
         for (const auto& d : skills) {
             if (d.forResource >= 0 && d.forResource < (int)resources.size())
@@ -541,8 +540,8 @@ struct WorldSchema {
     ///
     /// Precondition: ResolveCrossRefs() must have been called first (sets
     /// crossRefsResolved = true).  If called before ResolveCrossRefs(), the
-    /// function prints an error to stderr and returns early in release builds,
-    /// and fires a debug assert in debug builds.
+    /// function prints an error to stderr and returns early (in all build
+    /// configurations).
     ///
     /// Required call ordering (see WorldLoader.cpp LoadWorld()):
     ///   1. BuildMaps()
@@ -554,7 +553,6 @@ struct WorldSchema {
             fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
             return;
         }
-        assert(crossRefsResolved && "BuildProfessionToSkillMap() must be called after ResolveCrossRefs()");
         professionToSkill.assign(professions.size(), INVALID_ID);
         for (const auto& d : professions) {
             if (d.id >= 0 && d.id < (int)professionToSkill.size())
