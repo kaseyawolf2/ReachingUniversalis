@@ -17,10 +17,9 @@ public:
 private:
     const WorldSchema& m_schema;
 
-    // Cached need names indexed by NeedID, built once on first Update().
+    // Cached need names indexed by NeedID, built in constructor.
     // Used in death-cause determination to avoid accessing schema.needs[i].name per tick.
     std::vector<std::string> m_needNames;
-    bool                     m_needsCached = false;
 
     // Track which settlements have already been logged as collapsed
     // so we only fire the collapse event once per collapse episode.
