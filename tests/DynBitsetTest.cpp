@@ -175,27 +175,6 @@ TEST(and_heap_asymmetric_sizes) {
     assert(!c.test(200));    // beyond a's word count, not included
 }
 
-// ---------------------------------------------------------------------------
-// operator& — n==1 edge case (one heap, one inline, overlap in word 0 only)
-// ---------------------------------------------------------------------------
-
-TEST(and_n1_edge_case) {
-    // a is inline with bit 3 set
-    auto a = DynBitset::singleBit(3);
-    // b is heap-allocated but only has 1 word of overlap with a
-    // (constructed with >64 bits capacity but only word 0 matters)
-    DynBitset b(128); // heap-allocated, 2 words
-    b.set(3);
-    b.set(100);
-    // wordCount for a = 1, wordCount for b = 2, so n = min(1,2) = 1
-    // This exercises the n<=1 branch in operator&
-    auto c = a & b;
-    assert(c.test(3));
-    assert(!c.test(100));
-    // Result should be inline (n<=1 branch) not heap
-    assert(c.any());
-}
-
 TEST(and_heap_heap_word0_only) {
     // Both operands are heap-allocated (capacity > 64 bits) but all set bits
     // fall within word 0, so n = min(wordCount, wordCount) > 1 but only
@@ -212,6 +191,27 @@ TEST(and_heap_heap_word0_only) {
     assert(!c.test(30));     // only in a
     assert(!c.test(50));     // only in b
     assert(!c.test(64));     // word 1 is zero in both
+    assert(c.any());
+}
+
+// ---------------------------------------------------------------------------
+// operator& — edge cases
+// ---------------------------------------------------------------------------
+
+TEST(and_n1_edge_case) {
+    // a is inline with bit 3 set
+    auto a = DynBitset::singleBit(3);
+    // b is heap-allocated but only has 1 word of overlap with a
+    // (constructed with >64 bits capacity but only word 0 matters)
+    DynBitset b(128); // heap-allocated, 2 words
+    b.set(3);
+    b.set(100);
+    // wordCount for a = 1, wordCount for b = 2, so n = min(1,2) = 1
+    // This exercises the n<=1 branch in operator&
+    auto c = a & b;
+    assert(c.test(3));
+    assert(!c.test(100));
+    // Result should be inline (n<=1 branch) not heap
     assert(c.any());
 }
 
@@ -990,10 +990,10 @@ int main() {
     RUN(and_heap_heap);
     RUN(and_heap_heap_disjoint);
     RUN(and_heap_asymmetric_sizes);
-
-    // operator& n==1 edge case
-    RUN(and_n1_edge_case);
     RUN(and_heap_heap_word0_only);
+
+    // operator& edge cases
+    RUN(and_n1_edge_case);
 
     // intersectsAny
     RUN(intersectsAny_inline_inline_yes);
