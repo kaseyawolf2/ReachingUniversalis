@@ -275,10 +275,11 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
 
         // --- Validate season threshold values ---
         auto rangeCheck = [&](float val, const char* name) {
-            if (val < 0.0f || val > 2.0f)
+            if (val < SEASON_THRESHOLD_MIN || val > SEASON_THRESHOLD_MAX)
                 PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
-                        "%s: '%s' = %.3f is out of range [0.0, 2.0]\n",
-                        path.c_str(), name, val);
+                        "%s: '%s' = %.3f is out of range [%.1f, %.1f]\n",
+                        path.c_str(), name, val,
+                        SEASON_THRESHOLD_MIN, SEASON_THRESHOLD_MAX);
         };
         rangeCheck(st.harshCold,     "harsh_cold");
         rangeCheck(st.moderateCold,  "moderate_cold");
