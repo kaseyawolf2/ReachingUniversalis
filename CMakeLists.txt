@@ -82,3 +82,10 @@ target_include_directories(SeasonValidationTest PRIVATE src)
 target_link_libraries(SeasonValidationTest PRIVATE tomlplusplus::tomlplusplus)
 find_package(Threads REQUIRED)
 target_link_libraries(SeasonValidationTest PRIVATE Threads::Threads)
+
+add_executable(BuildMapOrderingTest
+    tests/BuildMapOrderingTest.cpp
+)
+target_include_directories(BuildMapOrderingTest PRIVATE src)
+target_link_libraries(BuildMapOrderingTest PRIVATE tomlplusplus::tomlplusplus)
+target_link_libraries(BuildMapOrderingTest PRIVATE Threads::Threads)
