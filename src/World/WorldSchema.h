@@ -319,27 +319,27 @@ struct AgentTemplateDef {
     std::vector<std::pair<SkillID, float>> startSkills;
 };
 
-// ---- Season threshold defaults (single source of truth) ----
-// These constants are used by SeasonThresholds in-class initializers AND as the
-// fallback defaults in WorldLoader::LoadSeasons()'s OptFloat calls.  If you
-// change a value here, also update the matching TOML comment in seasons.toml
-// so modders see the correct default.
-
-static constexpr float DEFAULT_HARSH_COLD     = 0.8f;   // winter-like: schedule contraction, migration penalty, icy-blue sky tint
-static constexpr float DEFAULT_MODERATE_COLD  = 0.3f;   // autumn-like: amber/orange sky tint
-static constexpr float DEFAULT_COLD_SEASON    = 0.2f;   // wood becomes essential heating fuel
-static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight green sky tint
-static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
-static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: reduced yields
-
-// Valid range for season threshold values loaded from TOML.  Both heat-drain
-// and production-mod thresholds must lie within [MIN, MAX].
-static constexpr float SEASON_THRESHOLD_MIN = 0.0f;
-static constexpr float SEASON_THRESHOLD_MAX = 2.0f;
-
 // ---- Season thresholds (loaded from seasons.toml, with compile-time defaults) ----
 
 struct SeasonThresholds {
+    // ---- Default constants (single source of truth) ----
+    // Used by in-class initializers below AND as the fallback defaults in
+    // WorldLoader::LoadSeasons()'s OptFloat calls.  If you change a value
+    // here, also update the matching TOML comment in seasons.toml so modders
+    // see the correct default.
+
+    static constexpr float DEFAULT_HARSH_COLD     = 0.8f;   // winter-like: schedule contraction, migration penalty, icy-blue sky tint
+    static constexpr float DEFAULT_MODERATE_COLD  = 0.3f;   // autumn-like: amber/orange sky tint
+    static constexpr float DEFAULT_COLD_SEASON    = 0.2f;   // wood becomes essential heating fuel
+    static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight green sky tint
+    static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
+    static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: reduced yields
+
+    // Valid range for season threshold values loaded from TOML.  Both heat-drain
+    // and production-mod thresholds must lie within [MIN, MAX].
+    static constexpr float MIN_THRESHOLD = 0.0f;
+    static constexpr float MAX_THRESHOLD = 2.0f;
+
     // Heat-drain thresholds (compared against SeasonDef::heatDrainMod)
     float harshCold    = DEFAULT_HARSH_COLD;
     float moderateCold = DEFAULT_MODERATE_COLD;

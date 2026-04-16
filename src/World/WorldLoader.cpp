@@ -261,9 +261,9 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
     if (!err.empty()) return false;
 
     // ---- Global season thresholds (top-level keys) ----
-    // Defaults come from the SeasonThresholds struct's in-class initializers,
-    // which reference the DEFAULT_* constants in WorldSchema.h.  If you need
-    // to change a default, update the constant there (single source of truth).
+    // Defaults come from the SeasonThresholds struct's static constexpr members
+    // (e.g., SeasonThresholds::DEFAULT_HARSH_COLD).  If you need to change a
+    // default, update the constant there (single source of truth).
     {
         SeasonThresholds& st = schema.seasonThresholds;
         st.harshCold     = OptFloat(tbl, "harsh_cold",     st.harshCold);
@@ -275,11 +275,11 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
 
         // --- Validate season threshold values ---
         auto rangeCheck = [&](float val, const char* name) {
-            if (val < SEASON_THRESHOLD_MIN || val > SEASON_THRESHOLD_MAX)
+            if (val < SeasonThresholds::MIN_THRESHOLD || val > SeasonThresholds::MAX_THRESHOLD)
                 PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
                         "%s: '%s' = %.3f is out of range [%.1f, %.1f]\n",
                         path.c_str(), name, val,
-                        SEASON_THRESHOLD_MIN, SEASON_THRESHOLD_MAX);
+                        SeasonThresholds::MIN_THRESHOLD, SeasonThresholds::MAX_THRESHOLD);
         };
         rangeCheck(st.harshCold,     "harsh_cold");
         rangeCheck(st.moderateCold,  "moderate_cold");
