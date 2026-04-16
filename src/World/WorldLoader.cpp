@@ -1024,6 +1024,24 @@ bool WorldLoader::Load(const std::string& worldDir,
             PushWarning(warnings, LoadWarningLevel::Warning, "goals",
                     "%s/goals.toml: goal '%s': has weight <= 0 "
                     "(goal will never be assigned to NPCs)\n", worldDir.c_str(), goal.name.c_str());
+
+        // Resolved-enum validation: warn if any enum is still at its
+        // default/unknown value, which may indicate an unrecognized TOML
+        // string that was silently defaulted.
+        if (goal.checkTypeEnum == GoalCheckType::None)
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s/goals.toml: goal '%s': checkTypeEnum is None "
+                    "(no check_type or unrecognized value; goal will never complete)\n",
+                    worldDir.c_str(), goal.name.c_str());
+        if (goal.targetModeEnum == GoalTargetMode::Fixed && goal.offset != 0.f)
+            PushWarning(warnings, LoadWarningLevel::Warning, "goals",
+                    "%s/goals.toml: goal '%s': targetModeEnum is Fixed but offset is non-zero "
+                    "(offset is ignored in fixed mode; was target_mode misspelled?)\n",
+                    worldDir.c_str(), goal.name.c_str());
+        // Note: behaviourModEnum==None is common and intentional (most
+        // goals have no behaviour modifier).  Unrecognized behaviour_mod
+        // strings are already caught at parse time, so no post-parse
+        // warning is needed for this enum.
     }
 
     // 4. Check total goal weight: if all weights sum to zero, goal assignment may malfunction.
