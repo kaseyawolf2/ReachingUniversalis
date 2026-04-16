@@ -211,11 +211,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Remove lowProduction dead threshold** (audit found it IS live — doc comments added instead) — `SeasonThresholds::lowProduction` is loaded and validated for ordering but no longer consumed by any ECS system after PriceSystem was made data-driven. Audit all consumers; if truly dead, remove the field, its TOML key, its DEFAULT constant, and its ordering validation.
 
-- [ ] **DeathSystem lazy-init to constructor-init** — `DeathSystem` caches need names on first `Update()` call via `m_needsCached` flag. The schema is fully built at construction time. Move the caching into the constructor body and remove the `m_needsCached` flag for simpler per-tick code.
+- [x] **DeathSystem lazy-init to constructor-init** — `DeathSystem` caches need names on first `Update()` call via `m_needsCached` flag. The schema is fully built at construction time. Move the caching into the constructor body and remove the `m_needsCached` flag for simpler per-tick code.
 
-- [ ] **DeathSystem drop unused m_schema** — After caching `m_needNames` in the constructor, `DeathSystem::m_schema` is never read again. Remove the member to avoid holding a dead reference and reduce class size.
+- [x] **DeathSystem drop unused m_schema** — After caching `m_needNames` in the constructor, `DeathSystem::m_schema` is never read again. Remove the member to avoid holding a dead reference and reduce class size.
 
-- [ ] **RandomEventSystem generic modifier break** — `RandomEventSystem.cpp` line ~1333 only breaks modifiers whose name contains "Drought". Generalize to break any active negative modifier at the target settlement when `ev.breaksDrought` is true, or rename the flag to `breaksModifier` and update the TOML schema.
+- [x] **RandomEventSystem generic modifier break** — `RandomEventSystem.cpp` line ~1333 only breaks modifiers whose name contains "Drought". Generalize to break any active negative modifier at the target settlement when `ev.breaksDrought` is true, or rename the flag to `breaksModifier` and update the TOML schema.
 
 - [ ] **HUD emptyNames avoid global constructor** — The file-scope `static const std::vector<std::string> emptyNames;` in `HUD.cpp` triggers a global constructor for a heap-allocated empty vector. Replace with `static const std::vector<std::string>* emptyNames` pointing to a function-local static, or use an empty `std::span<const std::string>` to avoid the global init overhead.
 
@@ -366,6 +366,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **lowProduction doc comment WriteSnapshot line removal** — PR #100 added a doc comment on `SeasonThresholds::lowProduction` citing "line ~2626" of `SimThread.cpp`. Line numbers drift constantly. Remove the line number and keep only the function name reference: `SimThread::WriteSnapshot()`.
 
 - [ ] **lowProduction threshold rename consideration** — The `lowProduction` field name implies it gates production, but it actually only gates HUD season-regime classification in `WriteSnapshot()`. Consider renaming to `lowProductionDisplay` or adding a doc comment clarifying it is display-only, not a production modifier.
+
+- [ ] **DeathSystem m_needNames const correctness** — After moving need-name caching to the constructor, `m_needNames` is never modified after construction. Mark it `const` (requires initializing via helper function or lambda in constructor init-list) to make the immutability explicit and prevent accidental mutation.
+
+- [ ] **DeathSystem constructor warning test** — `DeathSystem` constructor now warns on `INVALID_ID` and empty schemas. Add a test (similar to `SeasonValidationTest`) that constructs a `DeathSystem` with a schema missing "Hunger"/"Thirst" needs and captures stderr to verify the warning messages fire.
+
+- [ ] **RandomEventSystem modifier-clear log entry** — When `breaksNegativeModifiers` clears an active negative modifier at a settlement, no log entry is emitted. Add an `EventLog::Push()` or `fprintf(stderr, "[RandomEventSystem] INFO: ...")` when a modifier is cleared so the player/debugger can observe the effect.
+
+- [ ] **RandomEventSystem breaksNegativeModifiers scope comment** — `breaksNegativeModifiers` only fires inside the `EventEffectType::StockpileAdd` handler. If a modder puts `breaks_negative_modifiers = true` on a non-StockpileAdd event, it silently does nothing. Add a one-line comment in `WorldSchema.h` on the field noting this constraint.
+
+- [ ] **RandomEventSystem legacy breaks_drought deprecation warning** — `WorldLoader.cpp` silently falls back from `breaks_negative_modifiers` to `breaks_drought` for backward compat. Add a `PushWarning` when the legacy `breaks_drought` key is encountered, telling modders to update to the new key name.
+
+- [ ] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag, following the pattern established in PR #101.
 
 ## Phase 2 — UI Decoupling
 
