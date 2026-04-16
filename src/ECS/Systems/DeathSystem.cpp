@@ -17,18 +17,16 @@ static constexpr float SECS_PER_GAME_DAY = 24.f * 60.f;
 
 static std::mt19937 s_wisdomDeathRng{ std::random_device{}() };
 
-DeathSystem::DeathSystem(const WorldSchema& schema)
-    : m_schema(schema)
-{
-    // Cache need names at construction time (schema is fully built by now).
-    m_needNames.resize(m_schema.needs.size());
-    for (int i = 0; i < (int)m_schema.needs.size(); ++i) {
-        m_needNames[i] = m_schema.needs[i].name;
-        if (m_schema.needs[i].id == INVALID_ID)
+DeathSystem::DeathSystem(const WorldSchema& schema) {
+    // Cache need names once at construction so we never touch schema again.
+    m_needNames.resize(schema.needs.size());
+    for (int i = 0; i < (int)schema.needs.size(); ++i) {
+        m_needNames[i] = schema.needs[i].name;
+        if (schema.needs[i].id == INVALID_ID)
             fprintf(stderr, "[DeathSystem] WARNING: cached NeedID for \"%s\" is INVALID_ID (-1). "
                             "Death-cause reporting for this need will fall back to \"deprivation\". "
                             "Check that the need exists in the schema TOML.\n",
-                    m_schema.needs[i].name.c_str());
+                    schema.needs[i].name.c_str());
     }
     if (m_needNames.empty())
         fprintf(stderr, "[DeathSystem] WARNING: schema contains no needs. "
