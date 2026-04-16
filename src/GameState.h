@@ -38,8 +38,7 @@ private:
     SimThread      m_simThread;
     const WorldSchema& m_schema;
 
-    // Camera lives on the main thread — it responds to input immediately
-    // without waiting for the sim thread.
+    // Camera state
     Camera2D m_camera = {
         { 640.f, 360.f },  // offset: screen centre
         { 400.f, 360.f },  // target: start near Greenfield
@@ -50,14 +49,13 @@ private:
     float m_zoomMin      = 0.25f;
     float m_zoomMax      = 3.0f;
 
+    // Rendering
     RenderSystem m_renderSystem;
     HUD          m_hud;
 
-    // Road colour mode: false = safety (bandit-aware), true = condition-only
-    bool  m_showRoadCondition = false;
-
-    // Road-build mode: tracks the intermediate state between the first and second N key press.
-    bool  m_roadBuildMode = false;
+    // UI state
+    bool  m_showRoadCondition = false;  // Road colour mode: false = safety, true = condition
+    bool  m_roadBuildMode = false;      // Road-build first/second N key press
     float m_roadBuildSrcX = 0.f;
     float m_roadBuildSrcY = 0.f;
 };
