@@ -961,6 +961,96 @@ TEST(count_multi_word) {
 }
 
 // ---------------------------------------------------------------------------
+// Inline/heap boundary exhaustive — bit 63 (last inline), bit 64 (first heap),
+// and the inline-to-heap promotion that must preserve bit 63.
+// ---------------------------------------------------------------------------
+
+TEST(boundary_set63_last_inline_bit) {
+    // Bit 63 is the highest bit that fits in inline mode (word index 0).
+    // The bitset must remain in inline mode and the bit must be correctly set.
+    DynBitset b;
+    b.set(63);
+    assert(b.test(63));
+    assert(!b.test(0));
+    assert(!b.test(62));
+    assert(!b.test(64));
+    assert(b.any());
+    assert(b.count() == 1);
+
+    // Verify it behaves identically to singleBit(63) — both should be inline
+    auto s = DynBitset::singleBit(63);
+    assert(b == s);
+
+    // Verify other inline operations still work after setting bit 63
+    b.set(0);
+    assert(b.test(0));
+    assert(b.test(63));
+    assert(b.count() == 2);
+}
+
+TEST(boundary_set64_first_heap_bit) {
+    // Bit 64 is the first bit that requires heap allocation (word index 1).
+    // The bitset must promote to heap mode and the bit must be correctly set.
+    DynBitset b;
+    b.set(64);
+    assert(b.test(64));
+    assert(!b.test(0));
+    assert(!b.test(63));
+    assert(!b.test(65));
+    assert(b.any());
+    assert(b.count() == 1);
+
+    // Verify it behaves identically to singleBit(64)
+    auto s = DynBitset::singleBit(64);
+    assert(b == s);
+
+    // Verify bits in word 0 are still accessible after heap promotion
+    b.set(0);
+    assert(b.test(0));
+    assert(b.test(64));
+    assert(!b.test(63));
+    assert(b.count() == 2);
+}
+
+TEST(boundary_set63_then_set64_promotes_preserving) {
+    // Start inline with bit 63 set, then set bit 64 which forces promotion
+    // from inline to heap. Bit 63 (stored in m_inline) must survive the
+    // promotion into m_heap[0].
+    DynBitset b;
+
+    // Step 1: Set bit 63 — stays inline (word index 0)
+    b.set(63);
+    assert(b.test(63));
+    assert(!b.test(64));
+    assert(b.count() == 1);
+
+    // Step 2: Set bit 64 — promotes to heap (word index 1 > 0)
+    // This is the critical transition: promoteIfNeeded must copy m_inline
+    // (which has bit 63 set) into m_heap[0] before clearing m_inline.
+    b.set(64);
+    assert(b.test(63));  // must survive the inline-to-heap promotion
+    assert(b.test(64));  // newly set in heap word 1
+    assert(!b.test(0));
+    assert(!b.test(62));
+    assert(!b.test(65));
+    assert(b.count() == 2);
+
+    // Verify operations work correctly after the boundary promotion
+    auto mask63 = DynBitset::singleBit(63);
+    auto mask64 = DynBitset::singleBit(64);
+    assert(b.containsAll(mask63));
+    assert(b.containsAll(mask64));
+    assert(b.intersectsAny(mask63));
+    assert(b.intersectsAny(mask64));
+
+    // Verify equality with a bitset built in the opposite order
+    DynBitset b2;
+    b2.set(64);  // goes to heap first
+    b2.set(63);  // then set bit 63 in heap word 0
+    assert(b == b2);
+}
+
+// ---------------------------------------------------------------------------
 
 int main() {
     std::printf("Running DynBitset tests...\n\n");
@@ -1070,6 +1160,11 @@ int main() {
     RUN(count_single_bit_inline);
     RUN(count_full_word);
     RUN(count_multi_word);
+
+    // Inline/heap boundary exhaustive
+    RUN(boundary_set63_last_inline_bit);
+    RUN(boundary_set64_first_heap_bit);
+    RUN(boundary_set63_then_set64_promotes_preserving);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
