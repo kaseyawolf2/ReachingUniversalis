@@ -61,6 +61,16 @@ public:
     // Returns true if any bit is set.
     bool any() const { return !none(); }
 
+    // Returns the number of set bits (population count).
+    size_t count() const {
+        if (!usingHeap())
+            return static_cast<size_t>(__builtin_popcountll(m_inline));
+        size_t total = 0;
+        for (auto w : m_heap)
+            total += static_cast<size_t>(__builtin_popcountll(w));
+        return total;
+    }
+
     // Bitwise OR-assign: *this |= other.
     DynBitset& operator|=(const DynBitset& other) {
         if (!other.usingHeap() && !usingHeap()) {

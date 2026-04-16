@@ -89,3 +89,8 @@ add_executable(BuildMapOrderingTest
 target_include_directories(BuildMapOrderingTest PRIVATE src)
 target_link_libraries(BuildMapOrderingTest PRIVATE tomlplusplus::tomlplusplus)
 target_link_libraries(BuildMapOrderingTest PRIVATE Threads::Threads)
+
+add_executable(DynBitsetTest
+    tests/DynBitsetTest.cpp
+)
+target_include_directories(DynBitsetTest PRIVATE src)
