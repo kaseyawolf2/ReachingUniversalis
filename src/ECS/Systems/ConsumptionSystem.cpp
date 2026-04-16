@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include "World/WorldSchema.h"
 #include <algorithm>
+#include <cstdio>
 #include <map>
 #include <string>
 
@@ -48,6 +49,15 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     if (m_hungerNeedId == NOT_CACHED) {
         m_hungerNeedId = m_schema.FindNeed("Hunger");
         m_thirstNeedId = m_schema.FindNeed("Thirst");
+
+        if (m_hungerNeedId == INVALID_ID)
+            fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Hunger\" is INVALID_ID — "
+                            "desperation theft will not trigger for Hunger. "
+                            "Check that a need named \"Hunger\" exists in the schema TOML.\n");
+        if (m_thirstNeedId == INVALID_ID)
+            fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Thirst\" is INVALID_ID — "
+                            "desperation theft will not trigger for Thirst. "
+                            "Check that a need named \"Thirst\" exists in the schema TOML.\n");
     }
     const NeedID hungerNeedId = m_hungerNeedId;
     const NeedID thirstNeedId = m_thirstNeedId;
