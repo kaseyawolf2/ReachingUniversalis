@@ -465,7 +465,9 @@ static bool LoadEvents(const std::string& path, WorldSchema& schema, std::string
         def.priceSpikeMultiplier  = OptFloat(*item, "price_spike_multiplier", 0.0f);
         def.spawnSkilled          = OptBool(*item, "spawn_skilled", false);
         def.affectsAllSettlements = OptBool(*item, "affects_all_settlements", false);
-        def.breaksDrought         = OptBool(*item, "breaks_drought", false);
+        // Accept both new key and legacy alias
+        def.breaksNegativeModifiers = OptBool(*item, "breaks_negative_modifiers",
+                                              OptBool(*item, "breaks_drought", false));
         def.convoyAmount          = OptFloat(*item, "convoy_amount", 0.0f);
         def.convoyMinPrice        = OptFloat(*item, "convoy_min_price", 0.0f);
 

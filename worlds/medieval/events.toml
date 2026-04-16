@@ -140,7 +140,7 @@ min_population     = 0
 add_resource       = "Water"
 add_amount         = 25.0
 affects_all_settlements = true
-breaks_drought     = true
+breaks_negative_modifiers = true
 
 [[events]]
 name               = "Festival"
