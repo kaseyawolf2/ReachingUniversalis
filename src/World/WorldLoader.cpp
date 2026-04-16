@@ -876,12 +876,10 @@ bool WorldLoader::Load(const std::string& worldDir,
     // Resolve cross-references (string names → integer IDs)
     if (!ResolveCrossRefs(dir, schema, errorMsg)) return false;
 
-    // Build cached reverse-lookup maps.  These must run after ResolveCrossRefs()
-    // because they read cross-ref fields (SkillDef::forResource,
-    // ProfessionDef::primarySkill).  Both functions abort if crossRefsResolved
-    // is false — see the doc comments in WorldSchema.h for the full contract.
-    schema.BuildResourceToSkillMap();
-    schema.BuildProfessionToSkillMap();
+    // Build all derived reverse-lookup maps (resourceToSkill, professionToSkill).
+    // InitDerivedData() enforces the correct internal call order and requires
+    // crossRefsResolved == true — see the doc comment in WorldSchema.h.
+    schema.InitDerivedData();
 
     // ---- Validation passes ----
 

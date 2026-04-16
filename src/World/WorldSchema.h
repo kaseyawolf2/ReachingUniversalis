@@ -559,4 +559,25 @@ struct WorldSchema {
                 professionToSkill[d.id] = d.primarySkill;
         }
     }
+
+    /// Initialise all derived / reverse-lookup data that depends on resolved
+    /// cross-references.  Must be called exactly once, after ResolveCrossRefs()
+    /// has set crossRefsResolved = true.
+    ///
+    /// Internally calls BuildResourceToSkillMap() then BuildProfessionToSkillMap()
+    /// in the required order, eliminating the class of ordering bugs that the
+    /// runtime abort guards protect against.
+    ///
+    /// Required call ordering in WorldLoader.cpp LoadWorld():
+    ///   1. BuildMaps()
+    ///   2. ResolveCrossRefs()
+    ///   3. InitDerivedData()   <-- this function
+    void InitDerivedData() {
+        if (!crossRefsResolved) {
+            fprintf(stderr, "[WorldSchema] ERROR: %s called before ResolveCrossRefs()\n", __func__);
+            return;
+        }
+        BuildResourceToSkillMap();
+        BuildProfessionToSkillMap();
+    }
 };
