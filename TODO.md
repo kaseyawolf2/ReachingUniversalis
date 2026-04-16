@@ -205,11 +205,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **SeasonThresholds constants into struct scope** — The `DEFAULT_HARSH_COLD` etc. constants in `WorldSchema.h` are at file scope, polluting the namespace of every TU. Move them inside `SeasonThresholds` as `static constexpr` members (e.g., `SeasonThresholds::DEFAULT_HARSH_COLD`), and update the struct initializers and any references.
 
-- [ ] **NeedDrainSystem FindNeed validation for ConsumptionSystem** — `ConsumptionSystem` caches `FindNeed("Hunger")` and `FindNeed("Thirst")` but has no INVALID_ID warning (same gap just fixed in NeedDrainSystem). Add `fprintf(stderr, "[ConsumptionSystem] WARNING: ...")` when cached IDs are INVALID_ID.
+- [x] **NeedDrainSystem FindNeed validation for ConsumptionSystem** — `ConsumptionSystem` caches `FindNeed("Hunger")` and `FindNeed("Thirst")` but has no INVALID_ID warning (same gap just fixed in NeedDrainSystem). Add `fprintf(stderr, "[ConsumptionSystem] WARNING: ...")` when cached IDs are INVALID_ID.
 
-- [ ] **PriceSystem resource name lookup optimization comment** — `WorldLoader.cpp` does O(n) linear scan over `schema.resources` for each price_floors key. Add a comment explaining why `resourcesByName` map isn't used (BuildMaps hasn't been called yet at this point in load sequence) to prevent someone "optimizing" into uninitialized data.
+- [x] **PriceSystem resource name lookup optimization comment** — `WorldLoader.cpp` does O(n) linear scan over `schema.resources` for each price_floors key. Add a comment explaining why `resourcesByName` map isn't used (BuildMaps hasn't been called yet at this point in load sequence) to prevent someone "optimizing" into uninitialized data.
 
-- [ ] **Remove lowProduction dead threshold** — `SeasonThresholds::lowProduction` is loaded and validated for ordering but no longer consumed by any ECS system after PriceSystem was made data-driven. Audit all consumers; if truly dead, remove the field, its TOML key, its DEFAULT constant, and its ordering validation.
+- [x] **Remove lowProduction dead threshold** (audit found it IS live — doc comments added instead) — `SeasonThresholds::lowProduction` is loaded and validated for ordering but no longer consumed by any ECS system after PriceSystem was made data-driven. Audit all consumers; if truly dead, remove the field, its TOML key, its DEFAULT constant, and its ordering validation.
 
 - [ ] **DeathSystem lazy-init to constructor-init** — `DeathSystem` caches need names on first `Update()` call via `m_needsCached` flag. The schema is fully built at construction time. Move the caching into the constructor body and remove the `m_needsCached` flag for simpler per-tick code.
 
@@ -354,6 +354,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **SeasonThresholds TOML comment qualified names** — `worlds/medieval/seasons.toml` inline comments reference bare constant names like `(DEFAULT_HARSH_COLD)` but the constants now live inside `SeasonThresholds`. Update inline comments to `(SeasonThresholds::DEFAULT_HARSH_COLD)` or remove the parenthetical references to avoid stale documentation.
 
 - [ ] **SeasonThresholds DEFAULT_LOW_PRODUCTION consumer audit** — After moving constants into struct scope, `DEFAULT_LOW_PRODUCTION` is referenced only in validation, not in any ECS system. Grep all consumers of `lowProduction` and the default constant; if truly unused at runtime, mark it as validation-only in a doc comment.
+
+- [ ] **ConsumptionSystem desperation theft INVALID_ID early return** — `ConsumptionSystem` now warns when cached NeedIDs are INVALID_ID but continues running with invalid IDs. Add an early return or skip of the desperation theft code path when the relevant NeedID is INVALID_ID, so the warning is not just diagnostic but also prevents UB if `needs.list` is empty.
+
+- [ ] **ConsumptionSystem hardcoded needs[0]/needs[1] audit** — `ConsumptionSystem` lines ~123-124 and ~157-158 access `needs.list[0]` and `needs.list[1]` by hardcoded index rather than using the cached `m_hungerNeedId`/`m_thirstNeedId`. Audit whether these should use the cached IDs for consistency with schema-driven needs, and add bounds checks or comments explaining why hardcoded indices are safe.
+
+- [ ] **WorldLoader linear scan TODO comment for other loops** — `WorldLoader.cpp` now has a comment explaining the intentional O(n) scan in `price_floors` parsing. Audit all other linear scans over `schema.resources`, `schema.professions`, or `schema.skills` in `WorldLoader.cpp` for the same pre-BuildMaps pattern and add similar comments where applicable.
+
+- [ ] **WorldLoader resourcesByName usage after BuildMaps** — Code paths in `WorldLoader.cpp` that run AFTER `BuildMaps()` (e.g., validation, cross-reference checking) could use `resourcesByName` for O(1) lookup instead of linear scan. Audit post-BuildMaps code for unnecessary linear scans and convert to map lookups where safe.
+
+- [ ] **lowProduction doc comment WriteSnapshot line removal** — PR #100 added a doc comment on `SeasonThresholds::lowProduction` citing "line ~2626" of `SimThread.cpp`. Line numbers drift constantly. Remove the line number and keep only the function name reference: `SimThread::WriteSnapshot()`.
+
+- [ ] **lowProduction threshold rename consideration** — The `lowProduction` field name implies it gates production, but it actually only gates HUD season-regime classification in `WriteSnapshot()`. Consider renaming to `lowProductionDisplay` or adding a doc comment clarifying it is display-only, not a production modifier.
 
 ## Phase 2 — UI Decoupling
 
