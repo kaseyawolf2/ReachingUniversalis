@@ -927,6 +927,40 @@ TEST(promoteIfNeeded_preserves_bits_across_promotions) {
 }
 
 // ---------------------------------------------------------------------------
+// count() — population count
+// ---------------------------------------------------------------------------
+
+TEST(count_empty) {
+    DynBitset b;
+    assert(b.count() == 0);
+}
+
+TEST(count_single_bit_inline) {
+    auto b = DynBitset::singleBit(17);
+    assert(b.count() == 1);
+}
+
+TEST(count_full_word) {
+    // Set all 64 bits in inline mode
+    DynBitset b;
+    for (size_t i = 0; i < 64; ++i)
+        b.set(i);
+    assert(b.count() == 64);
+}
+
+TEST(count_multi_word) {
+    // Heap mode: set bits across multiple words
+    auto b = DynBitset::singleBit(0);   // word 0
+    b.set(10);                           // word 0
+    b.set(63);                           // word 0
+    b.set(64);                           // word 1
+    b.set(100);                          // word 1
+    b.set(128);                          // word 2
+    b.set(200);                          // word 3
+    assert(b.count() == 7);
+}
+
+// ---------------------------------------------------------------------------
 
 int main() {
     std::printf("Running DynBitset tests...\n\n");
@@ -1030,6 +1064,12 @@ int main() {
 
     // promoteIfNeeded capacity growth
     RUN(promoteIfNeeded_preserves_bits_across_promotions);
+
+    // count()
+    RUN(count_empty);
+    RUN(count_single_bit_inline);
+    RUN(count_full_word);
+    RUN(count_multi_word);
 
     std::printf("\nAll %d tests passed.\n", passed);
     return 0;
