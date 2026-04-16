@@ -15,10 +15,8 @@ public:
     int totalDeaths = 0;   // running tally for HUD display
 
 private:
-    const WorldSchema& m_schema;
-
-    // Cached need names indexed by NeedID, built in constructor.
-    // Used in death-cause determination to avoid accessing schema.needs[i].name per tick.
+    // Cached need names indexed by NeedID, built once in the constructor.
+    // Used in death-cause determination to avoid accessing schema per tick.
     std::vector<std::string> m_needNames;
 
     // Track which settlements have already been logged as collapsed
