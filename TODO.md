@@ -181,11 +181,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **BuildResourceToSkillMap abort test** — The assert-to-runtime change replaced `assert(crossRefsResolved)` with `fprintf + std::abort()`. Add a comment in `WorldSchema.h` documenting that `BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` will abort if called before `ResolveCrossRefs()`, and reference the call ordering in `WorldLoader.cpp`.
 
-- [ ] **WorldSchema InitDerivedData() method** — `WorldLoader.cpp` calls `ResolveCrossRefs()`, `BuildResourceToSkillMap()`, `BuildProfessionToSkillMap()` in sequence. Bundle these into a single `WorldSchema::InitDerivedData()` method that enforces the correct call order internally, eliminating the class of ordering bugs that the runtime abort guards against.
+- [x] **WorldSchema InitDerivedData() method** — `WorldLoader.cpp` calls `ResolveCrossRefs()`, `BuildResourceToSkillMap()`, `BuildProfessionToSkillMap()` in sequence. Bundle these into a single `WorldSchema::InitDerivedData()` method that enforces the correct call order internally, eliminating the class of ordering bugs that the runtime abort guards against.
 
-- [ ] **NeedDrainSystem schema reference** — Same pattern as ConsumptionSystem: `NeedDrainSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in NeedDrainSystem.
+- [x] **NeedDrainSystem schema reference** — Same pattern as ConsumptionSystem: `NeedDrainSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in NeedDrainSystem. *(Already implemented in prior work.)*
 
-- [ ] **DeathSystem schema reference** — Same pattern as ConsumptionSystem: `DeathSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in DeathSystem.
+- [x] **DeathSystem schema reference** — Same pattern as ConsumptionSystem: `DeathSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in DeathSystem. *(Already implemented in prior work.)*
 
 - [ ] **GameState camera member grouping** — After moving `m_schema` next to `m_simThread`, the camera-related fields (`m_camera`, `m_camX`, `m_camY`, `m_camZoom`) are scattered between system references. Group all camera fields together with a `// Camera state` comment block for readability.
 
@@ -314,6 +314,10 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **DynBitset promoteIfNeeded shrink-to-fit** — `DynBitset` promotes from inline to heap when bits > 63 are set, but never shrinks back. Add a `shrinkToFit()` method that converts a heap-mode bitset back to inline if all set bits fit in 64 bits. Add tests for the roundtrip: set bit 200 (promote), clear bit 200, shrinkToFit, verify inline mode.
 
 - [ ] **DynBitset iterator/forEach method** — `DynBitset` has `test()` for individual bits but no way to iterate over set bits. Add `void forEach(std::function<void(size_t)>)` that calls the callback for each set bit index, using `__builtin_ctzll` to find set bits efficiently. Add tests with empty, sparse, and dense bitsets.
+
+- [ ] **InitDerivedData make Build*Map methods private** — `WorldSchema::BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` are still public after `InitDerivedData()` was added as the canonical entry point. Make them private (or protected) so callers cannot bypass `InitDerivedData()` and hit the abort guard accidentally.
+
+- [ ] **InitDerivedData idempotency guard** — `WorldSchema::InitDerivedData()` can be called multiple times, re-running cross-ref resolution and map building. Add a `bool derivedDataInitialized` flag that prevents double-init, or document that re-calling is intentional (e.g., after hot-reloading config).
 
 ## Phase 2 — UI Decoupling
 
