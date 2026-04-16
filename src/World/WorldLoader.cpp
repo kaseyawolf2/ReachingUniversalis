@@ -356,7 +356,14 @@ static bool LoadSeasons(const std::string& path, WorldSchema& schema, std::strin
                         continue;
                     }
                     if (auto fv = val.value<double>()) {
-                        def.priceFloorMult[resId] = (float)*fv;
+                        float mult = (float)*fv;
+                        if (mult <= 0.0f) {
+                            PushWarning(warnings, LoadWarningLevel::Warning, "seasons",
+                                    "%s: price_floors for '%s' is %.2f, clamping to 0.01\n",
+                                    ctx.c_str(), std::string(key).c_str(), mult);
+                            mult = 0.01f;
+                        }
+                        def.priceFloorMult[resId] = mult;
                     }
                 }
             }
