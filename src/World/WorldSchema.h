@@ -333,6 +333,8 @@ struct SeasonThresholds {
     static constexpr float DEFAULT_COLD_SEASON    = 0.2f;   // wood becomes essential heating fuel
     static constexpr float DEFAULT_MILD_COLD      = 0.05f;  // spring-like: slight green sky tint
     static constexpr float DEFAULT_HARVEST_SEASON = 1.1f;   // high-production: more frequent work shanties
+    // Consumer: SimThread::WriteSnapshot() season-regime classifier (line ~2626).
+    // Classifies the current season as "Low Production" when productionMod <= lowProduction.
     static constexpr float DEFAULT_LOW_PRODUCTION = 0.5f;   // scarce-output: reduced yields
 
     // Valid range for season threshold values loaded from TOML.  Both heat-drain
@@ -348,7 +350,7 @@ struct SeasonThresholds {
 
     // Production-mod thresholds (compared against SeasonDef::productionMod)
     float harvestSeason = DEFAULT_HARVEST_SEASON;
-    float lowProduction = DEFAULT_LOW_PRODUCTION;
+    float lowProduction = DEFAULT_LOW_PRODUCTION;  // consumed by WriteSnapshot() season-regime HUD
 };
 
 // ---- World settings (map, timing, economy) ----
