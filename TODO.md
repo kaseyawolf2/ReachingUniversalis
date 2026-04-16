@@ -187,11 +187,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **DeathSystem schema reference** — Same pattern as ConsumptionSystem: `DeathSystem::Update()` receives `const WorldSchema&` as a parameter. Store it as `const WorldSchema& m_schema` member, remove the parameter from `Update()`, and update `SimThread.cpp` caller. Prerequisite for caching FindNeed results in DeathSystem. *(Already implemented in prior work.)*
 
-- [ ] **GameState camera member grouping** — After moving `m_schema` next to `m_simThread`, the camera-related fields (`m_camera`, `m_camX`, `m_camY`, `m_camZoom`) are scattered between system references. Group all camera fields together with a `// Camera state` comment block for readability.
+- [x] **GameState camera member grouping** — After moving `m_schema` next to `m_simThread`, the camera-related fields (`m_camera`, `m_camX`, `m_camY`, `m_camZoom`) are scattered between system references. Group all camera fields together with a `// Camera state` comment block for readability.
 
-- [ ] **GameState constructor init-list comment** — `GameState.cpp` constructor initializer list initializes `m_simThread` then `m_schema` from the same parameter but has no comment. Add a `// Both bind schema from constructor arg` comment to the init list to document the lifetime dependency.
+- [x] **GameState constructor init-list comment** — `GameState.cpp` constructor initializer list initializes `m_simThread` then `m_schema` from the same parameter but has no comment. Add a `// Both bind schema from constructor arg` comment to the init list to document the lifetime dependency.
 
-- [ ] **DynBitset test section comment cleanup** — After renaming `and_n1_both_heap_single_word` to `and_heap_heap_word0_only`, the section comment `// operator& n==1 edge case` in `tests/DynBitsetTest.cpp` is stale. Update to `// operator& edge cases` or split the renamed test into the `heap/heap` group above.
+- [x] **DynBitset test section comment cleanup** — After renaming `and_n1_both_heap_single_word` to `and_heap_heap_word0_only`, the section comment `// operator& n==1 edge case` in `tests/DynBitsetTest.cpp` is stale. Update to `// operator& edge cases` or split the renamed test into the `heap/heap` group above.
 
 - [ ] **DynBitset test boundary exhaustive** — Add tests to `tests/DynBitsetTest.cpp` for the exact boundary between inline and heap: `set(63)` (last inline bit), `set(64)` (first heap bit), and `set(63)` followed by `set(64)` (promoting from inline to heap while preserving bit 63). Verifies the boundary transition is correct.
 
@@ -318,6 +318,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **InitDerivedData make Build*Map methods private** — `WorldSchema::BuildResourceToSkillMap()` and `BuildProfessionToSkillMap()` are still public after `InitDerivedData()` was added as the canonical entry point. Make them private (or protected) so callers cannot bypass `InitDerivedData()` and hit the abort guard accidentally.
 
 - [ ] **InitDerivedData idempotency guard** — `WorldSchema::InitDerivedData()` can be called multiple times, re-running cross-ref resolution and map building. Add a `bool derivedDataInitialized` flag that prevents double-init, or document that re-calling is intentional (e.g., after hot-reloading config).
+
+- [ ] **GameState camera section "why" comment** — The `// Camera state` section header in `GameState.h` replaced a comment explaining why the camera lives on the main thread (responds to input without waiting for sim). Add back a one-liner like `// Camera state (main-thread-only; updated from input, not sim)` to preserve the architectural rationale.
+
+- [ ] **GameState road mode comment restoration** — The condensed end-of-line comment for `m_showRoadCondition` dropped the word "bandit-aware" from the safety mode description. Restore the detail, e.g., `// false = bandit-aware safety, true = physical condition`.
+
+- [ ] **SimThread schema lifetime comment** — `GameState.cpp` now documents that `m_schema` is a `const&` with a lifetime dependency, but `m_simThread` also receives the same `schema` parameter. If `SimThread` stores a reference (not a copy), it has the same lifetime hazard. Add a matching comment on the `m_simThread` init, or verify it copies and document that it's safe.
+
+- [ ] **DynBitset edge case section consolidation** — After the test section comment cleanup, `and_n1_edge_case` is the sole test under `// operator& edge cases`. Either rename the section to match the single test's purpose (`// operator& — n<=1 inline/heap overlap`) or add more edge case tests to justify the section header.
+
+- [ ] **GameState member ordering static analysis** — After the camera grouping, verify that the member declaration order in `GameState.h` matches the constructor initializer list order in `GameState.cpp`. Mismatched order causes `-Wreorder` warnings with `-Wall`. Add a comment if intentionally mismatched.
+
+- [ ] **GameState private section const-ref audit** — `GameState::m_schema` is documented as a lifetime-sensitive `const&`. Audit all other reference members in `GameState` (and `SimThread`, `RenderSystem`, etc.) for the same pattern. Add lifetime comments where missing.
 
 ## Phase 2 — UI Decoupling
 
