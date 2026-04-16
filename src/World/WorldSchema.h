@@ -187,19 +187,108 @@ enum class GoalBehaviourMod { None, Hoard, Ambitious };
 enum class GoalTargetMode { Fixed, RelativeBalance, RelativeAge };
 
 struct GoalDef {
+    /// Unique index into WorldSchema::goals (== position in the vector).
+    /// Assigned automatically by WorldSchema::BuildMaps(); not set from TOML.
+    /// Consumed by: WorldSchema::BuildMaps, WorldSchema::goalsByName.
     GoalTypeID  id          = INVALID_ID;
-    std::string name;                         // "SaveGold", "ReachAge", ...
-    std::string displayName;                  // "Save Gold", "Reach Age", ...
-    GoalCheckType checkTypeEnum = GoalCheckType::None;       // resolved at load time from TOML "check_type"
-    float       targetValue = 0.0f;           // threshold for completion (or base target)
-    GoalTargetMode targetModeEnum = GoalTargetMode::Fixed;  // resolved at load time from TOML "target_mode"
-    float       offset      = 0.0f;           // added to current value for relative targets
-    float       weight      = 1.0f;           // selection weight when assigning goals
-    std::string unit;                         // display unit suffix ("g", "d", "")
-    std::string completionMessage;            // "{name} reached their savings goal!" — {name} is replaced at runtime
-    GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;  // resolved at load time from TOML "behaviour_mod"
-    ProfessionID targetProfessionId = INVALID_ID;  // for has_profession: which profession to check
-    float       completionCooldown = 5.0f;        // game-minutes before this goal can re-complete (prevents spam)
+
+    /// Internal identifier string used as the TOML key and for name-to-ID lookups.
+    /// Must be unique across all goals.  Examples: "SaveGold", "ReachAge".
+    /// Consumed by: WorldLoader (parsing, cross-ref resolution, validation warnings),
+    ///              WorldSchema::BuildMaps (populates goalsByName).
+    std::string name;
+
+    /// User-facing label shown in HUD tooltips and event-log messages.
+    /// Defaults to `name` if omitted in TOML.
+    /// Consumed by: GoalLabel() helper (Components.h), SimThread::WriteSnapshot (tooltip text).
+    std::string displayName;
+
+    /// Determines how goal progress is measured each tick.  Resolved at load
+    /// time from the TOML "check_type" string to avoid hot-loop string comparisons.
+    ///   - BalanceGte : progress = NPC's gold balance (Money::balance).
+    ///   - AgeGte     : progress = NPC's age in days (Age::days).
+    ///   - HasFamily  : progress = 1 if NPC has FamilyTag, else 0.
+    ///   - HasProfession : progress = 1 if NPC's Profession::type matches targetProfessionId.
+    ///   - None       : progress is never updated (goal cannot complete on its own).
+    /// Consumed by: AgentDecisionSystem (progress evaluation), EconomicMobilitySystem
+    ///              (marks hauler-profession goals complete on graduation),
+    ///              WorldLoader (validation of required companion fields).
+    GoalCheckType checkTypeEnum = GoalCheckType::None;
+
+    /// The completion threshold: the goal is met when progress >= targetValue.
+    /// For Fixed target mode this is the literal threshold.  For relative modes
+    /// it acts as a minimum floor (see targetModeEnum).
+    /// Valid range: >= 0.  A value of 0 with Fixed mode triggers a load-time
+    /// validation warning for BalanceGte / AgeGte goals (trivially complete).
+    /// Consumed by: AgentDecisionSystem (target computation), WorldGenerator
+    ///              (initial goal assignment), WorldLoader (validation).
+    float       targetValue = 0.0f;
+
+    /// Controls how the per-NPC target is derived from targetValue.
+    /// Resolved at load time from the TOML "target_mode" string.
+    ///   - Fixed           : target = targetValue.
+    ///   - RelativeBalance : target = max(targetValue, currentBalance + offset).
+    ///   - RelativeAge     : target = currentAge + offset.
+    /// Consumed by: AgentDecisionSystem (target computation on goal assignment
+    ///              and re-assignment), WorldGenerator (initial goal assignment),
+    ///              WorldLoader (validation).
+    GoalTargetMode targetModeEnum = GoalTargetMode::Fixed;
+
+    /// Additive term used by relative target modes to shift the per-NPC target
+    /// above the NPC's current value.  For RelativeBalance, the target becomes
+    /// max(targetValue, balance + offset).  For RelativeAge, target = age + offset.
+    /// Ignored when targetModeEnum is Fixed.
+    /// Valid range: any float (typically positive).
+    /// Consumed by: AgentDecisionSystem (target computation), WorldGenerator
+    ///              (initial goal assignment).
+    float       offset      = 0.0f;
+
+    /// Relative probability weight for random goal selection.  When a new goal
+    /// is assigned (at spawn or after completion), a weighted random draw selects
+    /// among all GoalDefs proportional to their weight values.
+    /// Valid range: > 0.  Higher values mean more frequent selection.
+    /// Consumed by: AgentDecisionSystem (weighted random goal pick),
+    ///              WorldGenerator (initial goal assignment).
+    float       weight      = 1.0f;
+
+    /// Display-only unit suffix appended to progress/target numbers in HUD
+    /// tooltips and event-log messages (e.g. "g" for gold, "d" for days, "" for none).
+    /// Consumed by: GoalUnit() helper (Components.h), SimThread::WriteSnapshot
+    ///              (tooltip text), AgentDecisionSystem (halfway milestone log).
+    std::string unit;
+
+    /// Template string logged when the goal completes.  The placeholder "{name}"
+    /// is replaced with the NPC's Name::value at runtime.
+    /// Defaults to "{name} completed a goal!" if omitted in TOML.
+    /// Consumed by: AgentDecisionSystem (goal completion event-log entry).
+    std::string completionMessage;
+
+    /// Modifies NPC economic behaviour while this goal is active.  Resolved at
+    /// load time from the TOML "behaviour_mod" string.
+    ///   - None     : no behaviour change.
+    ///   - Hoard    : NPC doubles its emergency purchase interval (buys less
+    ///                frequently), conserving gold toward a savings goal.
+    ///   - Ambitious: NPC produces 10% more output at their work facility.
+    /// Consumed by: ConsumptionSystem (Hoard: doubles purchase interval),
+    ///              ProductionSystem (Ambitious: 1.1x worker contribution).
+    GoalBehaviourMod behaviourModEnum = GoalBehaviourMod::None;
+
+    /// For HasProfession goals: the ProfessionID that the NPC's Profession::type
+    /// must match for the goal to complete.  Resolved at load time from the TOML
+    /// "target_profession" string via WorldSchema::FindProfession(); defaults to
+    /// the hauler profession if omitted.  INVALID_ID triggers a load-time warning.
+    /// Consumed by: AgentDecisionSystem (HasProfession progress check),
+    ///              EconomicMobilitySystem (marks hauler goals complete on graduation),
+    ///              WorldLoader (cross-ref resolution and validation).
+    ProfessionID targetProfessionId = INVALID_ID;
+
+    /// Cooldown in game-minutes after a goal completes before progress is checked
+    /// again.  Prevents immediate re-completion when the same or a similar goal
+    /// is re-assigned (e.g. a fixed-target goal that is already satisfied).
+    /// Valid range: >= 0.  Default: 5.0 game-minutes.
+    /// Consumed by: AgentDecisionSystem (sets Goal::cooldownTimer on completion;
+    ///              drains the timer each tick and skips progress checks until it expires).
+    float       completionCooldown = 5.0f;
 };
 
 struct FacilityDef {
