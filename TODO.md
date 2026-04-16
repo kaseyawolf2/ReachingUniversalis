@@ -193,11 +193,11 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **DynBitset test section comment cleanup** — After renaming `and_n1_both_heap_single_word` to `and_heap_heap_word0_only`, the section comment `// operator& n==1 edge case` in `tests/DynBitsetTest.cpp` is stale. Update to `// operator& edge cases` or split the renamed test into the `heap/heap` group above.
 
-- [ ] **DynBitset test boundary exhaustive** — Add tests to `tests/DynBitsetTest.cpp` for the exact boundary between inline and heap: `set(63)` (last inline bit), `set(64)` (first heap bit), and `set(63)` followed by `set(64)` (promoting from inline to heap while preserving bit 63). Verifies the boundary transition is correct.
+- [x] **DynBitset test boundary exhaustive** — Add tests to `tests/DynBitsetTest.cpp` for the exact boundary between inline and heap: `set(63)` (last inline bit), `set(64)` (first heap bit), and `set(63)` followed by `set(64)` (promoting from inline to heap while preserving bit 63). Verifies the boundary transition is correct.
 
-- [ ] **Season threshold warning consistency** — `WorldLoader.cpp` cold threshold warnings say "should be less than" (soft) but the production threshold warning says "must be less than" (hard). Neither is enforced (no abort/return). Pick consistent wording — use "should" for all non-fatal warnings.
+- [x] **Season threshold warning consistency** — `WorldLoader.cpp` cold threshold warnings say "should be less than" (soft) but the production threshold warning says "must be less than" (hard). Neither is enforced (no abort/return). Pick consistent wording — use "should" for all non-fatal warnings.
 
-- [ ] **Season threshold range-check constants** — `WorldLoader.cpp` uses magic `0.0f` and `2.0f` bounds for season threshold range validation. Define named constants (e.g., `MIN_THRESHOLD = 0.0f`, `MAX_THRESHOLD = 2.0f`) at file scope or in `WorldSchema.h` so the bounds are documented and reusable.
+- [x] **Season threshold range-check constants** — `WorldLoader.cpp` uses magic `0.0f` and `2.0f` bounds for season threshold range validation. Define named constants (e.g., `MIN_THRESHOLD = 0.0f`, `MAX_THRESHOLD = 2.0f`) at file scope or in `WorldSchema.h` so the bounds are documented and reusable.
 
 - [ ] **PriceSystem per-resource floor validation** — `WorldLoader.cpp` parses `[seasons.price_floors]` per-resource multipliers but does not validate values. Add a `std::max(0.0f, ...)` clamp or warning for negative/zero multipliers to prevent nonsensical negative price floors.
 
@@ -330,6 +330,18 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 - [ ] **GameState member ordering static analysis** — After the camera grouping, verify that the member declaration order in `GameState.h` matches the constructor initializer list order in `GameState.cpp`. Mismatched order causes `-Wreorder` warnings with `-Wall`. Add a comment if intentionally mismatched.
 
 - [ ] **GameState private section const-ref audit** — `GameState::m_schema` is documented as a lifetime-sensitive `const&`. Audit all other reference members in `GameState` (and `SimThread`, `RenderSystem`, etc.) for the same pattern. Add lifetime comments where missing.
+
+- [ ] **DynBitset boundary crossover operator& test** — `tests/DynBitsetTest.cpp` boundary tests cover `set/test/count` at bit 63/64 but not `operator&` across the inline-to-heap boundary. Add a test that ANDs an inline bitset (bit 63 set) with a heap bitset (bits 63 and 64 set) and verifies the result has only bit 63.
+
+- [ ] **DynBitset boundary crossover operator| test** — Same gap as operator&: add a test that ORs an inline bitset (bit 63 set) with a heap bitset (bit 64 set) and verifies the result has both bits 63 and 64, and that the result is in heap mode.
+
+- [ ] **Season threshold TOML hot-reload validation** — `WorldLoader.cpp` validates season thresholds at initial load but there is no re-validation path if TOML files are hot-reloaded. Add a `RevalidateSeasonThresholds(const WorldSchema&)` free function that runs the same ordering/range checks and returns a warnings vector, decoupled from the load path.
+
+- [ ] **Season threshold range constant unit test** — `tests/SeasonValidationTest.cpp` tests warning emission but does not verify that the MIN_THRESHOLD/MAX_THRESHOLD constants match the values used in validation. Add a static_assert or compile-time test that `MIN_THRESHOLD == 0.0f` and `MAX_THRESHOLD == 2.0f` to catch accidental constant drift.
+
+- [ ] **WorldLoader warning severity enum** — `WorldLoader.cpp` warnings use free-form string prefixes ("WARNING:", "ERROR:"). Define a `enum class LoadSeverity { Info, Warning, Error }` and add it to the `LoadWarning` struct so downstream consumers (HUD, test harness) can filter by severity programmatically instead of string-matching.
+
+- [ ] **WorldLoader warning dedup** — `WorldLoader.cpp` can emit duplicate warnings when the same TOML key fails multiple validation checks (e.g., range + ordering). Add deduplication to the warnings vector (by message string or by source line) before returning, so the HUD and test harness see each unique warning only once.
 
 ## Phase 2 — UI Decoupling
 
