@@ -2224,8 +2224,17 @@ void SimThread::WriteSnapshot() {
                     facMorale = s->morale;
                 }
             }
+            // Look up the schema FacilityDef whose outputResource matches fac.output
+            // to get the proper display name (e.g. "Farm", "Well", "Lumber Mill").
+            std::string facDisplayName;
+            for (const auto& fdef : m_schema.facilities) {
+                if (fdef.outputResource == fac.output) {
+                    facDisplayName = fdef.displayName;
+                    break;
+                }
+            }
 
-            facilities.push_back({ pos.x, pos.y, fac.output, fac.baseRate, workers, avgSkill, sname, facMorale });
+            facilities.push_back({ pos.x, pos.y, fac.output, fac.baseRate, workers, avgSkill, sname, facMorale, facDisplayName });
         });
     }
 

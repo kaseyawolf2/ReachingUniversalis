@@ -1355,13 +1355,14 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
         curSeasonProductionMod = snap.seasonProductionMod;
     }
 
-    // Facility type name and resource unit from schema
+    // Facility type name: prefer schema display name (e.g. "Farm", "Well", "Lumber Mill");
+    // fall back to "<Resource> Facility" if the display name was not populated.
     const char* resDisplayName = (best->output >= 0 && best->output < (int)resNamesFac.size()
                                   && !resNamesFac[best->output].empty())
                                  ? resNamesFac[best->output].c_str() : "Resource";
-    char typeNameBuf[128];
-    std::snprintf(typeNameBuf, sizeof(typeNameBuf), "%s Facility", resDisplayName);
-    const char* typeName = typeNameBuf;
+    const char* typeName = (!best->facilityDisplayName.empty())
+                           ? best->facilityDisplayName.c_str()
+                           : resDisplayName;
     // Lower-case resource name as unit label
     std::string resUnitStr;
     for (char c : std::string(resDisplayName)) resUnitStr += (char)std::tolower((unsigned char)c);

@@ -208,6 +208,7 @@ struct RenderSnapshot {
         float        avgSkill    = 0.5f;  // average relevant skill of workers
         std::string  settlementName;      // home settlement name
         float        morale     = 0.5f;  // settlement morale (for production tooltip)
+        std::string  facilityDisplayName; // schema FacilityDef::displayName (e.g. "Farm", "Well")
     };
 
     // ---- World status bar ----
@@ -347,13 +348,14 @@ struct RenderSnapshot {
     float         thirstCrit     = 0.3f;
     float         energyCrit     = 0.3f;
     float         heatCrit       = 0.3f;
+    // Schema-driven player need values: (value, critThreshold) indexed by NeedID.
+    // Populated alongside the legacy scalar fields above; HUD renders from this.
+    std::vector<std::pair<float,float>> playerNeeds;
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;
     float         playerGold     = 0.f;
     std::vector<float>       playerSkills;       // per SkillID; empty = no Skills component
-    // Per-need (value, criticalThreshold) pairs for the player, schema-driven.
-    std::vector<std::pair<float,float>> playerNeeds;
     // Player skill display names: uses the shared skillNames pointer above.
     std::map<int, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity
