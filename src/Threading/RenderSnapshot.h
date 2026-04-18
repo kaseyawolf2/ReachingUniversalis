@@ -347,6 +347,9 @@ struct RenderSnapshot {
     float         thirstCrit     = 0.3f;
     float         energyCrit     = 0.3f;
     float         heatCrit       = 0.3f;
+    // Schema-driven player need values: (value, critThreshold) indexed by NeedID.
+    // Populated alongside the legacy scalar fields above; HUD renders from this.
+    std::vector<std::pair<float,float>> playerNeeds;
     AgentBehavior playerBehavior = AgentBehavior::Idle;
     float         playerAgeDays  = 0.f;
     float         playerMaxDays  = 80.f;
