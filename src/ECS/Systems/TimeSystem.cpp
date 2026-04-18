@@ -28,7 +28,7 @@ void TimeSystem::Advance(entt::registry& registry, float subDt, const WorldSchem
                 const char* name = (newSeason >= 0 && newSeason < (int)schema.seasons.size())
                                    ? schema.seasons[newSeason].displayName.c_str() : "Unknown";
                 std::string msg = std::string("--- ") + name + " begins ---";
-                lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
+                lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, msg, "Time");
             }
         }
     }

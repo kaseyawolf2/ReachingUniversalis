@@ -34,8 +34,26 @@ SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const World
         m_cachedSkillNames = std::move(names);
     }
 
-    // Set the shared pointer on the snapshot once; it never changes.
-    m_snapshot.skillNames = m_cachedSkillNames;
+    // Cache need display names once; same rationale as skill names above.
+    {
+        auto names = std::make_shared<std::vector<std::string>>(m_schema.needs.size());
+        for (int i = 0; i < (int)m_schema.needs.size(); ++i)
+            (*names)[i] = m_schema.needs[i].displayName;
+        m_cachedNeedNames = std::move(names);
+    }
+
+    // Cache resource display names once; same rationale as skill names above.
+    {
+        auto names = std::make_shared<std::vector<std::string>>(m_schema.resources.size());
+        for (int i = 0; i < (int)m_schema.resources.size(); ++i)
+            (*names)[i] = m_schema.resources[i].displayName;
+        m_cachedResourceNames = std::move(names);
+    }
+
+    // Set the shared pointers on the snapshot once; they never change.
+    m_snapshot.skillNames     = m_cachedSkillNames;
+    m_snapshot.needNames      = m_cachedNeedNames;
+    m_snapshot.resourceNames  = m_cachedResourceNames;
 }
 
 SimThread::~SimThread() {
@@ -221,7 +239,7 @@ void SimThread::RespawnPlayer() {
         if (lv.begin() != lv.end()) {
             const auto& sett = m_registry.get<Settlement>(bestSettl);
             lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                "Player respawned at " + sett.name);
+                "Player respawned at " + sett.name, "Sim");
         }
     }
 
@@ -410,7 +428,7 @@ void SimThread::ProcessInput() {
             });
 
             if (nearSettl == entt::null) {
-                if (log2) log2->Push(day2, hr2, "No settlement in range to trade");
+                if (log2) log2->Push(day2, hr2, "No settlement in range to trade", "Sim");
             } else {
                 auto& settl = m_registry.get<Settlement>(nearSettl);
                 auto* sp2   = m_registry.try_get<Stockpile>(nearSettl);
@@ -445,7 +463,7 @@ void SimThread::ProcessInput() {
                     if (log2) log2->Push(day2, hr2,
                         "Sold goods at " + settl.name
                         + " for " + std::to_string((int)earned) + "g (tax "
-                        + std::to_string((int)taxTotal) + "g)");
+                        + std::to_string((int)taxTotal) + "g)", "Sim");
                 }
                 // Inventory empty → buy the highest-profit tradeable good
                 else if (inv.TotalItems() == 0 && sp2 && mkt2) {
@@ -494,13 +512,13 @@ void SimThread::ProcessInput() {
                         if (log2) {
                             log2->Push(day2, hr2,
                                 "Bought " + std::to_string(bestQty) + " goods at "
-                                + settl.name + " for " + std::to_string((int)cost) + "g");
+                                + settl.name + " for " + std::to_string((int)cost) + "g", "Sim");
                             // One-time reputation discount announcement
                             static bool s_discountLogged = false;
                             if (!s_discountLogged && repFactor < 1.0f) {
                                 s_discountLogged = true;
                                 log2->Push(day2, hr2,
-                                    "Your reputation earns you a discount at " + settl.name);
+                                    "Your reputation earns you a discount at " + settl.name, "Sim");
                             }
                         }
                         char ledg2[80];
@@ -509,7 +527,7 @@ void SimThread::ProcessInput() {
                         PushTradeRecord(ledg2, -cost);
                     } else {
                         if (log2) log2->Push(day2, hr2,
-                            "Nothing profitable to buy at " + settl.name);
+                            "Nothing profitable to buy at " + settl.name, "Sim");
                     }
                 }
             }
@@ -526,7 +544,7 @@ void SimThread::ProcessInput() {
             if (log) {
                 log->Push(tm.day, (int)tm.hourOfDay,
                     road.blocked ? "Road BLOCKED — haulers rerouting"
-                                 : "Road CLEARED — trade resumes");
+                                 : "Road CLEARED — trade resumes", "Sim");
             }
         });
     }
@@ -556,11 +574,11 @@ void SimThread::ProcessInput() {
                     const auto& sett = m_registry.get<Settlement>(nearest);
                     lv.get<EventLog>(*lv.begin()).Push(
                         tm.day, (int)tm.hourOfDay,
-                        "You settle at " + sett.name);
+                        "You settle at " + sett.name, "Sim");
                 }
             } else if (nearest == entt::null && lv.begin() != lv.end()) {
                 lv.get<EventLog>(*lv.begin()).Push(
-                    tm.day, (int)tm.hourOfDay, "No settlement nearby to settle in");
+                    tm.day, (int)tm.hourOfDay, "No settlement nearby to settle in", "Sim");
             }
         }
     }
@@ -577,13 +595,13 @@ void SimThread::ProcessInput() {
                 state.behavior = AgentBehavior::Idle;
                 if (lv.begin() != lv.end())
                     lv.get<EventLog>(*lv.begin()).Push(
-                        tm.day, (int)tm.hourOfDay, "You wake up");
+                        tm.day, (int)tm.hourOfDay, "You wake up", "Sim");
             } else {
                 state.behavior = AgentBehavior::Sleeping;
                 vel.vx = vel.vy = 0.f;
                 if (lv.begin() != lv.end())
                     lv.get<EventLog>(*lv.begin()).Push(
-                        tm.day, (int)tm.hourOfDay, "You go to sleep");
+                        tm.day, (int)tm.hourOfDay, "You go to sleep", "Sim");
             }
         }
     }
@@ -656,7 +674,7 @@ void SimThread::ProcessInput() {
                         std::snprintf(buf, sizeof(buf),
                             "Player confronted %s%s, recovered %.1fg (+10 rep)",
                             bandName.c_str(), roadLabel.c_str(), recover);
-                        plog->Push(tm.day, (int)tm.hourOfDay, buf);
+                        plog->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
                     }
                     // Collect bounty from adjacent settlements
                     if (bpos) {
@@ -687,7 +705,7 @@ void SimThread::ProcessInput() {
                                 char bbuf[160];
                                 std::snprintf(bbuf, sizeof(bbuf),
                                     "Collected %.1fg bounty from %s", bounty, settl->name.c_str());
-                                plog->Push(tm.day, (int)tm.hourOfDay, bbuf);
+                                plog->Push(tm.day, (int)tm.hourOfDay, bbuf, "Sim");
                             }
                         }
                         // Morale boost: road-adjacent settlements gain +5% morale
@@ -702,7 +720,7 @@ void SimThread::ProcessInput() {
                                 std::snprintf(mbuf, sizeof(mbuf),
                                     "%s morale improved (+5%%) after bandit threat reduced",
                                     settl->name.c_str());
-                                plog->Push(tm.day, (int)tm.hourOfDay, mbuf);
+                                plog->Push(tm.day, (int)tm.hourOfDay, mbuf, "Sim");
                             }
                         }
                     }
@@ -735,7 +753,7 @@ void SimThread::ProcessInput() {
                                 });
                             if (!gangSurvives && plog) {
                                 std::string msg = confrontedGang + " has been disbanded.";
-                                plog->Push(tm.day, (int)tm.hourOfDay, msg);
+                                plog->Push(tm.day, (int)tm.hourOfDay, msg, "Sim");
                             }
                         }
                     }
@@ -763,14 +781,14 @@ void SimThread::ProcessInput() {
                                 "Player confronted %s (%d witness%s).",
                                 banditName2.c_str(), witnessCount,
                                 witnessCount == 1 ? "" : "es");
-                            plog->Push(tm.day, (int)tm.hourOfDay, wbuf);
+                            plog->Push(tm.day, (int)tm.hourOfDay, wbuf, "Sim");
                         }
                     }
                 }
             } else if (pst3.behavior == AgentBehavior::Working) {
                 // Toggle off
                 pst3.behavior = AgentBehavior::Idle;
-                if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "You stop working");
+                if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "You stop working", "Sim");
             } else {
                 // Find nearest production facility in range
                 entt::entity nearFac = entt::null;
@@ -792,9 +810,9 @@ void SimThread::ProcessInput() {
                                          (nearOut == RES_WATER) ? "well"       :
                                          (nearOut == RES_WOOD)  ? "lumber mill" : "facility";
                     if (plog) plog->Push(tm.day, (int)tm.hourOfDay,
-                        std::string("You begin working at the ") + facName);
+                        std::string("You begin working at the ") + facName, "Sim");
                 } else {
-                    if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "No facility nearby to work at");
+                    if (plog) plog->Push(tm.day, (int)tm.hourOfDay, "No facility nearby to work at", "Sim");
                 }
             }
         }
@@ -827,7 +845,7 @@ void SimThread::ProcessInput() {
             });
 
             if (nearS == entt::null) {
-                if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "No settlement in range to buy from");
+                if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "No settlement in range to buy from", "Sim");
             } else {
                 auto* sp4  = m_registry.try_get<Stockpile>(nearS);
                 auto* mkt4 = m_registry.try_get<Market>(nearS);
@@ -835,7 +853,7 @@ void SimThread::ProcessInput() {
                 std::string sname = sn4 ? sn4->name : "?";
 
                 if (inv4.TotalItems() >= inv4.maxCapacity) {
-                    if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "Inventory full — can't buy more");
+                    if (blog) blog->Push(tm.day, (int)tm.hourOfDay, "Inventory full — can't buy more", "Sim");
                 } else if (sp4 && mkt4) {
                     // Find cheapest available resource (best value for the player to carry).
                     // Buy as many units as the player can carry and afford, capped at half
@@ -880,13 +898,13 @@ void SimThread::ProcessInput() {
                         std::snprintf(buf, sizeof(buf), "Bought %d %s at %s for %.2fg (%.2fg/unit)",
                                       buyQty, rname, sname.c_str(), totalCost, cheapPrice);
                         if (blog) {
-                            blog->Push(tm.day, (int)tm.hourOfDay, buf);
+                            blog->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
                             // One-time reputation discount announcement
                             static bool s_discountLoggedQ = false;
                             if (!s_discountLoggedQ && repFactor4 < 1.0f) {
                                 s_discountLoggedQ = true;
                                 blog->Push(tm.day, (int)tm.hourOfDay,
-                                    "Your reputation earns you a discount at " + sname);
+                                    "Your reputation earns you a discount at " + sname, "Sim");
                             }
                         }
                         char ledg[80];
@@ -895,7 +913,7 @@ void SimThread::ProcessInput() {
                         PushTradeRecord(ledg, -totalCost);
                     } else {
                         if (blog) blog->Push(tm.day, (int)tm.hourOfDay,
-                            "Nothing affordable to buy at " + sname + " (stockpile empty or no gold)");
+                            "Nothing affordable to buy at " + sname + " (stockpile empty or no gold)", "Sim");
                     }
                 }
             }
@@ -930,15 +948,15 @@ void SimThread::ProcessInput() {
 
             if (nearSettlC == entt::null) {
                 if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay,
-                    "Cart: must be near a settlement to purchase");
+                    "Cart: must be near a settlement to purchase", "Sim");
             } else if (invc.maxCapacity >= CART_MAX_CAP) {
                 if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay,
-                    "Cart: already at maximum carry capacity");
+                    "Cart: already at maximum carry capacity", "Sim");
             } else if (monc.balance < CART_COST) {
                 char buf[80];
                 std::snprintf(buf, sizeof(buf), "Cart: need %.0fg (have %.0fg)",
                     CART_COST, monc.balance);
-                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             } else {
                 monc.balance      -= CART_COST;
                 invc.maxCapacity  += CART_GAIN;
@@ -949,7 +967,7 @@ void SimThread::ProcessInput() {
                 std::snprintf(buf, sizeof(buf),
                     "Bought a cart — carry capacity now %d (paid %.0fg)",
                     invc.maxCapacity, CART_COST);
-                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blogc) blogc->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             }
         }
     }
@@ -981,12 +999,12 @@ void SimThread::ProcessInput() {
 
             if (nearSettl5 == entt::null) {
                 if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay,
-                    "Build: no settlement nearby — move closer first");
+                    "Build: no settlement nearby — move closer first", "Sim");
             } else if (mon5.balance < BUILD_COST) {
                 char buf[80];
                 std::snprintf(buf, sizeof(buf),
                     "Build: need %.0fg (have %.0fg)", BUILD_COST, mon5.balance);
-                if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             } else {
                 // Pick the most expensive resource at this settlement
                 const auto* mkt5 = m_registry.try_get<Market>(nearSettl5);
@@ -1012,7 +1030,7 @@ void SimThread::ProcessInput() {
                     std::snprintf(buf, sizeof(buf),
                         "You built a %s for %s (%.0fg)",
                         rname5, st5 ? st5->name.c_str() : "?", BUILD_COST);
-                    if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf);
+                    if (blog5) blog5->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
                 }
             }
         }
@@ -1043,7 +1061,7 @@ void SimThread::ProcessInput() {
                 char buf[80];
                 std::snprintf(buf, sizeof(buf),
                     "Found settlement: need %.0fg (have %.0fg)", FOUND_COST, monf.balance);
-                if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             } else {
                 // Check distance from existing settlements
                 float nearestSettlDist = FOUND_MIN_DIST * FOUND_MIN_DIST;
@@ -1056,11 +1074,11 @@ void SimThread::ProcessInput() {
 
                 if (tooClose) {
                     if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay,
-                        "Found settlement: too close to an existing settlement (need 400+ distance)");
+                        "Found settlement: too close to an existing settlement (need 400+ distance)", "Sim");
                 } else if (ppf.x < 60.f || ppf.x > MAP_W_F - 60.f ||
                            ppf.y < 60.f || ppf.y > MAP_H_F - 60.f) {
                     if (blogf) blogf->Push(tm.day, (int)tm.hourOfDay,
-                        "Found settlement: too close to the map edge");
+                        "Found settlement: too close to the map edge", "Sim");
                 } else {
                     // Pick a settlement name
                     static const char* FOUND_NAMES[] = {
@@ -1222,7 +1240,7 @@ void SimThread::ProcessInput() {
                                 if (const auto* ls = m_registry.try_get<Settlement>(linkTarget))
                                     linkedName = ls->name;
                                 blogf->Push(tm.day, (int)tm.hourOfDay,
-                                    "Road opened: " + std::string(newName) + " ↔ " + linkedName);
+                                    "Road opened: " + std::string(newName) + " ↔ " + linkedName, "Sim");
                             }
                         }
                     }
@@ -1236,7 +1254,7 @@ void SimThread::ProcessInput() {
                         std::snprintf(buf, sizeof(buf),
                             "Player founded %s at (%.0f, %.0f) — %.0fg, 4 settlers + 1 hauler",
                             newName, ppf.x, ppf.y, FOUND_COST);
-                        blogf->Push(tm.day, (int)tm.hourOfDay, buf);
+                        blogf->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
 
                         // Family reunion log: find families with 2+ members at the new settlement
                         {
@@ -1257,7 +1275,7 @@ void SimThread::ProcessInput() {
                                     std::snprintf(fbuf, sizeof(fbuf),
                                         "The %s family helped found %s.",
                                         fname.c_str(), newName);
-                                    blogf->Push(tm.day, (int)tm.hourOfDay, fbuf);
+                                    blogf->Push(tm.day, (int)tm.hourOfDay, fbuf, "Sim");
                                 }
                             }
                         }
@@ -1296,12 +1314,12 @@ void SimThread::ProcessInput() {
 
             if (nearRoad6 == entt::null) {
                 if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay,
-                    "Road repair: no blocked road nearby (walk closer to a blocked road)");
+                    "Road repair: no blocked road nearby (walk closer to a blocked road)", "Sim");
             } else if (mon6.balance < REPAIR_COST) {
                 char buf[80];
                 std::snprintf(buf, sizeof(buf),
                     "Road repair: need %.0fg (have %.0fg)", REPAIR_COST, mon6.balance);
-                if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             } else {
                 auto& road6 = m_registry.get<Road>(nearRoad6);
                 road6.blocked     = false;
@@ -1310,7 +1328,7 @@ void SimThread::ProcessInput() {
                 mon6.balance     -= REPAIR_COST;
                 m_playerReputation += 2;  // +2 rep for road repair
                 if (blog6) blog6->Push(tm.day, (int)tm.hourOfDay,
-                    "You repaired the road (paid " + std::to_string((int)REPAIR_COST) + "g)");
+                    "You repaired the road (paid " + std::to_string((int)REPAIR_COST) + "g)", "Sim");
             }
         }
     }
@@ -1351,15 +1369,15 @@ void SimThread::ProcessInput() {
 
             if (sA == entt::null || sB == entt::null) {
                 if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
-                    "Road build: must press N near a settlement at both start and end");
+                    "Road build: must press N near a settlement at both start and end", "Sim");
             } else if (sA == sB) {
                 if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
-                    "Road build: start and end must be different settlements");
+                    "Road build: start and end must be different settlements", "Sim");
             } else if (mon7.balance < ROAD_BUILD_COST) {
                 char buf[80];
                 std::snprintf(buf, sizeof(buf),
                     "Road build: need %.0fg (have %.0fg)", ROAD_BUILD_COST, mon7.balance);
-                if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf);
+                if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
             } else {
                 // Check if road already exists between these two settlements
                 bool exists = false;
@@ -1369,7 +1387,7 @@ void SimThread::ProcessInput() {
                 });
                 if (exists) {
                     if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay,
-                        "Road build: a road already connects those settlements");
+                        "Road build: a road already connects those settlements", "Sim");
                 } else {
                     auto newRoad = m_registry.create();
                     m_registry.emplace<Road>(newRoad, Road{ sA, sB, false, 0.f });
@@ -1381,7 +1399,7 @@ void SimThread::ProcessInput() {
                     std::snprintf(buf, sizeof(buf),
                         "You built a road: %s ↔ %s (%.0fg)",
                         nameA.c_str(), nameB.c_str(), ROAD_BUILD_COST);
-                    if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf);
+                    if (blog7) blog7->Push(tm.day, (int)tm.hourOfDay, buf, "Sim");
                 }
             }
         }
@@ -1406,7 +1424,7 @@ void SimThread::ProcessInput() {
                     auto lv = m_registry.view<EventLog>();
                     if (lv.begin() != lv.end())
                         lv.get<EventLog>(*lv.begin()).Push(
-                            tm.day, (int)tm.hourOfDay, "You wake up");
+                            tm.day, (int)tm.hourOfDay, "You wake up", "Sim");
                 }
             } else {
                 vel.vx = mx * spd;
@@ -1554,12 +1572,17 @@ void SimThread::WriteSnapshot() {
 
         Color drawColor = rend.color;
         float hp = 1.f, tp = 1.f, ep = 1.f, htp = 1.f;
+        std::vector<std::pair<float,float>> agentNeedValues;
 
         if (const auto* needs = m_registry.try_get<Needs>(e)) {
             hp  = needs->list[0].value;
             tp  = needs->list[1].value;
             ep  = needs->list[2].value;
             htp = needs->list[3].value;
+            // Populate dynamic need values for schema-driven HUD rendering
+            agentNeedValues.reserve(needs->list.size());
+            for (const auto& nd : needs->list)
+                agentNeedValues.push_back({ nd.value, nd.criticalThreshold });
             if (!isPlayer) {
                 float worst = std::min({hp, tp, ep, htp});
                 if      (worst < 0.15f) drawColor = RED;
@@ -1984,6 +2007,8 @@ void SimThread::WriteSnapshot() {
                            std::move(bestFriendName), bestFriendAffinity,
                            rivalryTariff, satisfaction,
                            std::move(specTitle), npcCareerChanges, generousDonor, reconciling, wisdomHeir, isExpert, crisisSurvivor });
+        // Populate dynamic need values (after aggregate init since it's a non-trivial field)
+        agents.back().needValues = std::move(agentNeedValues);
     });
 
     // ---- Settlements ----
@@ -2243,7 +2268,7 @@ void SimThread::WriteSnapshot() {
                                 char buf[80];
                                 std::snprintf(buf, sizeof(buf),
                                     "%s reaches %d citizens!", settl.name.c_str(), ms);
-                                popLog->Push(curDay, curHour, buf);
+                                popLog->Push(curDay, curHour, buf, "Sim");
                             }
                         }
                     }
@@ -2649,6 +2674,7 @@ void SimThread::WriteSnapshot() {
     std::vector<float> playerSkillLevels;
     std::map<int, int> playerInventory;
     int   playerInventoryCapacity = 15;
+    std::vector<std::pair<float,float>> playerNeedsVec;
     {
         auto pv = m_registry.view<PlayerTag, Position, Needs, AgentState>();
         if (pv.begin() != pv.end()) {
@@ -2659,6 +2685,10 @@ void SimThread::WriteSnapshot() {
             thirstPct  = needs.list[1].value;  thirstCrit  = needs.list[1].criticalThreshold;
             energyPct  = needs.list[2].value;  energyCrit  = needs.list[2].criticalThreshold;
             heatPct    = needs.list[3].value;  heatCrit    = needs.list[3].criticalThreshold;
+            // Populate dynamic player needs for schema-driven HUD rendering
+            playerNeedsVec.reserve(needs.list.size());
+            for (const auto& nd : needs.list)
+                playerNeedsVec.push_back({ nd.value, nd.criticalThreshold });
             playerBehavior = pv.get<AgentState>(pe).behavior;
             const auto& ppos = pv.get<Position>(pe);
             playerWX = ppos.x; playerWY = ppos.y;
@@ -2880,6 +2910,7 @@ void SimThread::WriteSnapshot() {
         m_snapshot.thirstCrit   = thirstCrit;
         m_snapshot.energyCrit   = energyCrit;
         m_snapshot.heatCrit     = heatCrit;
+        m_snapshot.playerNeeds  = std::move(playerNeedsVec);
         m_snapshot.playerBehavior = playerBehavior;
         m_snapshot.playerWorldX  = playerWX;
         m_snapshot.playerWorldY  = playerWY;

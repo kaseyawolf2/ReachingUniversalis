@@ -274,7 +274,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                 const auto& s = settlView.get<Settlement>(settl);
                 std::string msg = "Born: " + npcName + " at " + s.name;
                 if (!parentName.empty()) msg += " (to " + parentName + ")";
-                log->Push(tm.day, (int)tm.hourOfDay, msg);
+                log->Push(tm.day, (int)tm.hourOfDay, msg, "Birth");
             }
 
             // Friendship bonus: friends of the parent celebrate, boosting morale
@@ -297,7 +297,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                             if (const auto* fn = registry.try_get<Name>(friendEnt))
                                 friendName = fn->value;
                             log->Push(tm.day, (int)tm.hourOfDay,
-                                friendName + " celebrates " + parentName + "'s new child.");
+                                friendName + " celebrates " + parentName + "'s new child.", "Birth");
                         }
                     }
                 }
@@ -374,7 +374,7 @@ void BirthSystem::Update(entt::registry& registry, float realDt, const WorldSche
                     const auto& s = settlView.get<Settlement>(settl);
                     std::string msg = "Born (twins!): " + npcName + " & " + twinName + " at " + s.name;
                     if (!parentName.empty()) msg += " (to " + parentName + ")";
-                    log->Push(tm.day, (int)tm.hourOfDay, msg);
+                    log->Push(tm.day, (int)tm.hourOfDay, msg, "Birth");
                 }
             }
         }

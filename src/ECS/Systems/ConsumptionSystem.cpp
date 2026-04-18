@@ -152,7 +152,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     char buf[160];
                     std::snprintf(buf, sizeof(buf), "%s is grateful to %s for food.",
                                   who.c_str(), sb->mood.lastMealSource.c_str());
-                    lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                    lv2.get<EventLog>(*lv2.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf, "Trade");
                 }
                 sb->mood.lastMealSource.clear();
             }
@@ -189,7 +189,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         char buf[160];
                         std::snprintf(buf, sizeof(buf), "%s feels relieved after %s at %s.",
                                       who.c_str(), verb, stlName.c_str());
-                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf, "Trade");
                     }
                 }
             }
@@ -218,7 +218,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     char buf[160];
                     std::snprintf(buf, sizeof(buf), "%s is starving and desperate at %s.",
                                   who.c_str(), stlName.c_str());
-                    logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                    logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf, "Trade");
                 }
             }
         }
@@ -263,7 +263,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                             if (const auto* n = registry.try_get<Name>(entity))
                                 npcName = n->value;
                             logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay,
-                                helperName + " helps starving " + npcName + " with gold.");
+                                helperName + " helps starving " + npcName + " with gold.", "Trade");
                         }
                     }
                 }
@@ -337,7 +337,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                             auto tmV = registry.view<TimeManager>();
                             if (tmV.begin() != tmV.end()) {
                                 const auto& tmRef = tmV.get<TimeManager>(*tmV.begin());
-                                evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                                evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf, "Trade");
                             }
                         }
                         cd = 12.f;
@@ -395,7 +395,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     if (settl) where = settl->name;
                     lv3.get<EventLog>(*lv3.begin()).Push(
                         tm3.day, (int)tm3.hourOfDay,
-                        who + " stole food at " + where + skillSuffix);
+                        who + " stole food at " + where + skillSuffix, "Trade");
                 }
             }
             // Steal water if close to dying of thirst
@@ -427,7 +427,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                     if (settl) where = settl->name;
                     lv3.get<EventLog>(*lv3.begin()).Push(
                         tm3.day, (int)tm3.hourOfDay,
-                        who + " stole water at " + where + skillSuffix2);
+                        who + " stole water at " + where + skillSuffix2, "Trade");
                 }
             }
         }
@@ -460,7 +460,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                         if (auto* wn = registry.try_get<Name>(other)) witness = wn->value;
                         lv4.get<EventLog>(*lv4.begin()).Push(
                             tm4.day, (int)tm4.hourOfDay,
-                            witness + " saw through " + thiefName + "'s gratitude.");
+                            witness + " saw through " + thiefName + "'s gratitude.", "Trade");
                     }
                 }
             }
@@ -513,7 +513,7 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
                 std::snprintf(buf, sizeof(buf),
                     "%s faces a food crisis \xe2\x80\x94 %d residents starving.",
                     sName.c_str(), count);
-                logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Trade");
             }
         }
     }
@@ -547,14 +547,14 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             if (val < EMPTY_THRESHOLD && !emptyFlag) {
                 emptyFlag = true; lowFlag = true;
                 if (log) log->Push(alertDay, alertHour,
-                    res + " EMPTY at " + s.name);
+                    res + " EMPTY at " + s.name, "Trade");
             } else if (val >= EMPTY_THRESHOLD * 2.f) {
                 emptyFlag = false;
             }
             if (val < LOW_THRESHOLD && val >= EMPTY_THRESHOLD && !lowFlag) {
                 lowFlag = true;
                 if (log) log->Push(alertDay, alertHour,
-                    res + " low at " + s.name + " (" + std::to_string((int)val) + ")");
+                    res + " low at " + s.name + " (" + std::to_string((int)val) + ")", "Trade");
             } else if (val >= LOW_THRESHOLD * 1.5f) {
                 lowFlag = false;
             }
@@ -572,14 +572,14 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
             alert.treasuryEmpty = true;
             alert.treasuryLow   = true;
             if (log) log->Push(alertDay, alertHour,
-                "Treasury EMPTY at " + s.name + " — wages halted");
+                "Treasury EMPTY at " + s.name + " — wages halted", "Trade");
         } else if (treasury >= 10.f) {
             alert.treasuryEmpty = false;
         }
         if (treasury < LOW_TREASURY && treasury >= 1.f && !alert.treasuryLow) {
             alert.treasuryLow = true;
             if (log) log->Push(alertDay, alertHour,
-                "Treasury low at " + s.name + " (" + std::to_string((int)treasury) + "g)");
+                "Treasury low at " + s.name + " (" + std::to_string((int)treasury) + "g)", "Trade");
         } else if (treasury >= LOW_TREASURY * 1.5f) {
             alert.treasuryLow = false;
         }

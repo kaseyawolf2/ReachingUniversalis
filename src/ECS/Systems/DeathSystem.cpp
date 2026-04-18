@@ -75,7 +75,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                               (int)age.days, settlStr.c_str());
                 logView.get<EventLog>(*logView.begin()).Push(
                     tm2.day, (int)tm2.hourOfDay,
-                    who + ageBuf);
+                    who + ageBuf, "Death");
             }
         }
     });
@@ -122,7 +122,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                       cause, ageInt, settlStr.c_str());
                         logView.get<EventLog>(*logView.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
-                            who + deathBuf);
+                            who + deathBuf, "Death");
                     }
                     break;
                 }
@@ -197,7 +197,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                     char wbuf[180];
                                     std::snprintf(wbuf, sizeof(wbuf), "%s mourns the loss of %s's guidance at %s",
                                                   mournerName.c_str(), elderName.c_str(), where.c_str());
-                                    logVW.get<EventLog>(*logVW.begin()).Push(tmW.day, (int)tmW.hourOfDay, wbuf);
+                                    logVW.get<EventLog>(*logVW.begin()).Push(tmW.day, (int)tmW.hourOfDay, wbuf, "Death");
                                 }
                             }
                         });
@@ -240,7 +240,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                           who.c_str(), isElder ? " (elder)" : "",
                                           estate, settl->name.c_str());
                             logView3.get<EventLog>(*logView3.begin()).Push(
-                                tm3.day, (int)tm3.hourOfDay, ebuf);
+                                tm3.day, (int)tm3.hourOfDay, ebuf, "Death");
                         }
 
                         // ---- Friend inheritance: best friend at same settlement ----
@@ -285,7 +285,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                                 "%s inherits %.0fg from %s's estate.",
                                                 friendName.c_str(), friendShare, who2.c_str());
                                             logView7.get<EventLog>(*logView7.begin()).Push(
-                                                tm7.day, (int)tm7.hourOfDay, fbuf);
+                                                tm7.day, (int)tm7.hourOfDay, fbuf, "Death");
                                         }
                                     }
                                 }
@@ -315,7 +315,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                         auto& tm5 = timeView.get<TimeManager>(*timeView.begin());
                         std::string msg = oNm.value + " mourns the loss of " + deadName + ".";
                         logView5.get<EventLog>(*logView5.begin()).Push(
-                            tm5.day, (int)tm5.hourOfDay, msg);
+                            tm5.day, (int)tm5.hourOfDay, msg, "Death");
                     }
                 });
         }
@@ -364,7 +364,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                             settlName = s->name;
                     logView4.get<EventLog>(*logView4.begin()).Push(
                         tm4.day, (int)tm4.hourOfDay,
-                        "The " + familyName + " family line has ended at " + settlName + ".");
+                        "The " + familyName + " family line has ended at " + settlName + ".", "Death");
                 }
             }
         }
@@ -425,7 +425,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                                     settlName = " at " + s->name;
                         logView6.get<EventLog>(*logView6.begin()).Push(
                             tm6.day, (int)tm6.hourOfDay,
-                            friendName + " mourns the loss of friend " + deadName + settlName + ".");
+                            friendName + " mourns the loss of friend " + deadName + settlName + ".", "Death");
                         ++logged;
                     }
                 }
@@ -466,7 +466,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                 m_collapsed.insert(settl);
                 s.ruinTimer = 300.f;  // 300 game-hours cooldown before repopulation
                 log2.Push(tm2.day, (int)tm2.hourOfDay,
-                    s.name + " has COLLAPSED — population zero");
+                    s.name + " has COLLAPSED — population zero", "Death");
 
                 // Scatter any children still homed at this settlement:
                 // clear their HomeSettlement and drop their follow target
@@ -483,7 +483,7 @@ void DeathSystem::Update(entt::registry& registry, float realDt) {
                     char obuf[128];
                     std::snprintf(obuf, sizeof(obuf), "%d children of %s orphaned and scattered.",
                                   orphanCount, s.name.c_str());
-                    log2.Push(tm2.day, (int)tm2.hourOfDay, obuf);
+                    log2.Push(tm2.day, (int)tm2.hourOfDay, obuf, "Death");
                 }
             } else if (pop > 0) {
                 m_collapsed.erase(settl);  // recovered

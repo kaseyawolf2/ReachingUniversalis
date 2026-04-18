@@ -2,6 +2,7 @@
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <cmath>
@@ -68,11 +69,12 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     // For the scalar HUD fields we do a quick lock here.
     int   day, hour, minute, tickSpeed, speedIndex, pop, deaths;
     bool  paused, roadBlocked, playerAlive;
-    float hungerPct, thirstPct, energyPct, heatPct;
-    float hungerCrit, thirstCrit, energyCrit, heatCrit;
     float playerAgeDays, playerMaxDays, playerGold;
     std::vector<float> playerSkills;
     std::shared_ptr<const std::vector<std::string>> playerSkillNamesPtr;
+    std::shared_ptr<const std::vector<std::string>> needNamesPtr;
+    std::shared_ptr<const std::vector<std::string>> resourceNamesPtr;
+    std::vector<std::pair<float,float>> playerNeeds;   // (value, critThreshold) per NeedID
     float temperature;
     bool  playerInPlagueZone;
     int   playerReputation;
@@ -99,16 +101,15 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         paused      = snap.paused;
         roadBlocked = snap.roadBlocked;
         playerAlive = snap.playerAlive;
-        hungerPct   = snap.hungerPct;   hungerCrit  = snap.hungerCrit;
-        thirstPct   = snap.thirstPct;   thirstCrit  = snap.thirstCrit;
-        energyPct   = snap.energyPct;   energyCrit  = snap.energyCrit;
-        heatPct     = snap.heatPct;     heatCrit    = snap.heatCrit;
+        playerNeeds = snap.playerNeeds;
         behavior    = snap.playerBehavior;
         playerAgeDays   = snap.playerAgeDays;
         playerMaxDays   = snap.playerMaxDays;
         playerGold      = snap.playerGold;
         playerSkills         = snap.playerSkills;
         playerSkillNamesPtr  = snap.skillNames;
+        needNamesPtr         = snap.needNames;
+        resourceNamesPtr     = snap.resourceNames;
         playerInventory         = snap.playerInventory;
         playerInventoryCapacity = snap.playerInventoryCapacity;
         tradeHint            = snap.tradeHint;
@@ -123,33 +124,47 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         playerRank           = snap.playerRank;
     }
 
-    // Dereference shared skill names once; empty fallback if not yet set.
+    // Dereference shared name tables once; empty fallback if not yet set.
     const auto& playerSkillNames = playerSkillNamesPtr ? *playerSkillNamesPtr : emptyNames;
+    const auto& needNames        = needNamesPtr        ? *needNamesPtr        : emptyNames;
+    const auto& resourceNames    = resourceNamesPtr    ? *resourceNamesPtr    : emptyNames;
+
+    // Need bar color palette: indexed by need position (0=food/green, 1=water/cyan,
+    // 2=energy/yellow, 3=heat/orange, further needs cycle back).
+    static const Color kNeedColors[] = { GREEN, SKYBLUE, YELLOW, ORANGE, PURPLE, PINK };
+    static constexpr int kNeedColorCount = (int)(sizeof(kNeedColors)/sizeof(kNeedColors[0]));
 
     // ---- Player panel (top-left) ----
     if (playerAlive) {
+        int numNeeds     = (int)playerNeeds.size();
         int invItemLines = std::max(1, (int)playerInventory.size()); // at least 1 for "(empty)"
         int skillLine    = !playerSkills.empty() ? 1 : 0;
         int tradeLines   = tradeHint.empty() ? 0 : 1;
         int ledgerLines  = tradeLedger.empty() ? 0 : (1 + std::min((int)tradeLedger.size(), 4));
         int plagueLines  = playerInPlagueZone ? 1 : 0;
-        int panelH = BAR_GAP * (7 + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4;
+        int panelH = BAR_GAP * (3 + numNeeds + skillLine) + 90 + (1 + invItemLines) * 16 + tradeLines * 14 + ledgerLines * 11 + plagueLines * 14 + 4;
         // Panel background with border
         DrawRectangle(4, 4, 320, panelH, Fade(BLACK, 0.6f));
         DrawRectangleLines(4, 4, 320, panelH, Fade(LIGHTGRAY, 0.25f));
         // Top accent line
         DrawRectangle(4, 4, 320, 2, Fade(GOLD, 0.4f));
-        DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 0, hungerPct, hungerCrit, "Hunger", GREEN);
-        DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 1, thirstPct, thirstCrit, "Thirst", SKYBLUE);
-        DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 2, energyPct, energyCrit, "Energy", YELLOW);
-        DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * 3, heatPct,   heatCrit,   "Heat",   ORANGE);
+
+        // Need bars — driven by schema need names and values
+        for (int ni = 0; ni < numNeeds; ++ni) {
+            const char* label = (ni < (int)needNames.size() && !needNames[ni].empty())
+                                ? needNames[ni].c_str() : "Need";
+            Color barCol = kNeedColors[ni % kNeedColorCount];
+            DrawNeedBar(BAR_X, BAR_Y0 + BAR_GAP * ni,
+                        playerNeeds[ni].first, playerNeeds[ni].second,
+                        label, barCol);
+        }
 
         // Separator after need bars
-        int sepY = BAR_Y0 + BAR_GAP * 4 - 4;
+        int sepY = BAR_Y0 + BAR_GAP * numNeeds - 4;
         DrawRectangle(BAR_X, sepY, 300, 1, Fade(LIGHTGRAY, 0.15f));
 
         // Age row
-        int ageY = BAR_Y0 + BAR_GAP * 4 + 2;
+        int ageY = BAR_Y0 + BAR_GAP * numNeeds + 2;
         float ageFrac = (playerMaxDays > 0.f) ? std::min(1.f, playerAgeDays / playerMaxDays) : 0.f;
         Color ageCol  = (ageFrac < 0.6f) ? LIGHTGRAY :
                         (ageFrac < 0.85f) ? YELLOW : RED;
@@ -227,14 +242,16 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
             DrawText(cargoHdr, BAR_X + 52, invY, 13, full ? RED : LIGHTGRAY);
             invY += 16;
 
+            // Resource color palette: same indices as need colors but semantic:
+            // RES_FOOD=0 green, RES_WATER=1 skyblue, RES_SHELTER=2 gray, RES_WOOD=3 brown
+            static const Color kResColors[] = { GREEN, SKYBLUE, LIGHTGRAY, BROWN };
+            static constexpr int kResColorCount = (int)(sizeof(kResColors)/sizeof(kResColors[0]));
             int ci = 0;
             for (const auto& [type, qty] : playerInventory) {
                 if (qty <= 0) continue;
-                const char* rname = (type == RES_FOOD)  ? "Food"  :
-                                    (type == RES_WATER) ? "Water" :
-                                    (type == RES_WOOD)  ? "Wood"  : "?";
-                Color rcol = (type == RES_FOOD)  ? GREEN  :
-                             (type == RES_WATER) ? SKYBLUE : BROWN;
+                const char* rname = (type >= 0 && type < (int)resourceNames.size() && !resourceNames[type].empty())
+                                    ? resourceNames[type].c_str() : "?";
+                Color rcol = (type >= 0 && type < kResColorCount) ? kResColors[type] : LIGHTGRAY;
                 char cbuf[32];
                 std::snprintf(cbuf, sizeof(cbuf), "%s x%d", rname, qty);
                 DrawText(cbuf, BAR_X + 10, invY + ci * 16, 12, rcol);
@@ -518,7 +535,25 @@ void HUD::DrawWorldStatus(const RenderSnapshot& snap) const {
 
 // ---- Event log ----
 
-void HUD::DrawEventLog(const RenderSnapshot& snap) const {
+// Source filter tags shown in the event log title bar.
+// Bright cyan = source visible; dim red-brown = source hidden/filtered out.
+static const struct { const char* tag; const char* label; } LOG_FILTER_TAGS[] = {
+    { "Rand",  "[Rand]"  },
+    { "Econ",  "[Econ]"  },
+    { "Trade", "[Trade]" },
+    { "Agent", "[Agent]" },
+    { "Sched", "[Sched]" },
+    { "Prod",  "[Prod]"  },
+    { "Build", "[Build]" },
+    { "Death", "[Death]" },
+    { "Birth", "[Birth]" },
+    { "Sim",   "[Sim]"   },
+    { "Time",  "[Time]"  },
+    { "Price", "[Price]" },
+};
+static constexpr int LOG_FILTER_TAG_COUNT = (int)(sizeof(LOG_FILTER_TAGS) / sizeof(LOG_FILTER_TAGS[0]));
+
+void HUD::DrawEventLog(const RenderSnapshot& snap) {
     std::vector<EventLog::Entry> entries;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -526,26 +561,84 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
     }
     if (entries.empty()) return;
 
-    static const int LINES = 8, LINE_H = 16;
-    static const int PX = 330, PW = SCREEN_W - PX - 4;
-    static const int PH = LINES * LINE_H + 12;
-    static const int PY = SCREEN_H - PH - 4;
+    static const int LINES    = 8, LINE_H = 16;
+    static const int PX       = 330, PW = SCREEN_W - PX - 4;
+    static const int TITLE_H  = 14;
+    static const int FILTER_H = 14;
+    static const int PH       = LINES * LINE_H + TITLE_H + FILTER_H + 4;
+    static const int PY       = SCREEN_H - PH - 4;
 
     DrawRectangle(PX, PY, PW, PH, Fade(BLACK, 0.6f));
     DrawRectangleLines(PX, PY, PW, PH, Fade(LIGHTGRAY, 0.25f));
-    // Title bar with accent
-    DrawRectangle(PX, PY, PW, 14, Fade(WHITE, 0.04f));
-    DrawRectangle(PX, PY + 14, PW, 1, Fade(LIGHTGRAY, 0.15f));
+
+    // Title bar
+    DrawRectangle(PX, PY, PW, TITLE_H, Fade(WHITE, 0.04f));
+    DrawRectangle(PX, PY + TITLE_H, PW, 1, Fade(LIGHTGRAY, 0.15f));
     DrawText("Event Log", PX + 6, PY + 2, 11, Fade(YELLOW, 0.7f));
 
-    int maxScroll = std::max(0, (int)entries.size() - LINES);
-    int scroll    = std::min(logScroll, maxScroll);
+    // Filter toggle row — compact [Tag] labels, click to toggle visibility
+    {
+        static const int FILTER_FONT = 9;
+        Vector2 mouse      = GetMousePosition();
+        bool mouseClicked  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+        int fx = PX + 6;
+        int fy = PY + TITLE_H + 2;
+
+        for (int t = 0; t < LOG_FILTER_TAG_COUNT; ++t) {
+            const char* tag   = LOG_FILTER_TAGS[t].tag;
+            const char* label = LOG_FILTER_TAGS[t].label;
+            bool hidden = (m_logHiddenSources.count(tag) > 0);
+
+            int lw = MeasureText(label, FILTER_FONT);
+            // Dim red = hidden/filtered, bright cyan = visible
+            Color lc = hidden ? Fade(Color{140, 70, 70, 255}, 0.9f) : Fade(SKYBLUE, 0.75f);
+
+            Rectangle hitbox = { (float)fx - 1, (float)fy - 1, (float)(lw + 2), (float)(FILTER_FONT + 4) };
+            if (mouseClicked && CheckCollisionPointRec(mouse, hitbox)) {
+                if (hidden)
+                    m_logHiddenSources.erase(tag);
+                else
+                    m_logHiddenSources.insert(tag);
+            }
+
+            DrawText(label, fx, fy, FILTER_FONT, lc);
+            fx += lw + 3;
+            if (fx > PX + PW - 8) break;
+        }
+    }
+
+    // Build filtered view: skip entries whose source is in the hidden set
+    std::vector<const EventLog::Entry*> visible;
+    visible.reserve(entries.size());
+    for (const auto& e : entries) {
+        if (!e.sourceSystem.empty() && m_logHiddenSources.count(e.sourceSystem) > 0)
+            continue;
+        visible.push_back(&e);
+    }
+
+    int maxScroll = std::max(0, (int)visible.size() - LINES);
+    logScroll     = std::min(logScroll, maxScroll);
+
+    int contentY = PY + TITLE_H + FILTER_H + 4;
 
     for (int i = 0; i < LINES; ++i) {
-        int idx = i + scroll;
-        if (idx >= (int)entries.size()) break;
-        const auto& e = entries[idx];
-        char buf[96];
+        int idx = i + logScroll;
+        if (idx >= (int)visible.size()) break;
+        const auto& e = *visible[idx];
+
+        int lineX = PX + 6;
+        int lineY = contentY + LINE_H * i;
+
+        // Source prefix in dim blue-grey — identifies which system emitted this entry
+        if (!e.sourceSystem.empty()) {
+            char prefix[12];
+            std::snprintf(prefix, sizeof(prefix), "[%s]", e.sourceSystem.c_str());
+            DrawText(prefix, lineX, lineY, 10, Fade(Color{100, 130, 160, 255}, 0.85f));
+            lineX += MeasureText(prefix, 10) + 3;
+        }
+
+        char buf[120];
         std::snprintf(buf, sizeof(buf), "D%d %02d:xx  %s", e.day, e.hour, e.message.c_str());
         Color col = (e.message.find("BLOCKED")    != std::string::npos ||
                      e.message.find("BANDITS")    != std::string::npos ||
@@ -583,7 +676,7 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) const {
                      e.message.find("became a hauler") != std::string::npos ||
                      e.message.find("Ally trade")      != std::string::npos) ? GREEN  :
                     (e.message.find("--- ")        != std::string::npos) ? SKYBLUE : LIGHTGRAY;
-        DrawText(buf, PX + 6, PY + 4 + LINE_H * (i + 1) - 2, 12, col);
+        DrawText(buf, lineX, lineY, 12, col);
     }
 }
 
@@ -595,13 +688,19 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
 
     std::vector<RenderSnapshot::AgentEntry> agents;
     std::shared_ptr<const std::vector<std::string>> skillNamesPtr;
+    std::shared_ptr<const std::vector<std::string>> needNamesHoverPtr;
+    std::shared_ptr<const std::vector<std::string>> resourceNamesHoverPtr;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         agents = snap.agents;
-        skillNamesPtr = snap.skillNames;
+        skillNamesPtr          = snap.skillNames;
+        needNamesHoverPtr      = snap.needNames;
+        resourceNamesHoverPtr  = snap.resourceNames;
     }
     // Dereference once; empty fallback if not yet set.
-    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames;
+    const auto& skillNames     = skillNamesPtr          ? *skillNamesPtr          : emptyNames;
+    const auto& needNamesHover = needNamesHoverPtr      ? *needNamesHoverPtr      : emptyNames;
+    const auto& resNamesHover  = resourceNamesHoverPtr  ? *resourceNamesHoverPtr  : emptyNames;
 
     // Build surname→count and familyName→count maps for family cluster display.
     std::map<std::string, int> surnameCount;
@@ -688,16 +787,36 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
             std::snprintf(line2, sizeof(line2), "%s (fatigued)", bLabel);
         else
             std::snprintf(line2, sizeof(line2), "%s", bLabel);
-    } else
-        std::snprintf(line2, sizeof(line2), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
-                      best->hungerPct*100.f, best->thirstPct*100.f,
-                      best->energyPct*100.f, best->heatPct*100.f);
+    } else {
+        // Build need summary dynamically from schema-driven needValues
+        char needSummary[64] = {};
+        int off = 0;
+        const auto& nv = best->needValues;
+        for (int ni = 0; ni < (int)nv.size() && off < 60; ++ni) {
+            if (ni > 0 && off < 58) { needSummary[off++] = ' '; needSummary[off++] = ' '; }
+            const char* abbr = (ni < (int)needNamesHover.size() && !needNamesHover[ni].empty())
+                               ? needNamesHover[ni].c_str() : "?";
+            // Use first char as abbreviation label
+            off += std::snprintf(needSummary + off, sizeof(needSummary) - off,
+                                 "%c:%.0f%%", abbr[0], nv[ni].first * 100.f);
+        }
+        std::snprintf(line2, sizeof(line2), "%s", needSummary);
+    }
 
-    if (hasName)
-        std::snprintf(line3, sizeof(line3), "H:%.0f%%  T:%.0f%%  E:%.0f%%  Ht:%.0f%%",
-                      best->hungerPct*100.f, best->thirstPct*100.f,
-                      best->energyPct*100.f, best->heatPct*100.f);
-    else
+    if (hasName) {
+        // Build need summary dynamically from schema-driven needValues
+        char needSummary3[64] = {};
+        int off3 = 0;
+        const auto& nv3 = best->needValues;
+        for (int ni = 0; ni < (int)nv3.size() && off3 < 60; ++ni) {
+            if (ni > 0 && off3 < 58) { needSummary3[off3++] = ' '; needSummary3[off3++] = ' '; }
+            const char* abbr = (ni < (int)needNamesHover.size() && !needNamesHover[ni].empty())
+                               ? needNamesHover[ni].c_str() : "?";
+            off3 += std::snprintf(needSummary3 + off3, sizeof(needSummary3) - off3,
+                                  "%c:%.0f%%", abbr[0], nv3[ni].first * 100.f);
+        }
+        std::snprintf(line3, sizeof(line3), "%s", needSummary3);
+    } else
         std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
                       best->ageDays, best->maxDays);
 
@@ -724,9 +843,8 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         int off = 0;
         off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "Cargo: ");
         for (const auto& [type, qty] : best->cargo) {
-            const char* rn = (type == RES_FOOD)  ? "Food"  :
-                             (type == RES_WATER) ? "Water" :
-                             (type == RES_WOOD)  ? "Wood"  : "?";
+            const char* rn = (type >= 0 && type < (int)resNamesHover.size() && !resNamesHover[type].empty())
+                             ? resNamesHover[type].c_str() : "?";
             off += std::snprintf(cargoLine + off, sizeof(cargoLine) - off, "%s×%d ", rn, qty);
         }
         if (!best->destSettlName.empty()) {
@@ -895,11 +1013,14 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
+    static char illLabelBuf[32] = {};
     const char* illLabel = nullptr;
     if (best->ill) {
-        illLabel = (best->illNeedIdx == 0) ? "(ill: hunger)"  :
-                   (best->illNeedIdx == 1) ? "(ill: thirst)"  :
-                   (best->illNeedIdx == 2) ? "(ill: fatigue)" : "(ill)";
+        int idx = best->illNeedIdx;
+        const char* needName = (idx >= 0 && idx < (int)needNamesHover.size() && !needNamesHover[idx].empty())
+                               ? needNamesHover[idx].c_str() : "need";
+        std::snprintf(illLabelBuf, sizeof(illLabelBuf), "(ill: %s)", needName);
+        illLabel = illLabelBuf;
     }
 
     // Skill line: show the best skill for this agent
@@ -1198,10 +1319,13 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     Vector2 world = GetScreenToWorld2D(mouse, cam);
 
     std::vector<RenderSnapshot::FacilityEntry> facs;
+    std::shared_ptr<const std::vector<std::string>> resNamesFacPtr;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         facs = snap.facilities;
+        resNamesFacPtr = snap.resourceNames;
     }
+    const auto& resNamesFac = resNamesFacPtr ? *resNamesFacPtr : emptyNames;
 
     const RenderSnapshot::FacilityEntry* best = nullptr;
     float bestDist = 20.f;   // max hover distance in world units
@@ -1218,11 +1342,17 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
         curSeasonProductionMod = snap.seasonProductionMod;
     }
 
-    const char* typeName = (best->output == RES_FOOD)  ? "Farm"        :
-                           (best->output == RES_WATER) ? "Well"        :
-                           (best->output == RES_WOOD)  ? "Lumber Mill" : "Facility";
-    const char* resUnit  = (best->output == RES_FOOD)  ? "food"  :
-                           (best->output == RES_WATER) ? "water" : "wood";
+    // Facility type name and resource unit from schema
+    const char* resDisplayName = (best->output >= 0 && best->output < (int)resNamesFac.size()
+                                  && !resNamesFac[best->output].empty())
+                                 ? resNamesFac[best->output].c_str() : "Resource";
+    char typeNameBuf[32];
+    std::snprintf(typeNameBuf, sizeof(typeNameBuf), "%s Facility", resDisplayName);
+    const char* typeName = typeNameBuf;
+    // Lower-case resource name as unit label
+    std::string resUnitStr;
+    for (char c : std::string(resDisplayName)) resUnitStr += (char)std::tolower((unsigned char)c);
+    const char* resUnit = resUnitStr.c_str();
 
     static constexpr int BASE_WORKERS = 5;
     float scale      = std::min(2.0f, std::max(0.1f, (float)best->workerCount / BASE_WORKERS));
@@ -1260,8 +1390,10 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     if (ty < 0) ty = (int)screen.y + 14;
 
     DrawRectangle(tx - 4, ty - 2, w, h, Fade(BLACK, 0.75f));
-    Color typeCol = (best->output == RES_FOOD)  ? GREEN  :
-                   (best->output == RES_WATER) ? SKYBLUE : BROWN;
+    static const Color kFacResColors[] = { GREEN, SKYBLUE, LIGHTGRAY, BROWN };
+    static constexpr int kFacResColorCount = (int)(sizeof(kFacResColors)/sizeof(kFacResColors[0]));
+    Color typeCol = (best->output >= 0 && best->output < kFacResColorCount)
+                   ? kFacResColors[best->output] : LIGHTGRAY;
     DrawText(line1, tx, ty,      12, typeCol);
     DrawText(line2, tx, ty + 16, 11, LIGHTGRAY);
     Color seasonCol = (seasonMult >= 1.0f) ? GREEN : (seasonMult >= 0.5f) ? YELLOW : RED;

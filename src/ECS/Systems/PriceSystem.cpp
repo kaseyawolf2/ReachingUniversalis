@@ -79,7 +79,7 @@ void PriceSystem::Update(entt::registry& registry, float realDt, const WorldSche
                         std::snprintf(buf, sizeof(buf),
                             "Price spike: %s at %s now %.1fg (+%.0f%%)",
                             resName, settl.name.c_str(), price, pct);
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Price");
                         cd = 12.f;
                     }
                 }

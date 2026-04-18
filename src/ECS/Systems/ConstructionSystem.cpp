@@ -198,7 +198,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                 (buildType == RES_FOOD)  ? "food"  :
                 (buildType == RES_WATER) ? "water" : "wood",
                 bestPrice);
-            log->Push(tm.day, (int)tm.hourOfDay, buf);
+            log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
 
             // Elder council guidance log at 1-in-5 frequency
             if (elderDiscount) {
@@ -207,7 +207,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                     char ebuf[120];
                     std::snprintf(ebuf, sizeof(ebuf),
                         "%s's elders guide the construction effort", where.c_str());
-                    log->Push(tm.day, (int)tm.hourOfDay, ebuf);
+                    log->Push(tm.day, (int)tm.hourOfDay, ebuf, "Build");
                 }
             }
         }
@@ -233,7 +233,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
             std::snprintf(buf, sizeof(buf),
                 "%s built housing (%.0fg) — pop cap now %d",
                 s.name.c_str(), HOUSING_COST, s.popCap);
-            log->Push(tm.day, (int)tm.hourOfDay, buf);
+            log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
         }
     });
 
@@ -296,7 +296,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                 std::snprintf(buf, sizeof(buf),
                     "%s's %s COLLAPSED from disrepair (no maintenance gold)",
                     where.c_str(), facName);
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
             }
             registry.destroy(fe);
         }
@@ -338,7 +338,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                 char buf[140];
                 std::snprintf(buf, sizeof(buf), "%s–%s road's upkeep eased by elder oversight",
                               nameA.c_str(), nameB.c_str());
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
             }
 
             float decayFrac = (paidCount == 2) ? ROAD_DECAY_MAINTAINED  :
@@ -364,7 +364,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                 std::snprintf(buf, sizeof(buf),
                     "Road %s–%s COLLAPSED from disrepair (condition %.0f%%)",
                     nameA.c_str(), nameB.c_str(), road.condition * 100.f);
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
             }
         }
     }
@@ -408,7 +408,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                         std::snprintf(buf, sizeof(buf),
                             "Road %s–%s repaired by settlements — traffic resumes",
                             nameA.c_str(), nameB.c_str());
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
                     }
                 }
             }
@@ -479,7 +479,7 @@ void ConstructionSystem::Update(entt::registry& registry, float realDt, const Wo
                 std::snprintf(buf, sizeof(buf),
                     "%s funded road to %s (%.0fg) — new trade route opened",
                     s.name.c_str(), nameB.c_str(), ROAD_AUTO_COST);
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Build");
             }
         });
     }
