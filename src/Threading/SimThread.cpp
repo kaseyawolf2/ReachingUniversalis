@@ -2589,7 +2589,7 @@ void SimThread::WriteSnapshot() {
     std::string seasonName = "Spring";
     float  seasonProductionMod = 1.f;
     float  seasonHeatDrainMod  = 0.f;
-    std::string seasonRegime;
+    SeasonRegime seasonRegime  = SeasonRegime::Mild;
     float  temperature = 10.f;
 
     {
@@ -2604,29 +2604,13 @@ void SimThread::WriteSnapshot() {
             speedIndex  = tm.speedIndex;
             paused      = tm.paused;
             seasonId    = tm.CurrentSeason(m_schema.seasons);
+            seasonRegime = tm.seasonRegime;  // classified by TimeSystem::Advance()
             if (seasonId >= 0 && seasonId < (int)m_schema.seasons.size()) {
                 const auto& sdef = m_schema.seasons[seasonId];
                 seasonName        = sdef.displayName;
                 seasonProductionMod = sdef.productionMod;
                 seasonHeatDrainMod  = sdef.heatDrainMod;
                 temperature = AmbientTemperature(sdef, hourOfDay);
-
-                // Classify season regime based on thresholds (checked high→low)
-                const auto& th = m_schema.seasonThresholds;
-                if (seasonHeatDrainMod >= th.harshCold)
-                    seasonRegime = "Harsh Cold";
-                else if (seasonHeatDrainMod >= th.moderateCold)
-                    seasonRegime = "Moderate Cold";
-                else if (seasonHeatDrainMod >= th.coldSeason)
-                    seasonRegime = "Cold";
-                else if (seasonHeatDrainMod > th.mildCold)
-                    seasonRegime = "Mild Cold";
-                else if (seasonProductionMod >= th.harvestSeason)
-                    seasonRegime = "Harvest";
-                else if (seasonProductionMod <= th.lowProduction)
-                    seasonRegime = "Low Production";
-                else
-                    seasonRegime = "Mild";
             }
         }
     }
@@ -2863,7 +2847,7 @@ void SimThread::WriteSnapshot() {
         m_snapshot.seasonName   = seasonName;
         m_snapshot.seasonProductionMod = seasonProductionMod;
         m_snapshot.seasonHeatDrainMod  = seasonHeatDrainMod;
-        m_snapshot.seasonRegime = std::move(seasonRegime);
+        m_snapshot.seasonRegime = seasonRegime;
         m_snapshot.temperature  = temperature;
         m_snapshot.tickSpeed    = tickSpeed;
         m_snapshot.speedIndex   = speedIndex;

@@ -428,6 +428,9 @@ struct TimeManager {
     int   tickSpeed    = 1;      // multiplier: 1, 2, 4, 16, or 0 (uncapped)
     int   speedIndex   = 1;      // 1-based Paradox-style index (1..5)
     bool  paused       = false;
+    // Season regime classification — updated by TimeSystem::Advance() each tick.
+    // Copied verbatim into RenderSnapshot for zero-allocation HUD color selection.
+    SeasonRegime seasonRegime = SeasonRegime::Mild;
 
     // Returns realDt unchanged — tickSpeed is handled by the sub-tick loop in
     // GameState::Update, not by scaling dt. Kept as a pass-through so systems

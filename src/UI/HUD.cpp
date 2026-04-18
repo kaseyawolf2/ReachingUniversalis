@@ -82,7 +82,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     std::string tradeHint;
     AgentBehavior behavior;
     std::string seasonName;
-    std::string seasonRegime;
+    SeasonRegime seasonRegime = SeasonRegime::Mild;
     float seasonHeatDrainMod = 0.f;
     float seasonProductionMod = 1.f;
     std::vector<RenderSnapshot::TradeRecord> tradeLedger;
@@ -297,9 +297,23 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         std::snprintf(seasBuf, sizeof(seasBuf), "%s  %.0f°C",
                       seasonName.c_str(), temperature);
 
+        // Regime label: static string from enum — zero heap allocation
+        static const char* REGIME_LABELS[] = {
+            "Harsh Cold",    // SeasonRegime::HarshCold
+            "Moderate Cold", // SeasonRegime::ModerateCold
+            "Cold",          // SeasonRegime::Cold
+            "Mild Cold",     // SeasonRegime::MildCold
+            "Harvest",       // SeasonRegime::Harvest
+            "Low Production",// SeasonRegime::LowProduction
+            "Mild",          // SeasonRegime::Mild
+        };
+        static_assert(sizeof(REGIME_LABELS)/sizeof(REGIME_LABELS[0]) == static_cast<int>(SeasonRegime::Mild) + 1,
+            "REGIME_LABELS size must match SeasonRegime enum count");
+        const char* regimeLabel = REGIME_LABELS[static_cast<int>(seasonRegime)];
+
         int pw = std::max({ MeasureText(timeBuf, 16), MeasureText(speedBuf, 14),
                             MeasureText(seasBuf, 13),
-                            MeasureText(seasonRegime.c_str(), 11),
+                            MeasureText(regimeLabel, 11),
                             MeasureText(popBuf, 13),  MeasureText(fpsBuf, 12) }) + 16;
         int px = SCREEN_W - pw - 4;
 
@@ -311,12 +325,17 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         Color tempColor = (temperature < 0.f) ? Color{150,200,255,255} :
                           (temperature < 5.f) ? LIGHTGRAY : seasonColor;
 
-        // Regime label color: matches season severity
-        Color regimeColor = (seasonHeatDrainMod >= 0.8f) ? SKYBLUE :
-                            (seasonHeatDrainMod >= 0.3f) ? ORANGE  :
-                            (seasonHeatDrainMod > 0.05f) ? GREEN   :
-                            (seasonProductionMod >= 1.1f) ? GOLD   :
-                            (seasonProductionMod <= 0.5f) ? RED    : YELLOW;
+        // Regime label color: switch on enum — type-safe, no string comparison
+        Color regimeColor;
+        switch (seasonRegime) {
+            case SeasonRegime::HarshCold:     regimeColor = SKYBLUE; break;
+            case SeasonRegime::ModerateCold:  regimeColor = ORANGE;  break;
+            case SeasonRegime::Cold:          regimeColor = GREEN;   break;
+            case SeasonRegime::MildCold:      regimeColor = GREEN;   break;
+            case SeasonRegime::Harvest:       regimeColor = GOLD;    break;
+            case SeasonRegime::LowProduction: regimeColor = RED;     break;
+            case SeasonRegime::Mild:          regimeColor = YELLOW;  break;
+        }
 
         DrawRectangle(px, 4, pw, 112, Fade(BLACK, 0.6f));
         DrawRectangleLines(px, 4, pw, 112, Fade(LIGHTGRAY, 0.25f));
@@ -324,8 +343,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
         DrawText(timeBuf,  px + 8,  10, 16, WHITE);
         DrawText(speedBuf, px + 8, 30, 14, paused ? ORANGE : LIGHTGRAY);
         DrawRectangle(px + 4, 46, pw - 8, 1, Fade(LIGHTGRAY, 0.15f));  // separator
-        DrawText(seasBuf,  px + 8, 50, 13, tempColor);
-        DrawText(seasonRegime.c_str(), px + 8, 64, 11, regimeColor);
+        DrawText(seasBuf,     px + 8, 50, 13, tempColor);
+        DrawText(regimeLabel, px + 8, 64, 11, regimeColor);
         DrawText(popBuf,   px + 8, 80, 13, LIGHTGRAY);
         DrawText(fpsBuf,   px + 8, 96, 12, Fade(LIGHTGRAY, 0.6f));
     }
