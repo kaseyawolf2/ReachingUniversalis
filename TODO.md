@@ -283,9 +283,9 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **ID-indexed lookup assert sweep** — Multiple `WorldSchema` methods that index by ID (`NeedLabel`, `ResourceLabel`, `SkillLabel`, etc.) lack debug asserts. Audit all ID-indexed lookup methods and add `assert(id >= 0 && id < (int)vec.size())` consistently to catch out-of-bounds access in debug builds.
 
-- [ ] **Season regime enum replacement** — `RenderSnapshot::seasonRegime` is a `std::string` used only for color selection in `HUD.cpp`, not displayed to the user. Replace with an `enum class SeasonRegime` for type-safe matching and zero per-frame string allocation in `WriteSnapshot()`.
+- [x] **Season regime enum replacement** — `RenderSnapshot::seasonRegime` is a `std::string` used only for color selection in `HUD.cpp`, not displayed to the user. Replace with an `enum class SeasonRegime` for type-safe matching and zero per-frame string allocation in `WriteSnapshot()`.
 
-- [ ] **Season regime classification to TimeSystem** — The season regime classification logic currently lives in `SimThread::WriteSnapshot()`, which should be a dumb data-copy. Move the classification into `TimeSystem::Update()` so it runs as part of the sim step, and have `WriteSnapshot()` just copy the result.
+- [x] **Season regime classification to TimeSystem** — The season regime classification logic currently lives in `SimThread::WriteSnapshot()`, which should be a dumb data-copy. Move the classification into `TimeSystem::Update()` so it runs as part of the sim step, and have `WriteSnapshot()` just copy the result.
 
 - [ ] **SeasonValidationTest path robustness** — `tests/SeasonValidationTest.cpp` probes for test data via relative path guessing (`"tests"`, `"../tests"`, `"../../tests"`). Replace with `__FILE__`-based project root derivation or a CMake `target_compile_definitions(-DTEST_DATA_DIR=...)` for robust path resolution regardless of working directory.
 
