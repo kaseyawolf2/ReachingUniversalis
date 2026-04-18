@@ -307,6 +307,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
             "Low Production",// SeasonRegime::LowProduction
             "Mild",          // SeasonRegime::Mild
         };
+        static_assert(sizeof(REGIME_LABELS)/sizeof(REGIME_LABELS[0]) == static_cast<int>(SeasonRegime::Mild) + 1,
+            "REGIME_LABELS size must match SeasonRegime enum count");
         const char* regimeLabel = REGIME_LABELS[static_cast<int>(seasonRegime)];
 
         int pw = std::max({ MeasureText(timeBuf, 16), MeasureText(speedBuf, 14),
@@ -332,7 +334,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
             case SeasonRegime::MildCold:      regimeColor = GREEN;   break;
             case SeasonRegime::Harvest:       regimeColor = GOLD;    break;
             case SeasonRegime::LowProduction: regimeColor = RED;     break;
-            default:                          regimeColor = YELLOW;  break;  // Mild
+            case SeasonRegime::Mild:          regimeColor = YELLOW;  break;
         }
 
         DrawRectangle(px, 4, pw, 112, Fade(BLACK, 0.6f));
