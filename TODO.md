@@ -233,7 +233,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **RandomEventSystem diagnostic severity levels** — `RandomEventSystem.cpp` uses `[RandomEventSystem]` prefix but drops the severity level (WARNING/ERROR/INFO). Add severity to all diagnostic messages following the pattern `[RandomEventSystem] WARNING: ...` consistent with `WorldLoader.cpp` diagnostics, enabling severity-level grep across all stderr output.
 
-- [ ] **EventLog source-system filtering** — `EventLog::Push()` stores plain message strings with no metadata. Add an optional `sourceSystem` field to log entries so the HUD event log can filter by system (e.g., show only RandomEventSystem events, or hide diagnostic messages from gameplay events).
+- [x] **EventLog source-system filtering** — `EventLog::Push()` stores plain message strings with no metadata. Add an optional `sourceSystem` field to log entries so the HUD event log can filter by system (e.g., show only RandomEventSystem events, or hide diagnostic messages from gameplay events).
 
 - [ ] **SpawnNpcs count distribution comment fix** — `RandomEventSystem.cpp` line ~1302 comment says "Migration wave: spawn 3-5 NPCs" but the actual count is driven by `ev.effectValue` from schema. Update comment to reflect the data-driven behavior, e.g., "Migration wave: spawn (effectValue-2) to effectValue NPCs".
 
@@ -389,7 +389,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **Immediate UI feedback** — Player actions show pending state in UI immediately (e.g., "buying..." indicator) without waiting for sim round-trip.
 
-- [ ] **Data-driven HUD** — HUD reads WorldSchema to know what needs/resources/stats to display. No hardcoded "hunger bar" — it shows whatever needs the current world defines.
+- [x] **Data-driven HUD** — HUD reads WorldSchema to know what needs/resources/stats to display. No hardcoded "hunger bar" — it shows whatever needs the current world defines.
 
 - [ ] **Data-driven keybindings** — Player action keys loaded from world config. No hardcoded KEY_T = trade.
 
