@@ -5,7 +5,9 @@
 #include <cstdio>
 #include <cstring>
 #include <chrono>
+#include <filesystem>
 #include <map>
+#include <unistd.h>
 #include <string>
 #include <vector>
 
@@ -235,9 +237,35 @@ int main(int argc, char* argv[]) {
             }
         }
         std::string loadErr;
-        if (!WorldLoader::Load(worldDir, worldSchema, loadErr, &loadWarnings)) {
-            fprintf(stderr, "[ERROR] Failed to load world: %s\n", loadErr.c_str());
-            // Continue with defaults — the game still works without configs
+        bool loaded = WorldLoader::Load(worldDir, worldSchema, loadErr, &loadWarnings);
+
+        // If CWD-relative path failed, try resolving relative to executable location
+        std::string exeDirStr;
+        if (!loaded) {
+            namespace fs = std::filesystem;
+            try {
+                fs::path exePath = fs::read_symlink("/proc/self/exe");
+                fs::path exeDir = exePath.parent_path();
+                exeDirStr = exeDir.string();
+                std::string exeRelative = (exeDir / worldDir).string();
+                loadErr.clear();
+                loaded = WorldLoader::Load(exeRelative, worldSchema, loadErr, &loadWarnings);
+            } catch (const fs::filesystem_error&) {
+                // /proc/self/exe not available; fall through to error
+            }
+        }
+
+        if (!loaded) {
+            char cwdBuf[4096];
+            const char* cwd = getcwd(cwdBuf, sizeof(cwdBuf));
+            if (!cwd) cwd = "(unknown)";
+            fprintf(stderr, "[FATAL] Could not find world directory '%s'\n", worldDir.c_str());
+            fprintf(stderr, "  Searched: CWD (%s)", cwd);
+            if (!exeDirStr.empty())
+                fprintf(stderr, " and executable directory (%s)", exeDirStr.c_str());
+            fprintf(stderr, "\n");
+            fprintf(stderr, "  Run from the project root or use --world <path>\n");
+            return 1;
         }
         // loadWarnings is kept for future UI display of load diagnostics;
         // PushWarning() already prints each warning to stderr during Load().
