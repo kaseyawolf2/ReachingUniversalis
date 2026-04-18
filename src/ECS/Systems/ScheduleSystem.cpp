@@ -188,7 +188,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                         }
                     }
                     logv2.get<EventLog>(*logv2.begin()).Push(
-                        tm.day, (int)tm.hourOfDay, msg);
+                        tm.day, (int)tm.hourOfDay, msg, "Sched");
                 }
             }
         }
@@ -284,7 +284,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                 std::snprintf(buf, sizeof(buf),
                                     "%s strike ends \xe2\x80\x94 morale recovering (%d%%).",
                                     sett->name.c_str(), (int)(sett->morale * 100));
-                                logv.get<EventLog>(*logv.begin()).Push(tm.day, hour, buf);
+                                logv.get<EventLog>(*logv.begin()).Push(tm.day, hour, buf, "Sched");
                             }
                         }
                     }
@@ -384,7 +384,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             schema.ProfessionLabel(prof->type) + " to " +
                                             schema.ProfessionLabel(newProf) + " at " + settlName + ".";
                                         logV.get<EventLog>(*logV.begin()).Push(
-                                            tmRef.day, (int)tmRef.hourOfDay, msg);
+                                            tmRef.day, (int)tmRef.hourOfDay, msg, "Sched");
                                     }
                                 }
                                 // Career changer adaptation: second+ career change
@@ -406,7 +406,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             schema.ProfessionLabel(newProf) + " after trying " +
                                             schema.ProfessionLabel(prof->type) + " at " + settlName2 + ".";
                                         logV2.get<EventLog>(*logV2.begin()).Push(
-                                            tmRef2.day, (int)tmRef2.hourOfDay, msg2);
+                                            tmRef2.day, (int)tmRef2.hourOfDay, msg2, "Sched");
                                     }
                                 }
                                 // Skill transfer: experienced workers carry knowledge to new careers
@@ -518,7 +518,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                                 if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                                     where = s->name;
                                             logV.get<EventLog>(*logV.begin()).Push(tm.day, hour,
-                                                n1 + " and " + n2 + " compete at " + where + ".");
+                                                n1 + " and " + n2 + " compete at " + where + ".", "Sched");
                                         }
                                     }
                                 });
@@ -583,7 +583,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                                 if (const auto* nm = registry.try_get<Name>(entity)) n1m = nm->value;
                                                 if (const auto* nm = registry.try_get<Name>(other)) n2m = nm->value;
                                                 logVM.get<EventLog>(*logVM.begin()).Push(tm.day, hour,
-                                                    elderNm + " calms tensions between " + n1m + " and " + n2m + ".");
+                                                    elderNm + " calms tensions between " + n1m + " and " + n2m + ".", "Sched");
                                             }
                                             return; // taunt suppressed
                                         }
@@ -600,7 +600,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (const auto* nm2 = registry.try_get<Name>(other)) n2 = nm2->value;
                                         const char* profStr = schema.ProfessionLabel(oPr.type);
                                         logVT.get<EventLog>(*logVT.begin()).Push(tm.day, hour,
-                                            n1 + " teases " + n2 + " about their " + profStr + ".");
+                                            n1 + " teases " + n2 + " about their " + profStr + ".", "Sched");
                                     }
                                 });
                             }
@@ -668,7 +668,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                             where = s->name;
                                     logVR.get<EventLog>(*logVR.begin()).Push(tm.day, hour,
-                                        n1 + " and " + n2 + " put aside their differences at " + where + ".");
+                                        n1 + " and " + n2 + " put aside their differences at " + where + ".", "Sched");
                                 }
                                 // Morale boost to home settlement
                                 if (home.settlement != entt::null && registry.valid(home.settlement)) {
@@ -682,7 +682,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                                 where2 = s->name;
                                             hlogV.get<EventLog>(*hlogV.begin()).Push(tm.day, hour,
-                                                where2 + " feels more harmonious");
+                                                where2 + " feels more harmonious", "Sched");
                                         }
                                     }
                                 }
@@ -703,7 +703,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                             if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                                 uw = s->name;
                                         ufLogV.get<EventLog>(*ufLogV.begin()).Push(tm.day, hour,
-                                            un1 + " and " + un2 + " are becoming unlikely friends at " + uw + ".");
+                                            un1 + " and " + un2 + " are becoming unlikely friends at " + uw + ".", "Sched");
                                     }
                                 }
                             });
@@ -759,7 +759,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         songMsg = who + " leads a fireside song at " + where + ".";
                                     else
                                         songMsg = who + " leads a work song at " + where + ".";
-                                    logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour, songMsg);
+                                    logVS.get<EventLog>(*logVS.begin()).Push(tm.day, hour, songMsg, "Sched");
                                 }
                                 // Work song morale lift: 4+ coworkers boost settlement morale
                                 if (coworkers.size() >= 4) {
@@ -775,7 +775,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                                 if (const auto* s2 = registry.try_get<Settlement>(home.settlement))
                                                     where2 = s2->name;
                                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, hour,
-                                                where2 + " hums along.");
+                                                where2 + " hums along.", "Sched");
                                         }
                                     }
                                 }
@@ -807,7 +807,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                     const auto* sett = registry.try_get<Settlement>(home.settlement);
                                     std::string where = sett ? sett->name : "a settlement";
                                     logv.get<EventLog>(*logv.begin()).Push(tm.day, hour,
-                                        mentorIt->second.name + " mentored workers at " + where + ".");
+                                        mentorIt->second.name + " mentored workers at " + where + ".", "Sched");
                                 }
                             }
                         }
@@ -834,7 +834,7 @@ void ScheduleSystem::Update(entt::registry& registry, float realDt, const WorldS
                                         std::snprintf(buf, sizeof(buf),
                                             "%s reached %s %s.", who.c_str(), title, skName);
                                         lv.get<EventLog>(*lv.begin()).Push(
-                                            tm.day, (int)tm.hourOfDay, buf);
+                                            tm.day, (int)tm.hourOfDay, buf, "Sched");
                                     }
                                     // Journeyman (idx 0) and Master (idx 1) trigger visible celebration
                                     if (idx == 0 || idx == 1) {

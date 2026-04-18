@@ -649,7 +649,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             char buf[180];
                                             std::snprintf(buf, sizeof(buf), "%s draws on %s's wisdom at %s",
                                                           who.c_str(), elder.c_str(), where.c_str());
-                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                                         }
                                         break;  // Only one elder wisdom bonus per NPC per day
                                     }
@@ -679,7 +679,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                         where = s->name;
                                 logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    who + " works with renewed determination at " + where + ".");
+                                    who + " works with renewed determination at " + where + ".", "Agent");
                             }
                         }
                     }
@@ -703,7 +703,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     where = s->name;
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                who + " redoubles their efforts in memory of " + mentorNm + " at " + where + ".");
+                                who + " redoubles their efforts in memory of " + mentorNm + " at " + where + ".", "Agent");
                         }
                     }
 
@@ -723,7 +723,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     char buf[180];
                                     std::snprintf(buf, sizeof(buf), "An expert shares tips with %s at %s",
                                                   novice.c_str(), where.c_str());
-                                    logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                    logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                                 }
                                 // Jealousy reconciliation: novice with low affinity toward expert warms through learning
                                 auto* novRel = registry.try_get<Relations>(e);
@@ -748,7 +748,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                                 std::string wh = "settlement";
                                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement)) wh = s->name;
                                                 logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                                    novName + " warms to " + expName + " through learning at " + wh + ".");
+                                                    novName + " warms to " + expName + " through learning at " + wh + ".", "Agent");
                                             }
                                             break; // only reconcile with one expert per day
                                         }
@@ -793,7 +793,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                             where = s->name;
                                     logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                        who + " trains harder to surpass " + rival + " at " + where + ".");
+                                        who + " trains harder to surpass " + rival + " at " + where + ".", "Agent");
                                 }
                             }
                         }
@@ -827,7 +827,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     where = s->name;
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                who + " is a dedicated " + profName + " at " + where + ".");
+                                who + " is a dedicated " + profName + " at " + where + ".", "Agent");
                         }
                     }
                     // Skill recovery celebration: log when active skill rises back above 0.5
@@ -849,7 +849,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                         where = s->name;
                                 logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    who + " regains their " + recSkill + " proficiency at " + where + ".");
+                                    who + " regains their " + recSkill + " proficiency at " + where + ".", "Agent");
                             }
                         }
                     }
@@ -882,7 +882,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 char buf[180];
                                 std::snprintf(buf, sizeof(buf), "%s proudly declares mastery of %s at %s",
                                               who.c_str(), prideProfName, where.c_str());
-                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                             }
                             // Wisdom lineage: NPC carries on a deceased elder's legacy
                             if (sk.wisdomLineage != entt::null) {
@@ -895,7 +895,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                             where2 = s->name;
                                     logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                        who2 + " carries on " + elderName2 + "'s legacy at " + where2 + ".");
+                                        who2 + " carries on " + elderName2 + "'s legacy at " + where2 + ".", "Agent");
                                 }
                                 sk.wisdomLineage = entt::null;
                                 sk.wisdomLineageName.clear();
@@ -927,7 +927,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             char jbuf[180];
                                             std::snprintf(jbuf, sizeof(jbuf), "%s envies %s's skill at %s",
                                                           jName.c_str(), mName.c_str(), where2.c_str());
-                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, jbuf);
+                                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, jbuf, "Agent");
                                         }
                                     });
                             }
@@ -972,7 +972,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* s = registry.try_get<Settlement>(hs.settlement))
                                     where = s->name;
                             logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                who + "'s " + rustSkill + " is getting rusty at " + where + ".");
+                                who + "'s " + rustSkill + " is getting rusty at " + where + ".", "Agent");
                         }
                     }
 
@@ -989,7 +989,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string msg = "A master inspires " +
                                 std::string(nm ? nm->value : "an NPC") +
                                 "'s " + skillName2 + " at " + settlName + ".";
-                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg);
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay, msg, "Agent");
                         }
                     }
                     // Mentorship rivalry log: 1-in-8 frequency
@@ -1007,7 +1007,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 }
                             });
                         logV2.get<EventLog>(*logV2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                            who + " trains harder, inspired by " + mentorName + "'s teaching.");
+                            who + " trains harder, inspired by " + mentorName + "'s teaching.", "Agent");
                     }
                 });
         }
@@ -1081,7 +1081,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         }
                     }
                     logVP.get<EventLog>(*logVP.begin()).Push(tm.day, (int)tm.hourOfDay,
-                        where + " gathers to honour " + elderName + "'s memory.");
+                        where + " gathers to honour " + elderName + "'s memory.", "Agent");
                 }
                 // Morale boost from collective mourning
                 if (registry.valid(settlE)) {
@@ -1096,7 +1096,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (const auto* s = registry.try_get<Settlement>(settlE))
                             where2 = s->name;
                     logVP.get<EventLog>(*logVP.begin()).Push(tm.day, (int)tm.hourOfDay,
-                        where2 + " finds solace in shared grief.");
+                        where2 + " finds solace in shared grief.", "Agent");
                 }
             }
 
@@ -1165,7 +1165,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     settlName = s->name;
                             logV.get<EventLog>(*logV.begin()).Push(tm.day, (int)tm.hourOfDay,
                                 elderName + " mentors " + childName.value + " in " +
-                                skillNameM + " at " + settlName + ".");
+                                skillNameM + " at " + settlName + ".", "Agent");
                         }
                         break; // one mentor per child per day
                     }
@@ -1192,7 +1192,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 char buf[160];
                 std::snprintf(buf, sizeof(buf), "%s has become wealthy at %s!",
                               name.value.c_str(), stl.c_str());
-                logV.get<EventLog>(*logV.begin()).Push(tm.day, currentHour, buf);
+                logV.get<EventLog>(*logV.begin()).Push(tm.day, currentHour, buf, "Agent");
             }
         });
     }
@@ -1348,7 +1348,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     " joins " + (myName ? myName->value : "an NPC") +
                                     "'s celebration.";
                                 lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                    tm.day, (int)tm.hourOfDay, msg, "Agent");
                             }
                         });
                 }
@@ -1492,7 +1492,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 dest = s->name;
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm2.day, (int)tm2.hourOfDay,
-                                who + " moved to " + dest);
+                                who + " moved to " + dest, "Agent");
 
                             // Welcome log from destination's perspective
                             int newPop = 0;
@@ -1505,7 +1505,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 "%s welcomes %s — pop now %d",
                                 dest.c_str(), who.c_str(), newPop);
                             lv.get<EventLog>(*lv.begin()).Push(
-                                tm2.day, (int)tm2.hourOfDay, wbuf);
+                                tm2.day, (int)tm2.hourOfDay, wbuf, "Agent");
                         }
                     }
                 }
@@ -1532,7 +1532,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     dest = s->name;
                                 lv2.get<EventLog>(*lv2.begin()).Push(
                                     tm.day, (int)tm.hourOfDay,
-                                    who + ", a master " + masterSkill + ", settles at " + dest + ".");
+                                    who + ", a master " + masterSkill + ", settles at " + dest + ".", "Agent");
                             }
                         }
                     }
@@ -1577,7 +1577,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     "%s reunites with %s at %s.",
                                     myName.c_str(), friendName.c_str(), settlName.c_str());
                                 lv3.get<EventLog>(*lv3.begin()).Push(
-                                    tm3.day, (int)tm3.hourOfDay, rbuf);
+                                    tm3.day, (int)tm3.hourOfDay, rbuf, "Agent");
                             }
                         }
                     }
@@ -1611,7 +1611,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         std::string friendName = "a friend";
                                         if (const auto* n = registry.try_get<Name>(friend_e)) friendName = n->value;
                                         llv.get<EventLog>(*llv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                            migrantName + " sends word back to " + friendName);
+                                            migrantName + " sends word back to " + friendName, "Agent");
                                     }
                                 }
                             });
@@ -1716,7 +1716,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             oldHome = s->name;
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm.day, (int)tm.hourOfDay,
-                            who + " feels homesick and returns to " + oldHome);
+                            who + " feels homesick and returns to " + oldHome, "Agent");
                     }
                 }
                 continue;
@@ -1781,7 +1781,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     if (const auto* st = registry.try_get<Settlement>(home.settlement))
                                         where = st->name;
                                     lv2.get<EventLog>(*lv2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                        who + " has too many bonds to leave " + where);
+                                        who + " has too many bonds to leave " + where, "Agent");
                                 }
                             }
                         }
@@ -1838,7 +1838,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             who = n->value;
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm2.day, (int)tm2.hourOfDay,
-                            who + " migrating " + from + " → " + to);
+                            who + " migrating " + from + " → " + to, "Agent");
 
                         // Harmony-driven migration log (1-in-12)
                         {
@@ -1848,7 +1848,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (s_harmMigRng() % 12 == 0) {
                                     lv.get<EventLog>(*lv.begin()).Push(
                                         tm2.day, (int)tm2.hourOfDay,
-                                        who + " is drawn to " + to + "'s friendly community");
+                                        who + " is drawn to " + to + "'s friendly community", "Agent");
                                 }
                             }
                         }
@@ -1890,7 +1890,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 std::string elderName = "an elder";
                                 if (const auto* nm = registry.try_get<Name>(entity)) elderName = nm->value;
                                 lvF.get<EventLog>(*lvF.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    settlName + " holds a farewell feast for " + elderName + ".");
+                                    settlName + " holds a farewell feast for " + elderName + ".", "Agent");
                             }
                         }
                     }
@@ -1907,7 +1907,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
                         lv5.get<EventLog>(*lv5.begin()).Push(
                             tm.day, (int)tm.hourOfDay,
-                            who + " feels restless at " + where + ".");
+                            who + " feels restless at " + where + ".", "Agent");
                     }
                 }
 
@@ -1934,7 +1934,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (auto* n = registry.try_get<Name>(topFriend)) friendName = n->value;
                                 if (auto* s = registry.try_get<Settlement>(home.settlement)) settlName = s->name;
                                 lv2.get<EventLog>(*lv2.begin()).Push(tm3.day, (int)tm3.hourOfDay,
-                                    who + " says farewell to " + friendName + " before leaving " + settlName);
+                                    who + " says farewell to " + friendName + " before leaving " + settlName, "Agent");
                             }
                         }
                     }
@@ -1963,7 +1963,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 char buf[180];
                                 std::snprintf(buf, sizeof(buf), "%s says goodbye to %s at %s",
                                               who.c_str(), fname.c_str(), where.c_str());
-                                lv5.get<EventLog>(*lv5.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                lv5.get<EventLog>(*lv5.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                             }
                         }
                     }
@@ -1991,7 +1991,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string from = "settlement";
                             if (auto* s = registry.try_get<Settlement>(home.settlement)) from = s->name;
                             lv3.get<EventLog>(*lv3.begin()).Push(tmE.day, (int)tmE.hourOfDay,
-                                who + ", a master " + masterSkill + ", leaves " + from + ".");
+                                who + ", a master " + masterSkill + ", leaves " + from + ".", "Agent");
                         }
                     }
                 }
@@ -2007,7 +2007,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (!lv4.empty()) {
                                 lv4.get<EventLog>(*lv4.begin()).Push(
                                     tm.day, (int)tm.hourOfDay,
-                                    settl->name + " mourns the loss of a master.");
+                                    settl->name + " mourns the loss of a master.", "Agent");
                             }
                         }
                     }
@@ -2111,11 +2111,11 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             thirdName = tn->value;
                                         lv2.get<EventLog>(*lv2.begin()).Push(
                                             tm3.day, (int)tm3.hourOfDay,
-                                            entityName + ", " + friendName + ", and " + thirdName + " leave together for " + toName);
+                                            entityName + ", " + friendName + ", and " + thirdName + " leave together for " + toName, "Agent");
                                     } else {
                                         lv2.get<EventLog>(*lv2.begin()).Push(
                                             tm3.day, (int)tm3.hourOfDay,
-                                            entityName + " and " + friendName + " migrate together to " + toName);
+                                            entityName + " and " + friendName + " migrate together to " + toName, "Agent");
                                     }
                                 }
                             }
@@ -2149,7 +2149,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     std::string destName = "?";
                                     if (const auto* ds = registry.try_get<Settlement>(dest)) destName = ds->name;
                                     lvWb.get<EventLog>(*lvWb.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                        buddyName + " follows work partner " + migrantName + " to " + destName + ".");
+                                        buddyName + " follows work partner " + migrantName + " to " + destName + ".", "Agent");
                                 }
                             }
                         }
@@ -2219,7 +2219,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 (stealRes == RES_WOOD)    ? "wood"    : "goods";
                             lv.get<EventLog>(*lv.begin()).Push(
                                 tm2.day, (int)tm2.hourOfDay,
-                                who + " stole " + resName + " from " + where + ".");
+                                who + " stole " + resName + " from " + where + ".", "Agent");
 
                             // Exile after 3 thefts: clear home settlement
                             if (theftRec.theftCount >= 3) {
@@ -2227,7 +2227,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 home.settlement = entt::null;
                                 lv.get<EventLog>(*lv.begin()).Push(
                                     tm2.day, (int)tm2.hourOfDay,
-                                    who + " exiled from " + exileName + " for repeated theft.");
+                                    who + " exiled from " + exileName + " for repeated theft.", "Agent");
                             }
                         }
                     }
@@ -2285,7 +2285,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string msg = (myName ? myName->value : "NPC") +
                                               " feels uneasy near bandits.";
                             lv.get<EventLog>(*lv.begin()).Push(
-                                tm.day, (int)tm.hourOfDay, msg);
+                                tm.day, (int)tm.hourOfDay, msg, "Agent");
                         }
                     }
                 }
@@ -2333,7 +2333,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                         where = s->name;
                                 logVA.get<EventLog>(*logVA.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    who + " reflects on those lost at " + where + ".");
+                                    who + " reflects on those lost at " + where + ".", "Agent");
                             }
                         }
                     }
@@ -2372,12 +2372,12 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (const auto* st = registry.try_get<Settlement>(home.settlement))
                                 where = st->name;
                             vlv.get<EventLog>(*vlv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                where + " holds a vigil for the fallen");
+                                where + " holds a vigil for the fallen", "Agent");
                             // Vigil morale recovery log at 1-in-3 frequency
                             static std::mt19937 s_vigilMoraleRng{ std::random_device{}() };
                             if (s_vigilMoraleRng() % 3 == 0)
                                 vlv.get<EventLog>(*vlv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    where + "'s vigil brings comfort.");
+                                    where + "'s vigil brings comfort.", "Agent");
                         }
                     }
                 }
@@ -2491,7 +2491,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 }
                             }
                             lv.get<EventLog>(*lv.begin()).Push(
-                                tm.day, (int)tm.hourOfDay, msg);
+                                tm.day, (int)tm.hourOfDay, msg, "Agent");
                         }
                     }
                     // Family reunion clears grief early
@@ -2504,7 +2504,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string comfortMsg = (myName3 ? myName3->value : "An NPC") +
                                 " finds comfort in " + oName.value + "'s company.";
                             lv3.get<EventLog>(*lv3.begin()).Push(
-                                tm.day, (int)tm.hourOfDay, comfortMsg);
+                                tm.day, (int)tm.hourOfDay, comfortMsg, "Agent");
                         }
                     }
                     // Gossip about player bravery: spread lastHelper to the other NPC
@@ -2518,7 +2518,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string gossipMsg = (myName2 ? myName2->value : "An NPC") +
                                 " tells " + oName.value + " about the player's bravery.";
                             lv2.get<EventLog>(*lv2.begin()).Push(
-                                tm.day, (int)tm.hourOfDay, gossipMsg);
+                                tm.day, (int)tm.hourOfDay, gossipMsg, "Agent");
                         }
                     }
                     // Build affinity: casual greetings slowly build familiarity
@@ -2557,7 +2557,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             " and " + oName.value + " grumble about tensions at " +
                                             (settName ? settName->value : "their settlement");
                                         lv4.get<EventLog>(*lv4.begin()).Push(
-                                            tm.day, (int)tm.hourOfDay, grumbleMsg);
+                                            tm.day, (int)tm.hourOfDay, grumbleMsg, "Agent");
                                     }
                                 }
                             }
@@ -2625,7 +2625,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                                 where = s->name;
                                         lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                             (myName ? myName->value : std::string("An NPC")) +
-                                            " stays by work buddy " + oName.value + "'s side at " + where + ".");
+                                            " stays by work buddy " + oName.value + "'s side at " + where + ".", "Agent");
                                     }
                                 } else if (processionComfort) {
                                     static std::mt19937 s_procComfortRng{ std::random_device{}() };
@@ -2636,7 +2636,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                                 where = s->name;
                                         lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                             (myName ? myName->value : std::string("An NPC")) +
-                                            " draws strength from the procession to comfort " + oName.value + ".");
+                                            " draws strength from the procession to comfort " + oName.value + ".", "Agent");
                                     }
                                 } else if (empathicComfort) {
                                     static std::mt19937 s_empathyRng{ std::random_device{}() };
@@ -2647,13 +2647,13 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                                 where = s->name;
                                         lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                             (myName ? myName->value : std::string("An NPC")) +
-                                            " understands " + oName.value + "'s pain at " + where + ".");
+                                            " understands " + oName.value + "'s pain at " + where + ".", "Agent");
                                     }
                                 } else {
                                     std::string msg = (myName ? myName->value : "An NPC") +
                                         " comforts " + oName.value + ".";
                                     lv.get<EventLog>(*lv.begin()).Push(
-                                        tm.day, (int)tm.hourOfDay, msg);
+                                        tm.day, (int)tm.hourOfDay, msg, "Agent");
                                 }
                             }
                             comforted = true;
@@ -2696,7 +2696,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 char buf[180];
                                 std::snprintf(buf, sizeof(buf), "%s and %s find comfort in shared loss at %s",
                                               who.c_str(), otherName.c_str(), where.c_str());
-                                lv2.get<EventLog>(*lv2.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                lv2.get<EventLog>(*lv2.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                             }
                         }
                     });
@@ -2719,7 +2719,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 std::string msg = (myName ? myName->value : "An NPC") +
                                     std::string(" nods respectfully at you.");
                                 lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                    tm.day, (int)tm.hourOfDay, msg, "Agent");
                             }
                         }
                     }
@@ -2747,7 +2747,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 std::string msg = (myName ? myName->value : "An NPC") +
                                     " waves at you cheerfully.";
                                 lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                    tm.day, (int)tm.hourOfDay, msg, "Agent");
                             }
                         }
                     }
@@ -2772,7 +2772,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 std::string msg = (myName ? myName->value : "An NPC") +
                                     " hurries away from you nervously.";
                                 lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                    tm.day, (int)tm.hourOfDay, msg, "Agent");
                             }
                         }
                     }
@@ -2827,7 +2827,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                         std::string(" teaches ") + oName.value +
                                         " about " + skillDef.displayName + ".";
                                     lv.get<EventLog>(*lv.begin()).Push(
-                                        tm.day, (int)tm.hourOfDay, msg);
+                                        tm.day, (int)tm.hourOfDay, msg, "Agent");
                                 }
                                 taught = true;
                                 return;
@@ -2873,7 +2873,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 std::string msg = oName.value + " cheers up " +
                                     (myName ? myName->value : "an NPC") + ".";
                                 lv.get<EventLog>(*lv.begin()).Push(
-                                    tm.day, (int)tm.hourOfDay, msg);
+                                    tm.day, (int)tm.hourOfDay, msg, "Agent");
                             }
                         });
                 }
@@ -2915,7 +2915,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 " is visiting family in " +
                                 (visitSettlName.empty() ? "a settlement" : visitSettlName);
                             lv.get<EventLog>(*lv.begin()).Push(
-                                tm.day, (int)tm.hourOfDay, msg);
+                                tm.day, (int)tm.hourOfDay, msg, "Agent");
                         }
                         continue;
                     }
@@ -2973,7 +2973,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             if (const auto* s = registry.try_get<Settlement>(home.settlement))
                                                 where = s->name;
                                             llv.get<EventLog>(*llv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                                who + " feels lonely at " + where);
+                                                who + " feels lonely at " + where, "Agent");
                                         }
                                     }
                                 }
@@ -3078,7 +3078,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                                 where = stt->name;
                                             egLv.get<EventLog>(*egLv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                                nN + " thanks " + eN + " for the guidance at " + where + ".");
+                                                nN + " thanks " + eN + " for the guidance at " + where + ".", "Agent");
                                         }
                                     }
                                 }
@@ -3095,7 +3095,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                     where = stt->name;
                                 glv.get<EventLog>(*glv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    nA + " and " + nB + " share a knowing look at " + where);
+                                    nA + " and " + nB + " share a knowing look at " + where, "Agent");
                             }
                         }
                         // Work best friend log at 1-in-8
@@ -3109,7 +3109,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                     where = stt->name;
                                 wblv.get<EventLog>(*wblv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    nA + " catches up with work buddy " + nB + " at " + where);
+                                    nA + " catches up with work buddy " + nB + " at " + where, "Agent");
                             }
                         }
                         // Festival bonding log at 1-in-6 frequency
@@ -3123,7 +3123,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                     where = stt->name;
                                 flv.get<EventLog>(*flv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    nA + " and " + nB + " bond over the festival at " + where + ".");
+                                    nA + " and " + nB + " bond over the festival at " + where + ".", "Agent");
                             }
                         }
                         // Bankruptcy survivor inspiration: survivor inspires non-survivor
@@ -3141,7 +3141,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 if (const auto* stt = registry.try_get<Settlement>(home.settlement))
                                     where = stt->name;
                                 blv.get<EventLog>(*blv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                    sName + " inspires " + lName + " with their comeback story at " + where + ".");
+                                    sName + " inspires " + lName + " with their comeback story at " + where + ".", "Agent");
                             }
                         }
                         // Log ~10% of chats for social flavour
@@ -3158,7 +3158,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 char buf[160];
                                 std::snprintf(buf, sizeof(buf), "%s and %s chat%s.",
                                               nameA.c_str(), nameB.c_str(), settName.c_str());
-                                clv.get<EventLog>(*clv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                                clv.get<EventLog>(*clv.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                             }
                         }
                         // ---- Elder storytelling: elder + non-elder chat pair ----
@@ -3186,7 +3186,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                             settlName = s->name;
                                     elv.get<EventLog>(*elv.begin()).Push(tm.day, (int)tm.hourOfDay,
                                         elderName + " tells " + listenerName +
-                                        " tales of the old days at " + settlName + ".");
+                                        " tales of the old days at " + settlName + ".", "Agent");
                                 }
                             }
                         }
@@ -3204,7 +3204,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     if (const auto* nl = registry.try_get<Name>(listener)) lName = nl->value;
                                     if (const auto* nc = registry.try_get<Name>(changer)) cName = nc->value;
                                     glv.get<EventLog>(*glv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                        lName + " hears about " + cName + "'s varied career.");
+                                        lName + " hears about " + cName + "'s varied career.", "Agent");
                                 }
                             }
                         }
@@ -3293,7 +3293,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (const auto* nm = registry.try_get<Name>(orphan)) who = nm->value.c_str();
                     std::snprintf(buf, sizeof(buf), "%s found a new home at %s.",
                                   who, sn.name.c_str());
-                    lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                    lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                 }
             } else {
                 // Move toward destination
@@ -3467,7 +3467,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (lv.begin() != lv.end())
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm.day, (int)tm.hourOfDay,
-                            std::string("Rumour of ") + rumourLabel + " reached " + stt->name + ".");
+                            std::string("Rumour of ") + rumourLabel + " reached " + stt->name + ".", "Agent");
                 }
             };
 
@@ -3499,7 +3499,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         char buf[128];
                         std::snprintf(buf, sizeof(buf), "%s caught illness from %s",
                             healthyName.c_str(), sickName.c_str());
-                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf);
+                        lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay, buf, "Agent");
                     }
                 };
                 trySpread(A.entity, B.entity);
@@ -3533,7 +3533,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (lv.begin() != lv.end())
                         lv.get<EventLog>(*lv.begin()).Push(
                             tm.day, (int)tm.hourOfDay,
-                            nameA + " and " + nameB + " grumble about conditions at " + stt->name + ".");
+                            nameA + " and " + nameB + " grumble about conditions at " + stt->name + ".", "Agent");
                 };
                 checkGrumble(A.entity, B.entity, A.homeSettl);
                 checkGrumble(A.entity, B.entity, B.homeSettl);
@@ -3718,7 +3718,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             if (const auto* hn = registry.try_get<Name>(helper.entity))   helperName = hn->value;
                             if (const auto* sn = registry.try_get<Name>(starving.entity)) starvName  = sn->value;
                             charityLog->Push(charityDay, charityHour,
-                                helperName + " refused to help " + starvName + " (bad reputation).");
+                                helperName + " refused to help " + starvName + " (bad reputation).", "Agent");
                         }
                         continue;
                     }
@@ -3796,10 +3796,10 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     ? " (x" + std::to_string(charityN) + ")" : "";
                 if (isFamily) {
                     charityLog->Push(charityDay, charityHour,
-                        who + " feeds family member " + whom + at + "." + suffix);
+                        who + " feeds family member " + whom + at + "." + suffix, "Agent");
                 } else {
                     charityLog->Push(charityDay, charityHour,
-                        who + " helped " + whom + at + "." + suffix);
+                        who + " helped " + whom + at + "." + suffix, "Agent");
                 }
             }
             // Charity chain reaction: high-reputation giver triggers pay-it-forward
@@ -3835,7 +3835,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                     std::string where = "settlement";
                                     if (sett) where = sett->name;
                                     charityLog->Push(charityDay, charityHour,
-                                        rName + " passes on " + gName + "'s generosity at " + where + ".");
+                                        rName + " passes on " + gName + "'s generosity at " + where + ".", "Agent");
                                 }
                             }
                         }
@@ -3923,7 +3923,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                     if (const auto* an = registry.try_get<Name>(ae))             adopterName = an->value;
                     if (const auto* on = registry.try_get<Name>(bestOrphan->e))  orphanName  = on->value;
                     charityLog->Push(charityDay, charityHour,
-                        adopterName + " took in orphan " + orphanName + " at " + sett->name + ".");
+                        adopterName + " took in orphan " + orphanName + " at " + sett->name + ".", "Agent");
                 }
             });
         }
@@ -3988,7 +3988,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 if (const auto* fn = registry.try_get<Name>(bestFriend))
                     friendName = fn->value;
                 charityLog->Push(charityDay, charityHour,
-                    giverName.value + " gifts gold to " + friendName + ".");
+                    giverName.value + " gifts gold to " + friendName + ".", "Agent");
 
                 // Thank-you log: recipient acknowledges the gift (1-in-3)
                 static std::mt19937 s_thankRng{ std::random_device{}() };
@@ -3999,7 +3999,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             settlName = s->name;
                     charityLog->Push(charityDay, charityHour,
                         friendName + " thanks " + giverName.value +
-                        " for the gift at " + settlName + ".");
+                        " for the gift at " + settlName + ".", "Agent");
                 }
             }
         });
@@ -4133,7 +4133,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         if (const auto* ts = registry.try_get<Settlement>(bestSettl))
                             where = ts->name;
                         banditLog->Push(charityDay, charityHour,
-                            who + " settled at " + where + " (fresh start).");
+                            who + " settled at " + where + " (fresh start).", "Agent");
                     }
                     return;
                 }
@@ -4150,7 +4150,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string name = "An exile";
                             if (const auto* n = registry.try_get<Name>(e)) name = n->value;
                             banditLog->Push(charityDay, charityHour,
-                                name + " has turned bandit.");
+                                name + " has turned bandit.", "Agent");
                         }
                     }
                 } else if (banditSt) {
@@ -4224,7 +4224,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                                 roadNames = " on the " + nA2 + "-" + nB2 + " road";
                         }
                         banditLog->Push(charityDay, charityHour,
-                            who + " joined " + banditSt->gangName + roadNames + ".");
+                            who + " joined " + banditSt->gangName + roadNames + ".", "Agent");
                     }
                 } else {
                     if (banditSt) banditSt->gangName.clear();
@@ -4262,7 +4262,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                             std::string bandName = "A bandit";
                             if (const auto* n = registry.try_get<Name>(e)) bandName = n->value;
                             banditLog->Push(charityDay, charityHour,
-                                bandName + " ambushed a hauler on the road.");
+                                bandName + " ambushed a hauler on the road.", "Agent");
                         }
                         // Flee away from the hauler
                         float dist = std::sqrt(dx3*dx3 + dy3*dy3);
@@ -4381,7 +4381,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                         "%s is halfway to their %s goal (%.0f/%.0f%s).",
                         who.c_str(), GoalLabel(goal.goalId, schema),
                         goal.progress, goal.target, GoalUnit(goal.goalId, schema));
-                    hmlv.get<EventLog>(*hmlv.begin()).Push(charityDay, charityHour, buf);
+                    hmlv.get<EventLog>(*hmlv.begin()).Push(charityDay, charityHour, buf, "Agent");
                 }
             }
 
@@ -4397,7 +4397,7 @@ void AgentDecisionSystem::Update(entt::registry& registry, float realDt, const W
                 std::string msg = gdef.completionMessage;
                 auto pos = msg.find("{name}");
                 if (pos != std::string::npos) msg.replace(pos, 6, who);
-                gelv.get<EventLog>(*gelv.begin()).Push(charityDay, charityHour, msg);
+                gelv.get<EventLog>(*gelv.begin()).Push(charityDay, charityHour, msg, "Agent");
             }
 
             // Start personal celebration: 2 game-hours for regular NPCs

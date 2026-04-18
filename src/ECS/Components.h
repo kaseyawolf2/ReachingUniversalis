@@ -498,12 +498,20 @@ struct EventLog {
         int         day;
         int         hour;
         std::string message;
+        std::string sourceSystem;   // e.g. "Rand", "Econ", "Trade", "Agent", "Sched", "Prod", "Sim"; empty = unknown
     };
     std::deque<Entry> entries;
     static constexpr int MAX_ENTRIES = 50;
 
+    // Original overload — source defaults to empty (unknown)
     void Push(int day, int hour, const std::string& msg) {
-        entries.push_front({ day, hour, msg });
+        entries.push_front({ day, hour, msg, "" });
+        if ((int)entries.size() > MAX_ENTRIES) entries.pop_back();
+    }
+
+    // Overload with explicit source system label
+    void Push(int day, int hour, const std::string& msg, const std::string& source) {
+        entries.push_front({ day, hour, msg, source });
         if ((int)entries.size() > MAX_ENTRIES) entries.pop_back();
     }
 };

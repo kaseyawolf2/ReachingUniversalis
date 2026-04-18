@@ -78,7 +78,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
                     if (const auto* n = registry.try_get<Name>(e))
                         who = n->value;
                     lv.get<EventLog>(*lv.begin()).Push(tm.day, (int)tm.hourOfDay,
-                        who + " is struggling financially.");
+                        who + " is struggling financially.", "Econ");
                 }
             }
             if (s_bankruptTimer[e] >= BANKRUPTCY_HOURS)
@@ -142,7 +142,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
                                 std::snprintf(sbuf, sizeof(sbuf),
                                     "%s helps %s get back on their feet at %s",
                                     friendName.c_str(), bankruptName.c_str(), where.c_str());
-                                log->Push(tm.day, (int)tm.hourOfDay, sbuf);
+                                log->Push(tm.day, (int)tm.hourOfDay, sbuf, "Econ");
                             }
                             // Community reputation: other NPCs at settlement respect the donor
                             registry.view<Relations, HomeSettlement>(
@@ -162,7 +162,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
                                 std::snprintf(rbuf, sizeof(rbuf),
                                     "%s earns respect for helping %s",
                                     donorName.c_str(), bankruptName2.c_str());
-                                log->Push(tm.day, (int)tm.hourOfDay, rbuf);
+                                log->Push(tm.day, (int)tm.hourOfDay, rbuf, "Econ");
                             }
                         });
                 }
@@ -194,7 +194,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
             char buf[160];
             std::snprintf(buf, sizeof(buf), "%s went bankrupt (%.0fg left) — returned to labor at %s",
                           who.c_str(), bal, where.c_str());
-            log->Push(tm.day, (int)tm.hourOfDay, buf);
+            log->Push(tm.day, (int)tm.hourOfDay, buf, "Econ");
         }
         s_bankruptTimer.erase(e);
         // Bankruptcy demoralises the home settlement
@@ -267,7 +267,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
                     char sbuf[180];
                     std::snprintf(sbuf, sizeof(sbuf), "%s returns to hauling with hard-won wisdom at %s.",
                                   who.c_str(), where.c_str());
-                    log->Push(tm.day, (int)tm.hourOfDay, sbuf);
+                    log->Push(tm.day, (int)tm.hourOfDay, sbuf, "Econ");
                 }
             }
         }
@@ -280,7 +280,7 @@ void EconomicMobilitySystem::Update(entt::registry& registry, float realDt, cons
             char buf[160];
             std::snprintf(buf, sizeof(buf), "%s saved enough (%.0fg) to become a hauler at %s",
                           who.c_str(), money.balance, where.c_str());
-            log->Push(tm.day, (int)tm.hourOfDay, buf);
+            log->Push(tm.day, (int)tm.hourOfDay, buf, "Econ");
         }
     });
 }

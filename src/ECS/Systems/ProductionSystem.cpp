@@ -172,7 +172,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                             std::string sname = "A settlement";
                             if (const auto* s = registry.try_get<Settlement>(settl)) sname = s->name;
                             logView2.get<EventLog>(*logView2.begin()).Push(tm.day, (int)tm.hourOfDay,
-                                sname + " benefits from a diverse workforce.");
+                                sname + " benefits from a diverse workforce.", "Prod");
                         }
                     }
                     s_diverseLogged[settl] = tm.day;
@@ -199,7 +199,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                 char buf[120];
                 std::snprintf(buf, sizeof(buf), "%s is crowded — %d workers competing.",
                               settName.c_str(), count);
-                crowdLog->Push(tm.day, (int)tm.hourOfDay, buf);
+                crowdLog->Push(tm.day, (int)tm.hourOfDay, buf, "Prod");
             }
         }
         // Prune dead entities
@@ -277,7 +277,7 @@ void ProductionSystem::Update(entt::registry& registry, float realDt, const Worl
                             sName.c_str(), typeName.c_str());
                         auto& tm2 = registry.view<TimeManager>().get<TimeManager>(
                             *registry.view<TimeManager>().begin());
-                        lv.get<EventLog>(*lv.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                        lv.get<EventLog>(*lv.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf, "Prod");
                     }
                 }
             }

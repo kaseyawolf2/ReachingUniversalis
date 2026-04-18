@@ -37,7 +37,7 @@ static void SoftenRivalryOnSharedCrisis(entt::registry& registry,
         if (log) {
             log->Push(day, hour,
                 settl.name + " and " + otherSettl->name +
-                " set aside differences during " + crisisName);
+                " set aside differences during " + crisisName, "Rand");
         }
     }
 }
@@ -68,7 +68,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
                         s.modifierName + " ends at " + s.name +
-                        (wasSpreading ? " — " + s.modifierName + " contained" : " — production restored"));
+                        (wasSpreading ? " — " + s.modifierName + " contained" : " — production restored"), "Rand");
                 // Post-festival afterglow: morale drift halved for 12 game-hours
                 if (wasFestival)
                     s.afterglowHours = 12.f;
@@ -98,7 +98,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     if (log) {
                         std::string crisis = wasDrought ? "drought" : s.modifierName;
                         log->Push(tm.day, (int)tm.hourOfDay,
-                            s.name + " celebrates surviving the " + crisis);
+                            s.name + " celebrates surviving the " + crisis, "Rand");
                     }
                 }
                 s.modifierName.clear();
@@ -171,13 +171,13 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (s_loggedAbundance.insert(e).second && log) {
                     std::string where = s.name;
                     log->Push(tm.day, (int)tm.hourOfDay,
-                        "Prosperity: " + where + " has abundant stores — morale rising.");
+                        "Prosperity: " + where + " has abundant stores — morale rising.", "Rand");
                 }
             } else if (s_loggedAbundance.erase(e)) {
                 // Log once when a settlement first drops out of abundance
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
-                        "Abundance fading at " + s.name + " — stores declining.");
+                        "Abundance fading at " + s.name + " — stores declining.", "Rand");
             }
             // Scarcity: any stockpile below 10 drains morale
             static constexpr float SCARCITY_THRESHOLD = 10.f;
@@ -205,7 +205,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (recovering & 2) { if (!resources.empty()) resources += ", "; resources += "water"; }
                 if (recovering & 4) { if (!resources.empty()) resources += ", "; resources += "wood"; }
                 log->Push(tm.day, (int)tm.hourOfDay,
-                    "Recovery: " + s.name + " " + resources + " stores recovering.");
+                    "Recovery: " + s.name + " " + resources + " stores recovering.", "Rand");
             }
             // Morale bump: recovering from scarcity is a small community boost
             if (recovering) {
@@ -226,7 +226,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (newBits & 2) { if (!resources.empty()) resources += ", "; resources += "water"; }
                 if (newBits & 4) { if (!resources.empty()) resources += ", "; resources += "wood"; }
                 log->Push(tm.day, (int)tm.hourOfDay,
-                    "Shortage: " + s.name + " running low on " + resources + ".");
+                    "Shortage: " + s.name + " running low on " + resources + ".", "Rand");
             }
             mask |= newBits;
         }
@@ -242,7 +242,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::snprintf(buf, sizeof(buf),
                     "UNREST in %s [pop %d] — morale %d%%, production suffering",
                     s.name.c_str(), pop, (int)(s.morale * 100));
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
             }
         } else if (s.unrest && s.morale >= 0.4f) {
             s.unrest = false;
@@ -254,7 +254,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 std::snprintf(buf, sizeof(buf),
                     "Tensions ease in %s [pop %d] — morale recovering (%d%%)",
                     s.name.c_str(), pop, (int)(s.morale * 100));
-                log->Push(tm.day, (int)tm.hourOfDay, buf);
+                log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
             }
         }
 
@@ -292,7 +292,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         m_loggedRivalryRecovery.erase(key);  // allow recovery log later
                         log->Push(tm.day, (int)tm.hourOfDay,
                             "RIVALRY: " + s.name + " and " + otherSettl->name +
-                            " relations deteriorate \xe2\x80\x94 tariffs imposed");
+                            " relations deteriorate \xe2\x80\x94 tariffs imposed", "Rand");
                     }
                     // Rivalry recovery: crosses above -0.3 after being in rivalry
                     if (it->second >= RIVALRY_RECOVERY && m_loggedRivalries.count(key)
@@ -300,7 +300,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         m_loggedRivalryRecovery.insert(key);
                         m_loggedRivalries.erase(key);  // allow re-trigger if they drift hostile again
                         log->Push(tm.day, (int)tm.hourOfDay,
-                            "Relations improving between " + s.name + " and " + otherSettl->name);
+                            "Relations improving between " + s.name + " and " + otherSettl->name, "Rand");
                     } else if (it->second > RIVALRY_THRESHOLD && it->second < RIVALRY_RECOVERY) {
                         // Between -0.5 and -0.3: keep rivalry flag but no recovery yet
                     } else if (it->second > RIVALRY_RECOVERY) {
@@ -312,7 +312,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         m_loggedAlliances.insert(key);
                         m_loggedRivalries.erase(key);
                         log->Push(tm.day, (int)tm.hourOfDay,
-                            "Alliance formed: " + s.name + " & " + otherSettl->name);
+                            "Alliance formed: " + s.name + " & " + otherSettl->name, "Rand");
                     } else if (it->second < ALLIANCE_THRESHOLD) {
                         m_loggedAlliances.erase(key);
                     }
@@ -356,7 +356,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     std::snprintf(buf, sizeof(buf),
                         "Workers strike at %s \xe2\x80\x94 %d workers walk out (morale: %d%%)",
                         s.name.c_str(), strikerCount, (int)(s.morale * 100));
-                    log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                 }
             }
         }
@@ -370,7 +370,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             if (s.rivalryTimer <= 0.f) {
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
-                        "Rivalry fades between " + s.name + " and " + s.rivalWith);
+                        "Rivalry fades between " + s.name + " and " + s.rivalWith, "Rand");
                 s.rivalryTimer  = 0.f;
                 s.rivalWith.clear();
                 s.rivalEntity   = entt::null;
@@ -410,7 +410,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             sb->rivalryTimer = RIVALRY_DURATION;
             if (log)
                 log->Push(tm.day, (int)tm.hourOfDay,
-                    sa->name + " and " + sb->name + " are competing for regional dominance.");
+                    sa->name + " and " + sb->name + " are competing for regional dominance.", "Rand");
         });
     }
 
@@ -426,7 +426,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 if (lv.begin() != lv.end())
                     lv.get<EventLog>(*lv.begin()).Push(
                         tm.day, (int)tm.hourOfDay,
-                        "Bandits dispersed — road reopened");
+                        "Bandits dispersed — road reopened", "Rand");
             }
         }
     });
@@ -458,7 +458,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                 log->Push(tm.day, (int)tm.hourOfDay,
                     "[RandomEventSystem] Spread entry has out-of-range eventIdx "
                     + std::to_string(entry.eventIdx) + " (schema has "
-                    + std::to_string((int)schema.events.size()) + " events) -- removing entry");
+                    + std::to_string((int)schema.events.size()) + " events) -- removing entry", "Rand");
             staleSpreadEntries.push_back(srcSettl);
             continue;
         }
@@ -521,7 +521,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
             std::string msg = sDef.displayName + " spreads from " + srcName
                 + " to " + ts->name + " [pop " + std::to_string(destPop)
                 + destTrend + "] -- " + std::to_string(killed) + " died";
-            log->Push(tm.day, (int)tm.hourOfDay, msg);
+            log->Push(tm.day, (int)tm.hourOfDay, msg, "Rand");
         }
     }
     // Remove stale/corrupt spread entries
@@ -603,7 +603,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
 
                 if (log)
                     log->Push(tm.day, (int)tm.hourOfDay,
-                        s.name + " celebrates its diverse workforce!");
+                        s.name + " celebrates its diverse workforce!", "Rand");
             });
         }
     }
@@ -670,7 +670,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     std::string elderName = "An elder";
                     if (const auto* nm = registry.try_get<Name>(storyteller)) elderName = nm->value;
                     log->Push(tm.day, (int)tm.hourOfDay,
-                        elderName + " tells tales of the old days at " + s.name + ".");
+                        elderName + " tells tales of the old days at " + s.name + ".", "Rand");
                 }
             });
         }
@@ -715,7 +715,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                     char buf[120];
                     std::snprintf(buf, sizeof(buf), "%s recovered from illness at %s",
                         name.value.c_str(), settName);
-                    log->Push(tm.day, (int)tm.hourOfDay, buf);
+                    log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                 }
             }
             if (dt.harvestBonusTimer > 0.f)
@@ -739,7 +739,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         char buf[100];
                         std::snprintf(buf, sizeof(buf), "%s is desperate at %s",
                             name.value.c_str(), settName);
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                     } else if (contentment >= 0.5f) {
                         s_desperateLogged.erase(e);
                     }
@@ -773,7 +773,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         char buf[120];
                         std::snprintf(buf, sizeof(buf), "%s had a skill insight in %s at %s",
                             name.value.c_str(), skillName.c_str(), settName);
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                     }
                     break;
                 }
@@ -795,7 +795,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         else
                             std::snprintf(buf, sizeof(buf), "%s found %.0fg on the road",
                                 name.value.c_str(), found);
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                     }
                     break;
                 }
@@ -816,7 +816,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                             std::snprintf(buf, sizeof(buf),
                                 "%s fell ill (%s doubled for %dh) at %s",
                                 name.value.c_str(), needName, (int)ILLNESS_DURATION, settName);
-                            log->Push(tm.day, (int)tm.hourOfDay, buf);
+                            log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                         }
                     }
                     break;
@@ -830,7 +830,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                         std::snprintf(buf, sizeof(buf),
                             "%s is having a great work day (+50%% for %dh)",
                             name.value.c_str(), (int)HARVEST_DURATION);
-                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                     }
                     break;
                 }
@@ -877,7 +877,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
                                             name.value.c_str(),
                                             tName ? tName->value.c_str() : "a younger worker",
                                             settName);
-                                        log->Push(tm.day, (int)tm.hourOfDay, buf);
+                                        log->Push(tm.day, (int)tm.hourOfDay, buf, "Rand");
                                     }
                                 }
                             }
@@ -1169,22 +1169,22 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             if (ev.spreads) {
                 std::snprintf(buf, sizeof(buf), "%s %s -- %d died, disease spreading via roads!",
                     ev.displayName.c_str(), popTag.c_str(), killed);
-                log->Push(day, hour, settl->name + ": " + buf);
+                log->Push(day, hour, settl->name + ": " + buf, "Rand");
             } else if (ev.triggersCelebration) {
                 std::snprintf(buf, sizeof(buf),
                     "%s at %s %s -- %d celebrating, treasury +%.0fg, production x%.2f (%dh)",
                     ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
                     celebrantCount, ev.treasuryChange, ev.effectValue, (int)ev.durationHours);
-                log->Push(day, hour, buf);
+                log->Push(day, hour, buf, "Rand");
             } else {
                 std::snprintf(buf, sizeof(buf), "%s at %s %s (%dh)",
                     ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
                     (int)ev.durationHours);
-                log->Push(day, hour, buf);
+                log->Push(day, hour, buf, "Rand");
             }
             if (ev.triggersSolidarity && !ev.spreads) {
                 log->Push(day, hour, settl->name + " residents pull together during the "
-                    + ev.displayName + ".");
+                    + ev.displayName + ".", "Rand");
             }
         }
         break;
@@ -1211,9 +1211,9 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 ? schema.resources[ev.targetResourceId].displayName : "food";
             log->Push(day, hour,
                 ev.displayName + " hits " + settl->name + " " + popTag + " -- "
-                + std::to_string((int)lost) + " " + resName + " destroyed");
+                + std::to_string((int)lost) + " " + resName + " destroyed", "Rand");
             if (ev.triggersSolidarity)
-                log->Push(day, hour, settl->name + " residents share what little remains.");
+                log->Push(day, hour, settl->name + " residents share what little remains.", "Rand");
         }
         break;
     }
@@ -1232,7 +1232,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             if (blockedCount > 0 && log)
                 log->Push(day, hour,
                     ev.displayName + " -- all " + std::to_string(blockedCount)
-                    + " roads blocked (" + std::to_string((int)blockDur) + "h)");
+                    + " roads blocked (" + std::to_string((int)blockDur) + "h)", "Rand");
         } else {
             // Block one random open road
             std::vector<entt::entity> openRoads;
@@ -1247,7 +1247,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             road.banditTimer = blockDur;
             if (log) log->Push(day, hour,
                 ev.displayName + " blocking road ("
-                + std::to_string((int)blockDur) + "h)");
+                + std::to_string((int)blockDur) + "h)", "Rand");
         }
         break;
     }
@@ -1257,7 +1257,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         settl->treasury += gold;
         if (log) log->Push(day, hour,
             ev.displayName + " at " + settl->name + " " + popTag
-            + " -- treasury +" + std::to_string((int)gold) + "g");
+            + " -- treasury +" + std::to_string((int)gold) + "g", "Rand");
         break;
     }
     // --- Spawn NPCs (Migration Wave, Skilled Immigrant) ---
@@ -1296,7 +1296,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                     specialty, settl->name.c_str(),
                     BuildPopTag(popCount + 1, m_prevPop, target).c_str(),
                     highSkill * 100.f);
-                log->Push(day, hour, buf);
+                log->Push(day, hour, buf, "Rand");
             }
         } else {
             // Migration wave: spawn 3-5 NPCs
@@ -1311,7 +1311,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             if (log) log->Push(day, hour,
                 ev.displayName + ": " + std::to_string(arrivals)
                 + " arrived at " + settl->name + " "
-                + BuildPopTag(popCount + arrivals, m_prevPop, target));
+                + BuildPopTag(popCount + arrivals, m_prevPop, target), "Rand");
         }
         break;
     }
@@ -1344,7 +1344,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                     ? schema.resources[ev.addResourceId].name : "resource";
                 log->Push(day, hour,
                     ev.displayName + " -- all settlements +"
-                    + std::to_string((int)amount) + " " + resName);
+                    + std::to_string((int)amount) + " " + resName, "Rand");
             }
         } else {
             auto* sp = registry.try_get<Stockpile>(target);
@@ -1366,7 +1366,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                     "%s at %s %s -- +%.0f %s",
                     ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
                     amount, resName.c_str());
-                log->Push(day, hour, buf);
+                log->Push(day, hour, buf, "Rand");
             }
         }
         break;
@@ -1392,7 +1392,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (settl->treasury < cost) {
             if (log) log->Push(day, hour,
                 "Convoy turned away from " + settl->name
-                + " -- treasury too low (" + std::to_string((int)settl->treasury) + "g)");
+                + " -- treasury too low (" + std::to_string((int)settl->treasury) + "g)", "Rand");
             return;
         }
 
@@ -1404,7 +1404,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (log) log->Push(day, hour,
             ev.displayName + " at " + settl->name + " " + popTag + " +"
             + std::to_string((int)amount) + " " + resName
-            + " (paid " + std::to_string((int)cost) + "g)");
+            + " (paid " + std::to_string((int)cost) + "g)", "Rand");
         break;
     }
     // --- Earthquake ---
@@ -1447,7 +1447,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 "%s at %s %s -- %d facilit%s destroyed, roads blocked (%dh)",
                 ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
                 destroyed, destroyed == 1 ? "y" : "ies", (int)blockDur);
-            log->Push(day, hour, buf);
+            log->Push(day, hour, buf, "Rand");
         }
         break;
     }
@@ -1482,7 +1482,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 "%s at %s %s -- %s destroyed, %d died",
                 ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(),
                 lostDesc.empty() ? "nothing" : lostDesc.c_str(), killed);
-            log->Push(day, hour, buf);
+            log->Push(day, hour, buf, "Rand");
         }
         break;
     }
@@ -1508,7 +1508,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             std::snprintf(buf, sizeof(buf),
                 "%s at %s %s -- panic buying, all prices spike %.1fx!",
                 ev.displayName.c_str(), settl->name.c_str(), popTag.c_str(), actualSpike);
-            log->Push(day, hour, buf);
+            log->Push(day, hour, buf, "Rand");
         }
         break;
     }
@@ -1519,7 +1519,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         if (ev.treasuryChange != 0.f)
             settl->treasury += ev.treasuryChange;
         if (log) log->Push(day, hour,
-            ev.displayName + " at " + settl->name + " " + popTag);
+            ev.displayName + " at " + settl->name + " " + popTag, "Rand");
         break;
     }
     case EventEffectType::None:

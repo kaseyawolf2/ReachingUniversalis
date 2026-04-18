@@ -149,6 +149,9 @@ struct RenderSnapshot {
         bool isExpert = false;
         // True if this NPC's home settlement has an active "Drought" or "Plague" modifier
         bool crisisSurvivor = false;
+        // Per-need (value, criticalThreshold) pairs from schema; populated by WriteSnapshot.
+        // Empty for entities that have no Needs component.
+        std::vector<std::pair<float,float>> needValues;
     };
 
     struct SettlementEntry {
@@ -306,6 +309,14 @@ struct RenderSnapshot {
     // Immutable after construction; not protected by mutex
     std::shared_ptr<const std::vector<std::string>> skillNames;
 
+    // Need display names from schema (indexed by NeedID). Set once at construction;
+    // immutable after that, so no mutex needed.
+    std::shared_ptr<const std::vector<std::string>> needNames;
+
+    // Resource display names from schema (indexed by resource type). Set once at
+    // construction; immutable after that, so no mutex needed.
+    std::shared_ptr<const std::vector<std::string>> resourceNames;
+
     // HUD — clock
     int    day         = 1;
     int    hour        = 6;
@@ -341,6 +352,8 @@ struct RenderSnapshot {
     float         playerMaxDays  = 80.f;
     float         playerGold     = 0.f;
     std::vector<float>       playerSkills;       // per SkillID; empty = no Skills component
+    // Per-need (value, criticalThreshold) pairs for the player, schema-driven.
+    std::vector<std::pair<float,float>> playerNeeds;
     // Player skill display names: uses the shared skillNames pointer above.
     std::map<int, int> playerInventory;   // current carried goods
     int                         playerInventoryCapacity = 15; // max carry capacity

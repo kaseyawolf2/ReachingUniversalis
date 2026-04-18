@@ -375,7 +375,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                 char buf[180];
                                 std::snprintf(buf, sizeof(buf), "%s undercuts %s on the %s route",
                                               n1.c_str(), n2.c_str(), routeName.c_str());
-                                logV.get<EventLog>(*logV.begin()).Push(tmR.day, (int)tmR.hourOfDay, buf);
+                                logV.get<EventLog>(*logV.begin()).Push(tmR.day, (int)tmR.hourOfDay, buf, "Trade");
                             }
                         }
                     }
@@ -416,7 +416,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                             std::snprintf(buf, sizeof(buf), "%s nervously travels the %s-%s road (%d bandit%s spotted)",
                                 who.c_str(), roadNameA.c_str(), roadNameB.c_str(),
                                 routeBandits, routeBandits > 1 ? "s" : "");
-                            evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                            evLog.Push(tmRef.day, (int)tmRef.hourOfDay, buf, "Trade");
                         }
                     }
                 }
@@ -436,7 +436,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                         std::string where = "?";
                         if (const auto* s = registry.try_get<Settlement>(home.settlement)) where = s->name;
                         evLog.Push(tmRef.day, (int)tmRef.hourOfDay,
-                            who + " idle for 12h at " + where + " — no profitable routes.");
+                            who + " idle for 12h at " + where + " — no profitable routes.", "Trade");
                     }
                 }
                 // Rivalry complaint: log when a hauler misses a profitable rival route
@@ -459,7 +459,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                             std::snprintf(buf, sizeof(buf),
                                 "%s avoids %s due to rivalry — potential profit lost.",
                                 who.c_str(), destName.c_str());
-                            evLog2.Push(tm2.day, (int)tm2.hourOfDay, buf);
+                            evLog2.Push(tm2.day, (int)tm2.hourOfDay, buf, "Trade");
                         }
                     }
                 }
@@ -546,7 +546,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                         char buf[200];
                         std::snprintf(buf, sizeof(buf), "%s formed convoy with %s on the way to %s.",
                                       who.c_str(), partner.c_str(), dest.c_str());
-                        logV.get<EventLog>(*logV.begin()).Push(tmRef.day, (int)tmRef.hourOfDay, buf);
+                        logV.get<EventLog>(*logV.begin()).Push(tmRef.day, (int)tmRef.hourOfDay, buf, "Trade");
                     }
                     // Friend convoy log at 1-in-6 frequency
                     if (friendConvoy) {
@@ -560,7 +560,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                             char buf2[180];
                             std::snprintf(buf2, sizeof(buf2), "%s joins up with friend %s",
                                           who2.c_str(), partner2.c_str());
-                            logV.get<EventLog>(*logV.begin()).Push(tmRef2.day, (int)tmRef2.hourOfDay, buf2);
+                            logV.get<EventLog>(*logV.begin()).Push(tmRef2.day, (int)tmRef2.hourOfDay, buf2, "Trade");
                         }
                     }
                 }
@@ -591,7 +591,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     if (const auto* ds = registry.try_get<Settlement>(hauler.targetSettlement))
                                         route = "the " + ds->name + " road";
                                     mlv.get<EventLog>(*mlv.begin()).Push(tmM.day, (int)tmM.hourOfDay,
-                                        mN + " shows " + nN + " the ropes on " + route + ".");
+                                        mN + " shows " + nN + " the ropes on " + route + ".", "Trade");
                                 }
                             }
                         }
@@ -669,7 +669,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     haulerName + " from " +
                                     (srcSettl ? srcSettl->name : "???") +
                                     " taxed at gate in " + destSettl->name +
-                                    " (rivalry tariff)");
+                                    " (rivalry tariff)", "Trade");
                             }
                         }
                     }
@@ -746,13 +746,13 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                         std::snprintf(buf, sizeof(buf),
                             "Hauler delivered %s to %s (morale +1%%)",
                             cargo.c_str(), destSettl->name.c_str());
-                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf);
+                        logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, buf, "Trade");
                         if (loyaltyApplied) {
                             std::string haulerName = "Hauler";
                             if (auto* nm = registry.try_get<Name>(entity))
                                 haulerName = nm->value;
                             logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay,
-                                haulerName + " received local loyalty bonus at " + destSettl->name + ".");
+                                haulerName + " received local loyalty bonus at " + destSettl->name + ".", "Trade");
                         }
                         if (allyTrade && !cargoSourceName.empty()) {
                             // 1-in-3 frequency to avoid log spam
@@ -776,7 +776,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     "Allied trade: %s delivers %d %s from %s to %s (boosted)",
                                     hName.c_str(), totalUnits, resName.c_str(),
                                     cargoSourceName.c_str(), destSettl->name.c_str());
-                                logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, abuf);
+                                logV.get<EventLog>(*logV.begin()).Push(tm2.day, (int)tm2.hourOfDay, abuf, "Trade");
                             }
                         }
                     }
@@ -818,7 +818,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     std::snprintf(rbuf, sizeof(rbuf),
                                         "%s is a regular on the %s route",
                                         haulerName.c_str(), currentRoute.c_str());
-                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf);
+                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf, "Trade");
                                 }
                             }
                         }
@@ -843,7 +843,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                             "%s retires from hauling after %d trips with %.0fg saved.",
                                             who.c_str(), hauler.lifetimeTrips, money->balance);
                                         logVRet.get<EventLog>(*logVRet.begin()).Push(
-                                            tmRet.day, (int)tmRet.hourOfDay, rbuf);
+                                            tmRet.day, (int)tmRet.hourOfDay, rbuf, "Trade");
                                     }
                                 }
                             }
@@ -864,7 +864,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                             std::snprintf(lbuf, sizeof(lbuf),
                                 "%s completed a loss-making trip to %s (%.1fg)",
                                 who.c_str(), dest.c_str(), tripProfit);
-                            logV3.get<EventLog>(*logV3.begin()).Push(tm4.day, (int)tm4.hourOfDay, lbuf);
+                            logV3.get<EventLog>(*logV3.begin()).Push(tm4.day, (int)tm4.hourOfDay, lbuf, "Trade");
                         }
                     }
                     // Track worst loss for route avoidance
@@ -891,7 +891,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                             std::snprintf(pbuf, sizeof(pbuf),
                                 "%s sets new personal record: +%.1fg on %s",
                                 haulerName.c_str(), tripProfit, hauler.bestRoute.c_str());
-                            logV2.get<EventLog>(*logV2.begin()).Push(tm3.day, (int)tm3.hourOfDay, pbuf);
+                            logV2.get<EventLog>(*logV2.begin()).Push(tm3.day, (int)tm3.hourOfDay, pbuf, "Trade");
                         }
                     }
 
@@ -923,7 +923,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                             std::snprintf(gbuf, sizeof(gbuf),
                                                 "%s tips off %s about the %s route",
                                                 n1.c_str(), n2.c_str(), routeName.c_str());
-                                            logVG.get<EventLog>(*logVG.begin()).Push(tmG.day, (int)tmG.hourOfDay, gbuf);
+                                            logVG.get<EventLog>(*logVG.begin()).Push(tmG.day, (int)tmG.hourOfDay, gbuf, "Trade");
                                         }
                                     }
                                 });
@@ -970,7 +970,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     std::snprintf(mbuf, sizeof(mbuf),
                                         "%s shows %s the ropes at %s",
                                         vetName.c_str(), novName.c_str(), settlName.c_str());
-                                    logVM.get<EventLog>(*logVM.begin()).Push(tmM.day, (int)tmM.hourOfDay, mbuf);
+                                    logVM.get<EventLog>(*logVM.begin()).Push(tmM.day, (int)tmM.hourOfDay, mbuf, "Trade");
                                 }
                             }
                         }
@@ -1009,7 +1009,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     std::snprintf(cbuf, sizeof(cbuf),
                                         "%s and %s share a drink after their convoy to %s",
                                         n1.c_str(), n2.c_str(), dest.c_str());
-                                    logVC.get<EventLog>(*logVC.begin()).Push(tmC.day, (int)tmC.hourOfDay, cbuf);
+                                    logVC.get<EventLog>(*logVC.begin()).Push(tmC.day, (int)tmC.hourOfDay, cbuf, "Trade");
                                 }
                             }
                         });
@@ -1055,7 +1055,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     std::snprintf(rbuf, sizeof(rbuf),
                                         "%s and %s share a drink at %s",
                                         n1.c_str(), n2.c_str(), dest.c_str());
-                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf);
+                                    logVR.get<EventLog>(*logVR.begin()).Push(tmR.day, (int)tmR.hourOfDay, rbuf, "Trade");
                                 }
                             });
                     }
@@ -1150,7 +1150,7 @@ void TransportSystem::Update(entt::registry& registry, float realDt, const World
                                     std::snprintf(tbuf, sizeof(tbuf),
                                         "%s raises a toast to %s's years of service at %s",
                                         haulerName.c_str(), retireeName.c_str(), settlName.c_str());
-                                    logVT.get<EventLog>(*logVT.begin()).Push(tmT.day, (int)tmT.hourOfDay, tbuf);
+                                    logVT.get<EventLog>(*logVT.begin()).Push(tmT.day, (int)tmT.hourOfDay, tbuf, "Trade");
                                 }
                             }
                         });

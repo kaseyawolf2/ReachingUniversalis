@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include "Threading/RenderSnapshot.h"
+#include <set>
 #include <string>
 #include <vector>
 
@@ -15,7 +16,7 @@ public:
 private:
     void DrawNeedBar(int x, int y, float value, float critThreshold,
                      const char* label, Color barColor) const;
-    void DrawEventLog(const RenderSnapshot& snapshot) const;
+    void DrawEventLog(const RenderSnapshot& snapshot);
     void DrawWorldStatus(const RenderSnapshot& snapshot) const;
     void DrawDebugOverlay(const RenderSnapshot& snapshot) const;
     void DrawHoverTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
@@ -28,6 +29,10 @@ private:
     int  logScroll    = 0;
     bool debugOverlay = false;
     bool marketOverlay = false;
+
+    // Event log source filter: set of source tags to HIDE (empty = show all).
+    // Mutable so DrawEventLog can handle mouse clicks on filter labels.
+    std::set<std::string> m_logHiddenSources;
 
     void DrawMarketOverlay(const RenderSnapshot& snapshot) const;
     void DrawMinimap(const RenderSnapshot& snapshot) const;
