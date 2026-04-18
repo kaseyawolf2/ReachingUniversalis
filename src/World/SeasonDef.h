@@ -9,6 +9,19 @@
 
 using SeasonID = int;
 
+// Regime classification used by the HUD for color-coding.
+// Updated every sim tick in TimeSystem::Advance(); copied verbatim into
+// RenderSnapshot so the render thread never performs string comparisons.
+enum class SeasonRegime {
+    HarshCold,      // heatDrainMod >= harshCold threshold
+    ModerateCold,   // heatDrainMod >= moderateCold threshold
+    Cold,           // heatDrainMod >= coldSeason threshold
+    MildCold,       // heatDrainMod > mildCold threshold
+    Harvest,        // productionMod >= harvestSeason threshold
+    LowProduction,  // productionMod <= lowProduction threshold
+    Mild,           // default (none of the above)
+};
+
 struct SeasonDef {
     SeasonID    id             = -1;
     std::string name;                         // "Spring", "Summer", ...
