@@ -379,6 +379,8 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag, following the pattern established in PR #101.
 
+- [x] **Graceful fallback on missing world directory** — When `WorldLoader::Load()` fails (e.g., `worlds/medieval/` not found), `main.cpp` continues with an empty `WorldSchema` per the comment "the game still works without configs." But `WorldGenerator::Populate()` then asserts on `FindProfession("Farmer") != INVALID_ID`, crashing the process. Either abort early in `main.cpp` when `Load()` fails (removing the misleading comment), or make `WorldGenerator::Populate()` skip profession-dependent entity creation when the schema has no professions, producing a minimal but runnable world.
+
 ## Phase 2 — UI Decoupling
 
 - [ ] **UI State layer** — Create a UIState struct that owns all input handling, panel state, selection, pending actions, scroll positions. Lives on the main thread, never blocks on sim.
