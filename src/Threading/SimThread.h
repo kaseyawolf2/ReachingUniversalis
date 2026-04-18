@@ -112,6 +112,12 @@ private:
     // Stored as a shared_ptr so RenderSnapshot can share it without copying.
     std::shared_ptr<const std::vector<std::string>> m_cachedSkillNames;
 
+    // Schema-derived need display names, built once at construction.
+    std::shared_ptr<const std::vector<std::string>> m_cachedNeedNames;
+
+    // Schema-derived resource display names, built once at construction.
+    std::shared_ptr<const std::vector<std::string>> m_cachedResourceNames;
+
     // Population history for sparkline: maps settlement entity → ring buffer of daily pop samples
     // Sampled once per game-day (at the same interval as m_popPrev).
     // Maximum POPHISTORY_MAX entries (oldest overwritten).

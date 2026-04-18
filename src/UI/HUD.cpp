@@ -777,6 +777,19 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         else
             std::snprintf(lineAge, sizeof(lineAge), "Age: %d", ageInt);
     }
+    // Build a compact need summary string into `dest` (size `destSz`) from needValues.
+    auto buildNeedSummary = [&](char* dest, size_t destSz) {
+        int off = 0;
+        const auto& nv = best->needValues;
+        for (int ni = 0; ni < (int)nv.size() && off < (int)destSz - 4; ++ni) {
+            if (ni > 0 && off < (int)destSz - 4) { dest[off++] = ' '; dest[off++] = ' '; }
+            const char* abbr = (ni < (int)needNamesHover.size() && !needNamesHover[ni].empty())
+                               ? needNamesHover[ni].c_str() : "?";
+            off += std::snprintf(dest + off, destSz - off, "%c:%.0f%%", abbr[0], nv[ni].first * 100.f);
+        }
+        dest[off] = '\0';
+    };
+
     if (hasName) {
         const char* bLabel = BehaviorLabel(best->behavior);
         if (best->isExiled && best->fatigued)
@@ -788,34 +801,15 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         else
             std::snprintf(line2, sizeof(line2), "%s", bLabel);
     } else {
-        // Build need summary dynamically from schema-driven needValues
         char needSummary[64] = {};
-        int off = 0;
-        const auto& nv = best->needValues;
-        for (int ni = 0; ni < (int)nv.size() && off < 60; ++ni) {
-            if (ni > 0 && off < 58) { needSummary[off++] = ' '; needSummary[off++] = ' '; }
-            const char* abbr = (ni < (int)needNamesHover.size() && !needNamesHover[ni].empty())
-                               ? needNamesHover[ni].c_str() : "?";
-            // Use first char as abbreviation label
-            off += std::snprintf(needSummary + off, sizeof(needSummary) - off,
-                                 "%c:%.0f%%", abbr[0], nv[ni].first * 100.f);
-        }
+        buildNeedSummary(needSummary, sizeof(needSummary));
         std::snprintf(line2, sizeof(line2), "%s", needSummary);
     }
 
     if (hasName) {
-        // Build need summary dynamically from schema-driven needValues
-        char needSummary3[64] = {};
-        int off3 = 0;
-        const auto& nv3 = best->needValues;
-        for (int ni = 0; ni < (int)nv3.size() && off3 < 60; ++ni) {
-            if (ni > 0 && off3 < 58) { needSummary3[off3++] = ' '; needSummary3[off3++] = ' '; }
-            const char* abbr = (ni < (int)needNamesHover.size() && !needNamesHover[ni].empty())
-                               ? needNamesHover[ni].c_str() : "?";
-            off3 += std::snprintf(needSummary3 + off3, sizeof(needSummary3) - off3,
-                                  "%c:%.0f%%", abbr[0], nv3[ni].first * 100.f);
-        }
-        std::snprintf(line3, sizeof(line3), "%s", needSummary3);
+        char needSummary[64] = {};
+        buildNeedSummary(needSummary, sizeof(needSummary));
+        std::snprintf(line3, sizeof(line3), "%s", needSummary);
     } else
         std::snprintf(line3, sizeof(line3), "Age: %.0f / %.0f days",
                       best->ageDays, best->maxDays);
@@ -1013,7 +1007,7 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
     }
 
     // Illness suffix: appended inline on the needs line when illnessTimer > 0
-    static char illLabelBuf[32] = {};
+    char illLabelBuf[32] = {};
     const char* illLabel = nullptr;
     if (best->ill) {
         int idx = best->illNeedIdx;
@@ -1346,7 +1340,7 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
     const char* resDisplayName = (best->output >= 0 && best->output < (int)resNamesFac.size()
                                   && !resNamesFac[best->output].empty())
                                  ? resNamesFac[best->output].c_str() : "Resource";
-    char typeNameBuf[32];
+    char typeNameBuf[128];
     std::snprintf(typeNameBuf, sizeof(typeNameBuf), "%s Facility", resDisplayName);
     const char* typeName = typeNameBuf;
     // Lower-case resource name as unit label
