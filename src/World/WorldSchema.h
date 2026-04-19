@@ -357,19 +357,27 @@ struct SeasonThresholds {
 // Fields are Raylib KeyboardKey int values.  Defaults match the legacy hardcoded keys.
 
 struct KeyBindings {
-    int autoBuy          = 84;   // KEY_T
-    int buyOne           = 81;   // KEY_Q
-    int work             = 69;   // KEY_E
-    int buyCart          = 86;   // KEY_V
-    int buildFacility    = 67;   // KEY_C
-    int foundSettlement  = 80;   // KEY_P
-    int repairRoad       = 82;   // KEY_R
-    int buildRoad        = 78;   // KEY_N
-    int setHome          = 72;   // KEY_H
-    int sleep            = 90;   // KEY_Z
-    int pause            = 32;   // KEY_SPACE
-    int speedDown        = 91;   // KEY_LEFT_BRACKET
-    int speedUp          = 93;   // KEY_RIGHT_BRACKET
+    int autoBuy            = 84;   // KEY_T
+    int buyOne             = 81;   // KEY_Q
+    int work               = 69;   // KEY_E
+    int buyCart            = 86;   // KEY_V
+    int buildFacility      = 67;   // KEY_C
+    int foundSettlement    = 80;   // KEY_P
+    int repairRoad         = 82;   // KEY_R
+    int buildRoad          = 78;   // KEY_N
+    int setHome            = 72;   // KEY_H
+    int sleep              = 90;   // KEY_Z
+    int pause              = 32;   // KEY_SPACE
+    int speedDown          = 91;   // KEY_LEFT_BRACKET
+    int speedUp            = 93;   // KEY_RIGHT_BRACKET
+    // Camera / view toggles
+    int roadToggle         = 66;   // KEY_B — toggle road overlay on world map
+    int followPlayer       = 70;   // KEY_F — toggle camera follow on player
+    int roadCondition      = 79;   // KEY_O — toggle road condition vs safety display
+    int cancelRoadBuild    = 256;  // KEY_ESCAPE — cancel pending road build
+    // HUD overlay toggles
+    int debugOverlay       = 290;  // KEY_F1 — toggle debug overlay
+    int marketOverlay      = 77;   // KEY_M — toggle market overlay
 };
 
 // ---- World settings (map, timing, economy) ----

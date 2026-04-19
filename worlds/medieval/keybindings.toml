@@ -9,16 +9,22 @@
 # Default bindings match the legacy hardcoded keys.
 
 [keys]
-auto_buy         = "T"   # Auto-buy cheapest resource at nearest settlement
-buy_one          = "Q"   # Buy 1 unit of cheapest resource
-work             = "E"   # Work at nearest facility
-buy_cart         = "V"   # Buy cart (+10 carry capacity)
-build_facility   = "C"   # Build production facility
-found_settlement = "P"   # Found new settlement
-repair_road      = "R"   # Repair nearest blocked road
-build_road       = "N"   # Build new road (press twice: start then end)
-set_home         = "H"   # Set nearest settlement as home
-sleep            = "Z"   # Toggle sleep
-pause            = "Space"  # Pause/unpause simulation
-speed_down       = "["   # Decrease simulation speed
-speed_up         = "]"   # Increase simulation speed
+auto_buy           = "T"       # Auto-buy cheapest resource at nearest settlement
+buy_one            = "Q"       # Buy 1 unit of cheapest resource
+work               = "E"       # Work at nearest facility
+buy_cart           = "V"       # Buy cart (+10 carry capacity)
+build_facility     = "C"       # Build production facility
+found_settlement   = "P"       # Found new settlement
+repair_road        = "R"       # Repair nearest blocked road
+build_road         = "N"       # Build new road (press twice: start then end)
+set_home           = "H"       # Set nearest settlement as home
+sleep              = "Z"       # Toggle sleep
+pause              = "Space"   # Pause/unpause simulation
+speed_down         = "["       # Decrease simulation speed
+speed_up           = "]"       # Increase simulation speed
+road_toggle        = "B"       # Toggle road overlay on world map
+follow_player      = "F"       # Toggle camera follow on player
+road_condition     = "O"       # Toggle road condition vs safety display
+cancel_road_build  = "Escape"  # Cancel pending road build
+debug_overlay      = "F1"      # Toggle debug overlay
+market_overlay     = "M"       # Toggle market overlay

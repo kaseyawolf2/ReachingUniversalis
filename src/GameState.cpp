@@ -40,7 +40,7 @@ void GameState::Update(float dt) {
     m_camera.target.x = std::max(0.f, std::min(MAP_W, m_camera.target.x));
     m_camera.target.y = std::max(0.f, std::min(MAP_H, m_camera.target.y));
 
-    m_hud.HandleInput(m_snapshot, m_uiState);
+    m_hud.HandleInput(m_snapshot, m_uiState, &m_schema.keyBindings);
 }
 
 // ---- PollInput (main thread → InputSnapshot) ---------------------
@@ -56,7 +56,7 @@ void GameState::PollInput(float dt) {
         m_input.speedUp.store(true);
     if (IsKeyPressed(kb.speedDown) || IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT))
         m_input.speedDown.store(true);
-    if (IsKeyPressed(KEY_B))              m_input.roadToggle.store(true);
+    if (IsKeyPressed(kb.roadToggle))      m_input.roadToggle.store(true);
     if (IsKeyPressed(kb.autoBuy)) {
         m_input.playerTrade.store(true);
         m_uiState.SetPendingAction("Buying cheapest resource...");
@@ -94,12 +94,12 @@ void GameState::PollInput(float dt) {
         m_uiState.SetPendingAction("Repairing road... (50g)");
     }
 
-    if (IsKeyPressed(KEY_F)) {
+    if (IsKeyPressed(kb.followPlayer)) {
         m_uiState.followPlayer = !m_uiState.followPlayer;
         m_input.camFollowToggle.store(true);
     }
 
-    if (IsKeyPressed(KEY_O)) {
+    if (IsKeyPressed(kb.roadCondition)) {
         m_uiState.showRoadCondition = !m_uiState.showRoadCondition;
     }
 
@@ -131,7 +131,7 @@ void GameState::PollInput(float dt) {
             m_uiState.SetPendingAction("Building road... (400g)");
         }
     }
-    if (IsKeyPressed(KEY_ESCAPE)) {
+    if (IsKeyPressed(kb.cancelRoadBuild)) {
         m_uiState.roadBuildMode = false;
         if (!m_uiState.pendingAction.empty() &&
             m_uiState.pendingAction.find("Road build") != std::string::npos)
@@ -573,7 +573,7 @@ void GameState::Draw() {
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
     // HUD
-    m_hud.Draw(m_snapshot, m_camera, m_uiState, m_roadBuildMode, &m_schema.keyBindings);
+    m_hud.Draw(m_snapshot, m_camera, m_uiState, m_uiState.roadBuildMode, &m_schema.keyBindings);
 
     // Road overlay mode label (bottom-left corner)
     {

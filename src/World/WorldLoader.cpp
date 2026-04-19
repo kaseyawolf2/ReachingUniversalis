@@ -685,6 +685,47 @@ static void LoadKeybindings(const std::string& path, WorldSchema& schema,
     resolve("pause",             kb.pause);
     resolve("speed_down",        kb.speedDown);
     resolve("speed_up",          kb.speedUp);
+    resolve("road_toggle",       kb.roadToggle);
+    resolve("follow_player",     kb.followPlayer);
+    resolve("road_condition",    kb.roadCondition);
+    resolve("cancel_road_build", kb.cancelRoadBuild);
+    resolve("debug_overlay",     kb.debugOverlay);
+    resolve("market_overlay",    kb.marketOverlay);
+
+    // Duplicate key detection: warn if any two actions share the same key code.
+    struct ActionKey { const char* name; int code; };
+    const ActionKey actionKeys[] = {
+        { "auto_buy",          kb.autoBuy          },
+        { "buy_one",           kb.buyOne           },
+        { "work",              kb.work             },
+        { "buy_cart",          kb.buyCart          },
+        { "build_facility",    kb.buildFacility    },
+        { "found_settlement",  kb.foundSettlement  },
+        { "repair_road",       kb.repairRoad       },
+        { "build_road",        kb.buildRoad        },
+        { "set_home",          kb.setHome          },
+        { "sleep",             kb.sleep            },
+        { "pause",             kb.pause            },
+        { "speed_down",        kb.speedDown        },
+        { "speed_up",          kb.speedUp          },
+        { "road_toggle",       kb.roadToggle       },
+        { "follow_player",     kb.followPlayer     },
+        { "road_condition",    kb.roadCondition    },
+        { "cancel_road_build", kb.cancelRoadBuild  },
+        { "debug_overlay",     kb.debugOverlay     },
+        { "market_overlay",    kb.marketOverlay    },
+    };
+    const int numActions = (int)(sizeof(actionKeys) / sizeof(actionKeys[0]));
+    for (int i = 0; i < numActions; ++i) {
+        for (int j = i + 1; j < numActions; ++j) {
+            if (actionKeys[i].code == actionKeys[j].code) {
+                PushWarning(warnings, LoadWarningLevel::Warning, "keybindings",
+                            "keybindings.toml: '%s' and '%s' share the same key code"
+                            " — one will shadow the other.\n",
+                            actionKeys[i].name, actionKeys[j].name);
+            }
+        }
+    }
 }
 
 // ---- Cross-reference resolution ----

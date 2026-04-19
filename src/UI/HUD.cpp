@@ -79,9 +79,12 @@ static const char* KeyLabel(int code) {
 
 // ---- HandleInput ----
 
-void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState) {
-    if (IsKeyPressed(KEY_F1)) uiState.showDebugOverlay  = !uiState.showDebugOverlay;
-    if (IsKeyPressed(KEY_M))  uiState.showMarketOverlay = !uiState.showMarketOverlay;
+void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState,
+                      const KeyBindings* keyBindings) {
+    int debugKey  = keyBindings ? keyBindings->debugOverlay  : KEY_F1;
+    int marketKey = keyBindings ? keyBindings->marketOverlay : KEY_M;
+    if (IsKeyPressed(debugKey))  uiState.showDebugOverlay  = !uiState.showDebugOverlay;
+    if (IsKeyPressed(marketKey)) uiState.showMarketOverlay = !uiState.showMarketOverlay;
     float wheel = GetMouseWheelMove();
     if (wheel != 0.f) {
         uiState.logScroll -= (int)wheel;

@@ -15,7 +15,8 @@
 
 class HUD {
 public:
-    void HandleInput(const RenderSnapshot& snapshot, UIState& uiState);
+    void HandleInput(const RenderSnapshot& snapshot, UIState& uiState,
+                     const KeyBindings* keyBindings = nullptr);
     void Draw(const RenderSnapshot& snapshot, const Camera2D& camera, UIState& uiState,
               bool roadBuildMode = false,
               const KeyBindings* keyBindings = nullptr);
