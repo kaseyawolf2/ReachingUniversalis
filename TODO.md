@@ -383,7 +383,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 ## Phase 2 — UI Decoupling
 
-- [ ] **UI State layer** — Create a UIState struct that owns all input handling, panel state, selection, pending actions, scroll positions. Lives on the main thread, never blocks on sim.
+- [x] **UI State layer** — Create a UIState struct that owns all input handling, panel state, selection, pending actions, scroll positions. Lives on the main thread, never blocks on sim.
 
 - [ ] **Replace InputSnapshot with CommandQueue** — Main thread pushes Commands instead of setting atomic flags. SimThread drains the queue. Remove InputSnapshot.h.
 
