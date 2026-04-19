@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <random>
 #include <unordered_map>
+#include <utility>
 
 // Fixed simulation timestep — every sim step advances game time by this much
 // regardless of render frame rate or tick speed multiplier.
@@ -16,12 +17,31 @@ static constexpr float SIM_STEP_DT   = 1.f / 60.f;
 // manageable and each step can publish a snapshot for smooth rendering.
 static constexpr int   MAX_CATCHUP   = 4;
 
-SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
+SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema,
+                     std::vector<LoadWarning> loadWarnings)
     : m_input(input), m_snapshot(snapshot), m_schema(schema),
       m_needDrainSystem(schema),
       m_consumptionSystem(schema),
       m_deathSystem(schema)
 {
+    // Store load warnings in the snapshot before the sim thread starts.
+    // Written once here; immutable thereafter — no mutex needed.
+    if (!loadWarnings.empty()) {
+        m_snapshot.loadWarnings.reserve(loadWarnings.size());
+        for (const auto& w : loadWarnings) {
+            // Prefix with level tag for display
+            std::string line;
+            if (w.level == LoadWarningLevel::Info)
+                line = "[INFO] ";
+            else
+                line = "[WARN] ";
+            if (!w.category.empty())
+                line += "[" + w.category + "] ";
+            line += w.message;
+            m_snapshot.loadWarnings.push_back(std::move(line));
+        }
+    }
+
     WorldGenerator::Populate(m_registry, m_schema);
 
     // Cache skill display names once; schema is immutable after load.

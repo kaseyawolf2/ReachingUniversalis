@@ -403,6 +403,12 @@ struct RenderSnapshot {
     struct ProfileEntry { std::string name; float avgUs = 0.f; };
     std::vector<ProfileEntry> profiling;
 
+    // ---- Load-time diagnostics ----
+    // Written once at startup from SimThread constructor; immutable thereafter.
+    // Not protected by mutex because it is set before the sim thread starts and
+    // never modified again — readers can safely access it from the render thread.
+    std::vector<std::string> loadWarnings;
+
     // ---- Synchronisation ----
     mutable std::mutex mutex;
 

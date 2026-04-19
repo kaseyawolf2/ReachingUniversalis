@@ -387,6 +387,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, bool roadBuil
     }
     if (marketOverlay) DrawMarketOverlay(snap);
     DrawMinimap(snap);
+    DrawLoadWarnings(snap);
     DrawNotifications();
 }
 
@@ -2418,6 +2419,66 @@ void HUD::UpdateNotifications(const RenderSnapshot& snap) {
             if (!dup)
                 m_notifications.push_back({ msg, 5.f, col });
         }
+    }
+}
+
+// ---- Load Warnings panel ----
+// Shown in the bottom-left corner when the world loader emitted warnings.
+// Panel is persistent — visible for the entire session so the user can
+// inspect misconfigured TOML entries at any time.
+
+void HUD::DrawLoadWarnings(const RenderSnapshot& snap) const {
+    // loadWarnings is immutable after startup — safe to read without a lock.
+    const auto& warnings = snap.loadWarnings;
+    if (warnings.empty()) return;
+
+    static constexpr int PANEL_X  = 4;
+    static constexpr int LINE_H   = 12;
+    static constexpr int PAD_X    = 6;
+    static constexpr int PAD_Y    = 4;
+    static constexpr int FONT_HDR = 11;
+    static constexpr int FONT_TXT = 10;
+    static constexpr int MAX_LINES = 8;  // clamp long lists to keep panel bounded
+
+    int shown     = std::min((int)warnings.size(), MAX_LINES);
+    int panelH    = PAD_Y + FONT_HDR + 2 + shown * LINE_H + PAD_Y;
+    if ((int)warnings.size() > MAX_LINES) panelH += LINE_H;
+    int panelW    = 320;
+    int panelY    = SCREEN_H - panelH - 4;
+
+    // Background + border — flat, no gradients
+    DrawRectangle(PANEL_X, panelY, panelW, panelH, Fade(BLACK, 0.72f));
+    DrawRectangleLines(PANEL_X, panelY, panelW, panelH, Fade(YELLOW, 0.35f));
+    // Thin yellow accent strip on top edge (mirrors player panel gold strip pattern)
+    DrawRectangle(PANEL_X, panelY, panelW, 2, Fade(YELLOW, 0.5f));
+
+    // Header
+    int ty = panelY + PAD_Y;
+    char hdr[40];
+    std::snprintf(hdr, sizeof(hdr), "LOAD WARNINGS  (%d)", (int)warnings.size());
+    DrawText(hdr, PANEL_X + PAD_X, ty, FONT_HDR, YELLOW);
+    ty += FONT_HDR + 2;
+
+    // Warning lines
+    for (int i = 0; i < shown; ++i) {
+        const std::string& w = warnings[i];
+        // Info lines are dimmer; warning lines are yellow
+        bool isInfo = (w.rfind("[INFO]", 0) == 0);
+        Color col = isInfo ? Fade(LIGHTGRAY, 0.65f) : Fade(YELLOW, 0.90f);
+
+        // Truncate to panel width
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%.62s", w.c_str());
+        // Ensure null termination (snprintf does this, but be explicit)
+        buf[63] = '\0';
+        DrawText(buf, PANEL_X + PAD_X, ty, FONT_TXT, col);
+        ty += LINE_H;
+    }
+    // If warnings were clamped, show a count of hidden entries
+    if ((int)warnings.size() > MAX_LINES) {
+        char more[32];
+        std::snprintf(more, sizeof(more), "  ...+%d more", (int)warnings.size() - MAX_LINES);
+        DrawText(more, PANEL_X + PAD_X, ty, FONT_TXT, Fade(LIGHTGRAY, 0.5f));
     }
 }
 
