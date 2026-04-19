@@ -403,6 +403,9 @@ struct RenderSnapshot {
     struct ProfileEntry { std::string name; float avgUs = 0.f; };
     std::vector<ProfileEntry> profiling;
 
+    // Written once at startup; immutable thereafter — not protected by mutex
+    std::vector<std::string> loadWarnings;
+
     // ---- Synchronisation ----
     mutable std::mutex mutex;
 
