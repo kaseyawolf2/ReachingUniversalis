@@ -3,11 +3,14 @@
 #include <atomic>
 #include <map>
 #include <memory>
+#include <vector>
+#include <string>
 #include <entt/entt.hpp>
 
 #include "Threading/InputSnapshot.h"
 #include "Threading/RenderSnapshot.h"
 #include "World/WorldSchema.h"
+#include "World/WorldLoader.h"
 
 #include "ECS/Systems/TimeSystem.h"
 #include "ECS/Systems/NeedDrainSystem.h"
@@ -35,7 +38,8 @@
 class SimThread {
 public:
     // input, snapshot, and schema must outlive this object.
-    SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema);
+    SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema,
+              std::vector<LoadWarning> loadWarnings = {});
     ~SimThread();
 
     void Start();

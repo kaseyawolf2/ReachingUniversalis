@@ -1,4 +1,5 @@
 #include "HUD.h"
+#include "UI/UIState.h"
 #include "ECS/Components.h"
 #include "raylib.h"
 #include <algorithm>
@@ -80,22 +81,23 @@ static const char* KeyLabel(int code) {
 // ---- HandleInput ----
 
 void HUD::HandleInput(const RenderSnapshot& /*snapshot*/,
+                      UIState& uiState,
                       const KeyBindings* keyBindings) {
-    int debugKey  = keyBindings ? keyBindings->debugOverlay  : KEY_F1;
-    int marketKey = keyBindings ? keyBindings->marketOverlay : KEY_M;
-    if (IsKeyPressed(debugKey))  debugOverlay  = !debugOverlay;
-    if (IsKeyPressed(marketKey)) marketOverlay = !marketOverlay;
+    int debugKey   = keyBindings ? keyBindings->debugOverlay  : KEY_F1;
+    int marketKey  = keyBindings ? keyBindings->marketOverlay : KEY_M;
+    if (IsKeyPressed(debugKey))  uiState.showDebugOverlay  = !uiState.showDebugOverlay;
+    if (IsKeyPressed(marketKey)) uiState.showMarketOverlay = !uiState.showMarketOverlay;
     float wheel = GetMouseWheelMove();
     if (wheel != 0.f) {
-        logScroll -= (int)wheel;
-        if (logScroll < 0) logScroll = 0;
+        uiState.logScroll -= (int)wheel;
+        if (uiState.logScroll < 0) uiState.logScroll = 0;
     }
 }
 
 // ---- Draw ----
 
 void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
-               bool roadBuildMode, const KeyBindings* keyBindings) {
+               UIState& uiState, const KeyBindings* keyBindings) {
     // Take a local copy of the parts we need — snapshot may be updated by sim
     // thread mid-draw if we read directly, so copy once under lock.
     // The lock is already released by GameState::Draw before calling us;
@@ -319,7 +321,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
         }
 
         // Road build mode banner
-        if (roadBuildMode) {
+        if (uiState.roadBuildMode) {
             DrawRectangle(BAR_X - 2, invY + 2, 320, 14, Fade(ORANGE, 0.25f));
             {
                 char roadBuf[96];
@@ -423,13 +425,13 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
 
     UpdateNotifications(snap);
     DrawWorldStatus(snap);
-    DrawEventLog(snap);
+    DrawEventLog(snap, uiState);
     DrawHoverTooltip(snap, camera);
     DrawFacilityTooltip(snap, camera);
     DrawSettlementTooltip(snap, camera);
     DrawRoadTooltip(snap, camera);
-    if (debugOverlay)  DrawDebugOverlay(snap);
-    if (debugOverlay) {
+    if (uiState.showDebugOverlay)  DrawDebugOverlay(snap);
+    if (uiState.showDebugOverlay) {
         // Mood colour legend — bottom-right corner
         static const int LX = SCREEN_W - 170, LY = SCREEN_H - 70;
         DrawRectangle(LX - 4, LY - 4, 168, 64, Fade(BLACK, 0.7f));
@@ -440,7 +442,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
         DrawCircleV({ (float)LX + 5, (float)LY + 43 }, 5.f, RED);
         DrawText("Suffering (<40%)", LX + 14, LY + 36, 11, Fade(RED, 0.9f));
     }
-    if (marketOverlay) DrawMarketOverlay(snap);
+    if (uiState.showMarketOverlay) DrawMarketOverlay(snap);
+    DrawPendingAction(uiState);
     DrawMinimap(snap);
     DrawNotifications();
 }
@@ -627,7 +630,7 @@ static const struct { const char* tag; const char* label; } LOG_FILTER_TAGS[] = 
 };
 static constexpr int LOG_FILTER_TAG_COUNT = (int)(sizeof(LOG_FILTER_TAGS) / sizeof(LOG_FILTER_TAGS[0]));
 
-void HUD::DrawEventLog(const RenderSnapshot& snap) {
+void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
     std::vector<EventLog::Entry> entries;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -662,7 +665,7 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) {
         for (int t = 0; t < LOG_FILTER_TAG_COUNT; ++t) {
             const char* tag   = LOG_FILTER_TAGS[t].tag;
             const char* label = LOG_FILTER_TAGS[t].label;
-            bool hidden = (m_logHiddenSources.count(tag) > 0);
+            bool hidden = (uiState.logHiddenSources.count(tag) > 0);
 
             int lw = MeasureText(label, FILTER_FONT);
             // Dim red = hidden/filtered, bright cyan = visible
@@ -671,9 +674,9 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) {
             Rectangle hitbox = { (float)fx - 1, (float)fy - 1, (float)(lw + 2), (float)(FILTER_FONT + 4) };
             if (mouseClicked && CheckCollisionPointRec(mouse, hitbox)) {
                 if (hidden)
-                    m_logHiddenSources.erase(tag);
+                    uiState.logHiddenSources.erase(tag);
                 else
-                    m_logHiddenSources.insert(tag);
+                    uiState.logHiddenSources.insert(tag);
             }
 
             DrawText(label, fx, fy, FILTER_FONT, lc);
@@ -686,18 +689,18 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) {
     std::vector<const EventLog::Entry*> visible;
     visible.reserve(entries.size());
     for (const auto& e : entries) {
-        if (!e.sourceSystem.empty() && m_logHiddenSources.count(e.sourceSystem) > 0)
+        if (!e.sourceSystem.empty() && uiState.logHiddenSources.count(e.sourceSystem) > 0)
             continue;
         visible.push_back(&e);
     }
 
     int maxScroll = std::max(0, (int)visible.size() - LINES);
-    logScroll     = std::min(logScroll, maxScroll);
+    uiState.logScroll = std::min(uiState.logScroll, maxScroll);
 
     int contentY = PY + TITLE_H + FILTER_H + 4;
 
     for (int i = 0; i < LINES; ++i) {
-        int idx = i + logScroll;
+        int idx = i + uiState.logScroll;
         if (idx >= (int)visible.size()) break;
         const auto& e = *visible[idx];
 
@@ -752,6 +755,25 @@ void HUD::DrawEventLog(const RenderSnapshot& snap) {
                     (e.message.find("--- ")        != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, lineX, lineY, 12, col);
     }
+}
+
+// ---- Pending action indicator ----
+// Draws a centered banner near the bottom of the screen when the player has
+// performed an action (e.g., built a road, founded a settlement).
+
+void HUD::DrawPendingAction(const UIState& uiState) const {
+    if (uiState.pendingAction.empty()) return;
+    const char* msg = uiState.pendingAction.c_str();
+    int tw = MeasureText(msg, 14);
+    int bw = tw + 20;
+    int bh = 22;
+    int bx = (SCREEN_W - bw) / 2;
+    int by = SCREEN_H - 120;
+    // Fade out in the last 0.5 seconds
+    float alpha = (uiState.pendingActionTimer < 0.5f) ? (uiState.pendingActionTimer / 0.5f) : 1.f;
+    DrawRectangle(bx, by, bw, bh, Fade(Color{10, 20, 40, 200}, alpha));
+    DrawRectangleLines(bx, by, bw, bh, Fade(SKYBLUE, alpha * 0.6f));
+    DrawText(msg, bx + 10, by + 4, 14, Fade(WHITE, alpha));
 }
 
 // ---- NPC hover tooltip ----

@@ -4,8 +4,10 @@
 #include "Threading/RenderSnapshot.h"
 #include "Threading/SimThread.h"
 #include "World/WorldSchema.h"
+#include "World/WorldLoader.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
+#include "UI/UIState.h"
 
 // GameState owns the two shared communication objects and the simulation thread.
 // The main thread's responsibilities are:
@@ -17,7 +19,7 @@
 
 class GameState {
 public:
-    explicit GameState(const WorldSchema& schema);
+    explicit GameState(const WorldSchema& schema, std::vector<LoadWarning> loadWarnings = {});
     ~GameState();
 
     void  Update(float dt);
@@ -44,18 +46,14 @@ private:
         { 400.f, 360.f },  // target: start near Greenfield
         0.f, 0.5f          // rotation, zoom
     };
-    bool  m_followPlayer = true;
-    float m_panSpeed     = 400.f;
-    float m_zoomMin      = 0.25f;
-    float m_zoomMax      = 3.0f;
+    float m_panSpeed = 400.f;
+    float m_zoomMin  = 0.25f;
+    float m_zoomMax  = 3.0f;
 
     // Rendering
     RenderSystem m_renderSystem;
     HUD          m_hud;
 
-    // UI state
-    bool  m_showRoadCondition = false;  // Road colour mode: false = safety, true = condition
-    bool  m_roadBuildMode = false;      // Road-build first/second N key press
-    float m_roadBuildSrcX = 0.f;
-    float m_roadBuildSrcY = 0.f;
+    // UI state — main thread only, never passed to SimThread
+    UIState m_uiState;
 };

@@ -16,12 +16,20 @@ static constexpr float SIM_STEP_DT   = 1.f / 60.f;
 // manageable and each step can publish a snapshot for smooth rendering.
 static constexpr int   MAX_CATCHUP   = 4;
 
-SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema)
+SimThread::SimThread(InputSnapshot& input, RenderSnapshot& snapshot, const WorldSchema& schema,
+                     std::vector<LoadWarning> loadWarnings)
     : m_input(input), m_snapshot(snapshot), m_schema(schema),
       m_needDrainSystem(schema),
       m_consumptionSystem(schema),
       m_deathSystem(schema)
 {
+    // Store load warnings in the snapshot once; they are immutable thereafter.
+    {
+        m_snapshot.loadWarnings.clear();
+        for (auto& w : loadWarnings)
+            m_snapshot.loadWarnings.push_back(w.message);
+    }
+
     WorldGenerator::Populate(m_registry, m_schema);
 
     // Cache skill display names once; schema is immutable after load.
