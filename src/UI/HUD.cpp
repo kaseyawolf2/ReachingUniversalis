@@ -46,21 +46,56 @@ static Color ModifierColour(const std::string& name) {
     return YELLOW;
 }
 
+// Return a short display label for a Raylib KeyboardKey int value.
+// Single-letter keys return their letter; special keys get short names.
+static const char* KeyLabel(int code) {
+    if (code >= 65 && code <= 90) {
+        // A-Z: return a static table of single-char strings
+        static const char* letters[] = {
+            "A","B","C","D","E","F","G","H","I","J","K","L","M",
+            "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+        };
+        return letters[code - 65];
+    }
+    switch (code) {
+        case 32:  return "Spc";
+        case 91:  return "[";
+        case 93:  return "]";
+        case 45:  return "-";
+        case 61:  return "=";
+        case 257: return "Ent";
+        case 256: return "Esc";
+        case 258: return "Tab";
+        case 259: return "BS";
+        case 290: return "F1";  case 291: return "F2";
+        case 292: return "F3";  case 293: return "F4";
+        case 294: return "F5";  case 295: return "F6";
+        case 296: return "F7";  case 297: return "F8";
+        case 298: return "F9";  case 299: return "F10";
+        case 300: return "F11"; case 301: return "F12";
+        default:  return "?";
+    }
+}
+
 // ---- HandleInput ----
 
-void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState) {
-    if (IsKeyPressed(KEY_F1)) uiState.showDebugOverlay  = !uiState.showDebugOverlay;
-    if (IsKeyPressed(KEY_M))  uiState.showMarketOverlay = !uiState.showMarketOverlay;
+void HUD::HandleInput(const RenderSnapshot& /*snapshot*/,
+                      const KeyBindings* keyBindings) {
+    int debugKey  = keyBindings ? keyBindings->debugOverlay  : KEY_F1;
+    int marketKey = keyBindings ? keyBindings->marketOverlay : KEY_M;
+    if (IsKeyPressed(debugKey))  debugOverlay  = !debugOverlay;
+    if (IsKeyPressed(marketKey)) marketOverlay = !marketOverlay;
     float wheel = GetMouseWheelMove();
     if (wheel != 0.f) {
-        uiState.logScroll -= (int)wheel;
-        if (uiState.logScroll < 0) uiState.logScroll = 0;
+        logScroll -= (int)wheel;
+        if (logScroll < 0) logScroll = 0;
     }
 }
 
 // ---- Draw ----
 
-void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiState) {
+void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
+               bool roadBuildMode, const KeyBindings* keyBindings) {
     // Take a local copy of the parts we need — snapshot may be updated by sim
     // thread mid-draw if we read directly, so copy once under lock.
     // The lock is already released by GameState::Draw before calling us;
@@ -284,15 +319,35 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiSt
         }
 
         // Road build mode banner
-        if (uiState.roadBuildMode) {
+        if (roadBuildMode) {
             DrawRectangle(BAR_X - 2, invY + 2, 320, 14, Fade(ORANGE, 0.25f));
-            DrawText("ROAD BUILD — walk to destination, press N to connect (ESC cancel)",
-                     BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            {
+                char roadBuf[96];
+                const KeyBindings defaults{};
+                const KeyBindings* kb = keyBindings ? keyBindings : &defaults;
+                std::snprintf(roadBuf, sizeof(roadBuf),
+                              "ROAD BUILD — walk to destination, [%s] connect  [%s] cancel",
+                              KeyLabel(kb->buildRoad),
+                              KeyLabel(kb->cancelRoadBuild));
+                DrawText(roadBuf, BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            }
             invY += 16;
         }
 
-        DrawText("WASD:Move  E:Work  Q:Buy  C:Build  R:Repair  N:Road  V:Cart  P:Found  Z:Sleep  H:Settle  T:Trade",
-                 BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        if (keyBindings) {
+            char hintBuf[160];
+            std::snprintf(hintBuf, sizeof(hintBuf),
+                "WASD:Move  %s:Work  %s:Buy  %s:Build  %s:Repair  %s:Road  %s:Cart  %s:Found  %s:Sleep  %s:Settle  %s:Trade",
+                KeyLabel(keyBindings->work),          KeyLabel(keyBindings->buyOne),
+                KeyLabel(keyBindings->buildFacility), KeyLabel(keyBindings->repairRoad),
+                KeyLabel(keyBindings->buildRoad),     KeyLabel(keyBindings->buyCart),
+                KeyLabel(keyBindings->foundSettlement), KeyLabel(keyBindings->sleep),
+                KeyLabel(keyBindings->setHome),       KeyLabel(keyBindings->autoBuy));
+            DrawText(hintBuf, BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        } else {
+            DrawText("WASD:Move  E:Work  Q:Buy  C:Build  R:Repair  N:Road  V:Cart  P:Found  Z:Sleep  H:Settle  T:Trade",
+                     BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        }
     }
 
     // ---- Time panel (top-right) ----
@@ -368,13 +423,13 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiSt
 
     UpdateNotifications(snap);
     DrawWorldStatus(snap);
-    if (uiState.showEventLog) DrawEventLog(snap, uiState);
+    DrawEventLog(snap);
     DrawHoverTooltip(snap, camera);
     DrawFacilityTooltip(snap, camera);
     DrawSettlementTooltip(snap, camera);
     DrawRoadTooltip(snap, camera);
-    if (uiState.showDebugOverlay) DrawDebugOverlay(snap);
-    if (uiState.showDebugOverlay) {
+    if (debugOverlay)  DrawDebugOverlay(snap);
+    if (debugOverlay) {
         // Mood colour legend — bottom-right corner
         static const int LX = SCREEN_W - 170, LY = SCREEN_H - 70;
         DrawRectangle(LX - 4, LY - 4, 168, 64, Fade(BLACK, 0.7f));
@@ -385,10 +440,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiSt
         DrawCircleV({ (float)LX + 5, (float)LY + 43 }, 5.f, RED);
         DrawText("Suffering (<40%)", LX + 14, LY + 36, 11, Fade(RED, 0.9f));
     }
-    if (uiState.showMarketOverlay) DrawMarketOverlay(snap);
+    if (marketOverlay) DrawMarketOverlay(snap);
     DrawMinimap(snap);
-    DrawLoadWarnings(snap);
-    DrawPendingAction(uiState);
     DrawNotifications();
 }
 
@@ -574,7 +627,7 @@ static const struct { const char* tag; const char* label; } LOG_FILTER_TAGS[] = 
 };
 static constexpr int LOG_FILTER_TAG_COUNT = (int)(sizeof(LOG_FILTER_TAGS) / sizeof(LOG_FILTER_TAGS[0]));
 
-void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
+void HUD::DrawEventLog(const RenderSnapshot& snap) {
     std::vector<EventLog::Entry> entries;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
@@ -595,7 +648,7 @@ void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
     // Title bar
     DrawRectangle(PX, PY, PW, TITLE_H, Fade(WHITE, 0.04f));
     DrawRectangle(PX, PY + TITLE_H, PW, 1, Fade(LIGHTGRAY, 0.15f));
-    DrawText("Event Log  [F2: hide]", PX + 6, PY + 2, 11, Fade(YELLOW, 0.7f));
+    DrawText("Event Log", PX + 6, PY + 2, 11, Fade(YELLOW, 0.7f));
 
     // Filter toggle row — compact [Tag] labels, click to toggle visibility
     {
@@ -609,7 +662,7 @@ void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
         for (int t = 0; t < LOG_FILTER_TAG_COUNT; ++t) {
             const char* tag   = LOG_FILTER_TAGS[t].tag;
             const char* label = LOG_FILTER_TAGS[t].label;
-            bool hidden = (uiState.logHiddenSources.count(tag) > 0);
+            bool hidden = (m_logHiddenSources.count(tag) > 0);
 
             int lw = MeasureText(label, FILTER_FONT);
             // Dim red = hidden/filtered, bright cyan = visible
@@ -618,9 +671,9 @@ void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
             Rectangle hitbox = { (float)fx - 1, (float)fy - 1, (float)(lw + 2), (float)(FILTER_FONT + 4) };
             if (mouseClicked && CheckCollisionPointRec(mouse, hitbox)) {
                 if (hidden)
-                    uiState.logHiddenSources.erase(tag);
+                    m_logHiddenSources.erase(tag);
                 else
-                    uiState.logHiddenSources.insert(tag);
+                    m_logHiddenSources.insert(tag);
             }
 
             DrawText(label, fx, fy, FILTER_FONT, lc);
@@ -633,18 +686,18 @@ void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
     std::vector<const EventLog::Entry*> visible;
     visible.reserve(entries.size());
     for (const auto& e : entries) {
-        if (!e.sourceSystem.empty() && uiState.logHiddenSources.count(e.sourceSystem) > 0)
+        if (!e.sourceSystem.empty() && m_logHiddenSources.count(e.sourceSystem) > 0)
             continue;
         visible.push_back(&e);
     }
 
     int maxScroll = std::max(0, (int)visible.size() - LINES);
-    uiState.logScroll = std::min(uiState.logScroll, maxScroll);
+    logScroll     = std::min(logScroll, maxScroll);
 
     int contentY = PY + TITLE_H + FILTER_H + 4;
 
     for (int i = 0; i < LINES; ++i) {
-        int idx = i + uiState.logScroll;
+        int idx = i + logScroll;
         if (idx >= (int)visible.size()) break;
         const auto& e = *visible[idx];
 
@@ -699,38 +752,6 @@ void HUD::DrawEventLog(const RenderSnapshot& snap, UIState& uiState) {
                     (e.message.find("--- ")        != std::string::npos) ? SKYBLUE : LIGHTGRAY;
         DrawText(buf, lineX, lineY, 12, col);
     }
-}
-
-// ---- Pending action display ----
-// Shows a brief status line in the bottom-centre of the screen immediately
-// when the player presses an action key, before the sim confirms the action.
-// Style: flat dark background, yellow text, no gradients or rounded corners.
-
-void HUD::DrawPendingAction(const UIState& uiState) const {
-    if (uiState.pendingAction.empty()) return;
-
-    static const int FONT_SIZE = 11;
-    static const int PAD_X     = 8;
-    static const int PAD_Y     = 4;
-    static const int BOTTOM_Y  = SCREEN_H - 22;  // just above the road mode label row
-
-    int textW = MeasureText(uiState.pendingAction.c_str(), FONT_SIZE);
-    int boxW  = textW + PAD_X * 2;
-    int boxH  = FONT_SIZE + PAD_Y * 2;
-    int boxX  = (SCREEN_W - boxW) / 2;
-    int boxY  = BOTTOM_Y - boxH - 2;
-
-    // Fade alpha: full for the first half of the countdown, then ramp down
-    float frac = (uiState.pendingActionTimer > 0.f)
-                 ? uiState.pendingActionTimer / 2.0f
-                 : 0.f;
-    float alpha = (frac > 0.5f) ? 1.f : frac * 2.f;
-
-    DrawRectangle(boxX, boxY, boxW, boxH, Fade(BLACK, 0.72f * alpha));
-    DrawRectangleLines(boxX, boxY, boxW, boxH, Fade(Color{80, 120, 160, 255}, 0.6f * alpha));
-    DrawText(uiState.pendingAction.c_str(),
-             boxX + PAD_X, boxY + PAD_Y,
-             FONT_SIZE, Fade(YELLOW, 0.95f * alpha));
 }
 
 // ---- NPC hover tooltip ----
@@ -2452,66 +2473,6 @@ void HUD::UpdateNotifications(const RenderSnapshot& snap) {
             if (!dup)
                 m_notifications.push_back({ msg, 5.f, col });
         }
-    }
-}
-
-// ---- Load Warnings panel ----
-// Shown in the bottom-left corner when the world loader emitted warnings.
-// Panel is persistent — visible for the entire session so the user can
-// inspect misconfigured TOML entries at any time.
-
-void HUD::DrawLoadWarnings(const RenderSnapshot& snap) const {
-    // loadWarnings is immutable after startup — safe to read without a lock.
-    const auto& warnings = snap.loadWarnings;
-    if (warnings.empty()) return;
-
-    static constexpr int PANEL_X  = 4;
-    static constexpr int LINE_H   = 12;
-    static constexpr int PAD_X    = 6;
-    static constexpr int PAD_Y    = 4;
-    static constexpr int FONT_HDR = 11;
-    static constexpr int FONT_TXT = 10;
-    static constexpr int MAX_LINES = 8;  // clamp long lists to keep panel bounded
-
-    int shown     = std::min((int)warnings.size(), MAX_LINES);
-    int panelH    = PAD_Y + FONT_HDR + 2 + shown * LINE_H + PAD_Y;
-    if ((int)warnings.size() > MAX_LINES) panelH += LINE_H;
-    int panelW    = 320;
-    int panelY    = SCREEN_H - panelH - 4;
-
-    // Background + border — flat, no gradients
-    DrawRectangle(PANEL_X, panelY, panelW, panelH, Fade(BLACK, 0.72f));
-    DrawRectangleLines(PANEL_X, panelY, panelW, panelH, Fade(YELLOW, 0.35f));
-    // Thin yellow accent strip on top edge (mirrors player panel gold strip pattern)
-    DrawRectangle(PANEL_X, panelY, panelW, 2, Fade(YELLOW, 0.5f));
-
-    // Header
-    int ty = panelY + PAD_Y;
-    char hdr[40];
-    std::snprintf(hdr, sizeof(hdr), "LOAD WARNINGS  (%d)", (int)warnings.size());
-    DrawText(hdr, PANEL_X + PAD_X, ty, FONT_HDR, YELLOW);
-    ty += FONT_HDR + 2;
-
-    // Warning lines
-    for (int i = 0; i < shown; ++i) {
-        const std::string& w = warnings[i];
-        // Info lines are dimmer; warning lines are yellow
-        bool isInfo = (w.rfind("[INFO]", 0) == 0);
-        Color col = isInfo ? Fade(LIGHTGRAY, 0.65f) : Fade(YELLOW, 0.90f);
-
-        // Truncate to panel width
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "%.62s", w.c_str());
-        // Ensure null termination (snprintf does this, but be explicit)
-        buf[63] = '\0';
-        DrawText(buf, PANEL_X + PAD_X, ty, FONT_TXT, col);
-        ty += LINE_H;
-    }
-    // If warnings were clamped, show a count of hidden entries
-    if ((int)warnings.size() > MAX_LINES) {
-        char more[32];
-        std::snprintf(more, sizeof(more), "  ...+%d more", (int)warnings.size() - MAX_LINES);
-        DrawText(more, PANEL_X + PAD_X, ty, FONT_TXT, Fade(LIGHTGRAY, 0.5f));
     }
 }
 

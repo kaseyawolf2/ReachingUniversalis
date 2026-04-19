@@ -300,7 +300,7 @@ int main(int argc, char* argv[]) {
     RenderTexture2D target = LoadRenderTexture(DESIGN_W, DESIGN_H);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    GameState state(worldSchema, std::move(loadWarnings));
+    GameState state(worldSchema);
 
     while (!WindowShouldClose()) {
         // F11 toggles borderless fullscreen
