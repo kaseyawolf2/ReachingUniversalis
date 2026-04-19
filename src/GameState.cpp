@@ -26,14 +26,12 @@ void GameState::Update(float dt) {
 
     // Camera follow: lerp toward player world position from snapshot
     float px, py;
-    bool  follow;
     {
         std::lock_guard<std::mutex> lock(m_snapshot.mutex);
-        px     = m_snapshot.playerWorldX;
-        py     = m_snapshot.playerWorldY;
-        follow = m_followPlayer;
+        px = m_snapshot.playerWorldX;
+        py = m_snapshot.playerWorldY;
     }
-    if (follow) {
+    if (m_uiState.followPlayer) {
         float t = std::min(1.f, LERP_SPD * dt);
         m_camera.target.x += (px - m_camera.target.x) * t;
         m_camera.target.y += (py - m_camera.target.y) * t;
@@ -42,34 +40,69 @@ void GameState::Update(float dt) {
     m_camera.target.x = std::max(0.f, std::min(MAP_W, m_camera.target.x));
     m_camera.target.y = std::max(0.f, std::min(MAP_H, m_camera.target.y));
 
-    m_hud.HandleInput(m_snapshot);
+    m_hud.HandleInput(m_snapshot, m_uiState);
 }
 
 // ---- PollInput (main thread → InputSnapshot) ---------------------
 
 void GameState::PollInput(float dt) {
-    // One-shot events
+    // Tick the pending-action countdown every frame.
+    m_uiState.Update();
+
+    // One-shot events — action keys also set a pending action string shown in HUD
     if (IsKeyPressed(KEY_SPACE)) m_input.pauseToggle.store(true);
     if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))    m_input.speedUp.store(true);
     if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) m_input.speedDown.store(true);
     if (IsKeyPressed(KEY_B))    m_input.roadToggle.store(true);
-    if (IsKeyPressed(KEY_T))    m_input.playerTrade.store(true);
-    if (IsKeyPressed(KEY_Z))    m_input.playerSleep.store(true);
-    if (IsKeyPressed(KEY_H))    m_input.playerSettle.store(true);
-    if (IsKeyPressed(KEY_E))    m_input.playerWork.store(true);
-    if (IsKeyPressed(KEY_Q))    m_input.playerBuy.store(true);
-    if (IsKeyPressed(KEY_C))    m_input.playerBuild.store(true);
-    if (IsKeyPressed(KEY_V))    m_input.playerBuyCart.store(true);
-    if (IsKeyPressed(KEY_P))    m_input.playerFoundSettlement.store(true);
-    if (IsKeyPressed(KEY_R))    m_input.roadRepair.store(true);
+    if (IsKeyPressed(KEY_T)) {
+        m_input.playerTrade.store(true);
+        m_uiState.SetPendingAction("Buying cheapest resource...");
+    }
+    if (IsKeyPressed(KEY_Z)) {
+        m_input.playerSleep.store(true);
+        m_uiState.SetPendingAction("Toggling sleep...");
+    }
+    if (IsKeyPressed(KEY_H)) {
+        m_input.playerSettle.store(true);
+        m_uiState.SetPendingAction("Setting home settlement...");
+    }
+    if (IsKeyPressed(KEY_E)) {
+        m_input.playerWork.store(true);
+        m_uiState.SetPendingAction("Working at nearest facility...");
+    }
+    if (IsKeyPressed(KEY_Q)) {
+        m_input.playerBuy.store(true);
+        m_uiState.SetPendingAction("Buying 1 unit...");
+    }
+    if (IsKeyPressed(KEY_C)) {
+        m_input.playerBuild.store(true);
+        m_uiState.SetPendingAction("Building production facility... (200g)");
+    }
+    if (IsKeyPressed(KEY_V)) {
+        m_input.playerBuyCart.store(true);
+        m_uiState.SetPendingAction("Buying cart... (300g)");
+    }
+    if (IsKeyPressed(KEY_P)) {
+        m_input.playerFoundSettlement.store(true);
+        m_uiState.SetPendingAction("Founding new settlement... (1500g)");
+    }
+    if (IsKeyPressed(KEY_R)) {
+        m_input.roadRepair.store(true);
+        m_uiState.SetPendingAction("Repairing road... (50g)");
+    }
 
     if (IsKeyPressed(KEY_F)) {
-        m_followPlayer = !m_followPlayer;
+        m_uiState.followPlayer = !m_uiState.followPlayer;
         m_input.camFollowToggle.store(true);
     }
 
     if (IsKeyPressed(KEY_O)) {
-        m_showRoadCondition = !m_showRoadCondition;
+        m_uiState.showRoadCondition = !m_uiState.showRoadCondition;
+    }
+
+    // F2: toggle event log visibility
+    if (IsKeyPressed(KEY_F2)) {
+        m_uiState.showEventLog = !m_uiState.showEventLog;
     }
 
     // Two-press N: first press selects road start, second press builds the road.
@@ -80,26 +113,33 @@ void GameState::PollInput(float dt) {
             px = m_snapshot.playerWorldX;
             py = m_snapshot.playerWorldY;
         }
-        if (!m_roadBuildMode) {
-            m_roadBuildMode = true;
-            m_roadBuildSrcX = px;
-            m_roadBuildSrcY = py;
+        if (!m_uiState.roadBuildMode) {
+            m_uiState.roadBuildMode = true;
+            m_uiState.roadBuildSrcX = px;
+            m_uiState.roadBuildSrcY = py;
+            m_uiState.SetPendingAction("Road build: walk to destination, press N again...");
         } else {
-            m_input.roadBuildFromX.store(m_roadBuildSrcX);
-            m_input.roadBuildFromY.store(m_roadBuildSrcY);
+            m_input.roadBuildFromX.store(m_uiState.roadBuildSrcX);
+            m_input.roadBuildFromY.store(m_uiState.roadBuildSrcY);
             m_input.roadBuildToX.store(px);
             m_input.roadBuildToY.store(py);
             m_input.roadBuild.store(true);
-            m_roadBuildMode = false;
+            m_uiState.roadBuildMode = false;
+            m_uiState.SetPendingAction("Building road... (400g)");
         }
     }
-    if (IsKeyPressed(KEY_ESCAPE)) m_roadBuildMode = false;
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        m_uiState.roadBuildMode = false;
+        if (!m_uiState.pendingAction.empty() &&
+            m_uiState.pendingAction.find("Road build") != std::string::npos)
+            m_uiState.pendingAction.clear();
+    }
 
     // ---- Camera pan (arrow keys / drag) — handled entirely on main thread ----
     bool panning = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
                    IsKeyDown(KEY_UP)   || IsKeyDown(KEY_DOWN);
     if (panning) {
-        m_followPlayer = false;
+        m_uiState.followPlayer = false;
         float speed = m_panSpeed / m_camera.zoom;
         if (IsKeyDown(KEY_LEFT))  m_camera.target.x -= speed * dt;
         if (IsKeyDown(KEY_RIGHT)) m_camera.target.x += speed * dt;
@@ -110,7 +150,7 @@ void GameState::PollInput(float dt) {
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         Vector2 d = GetMouseDelta();
         if (d.x != 0.f || d.y != 0.f) {
-            m_followPlayer      = false;
+            m_uiState.followPlayer = false;
             m_camera.target.x  -= d.x / m_camera.zoom;
             m_camera.target.y  -= d.y / m_camera.zoom;
         }
@@ -124,9 +164,9 @@ void GameState::PollInput(float dt) {
     }
 
     if (IsKeyPressed(KEY_HOME)) {
-        m_camera.target  = { MAP_W * 0.5f, MAP_H * 0.5f };
-        m_camera.zoom    = 0.5f;
-        m_followPlayer   = false;
+        m_camera.target         = { MAP_W * 0.5f, MAP_H * 0.5f };
+        m_camera.zoom           = 0.5f;
+        m_uiState.followPlayer  = false;
     }
 
     // ---- Continuous player movement ----
@@ -180,9 +220,9 @@ void GameState::Draw() {
         Color col;
         if (r.blocked) {
             col = RED;
-        } else if (!m_showRoadCondition && r.banditCount >= 3) {
+        } else if (!m_uiState.showRoadCondition && r.banditCount >= 3) {
             col = Fade(RED, 0.6f);
-        } else if (!m_showRoadCondition && r.banditCount > 0) {
+        } else if (!m_uiState.showRoadCondition && r.banditCount > 0) {
             col = Fade(ORANGE, 0.5f);
         } else {
             float c = r.condition;
@@ -200,7 +240,7 @@ void GameState::Draw() {
     }
 
     // Pending road-build line: dashed orange from source to player's current position
-    if (m_roadBuildMode) {
+    if (m_uiState.roadBuildMode) {
         float px, py;
         {
             std::lock_guard<std::mutex> lock(m_snapshot.mutex);
@@ -208,7 +248,7 @@ void GameState::Draw() {
             py = m_snapshot.playerWorldY;
         }
         // Draw dashes manually: segment length 12px, gap 8px
-        float dx = px - m_roadBuildSrcX, dy = py - m_roadBuildSrcY;
+        float dx = px - m_uiState.roadBuildSrcX, dy = py - m_uiState.roadBuildSrcY;
         float dist = std::sqrt(dx*dx + dy*dy);
         if (dist > 1.f) {
             float ux = dx / dist, uy = dy / dist;
@@ -216,13 +256,13 @@ void GameState::Draw() {
             float t = 0.f;
             while (t < dist) {
                 float t2 = std::min(t + SEG, dist);
-                DrawLineEx({ m_roadBuildSrcX + ux*t,  m_roadBuildSrcY + uy*t  },
-                            { m_roadBuildSrcX + ux*t2, m_roadBuildSrcY + uy*t2 },
+                DrawLineEx({ m_uiState.roadBuildSrcX + ux*t,  m_uiState.roadBuildSrcY + uy*t  },
+                            { m_uiState.roadBuildSrcX + ux*t2, m_uiState.roadBuildSrcY + uy*t2 },
                             2.5f, Fade(ORANGE, 0.8f));
                 t = t2 + GAP;
             }
         }
-        DrawCircleV({ m_roadBuildSrcX, m_roadBuildSrcY }, 8.f, Fade(ORANGE, 0.6f));
+        DrawCircleV({ m_uiState.roadBuildSrcX, m_uiState.roadBuildSrcY }, 8.f, Fade(ORANGE, 0.6f));
     }
 
     // Active trade routes: thin lines from hauler to destination
@@ -530,11 +570,11 @@ void GameState::Draw() {
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
     // HUD
-    m_hud.Draw(m_snapshot, m_camera, m_roadBuildMode);
+    m_hud.Draw(m_snapshot, m_camera, m_uiState);
 
     // Road overlay mode label (bottom-left corner)
     {
-        const char* modeLabel = m_showRoadCondition ? "Road: Condition" : "Road: Safety";
+        const char* modeLabel = m_uiState.showRoadCondition ? "Road: Condition" : "Road: Safety";
         DrawText(modeLabel, 8, 720 - 18, 10, Fade(LIGHTGRAY, 0.5f));
     }
 }

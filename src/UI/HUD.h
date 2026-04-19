@@ -1,38 +1,35 @@
 #pragma once
 #include "raylib.h"
 #include "Threading/RenderSnapshot.h"
+#include "UI/UIState.h"
 #include <set>
 #include <string>
 #include <vector>
 
 // HUD reads exclusively from RenderSnapshot — it has no access to the ECS
 // registry and therefore cannot accidentally introduce sim/render data races.
+//
+// Panel visibility, scroll positions, and pending-action display are controlled
+// via UIState (owned by GameState, main-thread only).
 
 class HUD {
 public:
-    void HandleInput(const RenderSnapshot& snapshot);
-    void Draw(const RenderSnapshot& snapshot, const Camera2D& camera, bool roadBuildMode = false);
+    void HandleInput(const RenderSnapshot& snapshot, UIState& uiState);
+    void Draw(const RenderSnapshot& snapshot, const Camera2D& camera, UIState& uiState);
 
 private:
     void DrawNeedBar(int x, int y, float value, float critThreshold,
                      const char* label, Color barColor) const;
-    void DrawEventLog(const RenderSnapshot& snapshot);
+    void DrawEventLog(const RenderSnapshot& snapshot, UIState& uiState);
     void DrawWorldStatus(const RenderSnapshot& snapshot) const;
     void DrawDebugOverlay(const RenderSnapshot& snapshot) const;
     void DrawHoverTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void DrawFacilityTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void DrawSettlementTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
     void DrawRoadTooltip(const RenderSnapshot& snapshot, const Camera2D& cam) const;
+    void DrawPendingAction(const UIState& uiState) const;
     void UpdateNotifications(const RenderSnapshot& snapshot);
     void DrawNotifications();
-
-    int  logScroll    = 0;
-    bool debugOverlay = false;
-    bool marketOverlay = false;
-
-    // Event log source filter: set of source tags to HIDE (empty = show all).
-    // Mutable so DrawEventLog can handle mouse clicks on filter labels.
-    std::set<std::string> m_logHiddenSources;
 
     void DrawMarketOverlay(const RenderSnapshot& snapshot) const;
     void DrawMinimap(const RenderSnapshot& snapshot) const;
