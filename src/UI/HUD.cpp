@@ -721,8 +721,8 @@ void HUD::DrawPendingAction(const UIState& uiState) const {
     int boxY  = BOTTOM_Y - boxH - 2;
 
     // Fade alpha: full for the first half of the countdown, then ramp down
-    float frac = (uiState.pendingActionFrames > 0)
-                 ? (float)uiState.pendingActionFrames / 120.f
+    float frac = (uiState.pendingActionTimer > 0.f)
+                 ? uiState.pendingActionTimer / 2.0f
                  : 0.f;
     float alpha = (frac > 0.5f) ? 1.f : frac * 2.f;
 

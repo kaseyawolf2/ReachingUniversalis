@@ -47,7 +47,7 @@ void GameState::Update(float dt) {
 
 void GameState::PollInput(float dt) {
     // Tick the pending-action countdown every frame.
-    m_uiState.Update();
+    m_uiState.Update(dt);
 
     // One-shot events — action keys also set a pending action string shown in HUD
     if (IsKeyPressed(KEY_SPACE)) m_input.pauseToggle.store(true);
