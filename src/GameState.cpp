@@ -573,7 +573,7 @@ void GameState::Draw() {
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
     // HUD
-    m_hud.Draw(m_snapshot, m_camera, m_uiState, m_uiState.roadBuildMode, &m_schema.keyBindings);
+    m_hud.Draw(m_snapshot, m_camera, m_uiState, &m_schema.keyBindings);
 
     // Road overlay mode label (bottom-left corner)
     {

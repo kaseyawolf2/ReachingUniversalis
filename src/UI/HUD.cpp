@@ -59,10 +59,16 @@ static const char* KeyLabel(int code) {
     }
     switch (code) {
         case 32:  return "Spc";
-        case 91:  return "[";
-        case 93:  return "]";
+        case 39:  return "'";
+        case 44:  return ",";
         case 45:  return "-";
+        case 46:  return ".";
+        case 47:  return "/";
+        case 59:  return ";";
         case 61:  return "=";
+        case 91:  return "[";
+        case 92:  return "\\";
+        case 93:  return "]";
         case 257: return "Ent";
         case 256: return "Esc";
         case 258: return "Tab";
@@ -95,7 +101,7 @@ void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState,
 // ---- Draw ----
 
 void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiState,
-               bool roadBuildMode, const KeyBindings* keyBindings) {
+               const KeyBindings* keyBindings) {
     // Take a local copy of the parts we need — snapshot may be updated by sim
     // thread mid-draw if we read directly, so copy once under lock.
     // The lock is already released by GameState::Draw before calling us;
