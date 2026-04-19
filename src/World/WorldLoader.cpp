@@ -603,6 +603,90 @@ static bool LoadAgents(const std::string& path, WorldSchema& schema, std::string
     return true;
 }
 
+// ---- Keybindings loader ----
+// Maps key name strings from keybindings.toml to Raylib key codes.
+// Returns the Raylib code for the given name, or `def` if unrecognised.
+static int KeyNameToCode(const std::string& name, int def) {
+    // Alphabet keys A-Z
+    if (name.size() == 1) {
+        char c = name[0];
+        if (c >= 'A' && c <= 'Z') return (int)c;          // 'A'=65 ... 'Z'=90
+        if (c >= 'a' && c <= 'z') return (int)(c - 32);   // normalise to upper
+    }
+    if (name == "Space")               return 32;
+    if (name == "Left_Bracket"  || name == "[") return 91;
+    if (name == "Right_Bracket" || name == "]") return 93;
+    if (name == "Minus"         || name == "-") return 45;
+    if (name == "Equal"         || name == "=") return 61;
+    if (name == "Semicolon"     || name == ";") return 59;
+    if (name == "Apostrophe"    || name == "'") return 39;
+    if (name == "Comma"         || name == ",") return 44;
+    if (name == "Period"        || name == ".") return 46;
+    if (name == "Slash"         || name == "/") return 47;
+    if (name == "Backslash"     || name == "\\") return 92;
+    if (name == "Tab")                 return 258;
+    if (name == "Enter")               return 257;
+    if (name == "Escape")              return 256;
+    if (name == "Backspace")           return 259;
+    if (name == "F1")  return 290; if (name == "F2")  return 291;
+    if (name == "F3")  return 292; if (name == "F4")  return 293;
+    if (name == "F5")  return 294; if (name == "F6")  return 295;
+    if (name == "F7")  return 296; if (name == "F8")  return 297;
+    if (name == "F9")  return 298; if (name == "F10") return 299;
+    if (name == "F11") return 300; if (name == "F12") return 301;
+    return def;
+}
+
+static void LoadKeybindings(const std::string& path, WorldSchema& schema,
+                            std::vector<LoadWarning>* warnings) {
+    if (!fs::exists(path)) {
+        // Graceful fallback: file is optional; defaults are already set in KeyBindings{}.
+        return;
+    }
+    std::string err;
+    auto tbl = ParseFile(path, err);
+    if (!err.empty()) {
+        PushWarning(warnings, LoadWarningLevel::Warning, "keybindings",
+                    "%s: parse error (%s); using default keybindings\n",
+                    path.c_str(), err.c_str());
+        return;
+    }
+    auto* keys = tbl["keys"].as_table();
+    if (!keys) {
+        PushWarning(warnings, LoadWarningLevel::Warning, "keybindings",
+                    "%s: missing [keys] table; using default keybindings\n", path.c_str());
+        return;
+    }
+
+    KeyBindings& kb = schema.keyBindings;
+    auto resolve = [&](const char* field, int& target) {
+        if (auto v = (*keys)[field].value<std::string>()) {
+            int code = KeyNameToCode(*v, -1);
+            if (code < 0) {
+                PushWarning(warnings, LoadWarningLevel::Warning, "keybindings",
+                            "%s: unknown key name '%s' for '%s'; using default\n",
+                            path.c_str(), v->c_str(), field);
+            } else {
+                target = code;
+            }
+        }
+    };
+
+    resolve("auto_buy",          kb.autoBuy);
+    resolve("buy_one",           kb.buyOne);
+    resolve("work",              kb.work);
+    resolve("buy_cart",          kb.buyCart);
+    resolve("build_facility",    kb.buildFacility);
+    resolve("found_settlement",  kb.foundSettlement);
+    resolve("repair_road",       kb.repairRoad);
+    resolve("build_road",        kb.buildRoad);
+    resolve("set_home",          kb.setHome);
+    resolve("sleep",             kb.sleep);
+    resolve("pause",             kb.pause);
+    resolve("speed_down",        kb.speedDown);
+    resolve("speed_up",          kb.speedUp);
+}
+
 // ---- Cross-reference resolution ----
 // After all files are loaded and BuildMaps() is called, resolve string
 // references (e.g. "Food" → ResourceID 0) into integer IDs.
@@ -886,6 +970,9 @@ bool WorldLoader::Load(const std::string& worldDir,
     if (fs::exists(dir + "/agents.toml")) {
         if (!LoadAgents(dir + "/agents.toml", schema, errorMsg)) return false;
     }
+
+    // Keybindings (optional: graceful fallback to defaults if absent)
+    LoadKeybindings(dir + "/keybindings.toml", schema, warnings);
 
     // Build string→ID lookup maps
     schema.BuildMaps();

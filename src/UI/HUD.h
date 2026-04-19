@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "Threading/RenderSnapshot.h"
 #include "UI/UIState.h"
+#include "World/WorldSchema.h"
 #include <set>
 #include <string>
 #include <vector>
@@ -15,7 +16,9 @@
 class HUD {
 public:
     void HandleInput(const RenderSnapshot& snapshot, UIState& uiState);
-    void Draw(const RenderSnapshot& snapshot, const Camera2D& camera, UIState& uiState);
+    void Draw(const RenderSnapshot& snapshot, const Camera2D& camera, UIState& uiState,
+              bool roadBuildMode = false,
+              const KeyBindings* keyBindings = nullptr);
 
 private:
     void DrawNeedBar(int x, int y, float value, float critThreshold,

@@ -353,6 +353,25 @@ struct SeasonThresholds {
     float lowProduction = DEFAULT_LOW_PRODUCTION;  // consumed by WriteSnapshot() season-regime HUD
 };
 
+// ---- Player keybindings (loaded from keybindings.toml, with compile-time defaults) ----
+// Fields are Raylib KeyboardKey int values.  Defaults match the legacy hardcoded keys.
+
+struct KeyBindings {
+    int autoBuy          = 84;   // KEY_T
+    int buyOne           = 81;   // KEY_Q
+    int work             = 69;   // KEY_E
+    int buyCart          = 86;   // KEY_V
+    int buildFacility    = 67;   // KEY_C
+    int foundSettlement  = 80;   // KEY_P
+    int repairRoad       = 82;   // KEY_R
+    int buildRoad        = 78;   // KEY_N
+    int setHome          = 72;   // KEY_H
+    int sleep            = 90;   // KEY_Z
+    int pause            = 32;   // KEY_SPACE
+    int speedDown        = 91;   // KEY_LEFT_BRACKET
+    int speedUp          = 93;   // KEY_RIGHT_BRACKET
+};
+
 // ---- World settings (map, timing, economy) ----
 
 struct WorldSettings {
@@ -377,6 +396,7 @@ struct WorldSettings {
 struct WorldSchema {
     WorldSettings settings;
     SeasonThresholds seasonThresholds;
+    KeyBindings keyBindings;
 
     // Indexed definition arrays — ID == index into the vector
     std::vector<NeedDef>          needs;

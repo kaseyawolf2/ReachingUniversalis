@@ -49,44 +49,47 @@ void GameState::PollInput(float dt) {
     // Tick the pending-action countdown every frame.
     m_uiState.Update(dt);
 
+    const auto& kb = m_schema.keyBindings;
     // One-shot events — action keys also set a pending action string shown in HUD
-    if (IsKeyPressed(KEY_SPACE)) m_input.pauseToggle.store(true);
-    if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))    m_input.speedUp.store(true);
-    if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) m_input.speedDown.store(true);
-    if (IsKeyPressed(KEY_B))    m_input.roadToggle.store(true);
-    if (IsKeyPressed(KEY_T)) {
+    if (IsKeyPressed(kb.pause))           m_input.pauseToggle.store(true);
+    if (IsKeyPressed(kb.speedUp) || IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD))
+        m_input.speedUp.store(true);
+    if (IsKeyPressed(kb.speedDown) || IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT))
+        m_input.speedDown.store(true);
+    if (IsKeyPressed(KEY_B))              m_input.roadToggle.store(true);
+    if (IsKeyPressed(kb.autoBuy)) {
         m_input.playerTrade.store(true);
         m_uiState.SetPendingAction("Buying cheapest resource...");
     }
-    if (IsKeyPressed(KEY_Z)) {
+    if (IsKeyPressed(kb.sleep)) {
         m_input.playerSleep.store(true);
         m_uiState.SetPendingAction("Toggling sleep...");
     }
-    if (IsKeyPressed(KEY_H)) {
+    if (IsKeyPressed(kb.setHome)) {
         m_input.playerSettle.store(true);
         m_uiState.SetPendingAction("Setting home settlement...");
     }
-    if (IsKeyPressed(KEY_E)) {
+    if (IsKeyPressed(kb.work)) {
         m_input.playerWork.store(true);
         m_uiState.SetPendingAction("Working at nearest facility...");
     }
-    if (IsKeyPressed(KEY_Q)) {
+    if (IsKeyPressed(kb.buyOne)) {
         m_input.playerBuy.store(true);
         m_uiState.SetPendingAction("Buying 1 unit...");
     }
-    if (IsKeyPressed(KEY_C)) {
+    if (IsKeyPressed(kb.buildFacility)) {
         m_input.playerBuild.store(true);
         m_uiState.SetPendingAction("Building production facility... (200g)");
     }
-    if (IsKeyPressed(KEY_V)) {
+    if (IsKeyPressed(kb.buyCart)) {
         m_input.playerBuyCart.store(true);
         m_uiState.SetPendingAction("Buying cart... (300g)");
     }
-    if (IsKeyPressed(KEY_P)) {
+    if (IsKeyPressed(kb.foundSettlement)) {
         m_input.playerFoundSettlement.store(true);
         m_uiState.SetPendingAction("Founding new settlement... (1500g)");
     }
-    if (IsKeyPressed(KEY_R)) {
+    if (IsKeyPressed(kb.repairRoad)) {
         m_input.roadRepair.store(true);
         m_uiState.SetPendingAction("Repairing road... (50g)");
     }
@@ -105,8 +108,8 @@ void GameState::PollInput(float dt) {
         m_uiState.showEventLog = !m_uiState.showEventLog;
     }
 
-    // Two-press N: first press selects road start, second press builds the road.
-    if (IsKeyPressed(KEY_N)) {
+    // Two-press road build: first press selects road start, second press builds the road.
+    if (IsKeyPressed(kb.buildRoad)) {
         float px, py;
         {
             std::lock_guard<std::mutex> lock(m_snapshot.mutex);
@@ -570,7 +573,7 @@ void GameState::Draw() {
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
     // HUD
-    m_hud.Draw(m_snapshot, m_camera, m_uiState);
+    m_hud.Draw(m_snapshot, m_camera, m_uiState, m_roadBuildMode, &m_schema.keyBindings);
 
     // Road overlay mode label (bottom-left corner)
     {

@@ -46,6 +46,37 @@ static Color ModifierColour(const std::string& name) {
     return YELLOW;
 }
 
+// Return a short display label for a Raylib KeyboardKey int value.
+// Single-letter keys return their letter; special keys get short names.
+static const char* KeyLabel(int code) {
+    if (code >= 65 && code <= 90) {
+        // A-Z: return a static table of single-char strings
+        static const char* letters[] = {
+            "A","B","C","D","E","F","G","H","I","J","K","L","M",
+            "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+        };
+        return letters[code - 65];
+    }
+    switch (code) {
+        case 32:  return "Spc";
+        case 91:  return "[";
+        case 93:  return "]";
+        case 45:  return "-";
+        case 61:  return "=";
+        case 257: return "Ent";
+        case 256: return "Esc";
+        case 258: return "Tab";
+        case 259: return "BS";
+        case 290: return "F1";  case 291: return "F2";
+        case 292: return "F3";  case 293: return "F4";
+        case 294: return "F5";  case 295: return "F6";
+        case 296: return "F7";  case 297: return "F8";
+        case 298: return "F9";  case 299: return "F10";
+        case 300: return "F11"; case 301: return "F12";
+        default:  return "?";
+    }
+}
+
 // ---- HandleInput ----
 
 void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState) {
@@ -60,7 +91,8 @@ void HUD::HandleInput(const RenderSnapshot& /*snapshot*/, UIState& uiState) {
 
 // ---- Draw ----
 
-void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiState) {
+void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiState,
+               bool roadBuildMode, const KeyBindings* keyBindings) {
     // Take a local copy of the parts we need — snapshot may be updated by sim
     // thread mid-draw if we read directly, so copy once under lock.
     // The lock is already released by GameState::Draw before calling us;
@@ -286,13 +318,33 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiSt
         // Road build mode banner
         if (uiState.roadBuildMode) {
             DrawRectangle(BAR_X - 2, invY + 2, 320, 14, Fade(ORANGE, 0.25f));
-            DrawText("ROAD BUILD — walk to destination, press N to connect (ESC cancel)",
-                     BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            if (keyBindings) {
+                char roadBuf[96];
+                std::snprintf(roadBuf, sizeof(roadBuf),
+                              "ROAD BUILD — walk to destination, press %s to connect (ESC cancel)",
+                              KeyLabel(keyBindings->buildRoad));
+                DrawText(roadBuf, BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            } else {
+                DrawText("ROAD BUILD — walk to destination, press N to connect (ESC cancel)",
+                         BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
+            }
             invY += 16;
         }
 
-        DrawText("WASD:Move  E:Work  Q:Buy  C:Build  R:Repair  N:Road  V:Cart  P:Found  Z:Sleep  H:Settle  T:Trade",
-                 BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        if (keyBindings) {
+            char hintBuf[160];
+            std::snprintf(hintBuf, sizeof(hintBuf),
+                "WASD:Move  %s:Work  %s:Buy  %s:Build  %s:Repair  %s:Road  %s:Cart  %s:Found  %s:Sleep  %s:Settle  %s:Trade",
+                KeyLabel(keyBindings->work),          KeyLabel(keyBindings->buyOne),
+                KeyLabel(keyBindings->buildFacility), KeyLabel(keyBindings->repairRoad),
+                KeyLabel(keyBindings->buildRoad),     KeyLabel(keyBindings->buyCart),
+                KeyLabel(keyBindings->foundSettlement), KeyLabel(keyBindings->sleep),
+                KeyLabel(keyBindings->setHome),       KeyLabel(keyBindings->autoBuy));
+            DrawText(hintBuf, BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        } else {
+            DrawText("WASD:Move  E:Work  Q:Buy  C:Build  R:Repair  N:Road  V:Cart  P:Found  Z:Sleep  H:Settle  T:Trade",
+                     BAR_X, invY + 4, 8, Fade(LIGHTGRAY, 0.6f));
+        }
     }
 
     // ---- Time panel (top-right) ----

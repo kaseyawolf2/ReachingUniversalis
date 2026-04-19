@@ -1,0 +1,24 @@
+# keybindings.toml — Player action key configuration for the medieval world.
+#
+# Supported key name formats:
+#   Single letter: "T", "Q", "E", "V", "C", "P", "R", "N", "H", "Z"
+#   Special keys:  "Space", "[", "]", "Enter", "Escape", "Tab", "Backspace"
+#   Function keys: "F1" through "F12"
+#
+# If this file is absent or a key is omitted, the built-in defaults apply.
+# Default bindings match the legacy hardcoded keys.
+
+[keys]
+auto_buy         = "T"   # Auto-buy cheapest resource at nearest settlement
+buy_one          = "Q"   # Buy 1 unit of cheapest resource
+work             = "E"   # Work at nearest facility
+buy_cart         = "V"   # Buy cart (+10 carry capacity)
+build_facility   = "C"   # Build production facility
+found_settlement = "P"   # Found new settlement
+repair_road      = "R"   # Repair nearest blocked road
+build_road       = "N"   # Build new road (press twice: start then end)
+set_home         = "H"   # Set nearest settlement as home
+sleep            = "Z"   # Toggle sleep
+pause            = "Space"  # Pause/unpause simulation
+speed_down       = "["   # Decrease simulation speed
+speed_up         = "]"   # Increase simulation speed
