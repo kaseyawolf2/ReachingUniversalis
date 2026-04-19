@@ -1,13 +1,15 @@
 #include "GameState.h"
+#include "World/WorldLoader.h"
 #include <cmath>
 #include <algorithm>
+#include <utility>
 
 static constexpr float MAP_W    = 2400.f;
 static constexpr float MAP_H    =  720.f;
 static constexpr float LERP_SPD =    5.f;
 
-GameState::GameState(const WorldSchema& schema)
-    : m_simThread(m_input, m_snapshot, schema)
+GameState::GameState(const WorldSchema& schema, std::vector<LoadWarning> loadWarnings)
+    : m_simThread(m_input, m_snapshot, schema, std::move(loadWarnings))
     , m_schema(schema)  // const& — GameState must not outlive the WorldSchema
 {
     m_simThread.Start();

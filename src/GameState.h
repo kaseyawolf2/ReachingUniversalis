@@ -4,8 +4,10 @@
 #include "Threading/RenderSnapshot.h"
 #include "Threading/SimThread.h"
 #include "World/WorldSchema.h"
+#include "World/WorldLoader.h"
 #include "ECS/Systems/RenderSystem.h"
 #include "UI/HUD.h"
+#include <vector>
 
 // GameState owns the two shared communication objects and the simulation thread.
 // The main thread's responsibilities are:
@@ -17,7 +19,8 @@
 
 class GameState {
 public:
-    explicit GameState(const WorldSchema& schema);
+    explicit GameState(const WorldSchema& schema,
+                       std::vector<LoadWarning> loadWarnings = {});
     ~GameState();
 
     void  Update(float dt);

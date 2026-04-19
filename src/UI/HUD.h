@@ -36,6 +36,7 @@ private:
 
     void DrawMarketOverlay(const RenderSnapshot& snapshot) const;
     void DrawMinimap(const RenderSnapshot& snapshot) const;
+    void DrawLoadWarnings(const RenderSnapshot& snapshot) const;
 
     // Critical event notifications (screen-centre flash)
     struct Notification {
