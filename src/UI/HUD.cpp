@@ -324,11 +324,12 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera, UIState& uiSt
             if (keyBindings) {
                 char roadBuf[96];
                 std::snprintf(roadBuf, sizeof(roadBuf),
-                              "ROAD BUILD — walk to destination, press %s to connect (ESC cancel)",
-                              KeyLabel(keyBindings->buildRoad));
+                              "ROAD BUILD — walk to destination, [%s] connect  [%s] cancel",
+                              KeyLabel(keyBindings->buildRoad),
+                              KeyLabel(keyBindings->cancelRoadBuild));
                 DrawText(roadBuf, BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
             } else {
-                DrawText("ROAD BUILD — walk to destination, press N to connect (ESC cancel)",
+                DrawText("ROAD BUILD — walk to destination, [N] connect  [ESC] cancel",
                          BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
             }
             invY += 16;
