@@ -326,8 +326,9 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
                 const KeyBindings defaults{};
                 const KeyBindings* kb = keyBindings ? keyBindings : &defaults;
                 std::snprintf(roadBuf, sizeof(roadBuf),
-                              "ROAD BUILD — walk to destination, press %s to connect (ESC cancel)",
-                              KeyLabel(kb->buildRoad));
+                              "ROAD BUILD — walk to destination, [%s] connect  [%s] cancel",
+                              KeyLabel(kb->buildRoad),
+                              KeyLabel(kb->cancelRoadBuild));
                 DrawText(roadBuf, BAR_X, invY + 4, 8, Fade(ORANGE, 0.95f));
             }
             invY += 16;
