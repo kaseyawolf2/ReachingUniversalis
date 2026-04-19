@@ -2442,6 +2442,7 @@ void HUD::DrawLoadWarnings(const RenderSnapshot& snap) const {
 
     int shown     = std::min((int)warnings.size(), MAX_LINES);
     int panelH    = PAD_Y + FONT_HDR + 2 + shown * LINE_H + PAD_Y;
+    if ((int)warnings.size() > MAX_LINES) panelH += LINE_H;
     int panelW    = 320;
     int panelY    = SCREEN_H - panelH - 4;
 
