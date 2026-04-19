@@ -241,7 +241,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **WorldLoader LoadWarning thread-through for all loaders** — `LoadSkills`, `LoadProfessions`, `LoadFacilities`, and `LoadAgents` in `WorldLoader.cpp` do not accept a `std::vector<LoadWarning>*` parameter. Thread the warnings pointer through these four functions for consistency, so any future diagnostics added to them automatically collect into the structured warnings vector.
 
-- [ ] **WorldLoader LoadWarning UI display** — `main.cpp` collects `loadWarnings` but only retains them for future use. Wire the warnings vector into `GameState` or `RenderSnapshot` so the HUD can display load-time diagnostics (e.g., a "Load Warnings" panel showing misconfigured TOML entries) during gameplay.
+- [x] **WorldLoader LoadWarning UI display** — `main.cpp` collects `loadWarnings` but only retains them for future use. Wire the warnings vector into `GameState` or `RenderSnapshot` so the HUD can display load-time diagnostics (e.g., a "Load Warnings" panel showing misconfigured TOML entries) during gameplay.
 
 - [ ] **NeedDrainSystem remove redundant bool** — `NeedDrainSystem::m_needsCached` uses the same old bool pattern just removed from `ConsumptionSystem`. Apply the same `NOT_CACHED = -2` sentinel approach: remove the bool, initialize cached NeedIDs to `NOT_CACHED`, and check `== NOT_CACHED` as the cache-miss gate.
 
@@ -383,7 +383,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 ## Phase 2 — UI Decoupling
 
-- [ ] **UI State layer** — Create a UIState struct that owns all input handling, panel state, selection, pending actions, scroll positions. Lives on the main thread, never blocks on sim.
+- [x] **UI State layer** — Create a UIState struct that owns all input handling, panel state, selection, pending actions, scroll positions. Lives on the main thread, never blocks on sim.
 
 - [ ] **Replace InputSnapshot with CommandQueue** — Main thread pushes Commands instead of setting atomic flags. SimThread drains the queue. Remove InputSnapshot.h.
 
@@ -393,7 +393,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Data-driven HUD** — HUD reads WorldSchema to know what needs/resources/stats to display. No hardcoded "hunger bar" — it shows whatever needs the current world defines.
 
-- [ ] **Data-driven keybindings** — Player action keys loaded from world config. No hardcoded KEY_T = trade.
+- [x] **Data-driven keybindings** — Player action keys loaded from world config. No hardcoded KEY_T = trade.
 
 ## Phase 3 — Registry Partitioning & Multi-Threading
 
