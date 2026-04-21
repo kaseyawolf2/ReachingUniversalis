@@ -1,5 +1,6 @@
 .vs
 .gitignore
 build/
+build-win/
 benchmark_history.csv
 benchmark_report.txt

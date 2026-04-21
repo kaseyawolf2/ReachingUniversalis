@@ -1,0 +1,6 @@
+[ 38%] Built target glfw
+[ 51%] Built target raylib
+[ 88%] Built target ReachingUniversalis
+[ 93%] Built target SeasonValidationTest
+[ 96%] Built target BuildMapOrderingTest
+[100%] Built target DynBitsetTest
