@@ -18,10 +18,6 @@ static const int BAR_X    = 10;
 static const int BAR_Y0   = 10;
 static const int BAR_GAP  = 26;
 
-static const std::vector<std::string>& emptyNames() {
-    static const std::vector<std::string> v;
-    return v;
-}
 
 static const char* BehaviorLabel(AgentBehavior b) {
     switch (b) {

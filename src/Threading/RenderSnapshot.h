@@ -7,6 +7,13 @@
 #include <memory>
 #include <mutex>
 
+// Shared empty-vector fallback used when a shared_ptr<const vector<string>>
+// (skillNames, needNames, resourceNames) has not been set yet.
+inline const std::vector<std::string>& emptyNames() {
+    static const std::vector<std::string> v;
+    return v;
+}
+
 // Written by the simulation thread at the end of each frame.
 // Read by the main (render) thread.
 //
