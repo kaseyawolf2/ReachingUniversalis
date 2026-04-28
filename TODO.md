@@ -235,7 +235,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **EventLog source-system filtering** — `EventLog::Push()` stores plain message strings with no metadata. Add an optional `sourceSystem` field to log entries so the HUD event log can filter by system (e.g., show only RandomEventSystem events, or hide diagnostic messages from gameplay events).
 
-- [ ] **SpawnNpcs count distribution comment fix** — `RandomEventSystem.cpp` line ~1302 comment says "Migration wave: spawn 3-5 NPCs" but the actual count is driven by `ev.effectValue` from schema. Update comment to reflect the data-driven behavior, e.g., "Migration wave: spawn (effectValue-2) to effectValue NPCs".
+- [x] **SpawnNpcs count distribution comment fix** — `RandomEventSystem.cpp` line ~1302 comment says "Migration wave: spawn 3-5 NPCs" but the actual count is driven by `ev.effectValue` from schema. Update comment to reflect the data-driven behavior, e.g., "Migration wave: spawn (effectValue-2) to effectValue NPCs".
 
 - [ ] **RandomEventSystem effectValue audit** — After `SpawnNpcs` was clamped with `std::max(1, ...)`, audit all other `ev.effectValue` usages in `RandomEventSystem.cpp` (production_modifier, morale_boost, etc.) for similar unclamped casts or potential division-by-zero. Add defensive clamps where effectValue reaches arithmetic operators.
 
