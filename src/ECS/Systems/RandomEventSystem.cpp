@@ -492,7 +492,9 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         auto* ts = registry.try_get<Settlement>(target2);
         if (!ts || ts->modifierDuration > 0.f) continue;  // already has another event
 
-        ts->productionModifier = sDef.effectValue;
+        // Clamp production modifier to a small positive floor; zero or negative
+        // would halt or invert production which is never intended.
+        ts->productionModifier = std::max(0.01f, sDef.effectValue);
         ts->modifierDuration   = sDef.durationHours;
         ts->modifierName       = sDef.displayName;
         newInfections.push_back({target2, {sDef.spreadInterval, entry.eventIdx}});
@@ -1107,7 +1109,9 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
             // Skip if target is already affected by a spreading event
             if (ev.spreads && m_spreadTimers.count(target)) return;
 
-            settl->productionModifier = ev.effectValue;
+            // Clamp production modifier to a small positive floor; zero or negative
+            // would halt or invert production which is never intended.
+            settl->productionModifier = std::max(0.01f, ev.effectValue);
             settl->modifierDuration   = ev.durationHours;
             settl->modifierName       = ev.displayName;
 
@@ -1196,7 +1200,9 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
         int resId = (ev.targetResourceId != INVALID_ID) ? ev.targetResourceId : RES_FOOD;
         auto it = sp->quantities.find(resId);
         if (it == sp->quantities.end() || it->second < 5.f) return;
-        float lost = it->second * ev.effectValue;
+        // effectValue is a destroy fraction here; clamp to [0,1] so we never
+        // destroy more than exists (negative stockpile) or a negative amount.
+        float lost = it->second * std::clamp(ev.effectValue, 0.f, 1.f);
         it->second -= lost;
 
         if (ev.moraleImpact != 0.f)
@@ -1253,7 +1259,10 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
     }
     // --- Treasury boost (Trade Boom) ---
     case EventEffectType::TreasuryBoost: {
-        float gold = ev.treasuryChange > 0.f ? ev.treasuryChange : ev.effectValue;
+        // effectValue is a fallback gold amount; clamp >= 0 to prevent
+        // accidental treasury drain from a misconfigured boost event.
+        float gold = ev.treasuryChange > 0.f ? ev.treasuryChange
+                                              : std::max(0.f, ev.effectValue);
         settl->treasury += gold;
         if (log) log->Push(day, hour,
             ev.displayName + " at " + settl->name + " " + popTag
@@ -1542,7 +1551,10 @@ int RandomEventSystem::KillFraction(entt::registry& registry,
         });
     if (victims.size() < 3) return 0;
     std::shuffle(victims.begin(), victims.end(), m_rng);
-    int killCount = std::max(1, (int)(victims.size() * fraction));
+    // Clamp fraction to [0,1] so we never try to kill more NPCs than exist
+    // or produce a negative count from a misconfigured event definition.
+    float safeFrac = std::clamp(fraction, 0.f, 1.f);
+    int killCount = std::max(1, (int)(victims.size() * safeFrac));
 
     auto* sp    = registry.try_get<Stockpile>(settl);
     auto* settlC = registry.try_get<Settlement>(settl);
