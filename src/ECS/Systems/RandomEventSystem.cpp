@@ -1131,11 +1131,12 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
 
         // Destroy a specific resource by fraction (e.g. HeatWave destroys water)
         if (ev.destroyResourceId != INVALID_ID && ev.destroyFraction > 0.f) {
+            float safeFrac = std::clamp(ev.destroyFraction, 0.f, 1.f);
             auto* sp = registry.try_get<Stockpile>(target);
             if (sp) {
                 auto it = sp->quantities.find(ev.destroyResourceId);
                 if (it != sp->quantities.end() && it->second > 5.f) {
-                    float lost = it->second * ev.destroyFraction;
+                    float lost = it->second * safeFrac;
                     it->second -= lost;
                 }
             }
@@ -1554,6 +1555,7 @@ int RandomEventSystem::KillFraction(entt::registry& registry,
     // Clamp fraction to [0,1] so we never try to kill more NPCs than exist
     // or produce a negative count from a misconfigured event definition.
     float safeFrac = std::clamp(fraction, 0.f, 1.f);
+    if (safeFrac <= 0.f) return 0;
     int killCount = std::max(1, (int)(victims.size() * safeFrac));
 
     auto* sp    = registry.try_get<Stockpile>(settl);
