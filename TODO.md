@@ -221,7 +221,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
 
-- [ ] **ConsumptionSystem lazy-init to constructor-init** — Same pattern: `ConsumptionSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
+- [x] **ConsumptionSystem lazy-init to constructor-init** — Same pattern: `ConsumptionSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
 
 - [ ] **DeprivationTimer Make() callers audit** — After introducing `DEFAULT_MIGRATE_THRESHOLD`, audit all call sites of `DeprivationTimer::Make()` to verify none pass a hardcoded `2.f * 60.f` instead of using the constant.
 
