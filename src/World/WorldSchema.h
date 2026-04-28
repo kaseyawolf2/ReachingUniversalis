@@ -32,6 +32,11 @@ using GoalTypeID   = int;
 
 static constexpr int INVALID_ID = -1;
 
+// Sentinel for "not yet cached" ID fields in systems that lazily resolve
+// schema lookups.  Distinct from INVALID_ID (-1) so systems can distinguish
+// "lookup returned no match" from "lookup not yet attempted".
+static constexpr int NOT_CACHED_ID = -2;
+
 // ---- Definition structs ----
 
 struct NeedDef {
