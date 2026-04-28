@@ -219,7 +219,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **HUD emptyNames avoid global constructor** — The file-scope `static const std::vector<std::string> emptyNames;` in `HUD.cpp` triggers a global constructor for a heap-allocated empty vector. Replace with `static const std::vector<std::string>* emptyNames` pointing to a function-local static, or use an empty `std::span<const std::string>` to avoid the global init overhead.
 
-- [ ] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
+- [x] **NeedDrainSystem lazy-init to constructor-init** — Same pattern as DeathSystem: `NeedDrainSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
 
 - [ ] **ConsumptionSystem lazy-init to constructor-init** — Same pattern: `ConsumptionSystem` caches NeedIDs on first `Update()` via `m_needsCached`. Move caching into the constructor and remove the flag.
 
