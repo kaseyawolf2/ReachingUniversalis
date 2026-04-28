@@ -227,7 +227,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **DeprivationTimer time model doc comment** — The `DeprivationTimer` struct comments mix "game-min", "game-hours", and "seconds" without explaining the time model. Add a doc comment at the struct level explaining: 1 real second = 1 game-minute (per GAME_MINS_PER_REAL_SEC=1.0), so 120.0f = 2 game-hours.
 
-- [ ] **RenderSnapshot WriteSnapshot mutex scope comment** — `RenderSnapshot` has an `// Immutable after construction` comment on `skillNames` but no comment on the mutable fields explaining they ARE protected by mutex. Add a `// Written per-frame under mutex` section comment above the mutable field block.
+- [x] **RenderSnapshot WriteSnapshot mutex scope comment** — `RenderSnapshot` has an `// Immutable after construction` comment on `skillNames` but no comment on the mutable fields explaining they ARE protected by mutex. Add a `// Written per-frame under mutex` section comment above the mutable field block.
 
 - [ ] **SimThread WriteSnapshot skillNames skip** — `SimThread::WriteSnapshot()` should skip writing `skillNames` since it's immutable. Verify it doesn't re-assign the shared_ptr each frame. If it does, remove the redundant write.
 
