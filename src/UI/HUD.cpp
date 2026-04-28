@@ -111,7 +111,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
     bool  paused, roadBlocked, playerAlive;
     float playerAgeDays, playerMaxDays, playerGold;
     std::vector<float> playerSkills;
-    std::shared_ptr<const std::vector<std::string>> playerSkillNamesPtr;
+    std::shared_ptr<const std::vector<std::string>> skillNamesPtr;
     std::shared_ptr<const std::vector<std::string>> needNamesPtr;
     std::shared_ptr<const std::vector<std::string>> resourceNamesPtr;
     std::vector<std::pair<float,float>> playerNeeds;   // (value, critThreshold) per NeedID
@@ -147,7 +147,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
         playerMaxDays   = snap.playerMaxDays;
         playerGold      = snap.playerGold;
         playerSkills         = snap.playerSkills;
-        playerSkillNamesPtr  = snap.skillNames;
+        skillNamesPtr        = snap.skillNames;
         needNamesPtr         = snap.needNames;
         resourceNamesPtr     = snap.resourceNames;
         playerInventory         = snap.playerInventory;
@@ -165,7 +165,7 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
     }
 
     // Dereference shared name tables once; empty fallback if not yet set.
-    const auto& playerSkillNames = playerSkillNamesPtr ? *playerSkillNamesPtr : emptyNames();
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames();
     const auto& needNames        = needNamesPtr        ? *needNamesPtr        : emptyNames();
     const auto& resourceNames    = resourceNamesPtr    ? *resourceNamesPtr    : emptyNames();
 
@@ -255,8 +255,8 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
             for (int si = 0; si < (int)playerSkills.size(); ++si) {
                 if (si > 0) skStr += " ";
                 // Use a short label (first 4 chars of display name)
-                std::string label = (si < (int)playerSkillNames.size() && !playerSkillNames[si].empty())
-                    ? playerSkillNames[si].substr(0, 4) : "Sk" + std::to_string(si);
+                std::string label = (si < (int)skillNames.size() && !skillNames[si].empty())
+                    ? skillNames[si].substr(0, 4) : "Sk" + std::to_string(si);
                 char tmp[24];
                 std::snprintf(tmp, sizeof(tmp), "%s:%.0f%%", label.c_str(), playerSkills[si] * 100.f);
                 skStr += tmp;
@@ -1513,14 +1513,14 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
 
     std::vector<RenderSnapshot::SettlementEntry>  settls;
     std::vector<RenderSnapshot::SettlementStatus> ws;
-    std::shared_ptr<const std::vector<std::string>> sharedSkillNamesPtr;
+    std::shared_ptr<const std::vector<std::string>> skillNamesPtr;
     {
         std::lock_guard<std::mutex> lock(snap.mutex);
         settls = snap.settlements;
         ws     = snap.worldStatus;
-        sharedSkillNamesPtr = snap.skillNames;
+        skillNamesPtr = snap.skillNames;
     }
-    const auto& sharedSkillNames = sharedSkillNamesPtr ? *sharedSkillNamesPtr : emptyNames();
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames();
 
     // Find settlement the mouse is inside (by world-space radius)
     const RenderSnapshot::SettlementEntry* best = nullptr;
@@ -1601,8 +1601,8 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         std::string skillStr = "Skills:";
         for (int i = 0; i < (int)best->avgSkills.size(); ++i) {
             if (best->avgSkills[i] <= 0.f) continue;
-            std::string label = (i < (int)sharedSkillNames.size() && !sharedSkillNames[i].empty())
-                ? sharedSkillNames[i].substr(0, 4) : "?";
+            std::string label = (i < (int)skillNames.size() && !skillNames[i].empty())
+                ? skillNames[i].substr(0, 4) : "?";
             char tmp[32];
             std::snprintf(tmp, sizeof(tmp), " %s %d%%", label.c_str(), (int)(best->avgSkills[i] * 100));
             skillStr += tmp;

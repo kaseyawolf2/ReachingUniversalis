@@ -158,7 +158,7 @@ void GameState::Draw() {
     std::vector<RenderSnapshot::RoadEntry>        roads;
     std::vector<RenderSnapshot::FacilityEntry>    facilities;
     RenderSnapshot::StockpilePanel                panel;
-    std::shared_ptr<const std::vector<std::string>> sharedSkillNames;
+    std::shared_ptr<const std::vector<std::string>> skillNamesPtr;
     float snapHour = 12.f;
 
     {
@@ -168,7 +168,7 @@ void GameState::Draw() {
         roads            = m_snapshot.roads;
         facilities       = m_snapshot.facilities;
         panel            = m_snapshot.stockpilePanel;
-        sharedSkillNames = m_snapshot.skillNames;
+        skillNamesPtr    = m_snapshot.skillNames;
         snapHour         = m_snapshot.hourOfDay;
     }
 
@@ -525,7 +525,7 @@ void GameState::Draw() {
 
     // Stockpile panel (screen-space)
     static const std::vector<std::string> emptyNames;
-    const auto& skillNames = sharedSkillNames ? *sharedSkillNames : emptyNames;
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames;
     if (panel.open)
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
