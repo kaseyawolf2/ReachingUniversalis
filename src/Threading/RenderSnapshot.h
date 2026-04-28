@@ -295,7 +295,7 @@ struct RenderSnapshot {
         int                           friendshipPairs = 0;
     };
 
-    // ---- Data fields ----
+    // ---- Data fields (written per-frame under mutex) ----
 
     std::vector<AgentEntry>       agents;
     std::vector<SettlementEntry>  settlements;
@@ -317,6 +317,8 @@ struct RenderSnapshot {
     // Resource display names from schema (indexed by resource type). Set once at
     // construction; immutable after that, so no mutex needed.
     std::shared_ptr<const std::vector<std::string>> resourceNames;
+
+    // Written per-frame under mutex (continued)
 
     // HUD — clock
     int    day         = 1;
