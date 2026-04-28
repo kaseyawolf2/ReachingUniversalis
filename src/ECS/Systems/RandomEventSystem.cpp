@@ -451,7 +451,7 @@ void RandomEventSystem::Update(entt::registry& registry, float realDt, const Wor
         // Look up the event definition for this particular spreading event.
         // If the stored index is out of range, the entry is corrupt -- mark for removal.
         if (entry.eventIdx < 0 || entry.eventIdx >= (int)schema.events.size()) {
-            fprintf(stderr, "[RandomEventSystem] Spread entry has out-of-range eventIdx %d"
+            fprintf(stderr, "[RandomEventSystem] ERROR: Spread entry has out-of-range eventIdx %d"
                     " (schema has %d events) -- removing entry\n",
                     entry.eventIdx, (int)schema.events.size());
             if (log)
