@@ -239,7 +239,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **RandomEventSystem effectValue audit** — After `SpawnNpcs` was clamped with `std::max(1, ...)`, audit all other `ev.effectValue` usages in `RandomEventSystem.cpp` (production_modifier, morale_boost, etc.) for similar unclamped casts or potential division-by-zero. Add defensive clamps where effectValue reaches arithmetic operators.
 
-- [ ] **WorldLoader LoadWarning thread-through for all loaders** — `LoadSkills`, `LoadProfessions`, `LoadFacilities`, and `LoadAgents` in `WorldLoader.cpp` do not accept a `std::vector<LoadWarning>*` parameter. Thread the warnings pointer through these four functions for consistency, so any future diagnostics added to them automatically collect into the structured warnings vector.
+- [x] **WorldLoader LoadWarning thread-through for all loaders** — `LoadSkills`, `LoadProfessions`, `LoadFacilities`, and `LoadAgents` in `WorldLoader.cpp` do not accept a `std::vector<LoadWarning>*` parameter. Thread the warnings pointer through these four functions for consistency, so any future diagnostics added to them automatically collect into the structured warnings vector.
 
 - [x] **WorldLoader LoadWarning UI display** — `main.cpp` collects `loadWarnings` but only retains them for future use. Wire the warnings vector into `GameState` or `RenderSnapshot` so the HUD can display load-time diagnostics (e.g., a "Load Warnings" panel showing misconfigured TOML entries) during gameplay.
 
