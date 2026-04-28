@@ -12,7 +12,6 @@ public:
 private:
     const WorldSchema& m_schema;
 
-    static constexpr int NOT_CACHED = -2;
-    int  m_hungerNeedId  = NOT_CACHED;
-    int  m_thirstNeedId  = NOT_CACHED;
+    int  m_hungerNeedId  = -1;
+    int  m_thirstNeedId  = -1;
 };
