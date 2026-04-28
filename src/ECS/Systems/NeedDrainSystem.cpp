@@ -8,24 +8,23 @@
 static constexpr float PLAGUE_PLAYER_DRAIN_MULT = 1.5f;
 
 NeedDrainSystem::NeedDrainSystem(const WorldSchema& schema)
-    : m_schema(schema) {}
+    : m_schema(schema)
+{
+    // Cache need IDs once at construction to avoid string map lookups every tick.
+    m_energyNeedId = m_schema.FindNeed("Energy");
+    m_heatNeedId   = m_schema.FindNeed("Heat");
+
+    if (m_energyNeedId == INVALID_ID)
+        fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Energy\" is INVALID_ID (-1). "
+                        "Seasonal energy drain and sleep refill will not function. "
+                        "Check that a need named \"Energy\" exists in the schema TOML.\n");
+    if (m_heatNeedId == INVALID_ID)
+        fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Heat\" is INVALID_ID (-1). "
+                        "Seasonal heat drain will not function. "
+                        "Check that a need named \"Heat\" exists in the schema TOML.\n");
+}
 
 void NeedDrainSystem::Update(entt::registry& registry, float realDt) {
-    // Cache need IDs on first call to avoid string map lookups every tick.
-    if (!m_needsCached) {
-        m_energyNeedId = m_schema.FindNeed("Energy");
-        m_heatNeedId   = m_schema.FindNeed("Heat");
-        m_needsCached  = true;
-
-        if (m_energyNeedId == INVALID_ID)
-            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Energy\" is INVALID_ID (-1). "
-                            "Seasonal energy drain and sleep refill will not function. "
-                            "Check that a need named \"Energy\" exists in the schema TOML.\n");
-        if (m_heatNeedId == INVALID_ID)
-            fprintf(stderr, "[NeedDrainSystem] WARNING: cached NeedID for \"Heat\" is INVALID_ID (-1). "
-                            "Seasonal heat drain will not function. "
-                            "Check that a need named \"Heat\" exists in the schema TOML.\n");
-    }
     const int energyNeedId = m_energyNeedId;
     const int heatNeedId   = m_heatNeedId;
 
