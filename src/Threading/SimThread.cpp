@@ -2885,7 +2885,9 @@ void SimThread::WriteSnapshot() {
         m_snapshot.facilities   = std::move(facilities);
         m_snapshot.worldStatus  = std::move(worldStatus);
         m_snapshot.stockpilePanel = std::move(panel);
-        // Skill names shared_ptr was set once at construction; no per-frame copy needed.
+        // NOTE: skillNames, needNames, and resourceNames are intentionally
+        // omitted here. They are immutable shared_ptrs set once in the
+        // constructor; re-assigning them every frame would be redundant.
         m_snapshot.day          = day;
         m_snapshot.hour         = hour;
         m_snapshot.minute       = minute;
