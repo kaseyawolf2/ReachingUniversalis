@@ -247,7 +247,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **Shared NOT_CACHED constant** — `ConsumptionSystem` defines a private `NOT_CACHED = -2` sentinel. If `NeedDrainSystem` and `DeathSystem` adopt the same pattern, each will have its own copy. Define a shared `static constexpr int NOT_CACHED_ID = -2` next to `INVALID_ID` in `WorldSchema.h` so all systems use one source of truth.
 
-- [ ] **Shared emptyNames constant** — `GameState.cpp` and `HUD.cpp` each define their own `static const std::vector<std::string> emptyNames` for sharedSkillNames fallback. Extract into a shared file-scope constant in a common header (e.g., `RenderSnapshot.h` near the skillNames shared_ptr) so both translation units reference the same empty vector.
+- [x] **Shared emptyNames constant** — `GameState.cpp` and `HUD.cpp` each define their own `static const std::vector<std::string> emptyNames` for sharedSkillNames fallback. Extract into a shared file-scope constant in a common header (e.g., `RenderSnapshot.h` near the skillNames shared_ptr) so both translation units reference the same empty vector.
 
 - [x] **GameState skillNames variable naming** — `GameState.cpp` uses `skillNames` as the local variable name after the emptyNames fallback, while `HUD.cpp` uses `sharedSkillNames`. Unify to the same name across all 4 consumer sites for grep-ability and consistency.
 
