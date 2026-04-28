@@ -249,7 +249,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [ ] **Shared emptyNames constant** — `GameState.cpp` and `HUD.cpp` each define their own `static const std::vector<std::string> emptyNames` for sharedSkillNames fallback. Extract into a shared file-scope constant in a common header (e.g., `RenderSnapshot.h` near the skillNames shared_ptr) so both translation units reference the same empty vector.
 
-- [ ] **GameState skillNames variable naming** — `GameState.cpp` uses `skillNames` as the local variable name after the emptyNames fallback, while `HUD.cpp` uses `sharedSkillNames`. Unify to the same name across all 4 consumer sites for grep-ability and consistency.
+- [x] **GameState skillNames variable naming** — `GameState.cpp` uses `skillNames` as the local variable name after the emptyNames fallback, while `HUD.cpp` uses `sharedSkillNames`. Unify to the same name across all 4 consumer sites for grep-ability and consistency.
 
 - [ ] **SkillForProfession bounds-check assert** — `WorldSchema::SkillForProfession()` has the same bounds-check-and-fallback pattern as `ProfessionForResource()` but lacks the debug assert added in PR #72. Add `assert(pid >= 0 && pid < (int)professionToSkill.size())` for consistency.
 
