@@ -225,7 +225,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **DeprivationTimer Make() callers audit** — After introducing `DEFAULT_MIGRATE_THRESHOLD`, audit all call sites of `DeprivationTimer::Make()` to verify none pass a hardcoded `2.f * 60.f` instead of using the constant.
 
-- [ ] **DeprivationTimer time model doc comment** — The `DeprivationTimer` struct comments mix "game-min", "game-hours", and "seconds" without explaining the time model. Add a doc comment at the struct level explaining: 1 real second = 1 game-minute (per GAME_MINS_PER_REAL_SEC=1.0), so 120.0f = 2 game-hours.
+- [x] **DeprivationTimer time model doc comment** — The `DeprivationTimer` struct comments mix "game-min", "game-hours", and "seconds" without explaining the time model. Add a doc comment at the struct level explaining: 1 real second = 1 game-minute (per GAME_MINS_PER_REAL_SEC=1.0), so 120.0f = 2 game-hours.
 
 - [x] **RenderSnapshot WriteSnapshot mutex scope comment** — `RenderSnapshot` has an `// Immutable after construction` comment on `skillNames` but no comment on the mutable fields explaining they ARE protected by mutex. Add a `// Written per-frame under mutex` section comment above the mutable field block.
 
