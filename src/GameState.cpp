@@ -524,7 +524,7 @@ void GameState::Draw() {
     }
 
     // Stockpile panel (screen-space)
-    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames();
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : RenderSnapshot::emptyNames();
     if (panel.open)
         m_renderSystem.DrawStockpilePanel(panel, skillNames);
 
