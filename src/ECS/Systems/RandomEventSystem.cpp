@@ -1299,7 +1299,7 @@ void RandomEventSystem::TriggerEvent(entt::registry& registry, int day, int hour
                 log->Push(day, hour, buf, "Rand");
             }
         } else {
-            // Migration wave: spawn 3-5 NPCs
+            // Migration wave: spawn max(1, effectValue-2) to effectValue NPCs (capped by slots)
             int maxArrivals = std::max(1, (int)ev.effectValue);
             std::uniform_int_distribution<int> count_dist(
                 std::max(1, maxArrivals - 2), maxArrivals);
