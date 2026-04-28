@@ -14,5 +14,4 @@ private:
 
     int  m_energyNeedId = -1;
     int  m_heatNeedId   = -1;
-    bool m_needsCached  = false;
 };
