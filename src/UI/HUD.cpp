@@ -18,10 +18,6 @@ static const int BAR_X    = 10;
 static const int BAR_Y0   = 10;
 static const int BAR_GAP  = 26;
 
-static const std::vector<std::string>& emptyNames() {
-    static const std::vector<std::string> v;
-    return v;
-}
 
 static const char* BehaviorLabel(AgentBehavior b) {
     switch (b) {
@@ -165,9 +161,9 @@ void HUD::Draw(const RenderSnapshot& snap, const Camera2D& camera,
     }
 
     // Dereference shared name tables once; empty fallback if not yet set.
-    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames();
-    const auto& needNames        = needNamesPtr        ? *needNamesPtr        : emptyNames();
-    const auto& resourceNames    = resourceNamesPtr    ? *resourceNamesPtr    : emptyNames();
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : RenderSnapshot::emptyNames();
+    const auto& needNames        = needNamesPtr        ? *needNamesPtr        : RenderSnapshot::emptyNames();
+    const auto& resourceNames    = resourceNamesPtr    ? *resourceNamesPtr    : RenderSnapshot::emptyNames();
 
     // Need bar color palette: indexed by need position (0=food/green, 1=water/cyan,
     // 2=energy/yellow, 3=heat/orange, further needs cycle back).
@@ -797,9 +793,9 @@ void HUD::DrawHoverTooltip(const RenderSnapshot& snap, const Camera2D& cam) cons
         resourceNamesHoverPtr  = snap.resourceNames;
     }
     // Dereference once; empty fallback if not yet set.
-    const auto& skillNames     = skillNamesPtr          ? *skillNamesPtr          : emptyNames();
-    const auto& needNamesHover = needNamesHoverPtr      ? *needNamesHoverPtr      : emptyNames();
-    const auto& resNamesHover  = resourceNamesHoverPtr  ? *resourceNamesHoverPtr  : emptyNames();
+    const auto& skillNames     = skillNamesPtr          ? *skillNamesPtr          : RenderSnapshot::emptyNames();
+    const auto& needNamesHover = needNamesHoverPtr      ? *needNamesHoverPtr      : RenderSnapshot::emptyNames();
+    const auto& resNamesHover  = resourceNamesHoverPtr  ? *resourceNamesHoverPtr  : RenderSnapshot::emptyNames();
 
     // Build surname→count and familyName→count maps for family cluster display.
     std::map<std::string, int> surnameCount;
@@ -1418,7 +1414,7 @@ void HUD::DrawFacilityTooltip(const RenderSnapshot& snap, const Camera2D& cam) c
         facs = snap.facilities;
         resNamesFacPtr = snap.resourceNames;
     }
-    const auto& resNamesFac = resNamesFacPtr ? *resNamesFacPtr : emptyNames();
+    const auto& resNamesFac = resNamesFacPtr ? *resNamesFacPtr : RenderSnapshot::emptyNames();
 
     const RenderSnapshot::FacilityEntry* best = nullptr;
     float bestDist = 20.f;   // max hover distance in world units
@@ -1520,7 +1516,7 @@ void HUD::DrawSettlementTooltip(const RenderSnapshot& snap, const Camera2D& cam)
         ws     = snap.worldStatus;
         skillNamesPtr = snap.skillNames;
     }
-    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : emptyNames();
+    const auto& skillNames = skillNamesPtr ? *skillNamesPtr : RenderSnapshot::emptyNames();
 
     // Find settlement the mouse is inside (by world-space radius)
     const RenderSnapshot::SettlementEntry* best = nullptr;

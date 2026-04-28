@@ -16,6 +16,13 @@
 
 struct RenderSnapshot {
 
+    // Shared empty-vector fallback used when a shared_ptr<const vector<string>>
+    // (skillNames, needNames, resourceNames) has not been set yet.
+    static const std::vector<std::string>& emptyNames() {
+        static const std::vector<std::string> v;
+        return v;
+    }
+
     // ---- Drawable world objects ----
 
     enum class AgentRole { NPC, Hauler, Player, Child };
