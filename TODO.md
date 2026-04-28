@@ -229,7 +229,7 @@ UI is decoupled from the sim so it stays responsive even when the sim lags.
 
 - [x] **RenderSnapshot WriteSnapshot mutex scope comment** — `RenderSnapshot` has an `// Immutable after construction` comment on `skillNames` but no comment on the mutable fields explaining they ARE protected by mutex. Add a `// Written per-frame under mutex` section comment above the mutable field block.
 
-- [ ] **SimThread WriteSnapshot skillNames skip** — `SimThread::WriteSnapshot()` should skip writing `skillNames` since it's immutable. Verify it doesn't re-assign the shared_ptr each frame. If it does, remove the redundant write.
+- [x] **SimThread WriteSnapshot skillNames skip** — `SimThread::WriteSnapshot()` should skip writing `skillNames` since it's immutable. Verify it doesn't re-assign the shared_ptr each frame. If it does, remove the redundant write.
 
 - [ ] **RandomEventSystem diagnostic severity levels** — `RandomEventSystem.cpp` uses `[RandomEventSystem]` prefix but drops the severity level (WARNING/ERROR/INFO). Add severity to all diagnostic messages following the pattern `[RandomEventSystem] WARNING: ...` consistent with `WorldLoader.cpp` diagnostics, enabling severity-level grep across all stderr output.
 
