@@ -28,7 +28,21 @@ static constexpr float PURCHASE_INTERVAL = 2.f;
 static std::map<entt::entity, float> s_desperateCooldown;
 
 ConsumptionSystem::ConsumptionSystem(const WorldSchema& schema)
-    : m_schema(schema) {}
+    : m_schema(schema)
+{
+    // Cache need IDs once at construction so we never do string map lookups per tick.
+    m_hungerNeedId = m_schema.FindNeed("Hunger");
+    m_thirstNeedId = m_schema.FindNeed("Thirst");
+
+    if (m_hungerNeedId == INVALID_ID)
+        fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Hunger\" is INVALID_ID — "
+                        "desperation theft will not trigger for Hunger. "
+                        "Check that a need named \"Hunger\" exists in the schema TOML.\n");
+    if (m_thirstNeedId == INVALID_ID)
+        fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Thirst\" is INVALID_ID — "
+                        "desperation theft will not trigger for Thirst. "
+                        "Check that a need named \"Thirst\" exists in the schema TOML.\n");
+}
 
 void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     auto timeView = registry.view<TimeManager>();
@@ -44,21 +58,6 @@ void ConsumptionSystem::Update(entt::registry& registry, float realDt) {
     float heatDrainMult = (csId >= 0 && csId < (int)m_schema.seasons.size())
                           ? m_schema.seasons[csId].heatDrainMod : 0.f;
 
-    // Cache need IDs for theft desperation checks (schema-driven, not hardcoded).
-    // Looked up once and stored as member variables to avoid string map lookups every tick.
-    if (m_hungerNeedId == NOT_CACHED) {
-        m_hungerNeedId = m_schema.FindNeed("Hunger");
-        m_thirstNeedId = m_schema.FindNeed("Thirst");
-
-        if (m_hungerNeedId == INVALID_ID)
-            fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Hunger\" is INVALID_ID — "
-                            "desperation theft will not trigger for Hunger. "
-                            "Check that a need named \"Hunger\" exists in the schema TOML.\n");
-        if (m_thirstNeedId == INVALID_ID)
-            fprintf(stderr, "[ConsumptionSystem] WARNING: cached NeedID for \"Thirst\" is INVALID_ID — "
-                            "desperation theft will not trigger for Thirst. "
-                            "Check that a need named \"Thirst\" exists in the schema TOML.\n");
-    }
     const NeedID hungerNeedId = m_hungerNeedId;
     const NeedID thirstNeedId = m_thirstNeedId;
 
