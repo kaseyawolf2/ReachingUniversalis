@@ -154,26 +154,39 @@ struct HomeSettlement {
     entt::entity prevSettlement = entt::null; // previous home; used for homesickness return
 };
 
-// Tracks how long needs / stockpiles have been deprived (in gameDt seconds).
+// Tracks how long needs / stockpiles have been deprived.
 // Used by DeathSystem and AgentDecisionSystem for migration triggering.
 // Core fields only — medieval-specific social mechanics live in optional
 // components: SocialBehavior, BanditState, GriefState, TheftRecord,
 // PersonalEventState, CharityState.
 //
+// --- Time model ---
+// GAME_MINS_PER_REAL_SEC = 1.0, so 1 real second = 1 game-minute at 1x speed.
+// gameDt (the per-tick delta from TimeManager::GameDt) is in real seconds,
+// which therefore equals game-minutes.
+//
+// Most timer fields in this struct accumulate gameDt and are thus measured in
+// game-minutes (equivalently, real seconds at 1x speed).  For example:
+//   120.0f  = 2 game-hours  = 120 real seconds at 1x speed
+//   720.0f  = 12 game-hours = 720 real seconds at 1x speed  (death threshold)
+//
+// The exception is purchaseTimer, which accumulates gameHoursDt
+// (gameDt * GAME_MINS_PER_REAL_SEC / 60) and is measured in game-hours.
+//
 // WARNING: Use DeprivationTimer::Make(schema) to construct — the default
 // constructor leaves needsAtZero empty (required for entt compatibility).
 struct DeprivationTimer {
-    static constexpr float DEFAULT_MIGRATE_THRESHOLD = 2.f * 60.f;  // 2 game-hours in game-minutes
+    static constexpr float DEFAULT_MIGRATE_THRESHOLD = 2.f * 60.f;  // 2 game-hours = 120 game-minutes
 
-    std::vector<float> needsAtZero;                     // indexed by NeedID; sized from schema.needs
-    float              stockpileEmpty   = 0.f;          // seconds with no food, water, OR heat
-    float              migrateThreshold = DEFAULT_MIGRATE_THRESHOLD;  // game-min before migrating; randomised at spawn
-    float              purchaseTimer    = 0.f;           // game-hours since last emergency market purchase
+    std::vector<float> needsAtZero;                     // indexed by NeedID; sized from schema.needs; unit: game-minutes
+    float              stockpileEmpty   = 0.f;          // game-minutes with no food, water, OR heat
+    float              migrateThreshold = DEFAULT_MIGRATE_THRESHOLD;  // game-minutes before migrating; randomised at spawn
+    float              purchaseTimer    = 0.f;           // game-hours since last emergency market purchase (accumulated via gameHoursDt)
     float              lastSatisfaction = 0.5f;          // rolling average of all needs (0-1); updated in ConsumptionSystem
 
     // Factory: construct with needsAtZero sized from schema.needs.
     // Optional migrateThreshold param (game-minutes); defaults to
-    // DEFAULT_MIGRATE_THRESHOLD (2 game-hours = 2*60).  Most NPC spawns pass a randomised value.
+    // DEFAULT_MIGRATE_THRESHOLD (2 game-hours = 120 game-minutes).  Most NPC spawns pass a randomised value.
     // Audit (2026-04-28): all 9 call sites verified — none pass a hardcoded 2*60;
     // callers either omit the param (using the default) or supply a distinct value
     // (randomised distribution or intentionally different threshold like 5*60).
