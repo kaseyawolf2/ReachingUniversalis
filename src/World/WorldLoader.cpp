@@ -202,7 +202,8 @@ static bool LoadResources(const std::string& path, WorldSchema& schema, std::str
     return true;
 }
 
-static bool LoadSkills(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadSkills(const std::string& path, WorldSchema& schema, std::string& err,
+                       std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -228,7 +229,8 @@ static bool LoadSkills(const std::string& path, WorldSchema& schema, std::string
     return true;
 }
 
-static bool LoadProfessions(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadProfessions(const std::string& path, WorldSchema& schema, std::string& err,
+                            std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -547,7 +549,8 @@ static bool LoadGoals(const std::string& path, WorldSchema& schema, std::string&
     return true;
 }
 
-static bool LoadFacilities(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadFacilities(const std::string& path, WorldSchema& schema, std::string& err,
+                           std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -573,7 +576,8 @@ static bool LoadFacilities(const std::string& path, WorldSchema& schema, std::st
     return true;
 }
 
-static bool LoadAgents(const std::string& path, WorldSchema& schema, std::string& err) {
+static bool LoadAgents(const std::string& path, WorldSchema& schema, std::string& err,
+                       std::vector<LoadWarning>* warnings) {
     if (!fs::exists(path)) { err = path + ": file not found"; return false; }
     auto tbl = ParseFile(path, err);
     if (!err.empty()) return false;
@@ -985,11 +989,11 @@ bool WorldLoader::Load(const std::string& worldDir,
     }
 
     if (fs::exists(dir + "/skills.toml")) {
-        if (!LoadSkills(dir + "/skills.toml", schema, errorMsg)) return false;
+        if (!LoadSkills(dir + "/skills.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/professions.toml")) {
-        if (!LoadProfessions(dir + "/professions.toml", schema, errorMsg)) return false;
+        if (!LoadProfessions(dir + "/professions.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/seasons.toml")) {
@@ -1005,11 +1009,11 @@ bool WorldLoader::Load(const std::string& worldDir,
     }
 
     if (fs::exists(dir + "/facilities.toml")) {
-        if (!LoadFacilities(dir + "/facilities.toml", schema, errorMsg)) return false;
+        if (!LoadFacilities(dir + "/facilities.toml", schema, errorMsg, warnings)) return false;
     }
 
     if (fs::exists(dir + "/agents.toml")) {
-        if (!LoadAgents(dir + "/agents.toml", schema, errorMsg)) return false;
+        if (!LoadAgents(dir + "/agents.toml", schema, errorMsg, warnings)) return false;
     }
 
     // Keybindings (optional: graceful fallback to defaults if absent)
